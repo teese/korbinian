@@ -28,6 +28,7 @@ PROBLEMS and TASKS
  - check why csv file with variants gives extra lines for Q14524
 ~~ DONE - create nonredundant dataset for AAIMON statistics (PREFERABLY WITH BLAST or Uniprot90!) ~~ DONE
  - Nonredundancy test needs to be tested: sp|Q8N349|OR2LD_HUMAN, sp|Q8NH16|OR2L2 together in list 79
+   [could be just slight alignment differences]
  - print out proteins with highest and lowest AAIMON for visual analysis
  - conduct word-cloud analysis of functions for high and low AAIMON
  - check relationship to abundance of each amino acid, and GxxxG motif
