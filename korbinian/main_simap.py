@@ -3786,6 +3786,7 @@ if A09_save_figures_describing_proteins_in_list:
     Enzymes vs NonEnzymes
     '''
     Fig_Nr = Fig_Nr + 1
+    print("Enzymes vs NonEnzymes Fig_Nr = %i" % Fig_Nr)
     #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
     if fig_title == "Enzymes vs NonEnzymes":
         pass
