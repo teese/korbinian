@@ -84,6 +84,7 @@ json_file_with_settings = os.path.join(main_folder, 'settings', 'settings_%02d.j
 '''
 The MAIN script starts here
 '''
+# import publicly available python modules
 import json
 import csv
 import xml.etree.ElementTree as ET
@@ -100,6 +101,7 @@ import platform
 import itertools
 from scipy.stats import ttest_ind
 import sys
+import importlib
 
 #open the settings file
 with open(json_file_with_settings, 'r') as f:
@@ -107,13 +109,20 @@ with open(json_file_with_settings, 'r') as f:
 
 list_number = settings["run_settings"]["uniprot_list"]
 
-#the utils file contains a number of necessary scripts, this needs to be visible to the system
-if settings["file_locations"]["utils"] not in sys.path:
-    sys.path.append(settings["file_locations"]["utils"])
-import mtutils as utils
-# import mtutils, reload(mtutils) might be necessary if the session remembers the old module
-# import imp
-# imp.reload(utils)
+# import private tlab python modules
+# the utils file contains a number of necessary scripts, this needs to be visible to the system.
+# deprecated in favour of the "setup.py" method promoted by Alex
+#if settings["file_locations"]["utils"] not in sys.path:
+#    sys.path.append(settings["file_locations"]["utils"])
+
+# load the tlab utils and tools modules
+import korbinian.mtutils as utils
+import tlabtools.tools as tools
+import tlabtools.figures as figs
+# reload the modules, so the interpreter doesn't need to be restarted after they are updated
+importlib.reload(utils)
+importlib.reload(tools)
+importlib.reload(figs)
 
 ''' -------Setup keyboard interrupt----------
 '''
