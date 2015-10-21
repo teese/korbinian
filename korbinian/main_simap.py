@@ -14,10 +14,7 @@ Credits:        All sections by Mark Teese. The Javascript for SIMAP accession w
 Further Details:For details regarding the java access to SIMAP, see here: E:\Stephis\Projects\Programming\Python\programs\eaSimap_MT_notes.txt
 
 PROBLEMS and TASKS
- - enzymes figure
- - GPCR (non-enz) figure
- - KW list
- - KN reanalysis (highest-lowest propensity list)
+ - git: is under Git, but is not registered in the Settings.
  - check why for Q3KR37_GRM1B_HUMAN homologue 119 the TMD hit and hit_plus_surr_seq do not match! + LLLVISCVICFRYCSVVILSPHHPFHSTPPLFPGTRGLCASACFPTPSALSPHPSPWLGCRVLTPQIRVLLSVPAHRIPPARWHAWVTLSHSRAPSAGRAQGASSALRLLFPPSLVLLVVLNM	DSFHLQSVSKLLLVISCV
  - check why the total_number_of_simap_hits gives the wrong number 
  (df.loc[acc, 'total_number_of_simap_hits'] = query_sequence_node[0].attrib['number_hits'])
