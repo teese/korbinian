@@ -14,6 +14,7 @@ Credits:        All sections by Mark Teese. The Javascript for SIMAP accession w
 Further Details:For details regarding the java access to SIMAP, see here: E:\Stephis\Projects\Programming\Python\programs\eaSimap_MT_notes.txt
 
 PROBLEMS and TASKS
+ - git: is under Git, but is not registered in the Settings.
  - check why for Q3KR37_GRM1B_HUMAN homologue 119 the TMD hit and hit_plus_surr_seq do not match! + LLLVISCVICFRYCSVVILSPHHPFHSTPPLFPGTRGLCASACFPTPSALSPHPSPWLGCRVLTPQIRVLLSVPAHRIPPARWHAWVTLSHSRAPSAGRAQGASSALRLLFPPSLVLLVVLNM	DSFHLQSVSKLLLVISCV
  - check why the total_number_of_simap_hits gives the wrong number 
  (df.loc[acc, 'total_number_of_simap_hits'] = query_sequence_node[0].attrib['number_hits'])
@@ -76,7 +77,8 @@ These parameters need to be changed manually by each user, and for each time the
 settings_number = 2
 main_folder_harddrive = 'D:\\'
 #main_folder_list = [main_folder_harddrive, 'teeselab', 'mark', 'files', 'main']
-main_folder_list = [main_folder_harddrive, 'Schweris', 'Projects', 'Programming', 'Python', 'files', 'MAIN']
+#main_folder_list = [main_folder_harddrive, 'Schweris', 'Projects', 'Programming', 'Python', 'files', 'MAIN']
+main_folder_list = [main_folder_harddrive, 'Databases', 'main']
 main_folder = os.path.join(*main_folder_list)
 json_file_with_settings = os.path.join(main_folder, 'settings', 'settings_%02d.json' % settings_number)
 '''
@@ -677,8 +679,7 @@ if A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv:
         logging.info('Hard disk remaining space =')
         logging.info(size)
         if size[0] < 5:
-            raise utils.HardDriveSpaceException(
-                "Hard drive space limit reached, there is only %s %s space left." % (size[0], size[1]))
+            raise utils.HardDriveSpaceException("Hard drive space limit reached, there is only %s %s space left." % (size[0], size[1]))
             enough_hard_drive_space = False
     except utils.HardDriveSpaceException as e:
         logging.warning(e)
@@ -1934,7 +1935,7 @@ if A09_save_figures_describing_proteins_in_list:
         logging.info('first protein acc = %s, df already exists, '
                      'continuing with save_figures_describing_proteins_in_list' % df.iloc[0][0])
     except NameError:
-        logging.info('df loaded from %s' % dfout01_uniprotcsv)
+        logging.info('df loaded from %s' % dfout08_simap_AAIMON)
         df = pd.read_csv(dfout08_simap_AAIMON, sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
     #filter to remove sequences where no TMDs are found (will contain either np.nan, or 'nan') 
     df = df.loc[df['list_of_TMDs'].notnull()]

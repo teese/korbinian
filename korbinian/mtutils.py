@@ -1026,8 +1026,12 @@ def run_command(command):
         stderr=subprocess.STDOUT)
     return iter(p.stdout.readline, b'')
 
+
+
+
+
 def sleep_15_seconds():
-    #sleep for 30 seconds to not overload the server 
+    # sleep for 30 seconds to not overload the server
     sys.stdout.write("sleeping .")
     sys.stdout.flush()
     for i in range(15):
