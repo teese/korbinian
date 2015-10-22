@@ -2316,7 +2316,9 @@ if A09_save_figures_describing_proteins_in_list:
     sys.stdout.write(str(Fig_Nr) + ', ')
     title = 'Histogram of mean AAIMON ratios'    
     
-    df_mean_AAIMON_each_TM, max_num_TMDs, legend = utils.create_df_with_mean_AAIMON_each_TM(df) 
+    if 'number_of_TMDs' not in df.columns:
+        df['number_of_TMDs'] = df.list_of_TMDs.apply(lambda list_tmds : len(eval(list_tmds)))
+    df_mean_AAIMON_each_TM, max_num_TMDs, legend = utils.create_df_with_mean_AAIMON_each_TM(df)
     
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
@@ -4350,6 +4352,24 @@ if A10_compare_lists:
             logging.warning('ERROR! Too many lists included for analysis in A10_compare_lists')
 
     '''
+    The beta-barrel dataset contained a lot of proteins with an average AAIMON of 1.000000. This can only mean that there are not enough homologues.
+    The singlepass dataset contained only 2 proteins, the alpha-helicas multipass only 8 with 1.000000.
+    All these are excluded from the dataset (and all following graphs). Note that it would be better to exactly count the valid homologues, rather than exclude them afterwards like this.
+    '''
+    #create new list of dataframes
+    df_list_excluding_AAIMON_ones = []
+    for df in df_list:
+        # count numbers of each AAIMON ratio
+        vc_AAIMON = df.AAIMON_ratio_mean_all_TMDs.value_counts()
+        # replace df with a filtered dataframe, with all rows excluded where AAIMON_ratio_mean_all_TMDs is 1.000000
+        if 1.000000 in vc_AAIMON:
+            num_proteins_with_AAIMON_of_ONE = vc_AAIMON[1.000000]
+            logging.info('num_proteins_with_AAIMON_of_ONE in orig dataframe : %i', num_proteins_with_AAIMON_of_ONE)
+            df = df.loc[df['AAIMON_ratio_mean_all_TMDs'] != 1.000000]
+        df_list_excluding_AAIMON_ones.append(df)
+    df_list = df_list_excluding_AAIMON_ones
+
+    '''
     Prepare fonts, colours etc for following figures
     '''
     #set default font size for plot
@@ -4526,8 +4546,37 @@ if A10_compare_lists:
                                                 ylabel=ylabel,legend=protein_list_names
                                                 )
 
+    Fig_Nr = Fig_Nr + 1
+    title = 'TMD_perc_ident_mean'
+    newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
+    #if the plot is the last one, the figure should be saved
+    #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
+    if newfig:
+        #close any old figures
+        plt.close('all')
+        #create a new figure
+        fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
 
-    Fig_Nr = 6
+    for n, df in enumerate(df_list):
+        data_column = 'nonTMD_perc_ident_mean'
+        color = TUM_colours_list_with_greys[n+2]#"#0489B1"
+        alpha = 0.7
+        col_width_value = 0.95
+        ylabel = 'freq'
+        xlabel = data_column
+
+        utils.create_hist_from_df_col_with_auto_binlist(df=df,
+                                                title=title,row_nr=row_nr,col_nr=col_nr,axarr=axarr,num_bins=60,
+                                                settings=settings,
+                                                data_column = data_column,
+                                                color=color,
+                                                alpha=alpha,
+                                                col_width_value=col_width_value,
+                                                fontsize=fontsize,
+                                                xlabel=xlabel,
+                                                ylabel=ylabel,legend=protein_list_names
+                                                )
+    Fig_Nr = Fig_Nr + 1
     title = 'nonTMD_perc_sim_mean' 
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if the plot is the last one, the figure should be saved
@@ -4558,7 +4607,7 @@ if A10_compare_lists:
                                                 ylabel=ylabel,legend=protein_list_names
                                                 )        
 
-    Fig_Nr = 7
+    Fig_Nr = Fig_Nr + 1
     title = 'nonTMD_perc_sim_plus_ident_mean' 
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if the plot is the last one, the figure should be saved
@@ -4590,7 +4639,7 @@ if A10_compare_lists:
                                                 )          
 
                                      
-    Fig_Nr = 8
+    Fig_Nr = Fig_Nr + 1
     title = 'nonTMD_qm_gaps_per_q_residue_mean' 
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if the plot is the last one, the figure should be saved
@@ -4629,7 +4678,7 @@ if A10_compare_lists:
 
 
 
-    Fig_Nr = 9
+    Fig_Nr = Fig_Nr + 1
     title = 'TM01_AAIMON_ratio_mean' 
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if the plot is the last one, the figure should be saved
@@ -4659,9 +4708,9 @@ if A10_compare_lists:
                                                 xlabel=xlabel,
                                                 ylabel=ylabel,legend=protein_list_names
                                                 )                                                   
-                                                
-    Fig_Nr = 10
-    title = 'TM01_start' 
+
+    Fig_Nr = Fig_Nr + 1
+    title = 'TM01_perc_ident_mean'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if the plot is the last one, the figure should be saved
     #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
@@ -4670,15 +4719,52 @@ if A10_compare_lists:
         plt.close('all')
         #create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
-    
+
     for n, df in enumerate(df_list):
-        data_column = 'TM01_start'
+        data_column = 'TM01_perc_ident_mean'
+        if data_column in df.columns:
+            color = TUM_colours_list_with_greys[n+2]#"#0489B1"
+            alpha = 0.7
+            col_width_value = 0.95
+            ylabel = 'freq'
+            xlabel = data_column
+
+            utils.create_hist_from_df_col_with_auto_binlist(df=df,
+                                                    title=title,row_nr=row_nr,col_nr=col_nr,axarr=axarr,num_bins=60,
+                                                    settings=settings,
+                                                    data_column = data_column,
+                                                    color=color,
+                                                    alpha=alpha,
+                                                    col_width_value=col_width_value,
+                                                    fontsize=fontsize,
+                                                    xlabel=xlabel,
+                                                    ylabel=ylabel,legend=protein_list_names
+                                                    )
+    Fig_Nr = Fig_Nr + 1
+    title = 'TM01_start'
+    newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
+    #if the plot is the last one, the figure should be saved
+    #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
+    if newfig:
+        #clear any previous plots
+        plt.close('all')
+        #create a new figure
+        fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
+
+    for n, df in enumerate(df_list):
+        if 'TM01_start' in df.columns:
+            data_column = 'TM01_start'
+        elif 'TM01_start_in_SW_alignment' in df.columns:
+            data_column = 'TM01_start_in_SW_alignment'
+        else:
+            ValueError('Neither TM01_start nor TM01_start_in_SW_alignment are in df.columns')
+
         color = TUM_colours_list_with_greys[n+2]#"#0489B1"
         alpha = 0.7
         col_width_value = 0.95
         ylabel = 'freq'
         xlabel = data_column
-    
+
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                 title=title,row_nr=row_nr,col_nr=col_nr,axarr=axarr,num_bins=60,
                                                 settings=settings,
@@ -4689,9 +4775,9 @@ if A10_compare_lists:
                                                 fontsize=fontsize,
                                                 xlabel=xlabel,
                                                 ylabel=ylabel,legend=protein_list_names
-                                                )                                                   
+                                                )
                                                                                          
-    Fig_Nr = 11
+    Fig_Nr = Fig_Nr + 1
     title = 'number_of_TMDs_in_uniprot_feature_list' 
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if the plot is the last one, the figure should be saved
@@ -4725,7 +4811,7 @@ if A10_compare_lists:
                                                 )                                                   
 
                                                                                          
-    Fig_Nr = 12
+    Fig_Nr = Fig_Nr + 1
     title = 'TM01_ratio_length_of_query_TMD_to_rest_of_match_protein_mean' 
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if the plot is the last one, the figure should be saved
@@ -4759,7 +4845,7 @@ if A10_compare_lists:
     if savefig:
         utils.save_fig_with_subplots(fig=fig, axarr = axarr, base_filename = base_filename_summ_two_lists,
                                      fig_nr = fig_nr, fontsize=fontsize)
-    Fig_Nr = 13
+    Fig_Nr = Fig_Nr + 1
     title = 'SIMAP_total_hits' 
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if the plot is the last one, the figure should be saved
@@ -4828,9 +4914,6 @@ if A10_compare_lists:
 #        utils.save_fig_with_subplots(fig=fig, axarr = axarr, base_filename = base_filename_summ_two_lists,
 #                                     fig_nr = fig_nr, fontsize=fontsize)
 #
-#
-#
-#
 
                       
     #save the figure as it is
@@ -4839,10 +4922,16 @@ if A10_compare_lists:
         utils.save_fig_with_subplots(fig=fig, axarr = axarr, base_filename = base_filename_summ_two_lists,
                                      fig_nr = fig_nr, fontsize=fontsize)
     logging.info('A10_compare_lists is finished')
-    logging.info('df1 AAIMON_ratio_mean_all_TMDs : %0.5f' % df1['AAIMON_ratio_mean_all_TMDs'].mean())
-    logging.info('df2 AAIMON_ratio_mean_all_TMDs : %0.5f' % df2['AAIMON_ratio_mean_all_TMDs'].mean())
-    logging.info('df1 AASMON_ratio_mean_all_TMDs : %0.5f' % df1['AASMON_ratio_mean_all_TMDs'].mean())
-    logging.info('df2 AASMON_ratio_mean_all_TMDs : %0.5f' % df2['AASMON_ratio_mean_all_TMDs'].mean())
+    logging.info('df1 AAIMON_ratio_mean_all_TMDs : %0.5f' % df_list[0]['AAIMON_ratio_mean_all_TMDs'].mean())
+    logging.info('df1 AASMON_ratio_mean_all_TMDs : %0.5f' % df_list[0]['AASMON_ratio_mean_all_TMDs'].mean())
+    logging.info('df2 AAIMON_ratio_mean_all_TMDs : %0.5f' % df_list[1]['AAIMON_ratio_mean_all_TMDs'].mean())
+    logging.info('df2 AASMON_ratio_mean_all_TMDs : %0.5f' % df_list[1]['AASMON_ratio_mean_all_TMDs'].mean())
+    if len(df_list) > 2:
+        logging.info('df3 AAIMON_ratio_mean_all_TMDs : %0.5f' % df_list[2]['AAIMON_ratio_mean_all_TMDs'].mean())
+        logging.info('df3 AASMON_ratio_mean_all_TMDs : %0.5f' % df_list[2]['AASMON_ratio_mean_all_TMDs'].mean())
+    if len(df_list) > 3:
+        logging.info('df4 AAIMON_ratio_mean_all_TMDs : %0.5f' % df_list[3]['AAIMON_ratio_mean_all_TMDs'].mean())
+        logging.info('df4 AASMON_ratio_mean_all_TMDs : %0.5f' % df_list[3]['AASMON_ratio_mean_all_TMDs'].mean())
 #        for ax in axarr.flat:                 
 #            #change axis font size
 #            ax.tick_params(labelsize = fontsize)
