@@ -64,11 +64,12 @@ def all_df_in_list_contain_data(df_list_KW, title = '', KW = '', data_names_list
             both_df_contain_data = False
     return both_df_contain_data
 
-def savefig_if_necessary(savefig, fig, fig_nr, base_filepath, tight_layout = False, formats = ['png','pdf'], dpi = 400):
+def savefig_if_necessary(savefig, fig, fig_nr, base_filepath, tight_layout = False, formats = 'png', dpi = 400):
     '''
     Function to save figure with multiple subplots. (i.e., a canvas containing multiple figures)
     Designed to work with the function create_dict_organising_subplots(), which creates a bool object "savefig".
     Automatically names the figure based on the figure number (fig_nr), using a previously defined file path as a base.
+    for multiple formats, try formats = ['png','pdf']
     '''
     if savefig:
         if 'png' in formats:

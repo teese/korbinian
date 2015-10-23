@@ -1956,6 +1956,21 @@ if A09_save_figures_describing_proteins_in_list:
     #add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
     binlist = np.append(linspace_binlist, settings["hist_settings_mult_proteins"]["final_highest_bin"])   
 
+    '''
+    The beta-barrel dataset contained a lot of proteins with an average AAIMON of 1.000000. This can only mean that there are not enough homologues.
+    The singlepass dataset contained only 2 proteins, the alpha-helicas multipass only 8 with 1.000000.
+    All these are excluded from the dataset (and all following graphs). Note that it would be better to exactly count the valid homologues, rather than exclude them afterwards like this.
+    '''
+    # count numbers of each AAIMON ratio
+    vc_AAIMON = df.AAIMON_ratio_mean_all_TMDs.value_counts()
+    # replace df with a filtered dataframe, with all rows excluded where AAIMON_ratio_mean_all_TMDs is 1.000000
+    if 1.000000 in vc_AAIMON:
+        num_proteins_with_AAIMON_of_ONE = vc_AAIMON[1.000000]
+        total_num_prot_with_data = len(df['AAIMON_ratio_mean_all_TMDs'].dropna())
+        logging.info('num_proteins_with_AAIMON_of_ONE in orig dataframe : %i from %i total' % (num_proteins_with_AAIMON_of_ONE,total_num_prot_with_data))
+        #replace the original dataframe with the dataframe lacking data containing a TMD/rest ratio of exactly 1.
+        df = df.loc[df['AAIMON_ratio_mean_all_TMDs'] != 1.000000]
+
     for acc in df.index:
         dict_AAIMON_ratio_mean = {}
         dict_AAIMON_ratio_std = {}
@@ -2903,79 +2918,81 @@ if A09_save_figures_describing_proteins_in_list:
         #create a new dataframe containing data only for proteins with 7 TMDs
         df_seven = df.loc[df.number_of_TMDs == 7].copy()
         logging.info('df_seven.shape: %s' % str(df_seven.shape))
-        
-        df_mean_AAIMON_each_TM_7TM, max_num_TMDs, legend = utils.create_df_with_mean_AAIMON_each_TM(df_seven)
-        cols_for_analysis = ['TM01','TM06','TM07']
-        newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
-        #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
-        fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
-        
-        num_bins = 30
-        #"#0489B1"
-        alpha = 0.7
-        col_width_value = 0.95
-        ylabel = 'freq'
-        xlabel = 'average conservation ratio (membranous over nonmembranous)'
-        #legend = 
-        
-        for n, TM in enumerate(cols_for_analysis):
-            #define the colour for that TMD
-            #if there are more TMDs than colours, simply start from the beginning of the list again
-            if n < len(tableau20):
-                color_num = n
-            else:
-                color_num = n - len(tableau20)
-            color = tableau20[color_num]
-            
-            hist_data = np.array(df_mean_AAIMON_each_TM_7TM[TM].dropna())
-            '''
-            Calculated the bins for a histogram, even for highly non-normal data
-            '''
-            #calculate 5th percentile
-            percentile_5 = np.percentile(hist_data, 5)#hist_data.min()
-            #calculate 9th percentile
-            percentile_95 = np.percentile(hist_data, 95)#hist_data.max()
-            #calculate difference
-            percentile_95_minus_5 = percentile_95 - percentile_5
-            #create buffer for bins
-            extra_xaxis_range = percentile_95_minus_5 / 4
-            #lowest bin is the 5th percentile minus the buffer, except where that is below zero
-            data_min = percentile_5 - extra_xaxis_range#hist_data.min()
-            #ata_min = 0 if data_max < 0 else data_max
-            #highest bin is the 95th percentile
-            data_max = percentile_95 + extra_xaxis_range#hist_data.max()
-            #create bins using the min and max
-            binlist = np.linspace(data_min,data_max,num_bins)
-            #print(binlist)
-            #use numpy to create a histogram
-            freq_counts_I, bin_array_I = np.histogram(hist_data, bins = binlist)
-            #print(freq_counts_I)
-            #print(bin_array_I)
-            #assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
-            col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
-            #when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-            centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
-            #add the final bin, which is physically located just after the last regular bin but represents all higher values
-            bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-            centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-            linecontainer = axarr[row_nr, col_nr].plot(centre_of_bar_in_x_axis, freq_counts_I, alpha=alpha, linewidth=0.3)  # edgecolor='black',
-        #label the x-axis for each plot, based on the TMD
-        axarr[row_nr, col_nr].set_xlabel(xlabel, fontsize=fontsize)
-        #move the x-axis label closer to the x-axis
-        axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
-        axarr[row_nr, col_nr].set_ylabel(ylabel, rotation='vertical', fontsize=fontsize)
-        #change axis font size
-        axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
-        #create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
-        legend_obj = axarr[row_nr, col_nr].legend(cols_for_analysis, loc='upper right',fontsize=fontsize)
-        #add title
-        #axarr[row_nr, col_nr].set_title(title,fontsize=fontsize)
-        #add figure number to top left of subplot
-        axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
-        #add figure title to top left of subplot
-        axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
-        #improve ggplot style for a canvas (fig) with 4 figures (plots)
-        utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
+
+        # if there are any proteins with 7 TM helices in the dataset (may not be true for beta-barrel datasets)
+        if df_seven.shape[0] != 0:
+            df_mean_AAIMON_each_TM_7TM, max_num_TMDs, legend = utils.create_df_with_mean_AAIMON_each_TM(df_seven)
+            cols_for_analysis = ['TM01','TM06','TM07']
+            newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
+            #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
+            fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
+
+            num_bins = 30
+            #"#0489B1"
+            alpha = 0.7
+            col_width_value = 0.95
+            ylabel = 'freq'
+            xlabel = 'average conservation ratio (membranous over nonmembranous)'
+            #legend =
+
+            for n, TM in enumerate(cols_for_analysis):
+                #define the colour for that TMD
+                #if there are more TMDs than colours, simply start from the beginning of the list again
+                if n < len(tableau20):
+                    color_num = n
+                else:
+                    color_num = n - len(tableau20)
+                color = tableau20[color_num]
+
+                hist_data = np.array(df_mean_AAIMON_each_TM_7TM[TM].dropna())
+                '''
+                Calculated the bins for a histogram, even for highly non-normal data
+                '''
+                #calculate 5th percentile
+                percentile_5 = np.percentile(hist_data, 5)#hist_data.min()
+                #calculate 9th percentile
+                percentile_95 = np.percentile(hist_data, 95)#hist_data.max()
+                #calculate difference
+                percentile_95_minus_5 = percentile_95 - percentile_5
+                #create buffer for bins
+                extra_xaxis_range = percentile_95_minus_5 / 4
+                #lowest bin is the 5th percentile minus the buffer, except where that is below zero
+                data_min = percentile_5 - extra_xaxis_range#hist_data.min()
+                #ata_min = 0 if data_max < 0 else data_max
+                #highest bin is the 95th percentile
+                data_max = percentile_95 + extra_xaxis_range#hist_data.max()
+                #create bins using the min and max
+                binlist = np.linspace(data_min,data_max,num_bins)
+                #print(binlist)
+                #use numpy to create a histogram
+                freq_counts_I, bin_array_I = np.histogram(hist_data, bins = binlist)
+                #print(freq_counts_I)
+                #print(bin_array_I)
+                #assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+                col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
+                #when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+                centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
+                #add the final bin, which is physically located just after the last regular bin but represents all higher values
+                bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+                centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+                linecontainer = axarr[row_nr, col_nr].plot(centre_of_bar_in_x_axis, freq_counts_I, alpha=alpha, linewidth=0.3)  # edgecolor='black',
+            #label the x-axis for each plot, based on the TMD
+            axarr[row_nr, col_nr].set_xlabel(xlabel, fontsize=fontsize)
+            #move the x-axis label closer to the x-axis
+            axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
+            axarr[row_nr, col_nr].set_ylabel(ylabel, rotation='vertical', fontsize=fontsize)
+            #change axis font size
+            axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
+            #create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
+            legend_obj = axarr[row_nr, col_nr].legend(cols_for_analysis, loc='upper right',fontsize=fontsize)
+            #add title
+            #axarr[row_nr, col_nr].set_title(title,fontsize=fontsize)
+            #add figure number to top left of subplot
+            axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+            #add figure title to top left of subplot
+            axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+            #improve ggplot style for a canvas (fig) with 4 figures (plots)
+            utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
             
         #save the figure as it is
         savefig = True
@@ -3072,220 +3089,28 @@ if A09_save_figures_describing_proteins_in_list:
         axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
         #improve ggplot style for a canvas (fig) with 4 figures (plots)
         utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
-              
-        
-        '''
-        Fig18: SHOW ONLY GPCRS IN FULL DATASET
-        '''
-        
-        Fig_Nr = 18
-        title = 'only GPCR in uniprot KW, NORM'
-        #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
-        if fig_title == "Fig18: SHOW ONLY GPCRS IN FULL DATASET":
-            pass 
-        sys.stdout.write(str(Fig_Nr) + ', ')
-        #if it hasn't been done already, convert the keywords from a stringlist to a python list
-        if isinstance(df['uniprot_KW'][0], str):
-            df['uniprot_KW'] = df['uniprot_KW'].apply(lambda x: eval(x))
-        #create a new column showing whether the protein is a GPCR
-        df['G-protein coupled receptor'] = df['uniprot_KW'].apply(lambda x : 'G-protein coupled receptor' in x)
-        df_GPCR = df.loc[df['G-protein coupled receptor'] == True]
-        
-        newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
-        #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
-        fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
-        #create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data_AAIMON_mean = np.array(df_GPCR['AAIMON_ratio_mean_all_TMDs'].dropna())
-        #use numpy to create a histogram
-        freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
-        #normalize the frequency counts
-        freq_counts_normalised = freq_counts_I/freq_counts_I.max()
-        #assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
-        col_width = float('%0.3f' % (0.95 * (bin_array_I[1] - bin_array_I[0])))
-        #when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-        centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
-        #add the final bin, which is physically located just after the last regular bin but represents all higher values
-        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        barcontainer_AAIMON_mean = axarr[row_nr, col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts_normalised,
-                                                             align='center', width=col_width, color="#0489B1",
-                                                             alpha=0.5, linewidth = 0.1)  # edgecolor='black',
-        #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A 
-        #http://html-color-codes.info/
-        #label the x-axis for each plot, based on the TMD
-        axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
-        #move the x-axis label closer to the x-axis
-        axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
-        xlim_min = 0.8
-        xlim_max = 1.5
-        axarr[row_nr, col_nr].set_xlim(xlim_min, xlim_max)
-        #set x-axis ticks
-        #use the slide selection to select every second item in the list as an xtick(axis label)
-        axarr[row_nr, col_nr].set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
-        axarr[row_nr, col_nr].set_ylabel('freq', rotation='vertical', fontsize=fontsize)
-        #change axis font size
-        axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
-        
-        '''
-        NON-GPCRS
-        '''
-        df_nonGPCR = df.loc[df['G-protein coupled receptor'] == False]
-        
-        #create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data_AAIMON_mean = np.array(df_nonGPCR['AAIMON_ratio_mean_all_TMDs'].dropna())
-        #use numpy to create a histogram
-        freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
-        #normalize the frequency counts
-        freq_counts_normalised = freq_counts_I/freq_counts_I.max()
-        #assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
-        col_width = float('%0.3f' % (0.95 * (bin_array_I[1] - bin_array_I[0])))
-        #when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-        centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
-        #add the final bin, which is physically located just after the last regular bin but represents all higher values
-        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        barcontainer_AAIMON_mean = axarr[row_nr, col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts_normalised,
-                                                             align='center', width=col_width, color='#B45F04',
-                                                             alpha=0.5, linewidth = 0.1)  # edgecolor='black',
-        #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A 
-        #http://html-color-codes.info/
-        #label the x-axis for each plot, based on the TMD
-        axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
-        #move the x-axis label closer to the x-axis
-        axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
-        xlim_min = 0.8
-        xlim_max = 1.5
-        axarr[row_nr, col_nr].set_xlim(xlim_min, xlim_max)
-        #set x-axis ticks
-        #use the slide selection to select every second item in the list as an xtick(axis label)
-        axarr[row_nr, col_nr].set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
-        axarr[row_nr, col_nr].set_ylabel('freq', rotation='vertical', fontsize=fontsize)
-        #change axis font size
-        axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
-        #create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
-        legend_obj = axarr[row_nr, col_nr].legend(['AAIMON GPCRs', 'AAIMON non-GPCRs'], loc='upper right',
-                                     fontsize=fontsize)
-        #add figure number to top left of subplot
-        axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
-        #add figure title to top left of subplot
-        axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)                     
-        #improve ggplot style for a canvas (fig) with 4 figures (plots)
-        utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)   
 
-
-
-        '''
-        Fig19: SHOW GPCRS VS FULL DATASET
-        '''
-        Fig_Nr = 19
-        title = 'GPCR vs full dataset, NORM'
-        sys.stdout.write(str(Fig_Nr) + ', ')
-        df_GPCR = df_GPCR #see above, already defined
-        
-    
-        '''GPCR'''
-        newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
-        #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
-        fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
-        #create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data_AAIMON_mean = np.array(df_GPCR['AAIMON_ratio_mean_all_TMDs'].dropna())
-        #use numpy to create a histogram
-        freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
-        #normalize the frequency counts
-        freq_counts_normalised = freq_counts_I/freq_counts_I.max()
-        #assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
-        col_width = float('%0.3f' % (0.95 * (bin_array_I[1] - bin_array_I[0])))
-        #when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-        centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
-        #add the final bin, which is physically located just after the last regular bin but represents all higher values
-        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        barcontainer_AAIMON_mean = axarr[row_nr, col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts_normalised,
-                                                             align='center', width=col_width, color="#0489B1",
-                                                             alpha=0.5, linewidth = 0.1)  # edgecolor='black',
-        #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A 
-        #http://html-color-codes.info/
-        #label the x-axis for each plot, based on the TMD
-        axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
-        #move the x-axis label closer to the x-axis
-        axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
-        xlim_min = 0.8
-        xlim_max = 1.5
-        axarr[row_nr, col_nr].set_xlim(xlim_min, xlim_max)
-        #set x-axis ticks
-        #use the slide selection to select every second item in the list as an xtick(axis label)
-        axarr[row_nr, col_nr].set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
-        axarr[row_nr, col_nr].set_ylabel('freq', rotation='vertical', fontsize=fontsize)
-        #change axis font size
-        axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
-        
-        '''
-        full dataset
-        '''
-        #df_nonGPCR = df.loc[df['Gprotein'] == False]
-        
-        #create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data_AAIMON_mean = np.array(df['AAIMON_ratio_mean_all_TMDs'].dropna())
-        #use numpy to create a histogram
-        freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
-        #normalize the frequency counts
-        freq_counts_normalised = freq_counts_I/freq_counts_I.max()
-        #assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
-        col_width = float('%0.3f' % (0.95 * (bin_array_I[1] - bin_array_I[0])))
-        #when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-        centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
-        #add the final bin, which is physically located just after the last regular bin but represents all higher values
-        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        barcontainer_AAIMON_mean = axarr[row_nr, col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts_normalised,
-                                                             align='center', width=col_width, color='#B45F04',
-                                                             alpha=0.5, linewidth = 0.1)  # edgecolor='black',
-        #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A 
-        #http://html-color-codes.info/
-        #label the x-axis for each plot, based on the TMD
-        axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
-        #move the x-axis label closer to the x-axis
-        axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
-        xlim_min = 0.8
-        xlim_max = 1.5
-        axarr[row_nr, col_nr].set_xlim(xlim_min, xlim_max)
-        #set x-axis ticks
-        #use the slide selection to select every second item in the list as an xtick(axis label)
-        axarr[row_nr, col_nr].set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
-        axarr[row_nr, col_nr].set_ylabel('freq', rotation='vertical', fontsize=fontsize)
-        #change axis font size
-        axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
-        #create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
-        legend_obj = axarr[row_nr, col_nr].legend(['AAIMON GPCR', 'AAIMON ALL'], loc='upper right',
-                                     fontsize=fontsize)
-        #add figure number to top left of subplot
-        axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
-        #add figure title to top left of subplot
-        axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
-        #improve ggplot style for a canvas (fig) with 4 figures (plots)
-        utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)             
-            
         '''
         Fig20: Boxplot of all TMDs
         '''
-        Fig_Nr = 20
+        Fig_Nr = 18
         title = 'Boxplot of all TMDs'
         #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
         if fig_title == "Fig20: Boxplot of all TMDs":
-            pass 
+            pass
         sys.stdout.write(str(Fig_Nr) + ', ')
         newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
         #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
         fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
-        
+
         num_bins = 30
         #"#0489B1"
         alpha = 0.25
         col_width_value = 0.95
         ylabel = 'freq'
         xlabel = 'average conservation ratio (membranous over nonmembranous)'
-        #legend = 
-        
+        #legend =
+
         max_num_TMDs = df.number_of_TMDs.max()
         legend = []
         data_to_plot = []
@@ -3295,9 +3120,9 @@ if A09_save_figures_describing_proteins_in_list:
             if len(hist_data_AAIMON_each_TM) > 0:
                 data_to_plot.append(hist_data_AAIMON_each_TM)
                 legend.append(TM)
-        
+
         meanpointprops = dict(marker='o', markerfacecolor='black', markersize=2)#markeredgecolor='0.75',
-        
+
         flierprops = dict(marker='o', markerfacecolor='green', markersize=12,
                       linestyle='none')
         boxplotcontainer = axarr[row_nr, col_nr].boxplot(data_to_plot, sym='+', whis = 1.5, showmeans=True, meanprops = meanpointprops)
@@ -3308,23 +3133,23 @@ if A09_save_figures_describing_proteins_in_list:
             # change fill color
             #box.set( facecolor = '#1b9e77' )
             box.set_linewidth(0.4)
-            
+
         ## change color and linewidth of the whiskers
         for whisker in boxplotcontainer['whiskers']:
             whisker.set(color='black', linewidth=0.4, dashes = (1,1))
-        
+
         ## change color and linewidth of the caps
         for cap in boxplotcontainer['caps']:
             cap.set(color='black', linewidth=0.4)
-        
+
         ## change color and linewidth of the medians
         for median in boxplotcontainer['medians']:
             median.set(color='black', linewidth=0.4)
-        
+
         # change the style of fliers and their fill
         for flier in boxplotcontainer['fliers']:
             flier.set(marker='o', color = '0.8', alpha=0.1, markerfacecolor='0.3', markersize=3)
-    
+
         ## Remove top axes and right axes ticks
         axarr[row_nr, col_nr].get_xaxis().tick_bottom()
         axarr[row_nr, col_nr].get_yaxis().tick_left()
@@ -3333,365 +3158,683 @@ if A09_save_figures_describing_proteins_in_list:
         #add figure number to top left of subplot
         axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
         #add figure title to top left of subplot
-        axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
-        #improve ggplot style for a canvas (fig) with 4 figures (plots)
-        utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
-        
-        if savefig:
-            #automatically tighten the layout of plots in the figure
-            #fig.tight_layout()
-            #save files
-            fig.savefig(base_filename_summaries + '_%01d.png' % fig_nr, format='png', dpi=400)
-            fig.savefig(base_filename_summaries + '_%01d.pdf' % fig_nr, format='pdf')
-    
-        '''
-        Fig21: Boxplot only GPCRs
-        '''
-        Fig_Nr = 21
-        title = 'Only GPCRs, boxplot for each TMD'  
-        sys.stdout.write(str(Fig_Nr) + ', ')
-        newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
-        #if the plot is the last one, the figure should be saved
-        #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
-        fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
-        
-        num_bins = 30
-        #"#0489B1"
-        alpha = 0.25
-        col_width_value = 0.95
-        ylabel = 'freq'
-        xlabel = 'average conservation ratio (membranous over nonmembranous)'
-        #legend = 
-        
-        max_num_TMDs = df_GPCR.number_of_TMDs.max()
-        legend = []
-        data_to_plot = []
-        for i in range(1, max_num_TMDs):
-            TM = 'TM%02d' % i
-            hist_data_AAIMON_each_TM = df_GPCR['TM%02d_AAIMON_ratio_mean' % i].dropna()
-            if len(hist_data_AAIMON_each_TM) > 0:
-                data_to_plot.append(hist_data_AAIMON_each_TM)
-                legend.append(TM)
-        
-        meanpointprops = dict(marker='o', markerfacecolor='black', markersize=3)#markeredgecolor='0.75',
-        
-        #flierprops = dict(marker='o', color = 'black', markerfacecolor='black', markersize=1)
-        
-        #flierprops = dict(marker='o',color='0.1', alpha=0.1)
-        flierprops = dict(marker='o', markerfacecolor='green', markersize=12,
-                      linestyle='none')
-        boxplotcontainer = axarr[row_nr, col_nr].boxplot(data_to_plot, sym='+', whis = 1.5, showmeans=True, meanprops = meanpointprops)
-        axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
-        for box in boxplotcontainer['boxes']:
-            # change outline color
-            box.set( color='black', linewidth=0.4)#'7570b3'
-            # change fill color
-            #box.set( facecolor = '#1b9e77' )
-            box.set_linewidth(0.4)
-            
-        ## change color and linewidth of the whiskers
-        for whisker in boxplotcontainer['whiskers']:
-            whisker.set(color='black', linewidth=0.4, dashes = (1,1))
-        
-        ## change color and linewidth of the caps
-        for cap in boxplotcontainer['caps']:
-            cap.set(color='black', linewidth=0.4)
-        
-        ## change color and linewidth of the medians
-        for median in boxplotcontainer['medians']:
-            median.set(color='black', linewidth=0.4)
-        
-        # change the style of fliers and their fill
-        for flier in boxplotcontainer['fliers']:
-            flier.set(marker='o', color = '0.8', alpha=0.1, markerfacecolor='0.3', markersize=3)
-    
-        ## Remove top axes and right axes ticks
-        axarr[row_nr, col_nr].get_xaxis().tick_bottom()
-        axarr[row_nr, col_nr].get_yaxis().tick_left()
-        ## Custom x-axis labels
-        axarr[row_nr, col_nr].set_xticklabels(legend, rotation = 45)
-        #add figure number to top left of subplot
-        axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
-        #add figure title to top left of subplot
-        axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
+        axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
         #improve ggplot style for a canvas (fig) with 4 figures (plots)
         utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
 
-    '''
-    SAVE GRAPH BEFORE KEYWORD ANALYSIS
-    '''        
-    #save the figure as it is
-    savefig = True
-    #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-    utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
-    
-    '''
-    Fig25 AND ONWARDS: Histograms split by keywords
-    '''
-    starting_Fig_Nr = Fig_Nr + 1
-    #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
-    if fig_title == "Fig25 AND ONWARDS: Histograms split by keywords":
-        pass
-    #convert the KW stringlist to a python list, if it hasn't been done already
-    if isinstance(df['uniprot_KW'][0], str):
-        df['uniprot_KW'] = df['uniprot_KW'].apply(lambda x: eval(x))
-    #join all keywords together into a large list
-    nested_list_all_KW = list(itertools.chain(*list(df['uniprot_KW'])))
-    #convert list to pandas series
-    all_KW_series = pd.Series(nested_list_all_KW)
-    #obtain series of major keywords
-    KW_counts = all_KW_series.value_counts()
-    #exclude keywords with less than 50 applicable proteins
-    KW_counts_major = KW_counts[KW_counts > 50]
-    #create a list of keywords to be ignored
-    list_ignored_KW = ['Transmembrane', 'Complete proteome', 'Reference proteome', 'Membrane', 'Transmembrane helix','Cell membrane','Repeat', 
-                       'Alternative splicing', 'Sodium', 'Potassium', 'Direct protein sequencing', 'Transducer']
-    #remove undesired keywords from the dataframe (Transmembrane, etc.)
-    for KW in list_ignored_KW:
-        if KW in KW_counts_major.index:
-            KW_counts_major = KW_counts_major.drop(KW)
+        # conduct a keyword analysis for sequences that come from uniprot, or have functional keywords annotated
+        if 'uniprot_KW' in df.columns:
+            '''
+            Fig18: SHOW ONLY GPCRS IN FULL DATASET
+            '''
 
-    '''
-    KW Cross-correlation analysis. 
-    Q: which uniprot keywords in this dataset are related to each other?
-    '''
-    KW_for_correlation_analysis = list(KW_counts.loc[KW_counts > 10].index)
-    #remove undesired keywords from the dataframe (Transmembrane, etc.)
-    for KW in list_ignored_KW:
-        if KW in KW_for_correlation_analysis:
-            KW_for_correlation_analysis.remove(KW)
-            
-    #create an empty dataframe to hold the keyword correlation data
-    len_df = len(KW_for_correlation_analysis)
-    df_KW_corr = pd.DataFrame(index = KW_for_correlation_analysis, columns = KW_for_correlation_analysis)
-            
-    for KW in KW_for_correlation_analysis:
-        #create a new columns describing if the KW is in the KW list of that protein
-        df['contains_KW'] = df['uniprot_KW'].apply(lambda x : KW in x)
-        #slice dataframe to view only entries with that keyword
-        df_KW = df.loc[df['contains_KW'] == True]
-        
-        #now we want to count the number of proteins containing each other keyword (subKW)
-        #iterate through the full keyword list agoun
-        for subKW in KW_for_correlation_analysis:
-            #sys.stdout.write(subKW + ', ')
-            #create a new column describing whether the protein KW list also contains the subKW
-            df['contains_subKW'] = df_KW['uniprot_KW'].apply(lambda x : subKW in x)
-            #count how many of the proteins contain the subKW
-            val_counts = df['contains_subKW'].value_counts()
-            if True in val_counts.index:
-                num_prot_contain_subKW = val_counts[True]
-            else:
-                num_prot_contain_subKW = 0
-            #now add that number to the array of all KW against all KW
-            df_KW_corr.loc[KW, subKW] = num_prot_contain_subKW
-    # normalise the array by dividing the number of common keywords by the total number with that keyword. 
-    # NOTE WELL: it it normalised by the COLUMN keyword, not the row
-    # copy the dataframe
-    df_KW_corr_norm_by_col = df_KW_corr.copy()
-    for col_KW in df_KW_corr_norm_by_col.dropna(axis=1, how = 'all').columns:
-        #obtain the total number with that keyword
-        total_for_that_KW = df_KW_corr_norm_by_col.loc[col_KW, col_KW]
-        #divide each value in the column by the total with that keyword. Present as a percentage.
-        df_KW_corr_norm_by_col[col_KW] = df_KW_corr_norm_by_col[col_KW].dropna().apply(lambda x : x / total_for_that_KW * 100)
-        #round to whole numbers
-        df_KW_corr_norm_by_col[col_KW] = df_KW_corr_norm_by_col[col_KW].dropna().apply(lambda x : np.round(x))
+            Fig_Nr = 19
+            title = 'only GPCR in uniprot KW, NORM'
+            #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
+            if fig_title == "Fig18: SHOW ONLY GPCRS IN FULL DATASET":
+                pass
+            sys.stdout.write(str(Fig_Nr) + ', ')
+            #if it hasn't been done already, convert the keywords from a stringlist to a python list
+            if isinstance(df['uniprot_KW'][0], str):
+                df['uniprot_KW'] = df['uniprot_KW'].apply(lambda x: eval(x))
+            #create a new column showing whether the protein is a GPCR
+            df['G-protein coupled receptor'] = df['uniprot_KW'].apply(lambda x : 'G-protein coupled receptor' in x)
+            df_GPCR = df.loc[df['G-protein coupled receptor'] == True]
 
-    #create a dictionary of the ten top correlated subkeywords for each keyword
-    top_corr_KW_dict = {}
-    for col_KW in df_KW_corr_norm_by_col:
-        #a = df_KW_corr_norm_by_col[col_KW].order()
-        array_top_corr_KW = df_KW_corr_norm_by_col[col_KW].order(ascending= False)[1:11]
-        top_corr_KW_dict[col_KW] = array_top_corr_KW
-    
-    '''
-    25 and onwards: Colour lists and Histograms 
-    '''
-    #prepare colour lists
-    colour_lists = utils.create_colour_lists()
-    TUM_colours_list_with_greys = colour_lists['TUM_colours_list_with_greys']
-    colourlist_greys = [(0.6, 0.7764705882352941, 0.9058823529411765), 'None']
-    
-    #iterate over the dataframe. Note that acc = uniprot accession here.    
-    linspace_binlist = np.linspace(settings["hist_settings_mult_proteins"]["smallest_bin"],
-                                   settings["hist_settings_mult_proteins"]["largest_bin"],
-                                   settings["hist_settings_mult_proteins"]["number_of_bins"])
-    
-    #add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
-    binlist = np.append(linspace_binlist, settings["hist_settings_mult_proteins"]["final_highest_bin"]) 
-    
-    dict_ttest_pvalues = {}
-    
-    for m, KW in enumerate(KW_counts_major.index):
-        Fig_Nr = starting_Fig_Nr + m
-        sys.stdout.write(str(Fig_Nr) + ', ')
-        newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
-        #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
-        fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
-        #KW = 'Receptor'
-        #create a new column showing whether the protein contains that keyword
-        df[KW] = df['uniprot_KW'].apply(lambda x : KW in x)
-        #create dataframes with entries containing, or not containing the particular keyword
-        df_KW = df.loc[df[KW] == True]
-        df_nonKW = df.loc[df[KW] == False]
-        #combine into a list for iteration
-        df_list_KW = [df_KW, df_nonKW]
-    
-        data_dict = {}
-        data_names_list = ['containing keyword', 'without keyword']
-    
-        for n, dfK in enumerate(df_list_KW):
-            data_column = 'AAIMON_ratio_mean_all_TMDs'
-            color = colourlist_greys[n]
-            alpha = 1.0
-            col_width_value = 0.95
-            hist2_shift_to_right = 0.01
-            backgroundcolour = '0.95'
-            hist_data_AAIMON_mean = np.array(dfK[data_column].dropna())
-            #add the data to the dictionary for later analysis, named according to the list above
-            data_dict[data_names_list[n]] = hist_data_AAIMON_mean
-            #move the second histogram bins slightly to the right, so that the bars do not overlap            
-            binlist = binlist + (hist2_shift_to_right * n)
-            # use numpy to create a histogram
-            freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist)
+            newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
+            #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
+            fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
+            #create numpy array of membranous over nonmembranous conservation ratios (identity)
+            hist_data_AAIMON_mean = np.array(df_GPCR['AAIMON_ratio_mean_all_TMDs'].dropna())
+            #use numpy to create a histogram
+            freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
             #normalize the frequency counts
-            freq_counts_normalised = freq_counts/freq_counts.max()    #use numpy to create a histogram
-            #assuming all of the bins are exactly the same size, make the width of the column equal to a percentage of each bin
-            dist_between_bins = (bin_array_I[1] - bin_array_I[0])
-            col_width = float('%0.3f' % (col_width_value * dist_between_bins))
+            freq_counts_normalised = freq_counts_I/freq_counts_I.max()
+            #assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+            col_width = float('%0.3f' % (0.95 * (bin_array_I[1] - bin_array_I[0])))
             #when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-            centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
-            #the last bin is open, and holds all larger datapoints than specified in the binlist. it needs to be added to the list of bars
-            centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + dist_between_bins)
-            #print a warning if the last bar is not actually empty
-            if freq_counts[-1] != 0:
-                logging.warning('for %s, the final bin (%s) has %i entries. The settings "largest_bin" may need to be adjusted.' % (KW,bin_array[-1],freq_counts[-1]))
-            #plot the data as a bar-chart
+            centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
+            #add the final bin, which is physically located just after the last regular bin but represents all higher values
+            bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+            centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
             barcontainer_AAIMON_mean = axarr[row_nr, col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts_normalised,
-                                                                 align='center', width=col_width, color=color,
-                                                                 alpha=alpha, linewidth = 0.1)
-        #obtain data from dictionary
-        data1 = data_dict[data_names_list[0]]
-        data2 = data_dict[data_names_list[1]]
-        #run ttest, assuming unequal variance (http://stackoverflow.com/questions/22611446/perform-2-sample-t-test)
-        t, p = ttest_ind(data1, data2, equal_var = False)
-        #add the ttest results to a dictionary
-        dict_ttest_pvalues[KW] = p
-        #determine symbol describing stat significance
-        signif_symbol = utils.get_signif_symbol(p)
-    
-        #label the x-axis for each plot, based on the TMD
-        axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
-        #move the x-axis label closer to the x-axis
-        axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
-        #alter x-axis limits. Note that if data outside these limits the axis will be automatically adjusted)
-        xlim_min = 0.5
-        xlim_max = 1.6
-        axarr[row_nr, col_nr].set_xlim(xlim_min, xlim_max)
-        #set x-axis ticks
-        #use the slide selection to select every second item in the list as an xtick(axis label)
-        axarr[row_nr, col_nr].set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
-        axarr[row_nr, col_nr].set_ylabel('freq', rotation='vertical', fontsize=fontsize)
-        #change axis font size
-        axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
-        #remove background grid
-        axarr[row_nr, col_nr].grid(False)
-        #add figure number to top left of subplot
-        axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
-        #add figure title to top left of subplot
-        axarr[row_nr, col_nr].annotate(s=KW, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
-        #add a legend describing which hist contains the KW, or doesn't contain the KW
-        legend_obj = axarr[row_nr, col_nr].legend(['containing keyword','without keyword'], loc='upper right',fontsize=fontsize, )
-        #add ttest result to graph
-        axarr[row_nr, col_nr].annotate(s='p = %0.2g (%s)' % (p,signif_symbol), xy = (0.70,0.75), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75) 
-        #improve ggplot style for a canvas (fig) with 4 figures (plots)
-        utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
-        #annotate the correlated keywords to the graph
-        corr_KW = [xc[0:16] for xc in list(top_corr_KW_dict[KW].index)]
-        corr_KW_value = [int(xv) for xv in list(top_corr_KW_dict[KW])]
-        #add "correlated keywords" title
-        axarr[row_nr, col_nr].annotate(s= 'correlated keywords', xy = (0.7,0.65), fontsize=4, xycoords='axes fraction', alpha=0.75)
-        for ann_num, cKW in enumerate(corr_KW):
-            #define y position for annotation
-            ypos_ann = 0.6 - (ann_num * 0.05)
-            #define KW name position
-            ann_pos_xy = (0.7,ypos_ann)
-            #determine position of KW correlation value
-            val_pos_xy = (0.95, ypos_ann)
-            #annotate the KW name
-            axarr[row_nr, col_nr].annotate(s= cKW, xy = ann_pos_xy, fontsize=4, xycoords='axes fraction', alpha=0.75)    
-            #annotate correlation value
-            axarr[row_nr, col_nr].annotate(s= str(corr_KW_value[ann_num]), xy = val_pos_xy, fontsize=4, xycoords='axes fraction', alpha=0.75) 
-        #calculate the odds ratio (TMD/rest conservation for proteins with KW) / (TMD/rest conservation for proteins without KW)
-        odds_ratio_KW_over_nonKW = '%0.2f' % (data1.mean() / data2.mean())
-        #add odds ratio to figure
-        axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)            
+                                                                 align='center', width=col_width, color="#0489B1",
+                                                                 alpha=0.5, linewidth = 0.1)  # edgecolor='black',
+            #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
+            #http://html-color-codes.info/
+            #label the x-axis for each plot, based on the TMD
+            axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
+            #move the x-axis label closer to the x-axis
+            axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
+            xlim_min = 0.8
+            xlim_max = 1.5
+            axarr[row_nr, col_nr].set_xlim(xlim_min, xlim_max)
+            #set x-axis ticks
+            #use the slide selection to select every second item in the list as an xtick(axis label)
+            axarr[row_nr, col_nr].set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
+            axarr[row_nr, col_nr].set_ylabel('freq', rotation='vertical', fontsize=fontsize)
+            #change axis font size
+            axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
 
-        if savefig:
-            #automatically tighten the layout of plots in the figure
-            #fig.tight_layout()
-            #save files
-            fig.savefig(base_filename_summaries + '_%01d.png' % fig_nr, format='png', dpi=400)
-            fig.savefig(base_filename_summaries + '_%01d.pdf' % fig_nr, format='pdf')
+            '''
+            NON-GPCRS
+            '''
+            df_nonGPCR = df.loc[df['G-protein coupled receptor'] == False]
 
-          
-    #only create the following for multi-pass proteins (at least 2 proteins in lost with 7 TMDs)
-    if dataset_contains_multipass_prots:
-        '''
-        Histograms split by keywords, EXCLUDING GPCR
-        '''
-        starting_Fig_Nr = Fig_Nr + 1
-        #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
-        if fig_title == "Histograms split by keywords, EXCLUDING GPCR":
-            pass
-        
-        #recreate the nonGPCR dataframe from the main dataframe
-        df_nonGPCR = df.loc[df['G-protein coupled receptor'] == False]
+            #create numpy array of membranous over nonmembranous conservation ratios (identity)
+            hist_data_AAIMON_mean = np.array(df_nonGPCR['AAIMON_ratio_mean_all_TMDs'].dropna())
+            #use numpy to create a histogram
+            freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
+            #normalize the frequency counts
+            freq_counts_normalised = freq_counts_I/freq_counts_I.max()
+            #assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+            col_width = float('%0.3f' % (0.95 * (bin_array_I[1] - bin_array_I[0])))
+            #when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+            centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
+            #add the final bin, which is physically located just after the last regular bin but represents all higher values
+            bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+            centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+            barcontainer_AAIMON_mean = axarr[row_nr, col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts_normalised,
+                                                                 align='center', width=col_width, color='#B45F04',
+                                                                 alpha=0.5, linewidth = 0.1)  # edgecolor='black',
+            #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
+            #http://html-color-codes.info/
+            #label the x-axis for each plot, based on the TMD
+            axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
+            #move the x-axis label closer to the x-axis
+            axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
+            xlim_min = 0.8
+            xlim_max = 1.5
+            axarr[row_nr, col_nr].set_xlim(xlim_min, xlim_max)
+            #set x-axis ticks
+            #use the slide selection to select every second item in the list as an xtick(axis label)
+            axarr[row_nr, col_nr].set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
+            axarr[row_nr, col_nr].set_ylabel('freq', rotation='vertical', fontsize=fontsize)
+            #change axis font size
+            axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
+            #create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
+            legend_obj = axarr[row_nr, col_nr].legend(['AAIMON GPCRs', 'AAIMON non-GPCRs'], loc='upper right',
+                                         fontsize=fontsize)
+            #add figure number to top left of subplot
+            axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+            #add figure title to top left of subplot
+            axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+            #improve ggplot style for a canvas (fig) with 4 figures (plots)
+            utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
 
-        #join all keywords together into a large list
-        nested_list_all_KW = list(itertools.chain(*list(df_nonGPCR['uniprot_KW'])))
-        #convert list to pandas series
-        all_KW_series = pd.Series(nested_list_all_KW)
-        #obtain series of major keywords
-        KW_counts = all_KW_series.value_counts()
-        #exclude keywords with less than 50 applicable proteins
-        KW_counts_major = KW_counts[KW_counts > 50]
-        
-        #remove undesired keywords from the dataframe (Transmembrane, etc.)
-        for KW in list_ignored_KW:
-            if KW in KW_counts_major.index:
-                KW_counts_major = KW_counts_major.drop(KW)
 
-        #remove 'G-protein coupled receptor' from the series of keywords to test
-        if 'G-protein coupled receptor' in KW_counts_major.index:
-            KW_counts_major = KW_counts_major.drop('G-protein coupled receptor')
-    
-        #iterate over the dataframe. Note that acc = uniprot accession here.    
-        linspace_binlist = np.linspace(settings["hist_settings_mult_proteins"]["smallest_bin"],
-                                       settings["hist_settings_mult_proteins"]["largest_bin"],
-                                       settings["hist_settings_mult_proteins"]["number_of_bins"])
-    
-        #add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
-        binlist = np.append(linspace_binlist, settings["hist_settings_mult_proteins"]["final_highest_bin"]) 
 
-        dict_ttest_pvalues = {}
-        
-        for m, KW in enumerate(KW_counts_major.index):
-            Fig_Nr = starting_Fig_Nr + m
+            '''
+            Fig19: SHOW GPCRS VS FULL DATASET
+            '''
+            Fig_Nr = 20
+            title = 'GPCR vs full dataset, NORM'
+            sys.stdout.write(str(Fig_Nr) + ', ')
+            df_GPCR = df_GPCR #see above, already defined
+
+
+            '''GPCR'''
+            newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
+            #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
+            fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
+            #create numpy array of membranous over nonmembranous conservation ratios (identity)
+            hist_data_AAIMON_mean = np.array(df_GPCR['AAIMON_ratio_mean_all_TMDs'].dropna())
+            #use numpy to create a histogram
+            freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
+            #normalize the frequency counts
+            freq_counts_normalised = freq_counts_I/freq_counts_I.max()
+            #assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+            col_width = float('%0.3f' % (0.95 * (bin_array_I[1] - bin_array_I[0])))
+            #when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+            centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
+            #add the final bin, which is physically located just after the last regular bin but represents all higher values
+            bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+            centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+            barcontainer_AAIMON_mean = axarr[row_nr, col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts_normalised,
+                                                                 align='center', width=col_width, color="#0489B1",
+                                                                 alpha=0.5, linewidth = 0.1)  # edgecolor='black',
+            #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
+            #http://html-color-codes.info/
+            #label the x-axis for each plot, based on the TMD
+            axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
+            #move the x-axis label closer to the x-axis
+            axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
+            xlim_min = 0.8
+            xlim_max = 1.5
+            axarr[row_nr, col_nr].set_xlim(xlim_min, xlim_max)
+            #set x-axis ticks
+            #use the slide selection to select every second item in the list as an xtick(axis label)
+            axarr[row_nr, col_nr].set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
+            axarr[row_nr, col_nr].set_ylabel('freq', rotation='vertical', fontsize=fontsize)
+            #change axis font size
+            axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
+
+            '''
+            full dataset
+            '''
+            #df_nonGPCR = df.loc[df['Gprotein'] == False]
+
+            #create numpy array of membranous over nonmembranous conservation ratios (identity)
+            hist_data_AAIMON_mean = np.array(df['AAIMON_ratio_mean_all_TMDs'].dropna())
+            #use numpy to create a histogram
+            freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
+            #normalize the frequency counts
+            freq_counts_normalised = freq_counts_I/freq_counts_I.max()
+            #assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+            col_width = float('%0.3f' % (0.95 * (bin_array_I[1] - bin_array_I[0])))
+            #when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+            centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
+            #add the final bin, which is physically located just after the last regular bin but represents all higher values
+            bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+            centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+            barcontainer_AAIMON_mean = axarr[row_nr, col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts_normalised,
+                                                                 align='center', width=col_width, color='#B45F04',
+                                                                 alpha=0.5, linewidth = 0.1)  # edgecolor='black',
+            #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
+            #http://html-color-codes.info/
+            #label the x-axis for each plot, based on the TMD
+            axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
+            #move the x-axis label closer to the x-axis
+            axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
+            xlim_min = 0.8
+            xlim_max = 1.5
+            axarr[row_nr, col_nr].set_xlim(xlim_min, xlim_max)
+            #set x-axis ticks
+            #use the slide selection to select every second item in the list as an xtick(axis label)
+            axarr[row_nr, col_nr].set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
+            axarr[row_nr, col_nr].set_ylabel('freq', rotation='vertical', fontsize=fontsize)
+            #change axis font size
+            axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
+            #create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
+            legend_obj = axarr[row_nr, col_nr].legend(['AAIMON GPCR', 'AAIMON ALL'], loc='upper right',
+                                         fontsize=fontsize)
+            #add figure number to top left of subplot
+            axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+            #add figure title to top left of subplot
+            axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+            #improve ggplot style for a canvas (fig) with 4 figures (plots)
+            utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
+
+            if savefig:
+                #automatically tighten the layout of plots in the figure
+                #fig.tight_layout()
+                #save files
+                fig.savefig(base_filename_summaries + '_%01d.png' % fig_nr, format='png', dpi=400)
+                fig.savefig(base_filename_summaries + '_%01d.pdf' % fig_nr, format='pdf')
+
+            '''
+            Fig21: Boxplot only GPCRs
+            '''
+            Fig_Nr = 21
+            title = 'Only GPCRs, boxplot for each TMD'
             sys.stdout.write(str(Fig_Nr) + ', ')
             newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
             #if the plot is the last one, the figure should be saved
             #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
             fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
-            #The boolean for each KW should already be in the dataframe. 
-            #Simply reselect the data from the smaller df excluding GPCRs
-            df_KW = df_nonGPCR.loc[df_nonGPCR[KW] == True]
-            df_nonKW = df_nonGPCR.loc[df_nonGPCR[KW] == False]
-            df_list_KW = [df_KW, df_nonKW]
-            
+
+            num_bins = 30
+            #"#0489B1"
+            alpha = 0.25
+            col_width_value = 0.95
+            ylabel = 'freq'
+            xlabel = 'average conservation ratio (membranous over nonmembranous)'
+            #legend =
+
+            max_num_TMDs = df_GPCR.number_of_TMDs.max()
+            legend = []
+            data_to_plot = []
+            for i in range(1, max_num_TMDs):
+                TM = 'TM%02d' % i
+                hist_data_AAIMON_each_TM = df_GPCR['TM%02d_AAIMON_ratio_mean' % i].dropna()
+                if len(hist_data_AAIMON_each_TM) > 0:
+                    data_to_plot.append(hist_data_AAIMON_each_TM)
+                    legend.append(TM)
+
+            meanpointprops = dict(marker='o', markerfacecolor='black', markersize=3)#markeredgecolor='0.75',
+
+            #flierprops = dict(marker='o', color = 'black', markerfacecolor='black', markersize=1)
+
+            #flierprops = dict(marker='o',color='0.1', alpha=0.1)
+            flierprops = dict(marker='o', markerfacecolor='green', markersize=12,
+                          linestyle='none')
+            boxplotcontainer = axarr[row_nr, col_nr].boxplot(data_to_plot, sym='+', whis = 1.5, showmeans=True, meanprops = meanpointprops)
+            axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
+            for box in boxplotcontainer['boxes']:
+                # change outline color
+                box.set( color='black', linewidth=0.4)#'7570b3'
+                # change fill color
+                #box.set( facecolor = '#1b9e77' )
+                box.set_linewidth(0.4)
+
+            ## change color and linewidth of the whiskers
+            for whisker in boxplotcontainer['whiskers']:
+                whisker.set(color='black', linewidth=0.4, dashes = (1,1))
+
+            ## change color and linewidth of the caps
+            for cap in boxplotcontainer['caps']:
+                cap.set(color='black', linewidth=0.4)
+
+            ## change color and linewidth of the medians
+            for median in boxplotcontainer['medians']:
+                median.set(color='black', linewidth=0.4)
+
+            # change the style of fliers and their fill
+            for flier in boxplotcontainer['fliers']:
+                flier.set(marker='o', color = '0.8', alpha=0.1, markerfacecolor='0.3', markersize=3)
+
+            ## Remove top axes and right axes ticks
+            axarr[row_nr, col_nr].get_xaxis().tick_bottom()
+            axarr[row_nr, col_nr].get_yaxis().tick_left()
+            ## Custom x-axis labels
+            axarr[row_nr, col_nr].set_xticklabels(legend, rotation = 45)
+            #add figure number to top left of subplot
+            axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+            #add figure title to top left of subplot
+            axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+            #improve ggplot style for a canvas (fig) with 4 figures (plots)
+            utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
+
+            '''
+            SAVE GRAPH BEFORE KEYWORD ANALYSIS
+            '''
+            #save the figure as it is
+            savefig = True
+            #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
+            utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
+
+            '''
+            Fig25 AND ONWARDS: Histograms split by keywords
+            '''
+            starting_Fig_Nr = Fig_Nr + 1
+            #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
+            if fig_title == "Fig25 AND ONWARDS: Histograms split by keywords":
+                pass
+            #convert the KW stringlist to a python list, if it hasn't been done already
+            if isinstance(df['uniprot_KW'][0], str):
+                df['uniprot_KW'] = df['uniprot_KW'].apply(lambda x: eval(x))
+            #join all keywords together into a large list
+            nested_list_all_KW = list(itertools.chain(*list(df['uniprot_KW'])))
+            #convert list to pandas series
+            all_KW_series = pd.Series(nested_list_all_KW)
+            #obtain series of major keywords
+            KW_counts = all_KW_series.value_counts()
+            #exclude keywords with less than 50 applicable proteins
+            KW_counts_major = KW_counts[KW_counts > 50]
+            #create a list of keywords to be ignored
+            list_ignored_KW = ['Transmembrane', 'Complete proteome', 'Reference proteome', 'Membrane', 'Transmembrane helix','Cell membrane','Repeat',
+                               'Alternative splicing', 'Sodium', 'Potassium', 'Direct protein sequencing', 'Transducer']
+            #remove undesired keywords from the dataframe (Transmembrane, etc.)
+            for KW in list_ignored_KW:
+                if KW in KW_counts_major.index:
+                    KW_counts_major = KW_counts_major.drop(KW)
+
+            '''
+            KW Cross-correlation analysis.
+            Q: which uniprot keywords in this dataset are related to each other?
+            '''
+            KW_for_correlation_analysis = list(KW_counts.loc[KW_counts > 10].index)
+            #remove undesired keywords from the dataframe (Transmembrane, etc.)
+            for KW in list_ignored_KW:
+                if KW in KW_for_correlation_analysis:
+                    KW_for_correlation_analysis.remove(KW)
+
+            #create an empty dataframe to hold the keyword correlation data
+            len_df = len(KW_for_correlation_analysis)
+            df_KW_corr = pd.DataFrame(index = KW_for_correlation_analysis, columns = KW_for_correlation_analysis)
+
+            for KW in KW_for_correlation_analysis:
+                #create a new columns describing if the KW is in the KW list of that protein
+                df['contains_KW'] = df['uniprot_KW'].apply(lambda x : KW in x)
+                #slice dataframe to view only entries with that keyword
+                df_KW = df.loc[df['contains_KW'] == True]
+
+                #now we want to count the number of proteins containing each other keyword (subKW)
+                #iterate through the full keyword list agoun
+                for subKW in KW_for_correlation_analysis:
+                    #sys.stdout.write(subKW + ', ')
+                    #create a new column describing whether the protein KW list also contains the subKW
+                    df['contains_subKW'] = df_KW['uniprot_KW'].apply(lambda x : subKW in x)
+                    #count how many of the proteins contain the subKW
+                    val_counts = df['contains_subKW'].value_counts()
+                    if True in val_counts.index:
+                        num_prot_contain_subKW = val_counts[True]
+                    else:
+                        num_prot_contain_subKW = 0
+                    #now add that number to the array of all KW against all KW
+                    df_KW_corr.loc[KW, subKW] = num_prot_contain_subKW
+            # normalise the array by dividing the number of common keywords by the total number with that keyword.
+            # NOTE WELL: it it normalised by the COLUMN keyword, not the row
+            # copy the dataframe
+            df_KW_corr_norm_by_col = df_KW_corr.copy()
+            for col_KW in df_KW_corr_norm_by_col.dropna(axis=1, how = 'all').columns:
+                #obtain the total number with that keyword
+                total_for_that_KW = df_KW_corr_norm_by_col.loc[col_KW, col_KW]
+                #divide each value in the column by the total with that keyword. Present as a percentage.
+                df_KW_corr_norm_by_col[col_KW] = df_KW_corr_norm_by_col[col_KW].dropna().apply(lambda x : x / total_for_that_KW * 100)
+                #round to whole numbers
+                df_KW_corr_norm_by_col[col_KW] = df_KW_corr_norm_by_col[col_KW].dropna().apply(lambda x : np.round(x))
+
+            #create a dictionary of the ten top correlated subkeywords for each keyword
+            top_corr_KW_dict = {}
+            for col_KW in df_KW_corr_norm_by_col:
+                #a = df_KW_corr_norm_by_col[col_KW].order()
+                array_top_corr_KW = df_KW_corr_norm_by_col[col_KW].order(ascending= False)[1:11]
+                top_corr_KW_dict[col_KW] = array_top_corr_KW
+
+            '''
+            25 and onwards: Colour lists and Histograms
+            '''
+            #prepare colour lists
+            colour_lists = utils.create_colour_lists()
+            TUM_colours_list_with_greys = colour_lists['TUM_colours_list_with_greys']
+            colourlist_greys = [(0.6, 0.7764705882352941, 0.9058823529411765), 'None']
+
+            #iterate over the dataframe. Note that acc = uniprot accession here.
+            linspace_binlist = np.linspace(settings["hist_settings_mult_proteins"]["smallest_bin"],
+                                           settings["hist_settings_mult_proteins"]["largest_bin"],
+                                           settings["hist_settings_mult_proteins"]["number_of_bins"])
+
+            #add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
+            binlist = np.append(linspace_binlist, settings["hist_settings_mult_proteins"]["final_highest_bin"])
+
+            dict_ttest_pvalues = {}
+
+            for m, KW in enumerate(KW_counts_major.index):
+                Fig_Nr = starting_Fig_Nr + m
+                sys.stdout.write(str(Fig_Nr) + ', ')
+                newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
+                #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
+                fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
+                #KW = 'Receptor'
+                #create a new column showing whether the protein contains that keyword
+                df[KW] = df['uniprot_KW'].apply(lambda x : KW in x)
+                #create dataframes with entries containing, or not containing the particular keyword
+                df_KW = df.loc[df[KW] == True]
+                df_nonKW = df.loc[df[KW] == False]
+                #combine into a list for iteration
+                df_list_KW = [df_KW, df_nonKW]
+
+                data_dict = {}
+                data_names_list = ['containing keyword', 'without keyword']
+
+                for n, dfK in enumerate(df_list_KW):
+                    data_column = 'AAIMON_ratio_mean_all_TMDs'
+                    color = colourlist_greys[n]
+                    alpha = 1.0
+                    col_width_value = 0.95
+                    hist2_shift_to_right = 0.01
+                    backgroundcolour = '0.95'
+                    hist_data_AAIMON_mean = np.array(dfK[data_column].dropna())
+                    #add the data to the dictionary for later analysis, named according to the list above
+                    data_dict[data_names_list[n]] = hist_data_AAIMON_mean
+                    #move the second histogram bins slightly to the right, so that the bars do not overlap
+                    binlist = binlist + (hist2_shift_to_right * n)
+                    # use numpy to create a histogram
+                    freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist)
+                    #normalize the frequency counts
+                    freq_counts_normalised = freq_counts/freq_counts.max()    #use numpy to create a histogram
+                    #assuming all of the bins are exactly the same size, make the width of the column equal to a percentage of each bin
+                    dist_between_bins = (bin_array_I[1] - bin_array_I[0])
+                    col_width = float('%0.3f' % (col_width_value * dist_between_bins))
+                    #when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+                    centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+                    #the last bin is open, and holds all larger datapoints than specified in the binlist. it needs to be added to the list of bars
+                    centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + dist_between_bins)
+                    #print a warning if the last bar is not actually empty
+                    if freq_counts[-1] != 0:
+                        logging.warning('for %s, the final bin (%s) has %i entries. The settings "largest_bin" may need to be adjusted.' % (KW,bin_array[-1],freq_counts[-1]))
+                    #plot the data as a bar-chart
+                    barcontainer_AAIMON_mean = axarr[row_nr, col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts_normalised,
+                                                                         align='center', width=col_width, color=color,
+                                                                         alpha=alpha, linewidth = 0.1)
+                #obtain data from dictionary
+                data1 = data_dict[data_names_list[0]]
+                data2 = data_dict[data_names_list[1]]
+                #run ttest, assuming unequal variance (http://stackoverflow.com/questions/22611446/perform-2-sample-t-test)
+                t, p = ttest_ind(data1, data2, equal_var = False)
+                #add the ttest results to a dictionary
+                dict_ttest_pvalues[KW] = p
+                #determine symbol describing stat significance
+                signif_symbol = utils.get_signif_symbol(p)
+
+                #label the x-axis for each plot, based on the TMD
+                axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
+                #move the x-axis label closer to the x-axis
+                axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
+                #alter x-axis limits. Note that if data outside these limits the axis will be automatically adjusted)
+                xlim_min = 0.5
+                xlim_max = 1.6
+                axarr[row_nr, col_nr].set_xlim(xlim_min, xlim_max)
+                #set x-axis ticks
+                #use the slide selection to select every second item in the list as an xtick(axis label)
+                axarr[row_nr, col_nr].set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
+                axarr[row_nr, col_nr].set_ylabel('freq', rotation='vertical', fontsize=fontsize)
+                #change axis font size
+                axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
+                #remove background grid
+                axarr[row_nr, col_nr].grid(False)
+                #add figure number to top left of subplot
+                axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+                #add figure title to top left of subplot
+                axarr[row_nr, col_nr].annotate(s=KW, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+                #add a legend describing which hist contains the KW, or doesn't contain the KW
+                legend_obj = axarr[row_nr, col_nr].legend(['containing keyword','without keyword'], loc='upper right',fontsize=fontsize, )
+                #add ttest result to graph
+                axarr[row_nr, col_nr].annotate(s='p = %0.2g (%s)' % (p,signif_symbol), xy = (0.70,0.75), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+                #improve ggplot style for a canvas (fig) with 4 figures (plots)
+                utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
+                #annotate the correlated keywords to the graph
+                corr_KW = [xc[0:16] for xc in list(top_corr_KW_dict[KW].index)]
+                corr_KW_value = [int(xv) for xv in list(top_corr_KW_dict[KW])]
+                #add "correlated keywords" title
+                axarr[row_nr, col_nr].annotate(s= 'correlated keywords', xy = (0.7,0.65), fontsize=4, xycoords='axes fraction', alpha=0.75)
+                for ann_num, cKW in enumerate(corr_KW):
+                    #define y position for annotation
+                    ypos_ann = 0.6 - (ann_num * 0.05)
+                    #define KW name position
+                    ann_pos_xy = (0.7,ypos_ann)
+                    #determine position of KW correlation value
+                    val_pos_xy = (0.95, ypos_ann)
+                    #annotate the KW name
+                    axarr[row_nr, col_nr].annotate(s= cKW, xy = ann_pos_xy, fontsize=4, xycoords='axes fraction', alpha=0.75)
+                    #annotate correlation value
+                    axarr[row_nr, col_nr].annotate(s= str(corr_KW_value[ann_num]), xy = val_pos_xy, fontsize=4, xycoords='axes fraction', alpha=0.75)
+                #calculate the odds ratio (TMD/rest conservation for proteins with KW) / (TMD/rest conservation for proteins without KW)
+                odds_ratio_KW_over_nonKW = '%0.2f' % (data1.mean() / data2.mean())
+                #add odds ratio to figure
+                axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+
+                if savefig:
+                    #automatically tighten the layout of plots in the figure
+                    #fig.tight_layout()
+                    #save files
+                    fig.savefig(base_filename_summaries + '_%01d.png' % fig_nr, format='png', dpi=400)
+                    fig.savefig(base_filename_summaries + '_%01d.pdf' % fig_nr, format='pdf')
+
+
+            #only create the following for multi-pass proteins (at least 2 proteins in lost with 7 TMDs)
+            if dataset_contains_multipass_prots:
+                '''
+                Histograms split by keywords, EXCLUDING GPCR
+                '''
+                starting_Fig_Nr = Fig_Nr + 1
+                #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
+                if fig_title == "Histograms split by keywords, EXCLUDING GPCR":
+                    pass
+
+                #recreate the nonGPCR dataframe from the main dataframe
+                df_nonGPCR = df.loc[df['G-protein coupled receptor'] == False]
+
+                #join all keywords together into a large list
+                nested_list_all_KW = list(itertools.chain(*list(df_nonGPCR['uniprot_KW'])))
+                #convert list to pandas series
+                all_KW_series = pd.Series(nested_list_all_KW)
+                #obtain series of major keywords
+                KW_counts = all_KW_series.value_counts()
+                #exclude keywords with less than 50 applicable proteins
+                KW_counts_major = KW_counts[KW_counts > 50]
+
+                #remove undesired keywords from the dataframe (Transmembrane, etc.)
+                for KW in list_ignored_KW:
+                    if KW in KW_counts_major.index:
+                        KW_counts_major = KW_counts_major.drop(KW)
+
+                #remove 'G-protein coupled receptor' from the series of keywords to test
+                if 'G-protein coupled receptor' in KW_counts_major.index:
+                    KW_counts_major = KW_counts_major.drop('G-protein coupled receptor')
+
+                #iterate over the dataframe. Note that acc = uniprot accession here.
+                linspace_binlist = np.linspace(settings["hist_settings_mult_proteins"]["smallest_bin"],
+                                               settings["hist_settings_mult_proteins"]["largest_bin"],
+                                               settings["hist_settings_mult_proteins"]["number_of_bins"])
+
+                #add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
+                binlist = np.append(linspace_binlist, settings["hist_settings_mult_proteins"]["final_highest_bin"])
+
+                dict_ttest_pvalues = {}
+
+                for m, KW in enumerate(KW_counts_major.index):
+                    Fig_Nr = starting_Fig_Nr + m
+                    sys.stdout.write(str(Fig_Nr) + ', ')
+                    newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
+                    #if the plot is the last one, the figure should be saved
+                    #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
+                    fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
+                    #The boolean for each KW should already be in the dataframe.
+                    #Simply reselect the data from the smaller df excluding GPCRs
+                    df_KW = df_nonGPCR.loc[df_nonGPCR[KW] == True]
+                    df_nonKW = df_nonGPCR.loc[df_nonGPCR[KW] == False]
+                    df_list_KW = [df_KW, df_nonKW]
+
+                    data_dict = {}
+                    data_names_list = ['containing keyword', 'without keyword']
+
+                    for n, dfK in enumerate(df_list_KW):
+                        data_column = 'AAIMON_ratio_mean_all_TMDs'
+                        color = colourlist_greys[n]
+                        alpha = 1.0
+                        col_width_value = 0.95
+                        hist2_shift_to_right = 0.01
+                        backgroundcolour = '0.95'
+                        hist_data_AAIMON_mean = np.array(dfK[data_column].dropna())
+                        #add the data to the dictionary for later analysis, named according to the list above
+                        data_dict[data_names_list[n]] = hist_data_AAIMON_mean
+                        #move the second histogram bins slightly to the right, so that the bars do not overlap
+                        binlist = binlist + (hist2_shift_to_right * n)
+                        data_dict[data_names_list[n]] = hist_data_AAIMON_mean
+                        # use numpy to create a histogram
+                        freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist)
+                        # check if there proteins in the final bin (should be 30, and for mult proteins have a freq of 0)
+                        if freq_counts[-1] != 0:
+                            logging.warning('for %s, the final bin (%s) has %i entries' % (KW,bin_array[-1],freq_counts[-1]))
+                        #normalize the frequency counts
+                        freq_counts_normalised = freq_counts/freq_counts.max()    #use numpy to create a histogram
+                        #assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+                        col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
+                        #when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+                        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+                        #add the final bin, which is physically located just after the last regular bin but represents all higher values
+                        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+                        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+                        barcontainer_AAIMON_mean = axarr[row_nr, col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts_normalised,
+                                                                             align='center', width=col_width, color=color,
+                                                                             alpha=alpha, linewidth = 0.1)
+                    #obtain data from dictionary
+                    data1 = data_dict[data_names_list[0]]
+                    data2 = data_dict[data_names_list[1]]
+                    #run ttest, assuming unequal variance (http://stackoverflow.com/questions/22611446/perform-2-sample-t-test)
+                    t, p = ttest_ind(data1, data2, equal_var = False)
+                    #add the ttest results to a dictionary
+                    dict_ttest_pvalues[KW] = p
+                    #determine symbol describing stat significance
+                    signif_symbol = utils.get_signif_symbol(p)
+
+                    #label the x-axis
+                    axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
+                    #move the x-axis label closer to the x-axis
+                    axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
+                    xlim_min = 0.8
+                    xlim_max = 1.5
+                    axarr[row_nr, col_nr].set_xlim(xlim_min, xlim_max)
+                    #set x-axis ticks
+                    #use the slide selection to select every second item in the list as an xtick(axis label)
+                    axarr[row_nr, col_nr].set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
+                    axarr[row_nr, col_nr].set_ylabel('freq', rotation='vertical', fontsize=fontsize)
+                    #change axis font size
+                    axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
+                    #add figure number to top left of subplot
+                    axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+                    #add figure title to top left of subplot
+                    axarr[row_nr, col_nr].annotate(s=KW + ' nonGPCR', xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+                    #add a legend describing which hist contains the KW, or doesn't contain the KW
+                    legend_obj = axarr[row_nr, col_nr].legend(['containing keyword','without keyword'], loc='upper right',fontsize=fontsize)
+                    #add ttest result to graph
+                    axarr[row_nr, col_nr].annotate(s='p = %0.2g (%s)' % (p,signif_symbol), xy = (0.70,0.75), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+                    #improve ggplot style for a canvas (fig) with 4 figures (plots)
+                    utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
+                    #annotate the correlated keywords to the graph
+                    corr_KW = [xc[0:16] for xc in list(top_corr_KW_dict[KW].index)]
+                    corr_KW_value = [int(xv) for xv in list(top_corr_KW_dict[KW])]
+                    #add "correlated keywords" title
+                    axarr[row_nr, col_nr].annotate(s= 'correlated keywords', xy = (0.7,0.65), fontsize=4, xycoords='axes fraction', alpha=0.75)
+                    for ann_num, cKW in enumerate(corr_KW):
+                        #define y position for annotation
+                        ypos_ann = 0.6 - (ann_num * 0.05)
+                        #define KW name position
+                        ann_pos_xy = (0.7,ypos_ann)
+                        #determine position of KW correlation value
+                        val_pos_xy = (0.95, ypos_ann)
+                        #annotate the KW name
+                        axarr[row_nr, col_nr].annotate(s= cKW, xy = ann_pos_xy, fontsize=4, xycoords='axes fraction', alpha=0.75)
+                        #annotate correlation value
+                        axarr[row_nr, col_nr].annotate(s= str(corr_KW_value[ann_num]), xy = val_pos_xy, fontsize=4, xycoords='axes fraction', alpha=0.75)
+                    #calculate the odds ratio (TMD/rest conservation for proteins with KW) / (TMD/rest conservation for proteins without KW)
+                    odds_ratio_KW_over_nonKW = '%0.2f' % (data1.mean() / data2.mean())
+                    #add odds ratio to figure
+                    axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+
+                    if savefig:
+                        #automatically tighten the layout of plots in the figure
+                        #fig.tight_layout()
+                        #save files
+                        fig.savefig(base_filename_summaries + '_%01d.png' % fig_nr, format='png', dpi=400)
+                        fig.savefig(base_filename_summaries + '_%01d.pdf' % fig_nr, format='pdf')
+
+            '''
+            Enzymes vs NonEnzymes
+            '''
+            Fig_Nr = Fig_Nr + 1
+            print("Enzymes vs NonEnzymes Fig_Nr = %i" % Fig_Nr)
+            #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
+            if fig_title == "Enzymes vs NonEnzymes":
+                pass
+            sys.stdout.write(str(Fig_Nr) + ', ')
+            list_enzyme_KW = ['Transferase', 'Hydrolase', 'Glycosyltransferase', 'Protease', 'Kinase', 'Oxidoreductase', 'Metalloprotease',
+                             'Serine protease', 'Protein phosphatase', 'Ligase', 'Acyltransferase', 'Serine/threonine-protein kinase', 'Glycosidase',
+                             'Aminopeptidase','Isomerase', 'Methyltransferase', 'Carboxypeptidase', 'Hydroxylation', 'Aspartyl protease',
+                             'Serine esterase', 'Lipid biosynthesis', 'GPI-anchor biosynthesis', 'Steroid biosynthesis', 'Melanin biosynthesis',
+                             'Thyroid hormones biosynthesis', 'Phospholipid biosynthesis', 'Sterol biosynthesis', 'Glutathione biosynthesis',
+                             'Cholesterol biosynthesis', 'Fatty acid biosynthesis', 'Prostaglandin biosynthesis', 'cGMP biosynthesis', 'Leukotriene biosynthesis',
+                             'Catecholamine biosynthesis', 'Lipid metabolism', 'Carbohydrate metabolism', 'Steroid metabolism', 'Sterol metabolism',
+                             'Sphingolipid metabolism', 'Cholesterol metabolism', 'Fatty acid metabolism',
+                             'Phospholipid metabolism', 'Catecholamine metabolism', 'Prostaglandin metabolism', 'Glycogen metabolism', 'Fucose metabolism']
+
+
+            df['enzyme'] = df['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args = (list_enzyme_KW,))
+
+            newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
+            #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
+            fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
+
+            #create dataframes with entries containing, or not containing the particular keyword
+            df_enzyme = df.loc[df['enzyme'] == True]
+            df_nonenzyme= df.loc[df['enzyme'] == False]
+            df_list_KW = [df_enzyme, df_nonenzyme]
+
             data_dict = {}
-            data_names_list = ['containing keyword', 'without keyword']
-            
+            data_names_list = ['enzyme', 'nonenzyme']
+
             for n, dfK in enumerate(df_list_KW):
                 data_column = 'AAIMON_ratio_mean_all_TMDs'
                 color = colourlist_greys[n]
@@ -3702,9 +3845,8 @@ if A09_save_figures_describing_proteins_in_list:
                 hist_data_AAIMON_mean = np.array(dfK[data_column].dropna())
                 #add the data to the dictionary for later analysis, named according to the list above
                 data_dict[data_names_list[n]] = hist_data_AAIMON_mean
-                #move the second histogram bins slightly to the right, so that the bars do not overlap            
+                #move the second histogram bins slightly to the right, so that the bars do not overlap
                 binlist = binlist + (hist2_shift_to_right * n)
-                data_dict[data_names_list[n]] = hist_data_AAIMON_mean
                 # use numpy to create a histogram
                 freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist)
                 # check if there proteins in the final bin (should be 30, and for mult proteins have a freq of 0)
@@ -3727,12 +3869,10 @@ if A09_save_figures_describing_proteins_in_list:
             data2 = data_dict[data_names_list[1]]
             #run ttest, assuming unequal variance (http://stackoverflow.com/questions/22611446/perform-2-sample-t-test)
             t, p = ttest_ind(data1, data2, equal_var = False)
-            #add the ttest results to a dictionary
-            dict_ttest_pvalues[KW] = p
             #determine symbol describing stat significance
-            signif_symbol = utils.get_signif_symbol(p)        
-            
-            #label the x-axis
+            signif_symbol = utils.get_signif_symbol(p)
+
+            #label the x-axis for each plot, based on the TMD
             axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
             #move the x-axis label closer to the x-axis
             axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
@@ -3748,543 +3888,421 @@ if A09_save_figures_describing_proteins_in_list:
             #add figure number to top left of subplot
             axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
             #add figure title to top left of subplot
-            axarr[row_nr, col_nr].annotate(s=KW + ' nonGPCR', xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
+            axarr[row_nr, col_nr].annotate(s='. Enzymes', xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
             #add a legend describing which hist contains the KW, or doesn't contain the KW
-            legend_obj = axarr[row_nr, col_nr].legend(['containing keyword','without keyword'], loc='upper right',fontsize=fontsize)
+            legend_obj = axarr[row_nr, col_nr].legend(data_names_list, loc='upper right',fontsize=fontsize)
             #add ttest result to graph
-            axarr[row_nr, col_nr].annotate(s='p = %0.2g (%s)' % (p,signif_symbol), xy = (0.70,0.75), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75) 
+            axarr[row_nr, col_nr].annotate(s='p = %0.2g (%s)' % (p,signif_symbol), xy = (0.70,0.75), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
             #improve ggplot style for a canvas (fig) with 4 figures (plots)
-            utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)            
-            #annotate the correlated keywords to the graph
-            corr_KW = [xc[0:16] for xc in list(top_corr_KW_dict[KW].index)]
-            corr_KW_value = [int(xv) for xv in list(top_corr_KW_dict[KW])]
-            #add "correlated keywords" title
-            axarr[row_nr, col_nr].annotate(s= 'correlated keywords', xy = (0.7,0.65), fontsize=4, xycoords='axes fraction', alpha=0.75)
-            for ann_num, cKW in enumerate(corr_KW):
-                #define y position for annotation
-                ypos_ann = 0.6 - (ann_num * 0.05)
-                #define KW name position
-                ann_pos_xy = (0.7,ypos_ann)
-                #determine position of KW correlation value
-                val_pos_xy = (0.95, ypos_ann)
-                #annotate the KW name
-                axarr[row_nr, col_nr].annotate(s= cKW, xy = ann_pos_xy, fontsize=4, xycoords='axes fraction', alpha=0.75)    
-                #annotate correlation value
-                axarr[row_nr, col_nr].annotate(s= str(corr_KW_value[ann_num]), xy = val_pos_xy, fontsize=4, xycoords='axes fraction', alpha=0.75)  
+            utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
             #calculate the odds ratio (TMD/rest conservation for proteins with KW) / (TMD/rest conservation for proteins without KW)
             odds_ratio_KW_over_nonKW = '%0.2f' % (data1.mean() / data2.mean())
             #add odds ratio to figure
-            axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)                
-            
-            if savefig:
-                #automatically tighten the layout of plots in the figure
-                #fig.tight_layout()
-                #save files
-                fig.savefig(base_filename_summaries + '_%01d.png' % fig_nr, format='png', dpi=400)
-                fig.savefig(base_filename_summaries + '_%01d.pdf' % fig_nr, format='pdf')
-
-    '''
-    Enzymes vs NonEnzymes
-    '''
-    Fig_Nr = Fig_Nr + 1
-    print("Enzymes vs NonEnzymes Fig_Nr = %i" % Fig_Nr)
-    #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
-    if fig_title == "Enzymes vs NonEnzymes":
-        pass
-    sys.stdout.write(str(Fig_Nr) + ', ')
-    list_enzyme_KW = ['Transferase', 'Hydrolase', 'Glycosyltransferase', 'Protease', 'Kinase', 'Oxidoreductase', 'Metalloprotease',
-                     'Serine protease', 'Protein phosphatase', 'Ligase', 'Acyltransferase', 'Serine/threonine-protein kinase', 'Glycosidase',
-                     'Aminopeptidase','Isomerase', 'Methyltransferase', 'Carboxypeptidase', 'Hydroxylation', 'Aspartyl protease',
-                     'Serine esterase', 'Lipid biosynthesis', 'GPI-anchor biosynthesis', 'Steroid biosynthesis', 'Melanin biosynthesis',
-                     'Thyroid hormones biosynthesis', 'Phospholipid biosynthesis', 'Sterol biosynthesis', 'Glutathione biosynthesis',
-                     'Cholesterol biosynthesis', 'Fatty acid biosynthesis', 'Prostaglandin biosynthesis', 'cGMP biosynthesis', 'Leukotriene biosynthesis', 
-                     'Catecholamine biosynthesis', 'Lipid metabolism', 'Carbohydrate metabolism', 'Steroid metabolism', 'Sterol metabolism', 
-                     'Sphingolipid metabolism', 'Cholesterol metabolism', 'Fatty acid metabolism',
-                     'Phospholipid metabolism', 'Catecholamine metabolism', 'Prostaglandin metabolism', 'Glycogen metabolism', 'Fucose metabolism']
-
-    
-    df['enzyme'] = df['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args = (list_enzyme_KW,))
-    
-    newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
-    #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
-    fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
-    
-    #create dataframes with entries containing, or not containing the particular keyword
-    df_enzyme = df.loc[df['enzyme'] == True]
-    df_nonenzyme= df.loc[df['enzyme'] == False]
-    df_list_KW = [df_enzyme, df_nonenzyme]
-    
-    data_dict = {}
-    data_names_list = ['enzyme', 'nonenzyme']
-    
-    for n, dfK in enumerate(df_list_KW):
-        data_column = 'AAIMON_ratio_mean_all_TMDs'  
-        color = colourlist_greys[n]
-        alpha = 1.0
-        col_width_value = 0.95
-        hist2_shift_to_right = 0.01
-        backgroundcolour = '0.95'
-        hist_data_AAIMON_mean = np.array(dfK[data_column].dropna())
-        #add the data to the dictionary for later analysis, named according to the list above
-        data_dict[data_names_list[n]] = hist_data_AAIMON_mean
-        #move the second histogram bins slightly to the right, so that the bars do not overlap            
-        binlist = binlist + (hist2_shift_to_right * n)
-        # use numpy to create a histogram
-        freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist)
-        # check if there proteins in the final bin (should be 30, and for mult proteins have a freq of 0)
-        if freq_counts[-1] != 0:
-            logging.warning('for %s, the final bin (%s) has %i entries' % (KW,bin_array[-1],freq_counts[-1]))
-        #normalize the frequency counts
-        freq_counts_normalised = freq_counts/freq_counts.max()    #use numpy to create a histogram
-        #assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
-        col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
-        #when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
-        #add the final bin, which is physically located just after the last regular bin but represents all higher values
-        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        barcontainer_AAIMON_mean = axarr[row_nr, col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts_normalised,
-                                                             align='center', width=col_width, color=color,
-                                                             alpha=alpha, linewidth = 0.1)
-    #obtain data from dictionary
-    data1 = data_dict[data_names_list[0]]
-    data2 = data_dict[data_names_list[1]]
-    #run ttest, assuming unequal variance (http://stackoverflow.com/questions/22611446/perform-2-sample-t-test)
-    t, p = ttest_ind(data1, data2, equal_var = False)
-    #determine symbol describing stat significance
-    signif_symbol = utils.get_signif_symbol(p) 
-    
-    #label the x-axis for each plot, based on the TMD
-    axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
-    #move the x-axis label closer to the x-axis
-    axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
-    xlim_min = 0.8
-    xlim_max = 1.5
-    axarr[row_nr, col_nr].set_xlim(xlim_min, xlim_max)
-    #set x-axis ticks
-    #use the slide selection to select every second item in the list as an xtick(axis label)
-    axarr[row_nr, col_nr].set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
-    axarr[row_nr, col_nr].set_ylabel('freq', rotation='vertical', fontsize=fontsize)
-    #change axis font size
-    axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
-    #add figure number to top left of subplot
-    axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
-    #add figure title to top left of subplot
-    axarr[row_nr, col_nr].annotate(s='. Enzymes', xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
-    #add a legend describing which hist contains the KW, or doesn't contain the KW
-    legend_obj = axarr[row_nr, col_nr].legend(data_names_list, loc='upper right',fontsize=fontsize)
-    #add ttest result to graph
-    axarr[row_nr, col_nr].annotate(s='p = %0.2g (%s)' % (p,signif_symbol), xy = (0.70,0.75), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75) 
-    #improve ggplot style for a canvas (fig) with 4 figures (plots)
-    utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)  
-    #calculate the odds ratio (TMD/rest conservation for proteins with KW) / (TMD/rest conservation for proteins without KW)
-    odds_ratio_KW_over_nonKW = '%0.2f' % (data1.mean() / data2.mean())
-    #add odds ratio to figure
-    axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75) 
-    #calculate the odds ratio (TMD/rest conservation for proteins with KW) / (TMD/rest conservation for proteins without KW)
-    odds_ratio_KW_over_nonKW = '%0.2f' % (data1.mean() / data2.mean())
-    #add odds ratio to figure
-    axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)            
-
-
-    if dataset_contains_multipass_prots:
-        '''
-        Enzymes vs NonEnzymes, Non-GPCR ONLY
-        '''
-        Fig_Nr = Fig_Nr + 1
-        #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
-        if fig_title == "Enzymes vs NonEnzymes, Non-GPCR ONLY":
-            pass
-        sys.stdout.write(str(Fig_Nr) + ', ')
-        
-        newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
-        #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
-        fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
-        
-        #create nonGPCR dataframe view
-        df_nonGPCR = df.loc[df['G-protein coupled receptor'] == False]
-        #create enzyme and nonenzyme dataframe views
-        df_enzyme = df_nonGPCR.loc[df['enzyme'] == True]
-        df_nonenzyme= df_nonGPCR.loc[df['enzyme'] == False]
-        
-        df_list_KW = [df_enzyme, df_nonenzyme]    
-        
-        data_dict = {}
-        data_names_list = ['enzyme', 'nonenzyme']
-        
-        for n, dfK in enumerate(df_list_KW):
-            data_column = 'AAIMON_ratio_mean_all_TMDs'  
-            color = colourlist_greys[n]
-            alpha = 1.0
-            col_width_value = 0.95
-            hist2_shift_to_right = 0.01
-            backgroundcolour = '0.95'
-            hist_data_AAIMON_mean = np.array(dfK[data_column].dropna())
-            #add the data to the dictionary for later analysis, named according to the list above
-            data_dict[data_names_list[n]] = hist_data_AAIMON_mean
-            #move the second histogram bins slightly to the right, so that the bars do not overlap            
-            binlist = binlist + (hist2_shift_to_right * n)
-            # use numpy to create a histogram
-            freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist)
-            # check if there proteins in the final bin (should be 30, and for mult proteins have a freq of 0)
-            if freq_counts[-1] != 0:
-                logging.warning('for %s, the final bin (%s) has %i entries' % (KW,bin_array[-1],freq_counts[-1]))
-            #normalize the frequency counts
-            freq_counts_normalised = freq_counts/freq_counts.max()    #use numpy to create a histogram
-            #assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
-            col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
-            #when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-            centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
-            #add the final bin, which is physically located just after the last regular bin but represents all higher values
-            bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-            centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-            barcontainer_AAIMON_mean = axarr[row_nr, col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts_normalised,
-                                                                 align='center', width=col_width, color=color,
-                                                                 alpha=alpha, linewidth = 0.1)
-        #obtain data from dictionary
-        data1 = data_dict[data_names_list[0]]
-        data2 = data_dict[data_names_list[1]]
-        #run ttest, assuming unequal variance (http://stackoverflow.com/questions/22611446/perform-2-sample-t-test)
-        t, p = ttest_ind(data1, data2, equal_var = False)
-        #determine symbol describing stat significance
-        signif_symbol = utils.get_signif_symbol(p) 
-        
-        #label the x-axis for each plot, based on the TMD
-        axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
-        #move the x-axis label closer to the x-axis
-        axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
-        xlim_min = 0.8
-        xlim_max = 1.5
-        axarr[row_nr, col_nr].set_xlim(xlim_min, xlim_max)
-        #set x-axis ticks
-        #use the slide selection to select every second item in the list as an xtick(axis label)
-        axarr[row_nr, col_nr].set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
-        axarr[row_nr, col_nr].set_ylabel('freq', rotation='vertical', fontsize=fontsize)
-        #change axis font size
-        axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
-        #add figure number to top left of subplot
-        axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
-        #add figure title to top left of subplot
-        axarr[row_nr, col_nr].annotate(s='. Enzymes (all NonGPCR)', xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
-        #add a legend describing which hist contains the KW, or doesn't contain the KW
-        legend_obj = axarr[row_nr, col_nr].legend(data_names_list, loc='upper right',fontsize=fontsize)
-        #add ttest result to graph
-        axarr[row_nr, col_nr].annotate(s='p = %0.2g (%s)' % (p,signif_symbol), xy = (0.70,0.75), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75) 
-        #improve ggplot style for a canvas (fig) with 4 figures (plots)
-        utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)  
-        #calculate the odds ratio (TMD/rest conservation for proteins with KW) / (TMD/rest conservation for proteins without KW)
-        odds_ratio_KW_over_nonKW = '%0.2f' % (data1.mean() / data2.mean())
-        #add odds ratio to figure
-        axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75) 
-        #calculate the odds ratio (TMD/rest conservation for proteins with KW) / (TMD/rest conservation for proteins without KW)
-        odds_ratio_KW_over_nonKW = '%0.2f' % (data1.mean() / data2.mean())
-        #add odds ratio to figure
-        axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)            
-        
-    
-    '''
-    Histograms split by keywords (NONENZYME ONLY)
-    '''
-    starting_Fig_Nr = Fig_Nr + 1
-    #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
-    if fig_title == "Hist keywords (NONENZYME ONLY)":
-        pass
-    #convert the KW stringlist to a python list, if it hasn't been done already
-    if isinstance(df['uniprot_KW'][0], str):
-        df_nonenzyme['uniprot_KW'] = df_nonenzyme['uniprot_KW'].apply(lambda x: eval(x))
-    #join all keywords together into a large list
-    nested_list_all_KW = list(itertools.chain(*list(df_nonenzyme['uniprot_KW'])))
-    #convert list to pandas series
-    all_KW_series = pd.Series(nested_list_all_KW)
-    #obtain series of major keywords
-    KW_counts = all_KW_series.value_counts()
-    #exclude keywords with less than 50 applicable proteins
-    KW_counts_major = KW_counts[KW_counts > 50]
-    #create a list of keywords to be ignored
-    list_ignored_KW = ['Transmembrane', 'Complete proteome', 'Reference proteome', 'Membrane', 'Transmembrane helix','Cell membrane','Repeat', 
-                       'Alternative splicing', 'Sodium', 'Potassium', 'Direct protein sequencing']
-    #remove undesired keywords from the dataframe (Transmembrane, etc.)
-    for KW in list_ignored_KW:
-        if KW in KW_counts_major.index:
-            KW_counts_major = KW_counts_major.drop(KW)
-    
-    #prepare colour lists
-    colour_lists = utils.create_colour_lists()
-    TUM_colours_list_with_greys = colour_lists['TUM_colours_list_with_greys']
-    colourlist_greys = [(0.6, 0.7764705882352941, 0.9058823529411765), 'None']
-    
-    #iterate over the dataframe. Note that acc = uniprot accession here.    
-    linspace_binlist = np.linspace(settings["hist_settings_mult_proteins"]["smallest_bin"],
-                                   settings["hist_settings_mult_proteins"]["largest_bin"],
-                                   settings["hist_settings_mult_proteins"]["number_of_bins"])
-    
-    #add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
-    binlist = np.append(linspace_binlist, settings["hist_settings_mult_proteins"]["final_highest_bin"]) 
-    
-    dict_ttest_pvalues = {}
-    
-    #create a new column showing whether the protein contains that keyword
-    df[KW] = df['uniprot_KW'].apply(lambda x : KW in x)
-    #slice the dataframe to show only non-enzymes
-    df_nonenzyme= df.loc[df['enzyme'] == False]    
-    
-    for m, KW in enumerate(KW_counts_major.index):
-        Fig_Nr = starting_Fig_Nr + m
-        sys.stdout.write(str(Fig_Nr) + ', ')
-        newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
-        #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
-        fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
-        #create dataframes with entries containing, or not containing the particular keyword
-        df_KW = df_nonenzyme.loc[df_nonenzyme[KW] == True]
-        df_nonKW = df_nonenzyme.loc[df_nonenzyme[KW] == False]
-        #create list of dataframes for iteration
-        df_list_KW = [df_KW, df_nonKW]
-    
-        data_dict = {}
-        data_names_list = ['containing keyword', 'without keyword']
-    
-        for n, dfK in enumerate(df_list_KW):
-            data_column = 'AAIMON_ratio_mean_all_TMDs'  
-            #color = TUM_colours_list_with_greys[n + 1]
-            color = colourlist_greys[n]
-            alpha = 1.0
-            col_width_value = 0.95
-            hist2_shift_to_right = 0.01
-            backgroundcolour = '0.95'
-            hist_data_AAIMON_mean = np.array(dfK[data_column].dropna())
-            #add the data to the dictionary for later analysis, named according to the list above
-            data_dict[data_names_list[n]] = hist_data_AAIMON_mean
-            #move the second histogram bins slightly to the right, so that the bars do not overlap            
-            binlist = binlist + (hist2_shift_to_right * n)
-            # use numpy to create a histogram
-            freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist)
-            #normalize the frequency counts
-            freq_counts_normalised = freq_counts/freq_counts.max()    #use numpy to create a histogram
-            #assuming all of the bins are exactly the same size, make the width of the column equal to a percentage of each bin
-            dist_between_bins = (bin_array_I[1] - bin_array_I[0])
-            col_width = float('%0.3f' % (col_width_value * dist_between_bins))
-            #when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-            centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
-            #the last bin is open, and holds all larger datapoints than specified in the binlist. it needs to be added to the list of bars
-            centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + dist_between_bins)
-            #print a warning if the last bar is not actually empty
-            if freq_counts[-1] != 0:
-                logging.warning('for %s, the final bin (%s) has %i entries. The settings "largest_bin" may need to be adjusted.' % (KW,bin_array[-1],freq_counts[-1]))
-            #plot the data as a bar-chart
-            barcontainer_AAIMON_mean = axarr[row_nr, col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts_normalised,
-                                                                 align='center', width=col_width, color=color,
-                                                                 alpha=alpha, linewidth = 0.1)
-        #obtain data from dictionary
-        data1 = data_dict[data_names_list[0]]
-        data2 = data_dict[data_names_list[1]]
-        #run ttest, assuming unequal variance (http://stackoverflow.com/questions/22611446/perform-2-sample-t-test)
-        t, p = ttest_ind(data1, data2, equal_var = False)
-        #add the ttest results to a dictionary
-        dict_ttest_pvalues[KW] = p
-        #determine symbol describing stat significance
-        signif_symbol = utils.get_signif_symbol(p)
-    
-        #label the x-axis for each plot, based on the TMD
-        axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
-        #move the x-axis label closer to the x-axis
-        axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
-        #alter x-axis limits. Note that if data outside these limits the axis will be automatically adjusted)
-        xlim_min = 0.5
-        xlim_max = 1.6
-        axarr[row_nr, col_nr].set_xlim(xlim_min, xlim_max)
-        #set x-axis ticks
-        #use the slide selection to select every second item in the list as an xtick(axis label)
-        axarr[row_nr, col_nr].set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
-        axarr[row_nr, col_nr].set_ylabel('freq', rotation='vertical', fontsize=fontsize)
-        #change axis font size
-        axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
-        #remove background grid
-        axarr[row_nr, col_nr].grid(False)
-        #add figure number to top left of subplot
-        #axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
-        #add figure title to top left of subplot
-        axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.' + KW + ' nonenzyme', xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
-        #add a legend describing which hist contains the KW, or doesn't contain the KW
-        legend_obj = axarr[row_nr, col_nr].legend(['containing keyword','without keyword'], loc='upper right',fontsize=fontsize, )
-        #add ttest result to graph
-        axarr[row_nr, col_nr].annotate(s='p = %0.2g (%s)' % (p,signif_symbol), xy = (0.70,0.75), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75) 
-        #improve ggplot style for a canvas (fig) with 4 figures (plots)
-        utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
-        #annotate the correlated keywords to the graph
-        corr_KW = [xc[0:16] for xc in list(top_corr_KW_dict[KW].index)]
-        corr_KW_value = [int(xv) for xv in list(top_corr_KW_dict[KW])]
-        #add "correlated keywords" title
-        axarr[row_nr, col_nr].annotate(s= 'correlated keywords', xy = (0.7,0.65), fontsize=4, xycoords='axes fraction', alpha=0.75)
-        for ann_num, cKW in enumerate(corr_KW):
-            #define y position for annotation
-            ypos_ann = 0.6 - (ann_num * 0.05)
-            #define KW name position
-            ann_pos_xy = (0.7,ypos_ann)
-            #determine position of KW correlation value
-            val_pos_xy = (0.95, ypos_ann)
-            #annotate the KW name
-            axarr[row_nr, col_nr].annotate(s= cKW, xy = ann_pos_xy, fontsize=4, xycoords='axes fraction', alpha=0.75)    
-            #annotate correlation value
-            axarr[row_nr, col_nr].annotate(s= str(corr_KW_value[ann_num]), xy = val_pos_xy, fontsize=4, xycoords='axes fraction', alpha=0.75) 
-        #calculate the odds ratio (TMD/rest conservation for proteins with KW) / (TMD/rest conservation for proteins without KW)
-        odds_ratio_KW_over_nonKW = '%0.2f' % (data1.mean() / data2.mean())
-        #add odds ratio to figure
-        axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)            
-                
-        if savefig:
-            #automatically tighten the layout of plots in the figure
-            #fig.tight_layout()
-            #save files
-            fig.savefig(base_filename_summaries + '_%01d.png' % fig_nr, format='png', dpi=400)
-            fig.savefig(base_filename_summaries + '_%01d.pdf' % fig_nr, format='pdf')
-
-
-    #only create the following for multi-pass proteins (at least 2 proteins in lost with 7 TMDs)
-    if dataset_contains_multipass_prots:
-        '''
-        Histograms split by keywords (NONENZYME AND nonGPCR)
-        '''
-        starting_Fig_Nr = Fig_Nr + 1
-        #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
-        if fig_title == "Hist keywords (NONENZYME AND nonGPCR)":
-            pass
-        
-        df_nonenzyme_nonGPCR = df_nonenzyme.loc[df_nonenzyme['G-protein coupled receptor'] == False]
-
-        #join all keywords together into a large list
-        nested_list_all_KW = list(itertools.chain(*list(df_nonenzyme_nonGPCR['uniprot_KW'])))
-        #convert list to pandas series
-        all_KW_series = pd.Series(nested_list_all_KW)
-        #obtain series of major keywords
-        KW_counts = all_KW_series.value_counts()
-        #exclude keywords with less than 50 applicable proteins
-        KW_counts_major = KW_counts[KW_counts > 50]
-        
-        #remove undesired keywords from the dataframe (Transmembrane, etc.)
-        for KW in list_ignored_KW:
-            if KW in KW_counts_major.index:
-                KW_counts_major = KW_counts_major.drop(KW)
-        
-        dict_ttest_pvalues = {}
-        
-        for m, KW in enumerate(KW_counts_major.index):
-            Fig_Nr = starting_Fig_Nr + m
-            sys.stdout.write(str(Fig_Nr) + ', ')
-            newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
-            #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
-            fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
-            #create dataframes with entries containing, or not containing the particular keyword
-            df_KW = df_nonenzyme_nonGPCR.loc[df_nonenzyme_nonGPCR[KW] == True]
-            df_nonKW = df_nonenzyme_nonGPCR.loc[df_nonenzyme_nonGPCR[KW] == False]
-            df_list_KW = [df_KW, df_nonKW]
-        
-            data_dict = {}
-            data_names_list = ['containing keyword', 'without keyword']
-        
-            for n, dfK in enumerate(df_list_KW):
-                data_column = 'AAIMON_ratio_mean_all_TMDs'  
-                #color = TUM_colours_list_with_greys[n + 1]
-                color = colourlist_greys[n]
-                alpha = 1.0
-                col_width_value = 0.95
-                hist2_shift_to_right = 0.01
-                backgroundcolour = '0.95'
-                hist_data_AAIMON_mean = np.array(dfK[data_column].dropna())
-                #add the data to the dictionary for later analysis, named according to the list above
-                data_dict[data_names_list[n]] = hist_data_AAIMON_mean
-                #move the second histogram bins slightly to the right, so that the bars do not overlap            
-                binlist = binlist + (hist2_shift_to_right * n)
-                # use numpy to create a histogram
-                freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist)
-                #normalize the frequency counts
-                freq_counts_normalised = freq_counts/freq_counts.max()    #use numpy to create a histogram
-                #assuming all of the bins are exactly the same size, make the width of the column equal to a percentage of each bin
-                dist_between_bins = (bin_array_I[1] - bin_array_I[0])
-                col_width = float('%0.3f' % (col_width_value * dist_between_bins))
-                #when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-                centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
-                #the last bin is open, and holds all larger datapoints than specified in the binlist. it needs to be added to the list of bars
-                centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + dist_between_bins)
-                #print a warning if the last bar is not actually empty
-                if freq_counts[-1] != 0:
-                    logging.warning('for %s, the final bin (%s) has %i entries. The settings "largest_bin" may need to be adjusted.' % (KW,bin_array[-1],freq_counts[-1]))
-                #plot the data as a bar-chart
-                barcontainer_AAIMON_mean = axarr[row_nr, col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts_normalised,
-                                                                     align='center', width=col_width, color=color,
-                                                                     alpha=alpha, linewidth = 0.1)
-            #obtain data from dictionary
-            data1 = data_dict[data_names_list[0]]
-            data2 = data_dict[data_names_list[1]]
-            #run ttest, assuming unequal variance (http://stackoverflow.com/questions/22611446/perform-2-sample-t-test)
-            t, p = ttest_ind(data1, data2, equal_var = False)
-            #add the ttest results to a dictionary
-            dict_ttest_pvalues[KW] = p
-            #determine symbol describing stat significance
-            signif_symbol = utils.get_signif_symbol(p)
-        
-            #label the x-axis for each plot, based on the TMD
-            axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
-            #move the x-axis label closer to the x-axis
-            axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
-            #alter x-axis limits. Note that if data outside these limits the axis will be automatically adjusted)
-            xlim_min = 0.5
-            xlim_max = 1.6
-            axarr[row_nr, col_nr].set_xlim(xlim_min, xlim_max)
-            #set x-axis ticks
-            #use the slide selection to select every second item in the list as an xtick(axis label)
-            axarr[row_nr, col_nr].set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
-            axarr[row_nr, col_nr].set_ylabel('freq', rotation='vertical', fontsize=fontsize)
-            #change axis font size
-            axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
-            #remove background grid
-            axarr[row_nr, col_nr].grid(False)
-            #add figure number to top left of subplot
-            #axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
-            #add figure title to top left of subplot
-            axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.' + KW, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
-            #add figure title to top left of subplot
-            axarr[row_nr, col_nr].annotate(s='nonenzyme, nonGPCR', xy = (0.1,0.8), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
-                    
-            #add a legend describing which hist contains the KW, or doesn't contain the KW
-            legend_obj = axarr[row_nr, col_nr].legend(['containing keyword','without keyword'], loc='upper right',fontsize=fontsize, )
-            #add ttest result to graph
-            axarr[row_nr, col_nr].annotate(s='p = %0.2g (%s)' % (p,signif_symbol), xy = (0.70,0.75), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75) 
-            # Remove top axes and right axes ticks
-            axarr[row_nr, col_nr].get_xaxis().tick_bottom()
-            axarr[row_nr, col_nr].get_yaxis().tick_left()
-            #chane the position of the axis ticklabels so they are closer to the axis
-            axarr[row_nr, col_nr].tick_params(direction = 'out', pad = 0.4)
-            #change background colour of graph
-            axarr[row_nr, col_nr].set_axis_bgcolor(backgroundcolour)
-            #change background colour of legend box
-            legend_obj.get_frame().set_facecolor(backgroundcolour)
-            #annotate the correlated keywords to the graph
-            corr_KW = [xc[0:16] for xc in list(top_corr_KW_dict[KW].index)]
-            corr_KW_value = [int(xv) for xv in list(top_corr_KW_dict[KW])]
-            #add "correlated keywords" title
-            axarr[row_nr, col_nr].annotate(s= 'correlated keywords', xy = (0.7,0.65), fontsize=4, xycoords='axes fraction', alpha=0.75)
-            for ann_num, cKW in enumerate(corr_KW):
-                #define y position for annotation
-                ypos_ann = 0.6 - (ann_num * 0.05)
-                #define KW name position
-                ann_pos_xy = (0.7,ypos_ann)
-                #determine position of KW correlation value
-                val_pos_xy = (0.95, ypos_ann)
-                #annotate the KW name
-                axarr[row_nr, col_nr].annotate(s= cKW, xy = ann_pos_xy, fontsize=4, xycoords='axes fraction', alpha=0.75)    
-                #annotate correlation value
-                axarr[row_nr, col_nr].annotate(s= str(corr_KW_value[ann_num]), xy = val_pos_xy, fontsize=4, xycoords='axes fraction', alpha=0.75) 
+            axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
             #calculate the odds ratio (TMD/rest conservation for proteins with KW) / (TMD/rest conservation for proteins without KW)
             odds_ratio_KW_over_nonKW = '%0.2f' % (data1.mean() / data2.mean())
             #add odds ratio to figure
-            axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)            
-            
-            if savefig:
-                #automatically tighten the layout of plots in the figure
-                #fig.tight_layout()
-                #save files
-                fig.savefig(base_filename_summaries + '_%01d.png' % fig_nr, format='png', dpi=400)
-                fig.savefig(base_filename_summaries + '_%01d.pdf' % fig_nr, format='pdf')
+            axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+
+
+            if dataset_contains_multipass_prots:
+                '''
+                Enzymes vs NonEnzymes, Non-GPCR ONLY
+                '''
+                Fig_Nr = Fig_Nr + 1
+                #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
+                if fig_title == "Enzymes vs NonEnzymes, Non-GPCR ONLY":
+                    pass
+                sys.stdout.write(str(Fig_Nr) + ', ')
+
+                newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
+                #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
+                fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
+
+                #create nonGPCR dataframe view
+                df_nonGPCR = df.loc[df['G-protein coupled receptor'] == False]
+                #create enzyme and nonenzyme dataframe views
+                df_enzyme = df_nonGPCR.loc[df['enzyme'] == True]
+                df_nonenzyme= df_nonGPCR.loc[df['enzyme'] == False]
+
+                df_list_KW = [df_enzyme, df_nonenzyme]
+
+                data_dict = {}
+                data_names_list = ['enzyme', 'nonenzyme']
+
+                for n, dfK in enumerate(df_list_KW):
+                    data_column = 'AAIMON_ratio_mean_all_TMDs'
+                    color = colourlist_greys[n]
+                    alpha = 1.0
+                    col_width_value = 0.95
+                    hist2_shift_to_right = 0.01
+                    backgroundcolour = '0.95'
+                    hist_data_AAIMON_mean = np.array(dfK[data_column].dropna())
+                    #add the data to the dictionary for later analysis, named according to the list above
+                    data_dict[data_names_list[n]] = hist_data_AAIMON_mean
+                    #move the second histogram bins slightly to the right, so that the bars do not overlap
+                    binlist = binlist + (hist2_shift_to_right * n)
+                    # use numpy to create a histogram
+                    freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist)
+                    # check if there proteins in the final bin (should be 30, and for mult proteins have a freq of 0)
+                    if freq_counts[-1] != 0:
+                        logging.warning('for %s, the final bin (%s) has %i entries' % (KW,bin_array[-1],freq_counts[-1]))
+                    #normalize the frequency counts
+                    freq_counts_normalised = freq_counts/freq_counts.max()    #use numpy to create a histogram
+                    #assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+                    col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
+                    #when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+                    centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+                    #add the final bin, which is physically located just after the last regular bin but represents all higher values
+                    bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+                    centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+                    barcontainer_AAIMON_mean = axarr[row_nr, col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts_normalised,
+                                                                         align='center', width=col_width, color=color,
+                                                                         alpha=alpha, linewidth = 0.1)
+                #obtain data from dictionary
+                data1 = data_dict[data_names_list[0]]
+                data2 = data_dict[data_names_list[1]]
+                #run ttest, assuming unequal variance (http://stackoverflow.com/questions/22611446/perform-2-sample-t-test)
+                t, p = ttest_ind(data1, data2, equal_var = False)
+                #determine symbol describing stat significance
+                signif_symbol = utils.get_signif_symbol(p)
+
+                #label the x-axis for each plot, based on the TMD
+                axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
+                #move the x-axis label closer to the x-axis
+                axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
+                xlim_min = 0.8
+                xlim_max = 1.5
+                axarr[row_nr, col_nr].set_xlim(xlim_min, xlim_max)
+                #set x-axis ticks
+                #use the slide selection to select every second item in the list as an xtick(axis label)
+                axarr[row_nr, col_nr].set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
+                axarr[row_nr, col_nr].set_ylabel('freq', rotation='vertical', fontsize=fontsize)
+                #change axis font size
+                axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
+                #add figure number to top left of subplot
+                axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+                #add figure title to top left of subplot
+                axarr[row_nr, col_nr].annotate(s='. Enzymes (all NonGPCR)', xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+                #add a legend describing which hist contains the KW, or doesn't contain the KW
+                legend_obj = axarr[row_nr, col_nr].legend(data_names_list, loc='upper right',fontsize=fontsize)
+                #add ttest result to graph
+                axarr[row_nr, col_nr].annotate(s='p = %0.2g (%s)' % (p,signif_symbol), xy = (0.70,0.75), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+                #improve ggplot style for a canvas (fig) with 4 figures (plots)
+                utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
+                #calculate the odds ratio (TMD/rest conservation for proteins with KW) / (TMD/rest conservation for proteins without KW)
+                odds_ratio_KW_over_nonKW = '%0.2f' % (data1.mean() / data2.mean())
+                #add odds ratio to figure
+                axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+                #calculate the odds ratio (TMD/rest conservation for proteins with KW) / (TMD/rest conservation for proteins without KW)
+                odds_ratio_KW_over_nonKW = '%0.2f' % (data1.mean() / data2.mean())
+                #add odds ratio to figure
+                axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+
+
+            '''
+            Histograms split by keywords (NONENZYME ONLY)
+            '''
+            starting_Fig_Nr = Fig_Nr + 1
+            #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
+            if fig_title == "Hist keywords (NONENZYME ONLY)":
+                pass
+            #convert the KW stringlist to a python list, if it hasn't been done already
+            if isinstance(df['uniprot_KW'][0], str):
+                df_nonenzyme['uniprot_KW'] = df_nonenzyme['uniprot_KW'].apply(lambda x: eval(x))
+            #join all keywords together into a large list
+            nested_list_all_KW = list(itertools.chain(*list(df_nonenzyme['uniprot_KW'])))
+            #convert list to pandas series
+            all_KW_series = pd.Series(nested_list_all_KW)
+            #obtain series of major keywords
+            KW_counts = all_KW_series.value_counts()
+            #exclude keywords with less than 50 applicable proteins
+            KW_counts_major = KW_counts[KW_counts > 50]
+            #create a list of keywords to be ignored
+            list_ignored_KW = ['Transmembrane', 'Complete proteome', 'Reference proteome', 'Membrane', 'Transmembrane helix','Cell membrane','Repeat',
+                               'Alternative splicing', 'Sodium', 'Potassium', 'Direct protein sequencing']
+            #remove undesired keywords from the dataframe (Transmembrane, etc.)
+            for KW in list_ignored_KW:
+                if KW in KW_counts_major.index:
+                    KW_counts_major = KW_counts_major.drop(KW)
+
+            #prepare colour lists
+            colour_lists = utils.create_colour_lists()
+            TUM_colours_list_with_greys = colour_lists['TUM_colours_list_with_greys']
+            colourlist_greys = [(0.6, 0.7764705882352941, 0.9058823529411765), 'None']
+
+            #iterate over the dataframe. Note that acc = uniprot accession here.
+            linspace_binlist = np.linspace(settings["hist_settings_mult_proteins"]["smallest_bin"],
+                                           settings["hist_settings_mult_proteins"]["largest_bin"],
+                                           settings["hist_settings_mult_proteins"]["number_of_bins"])
+
+            #add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
+            binlist = np.append(linspace_binlist, settings["hist_settings_mult_proteins"]["final_highest_bin"])
+
+            dict_ttest_pvalues = {}
+
+            #create a new column showing whether the protein contains that keyword
+            df[KW] = df['uniprot_KW'].apply(lambda x : KW in x)
+            #slice the dataframe to show only non-enzymes
+            df_nonenzyme= df.loc[df['enzyme'] == False]
+
+            for m, KW in enumerate(KW_counts_major.index):
+                Fig_Nr = starting_Fig_Nr + m
+                sys.stdout.write(str(Fig_Nr) + ', ')
+                newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
+                #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
+                fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
+                #create dataframes with entries containing, or not containing the particular keyword
+                df_KW = df_nonenzyme.loc[df_nonenzyme[KW] == True]
+                df_nonKW = df_nonenzyme.loc[df_nonenzyme[KW] == False]
+                #create list of dataframes for iteration
+                df_list_KW = [df_KW, df_nonKW]
+
+                data_dict = {}
+                data_names_list = ['containing keyword', 'without keyword']
+
+                for n, dfK in enumerate(df_list_KW):
+                    data_column = 'AAIMON_ratio_mean_all_TMDs'
+                    #color = TUM_colours_list_with_greys[n + 1]
+                    color = colourlist_greys[n]
+                    alpha = 1.0
+                    col_width_value = 0.95
+                    hist2_shift_to_right = 0.01
+                    backgroundcolour = '0.95'
+                    hist_data_AAIMON_mean = np.array(dfK[data_column].dropna())
+                    #add the data to the dictionary for later analysis, named according to the list above
+                    data_dict[data_names_list[n]] = hist_data_AAIMON_mean
+                    #move the second histogram bins slightly to the right, so that the bars do not overlap
+                    binlist = binlist + (hist2_shift_to_right * n)
+                    # use numpy to create a histogram
+                    freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist)
+                    #normalize the frequency counts
+                    freq_counts_normalised = freq_counts/freq_counts.max()    #use numpy to create a histogram
+                    #assuming all of the bins are exactly the same size, make the width of the column equal to a percentage of each bin
+                    dist_between_bins = (bin_array_I[1] - bin_array_I[0])
+                    col_width = float('%0.3f' % (col_width_value * dist_between_bins))
+                    #when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+                    centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+                    #the last bin is open, and holds all larger datapoints than specified in the binlist. it needs to be added to the list of bars
+                    centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + dist_between_bins)
+                    #print a warning if the last bar is not actually empty
+                    if freq_counts[-1] != 0:
+                        logging.warning('for %s, the final bin (%s) has %i entries. The settings "largest_bin" may need to be adjusted.' % (KW,bin_array[-1],freq_counts[-1]))
+                    #plot the data as a bar-chart
+                    barcontainer_AAIMON_mean = axarr[row_nr, col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts_normalised,
+                                                                         align='center', width=col_width, color=color,
+                                                                         alpha=alpha, linewidth = 0.1)
+                #obtain data from dictionary
+                data1 = data_dict[data_names_list[0]]
+                data2 = data_dict[data_names_list[1]]
+                #run ttest, assuming unequal variance (http://stackoverflow.com/questions/22611446/perform-2-sample-t-test)
+                t, p = ttest_ind(data1, data2, equal_var = False)
+                #add the ttest results to a dictionary
+                dict_ttest_pvalues[KW] = p
+                #determine symbol describing stat significance
+                signif_symbol = utils.get_signif_symbol(p)
+
+                #label the x-axis for each plot, based on the TMD
+                axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
+                #move the x-axis label closer to the x-axis
+                axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
+                #alter x-axis limits. Note that if data outside these limits the axis will be automatically adjusted)
+                xlim_min = 0.5
+                xlim_max = 1.6
+                axarr[row_nr, col_nr].set_xlim(xlim_min, xlim_max)
+                #set x-axis ticks
+                #use the slide selection to select every second item in the list as an xtick(axis label)
+                axarr[row_nr, col_nr].set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
+                axarr[row_nr, col_nr].set_ylabel('freq', rotation='vertical', fontsize=fontsize)
+                #change axis font size
+                axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
+                #remove background grid
+                axarr[row_nr, col_nr].grid(False)
+                #add figure number to top left of subplot
+                #axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+                #add figure title to top left of subplot
+                axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.' + KW + ' nonenzyme', xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+                #add a legend describing which hist contains the KW, or doesn't contain the KW
+                legend_obj = axarr[row_nr, col_nr].legend(['containing keyword','without keyword'], loc='upper right',fontsize=fontsize, )
+                #add ttest result to graph
+                axarr[row_nr, col_nr].annotate(s='p = %0.2g (%s)' % (p,signif_symbol), xy = (0.70,0.75), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+                #improve ggplot style for a canvas (fig) with 4 figures (plots)
+                utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
+                #annotate the correlated keywords to the graph
+                corr_KW = [xc[0:16] for xc in list(top_corr_KW_dict[KW].index)]
+                corr_KW_value = [int(xv) for xv in list(top_corr_KW_dict[KW])]
+                #add "correlated keywords" title
+                axarr[row_nr, col_nr].annotate(s= 'correlated keywords', xy = (0.7,0.65), fontsize=4, xycoords='axes fraction', alpha=0.75)
+                for ann_num, cKW in enumerate(corr_KW):
+                    #define y position for annotation
+                    ypos_ann = 0.6 - (ann_num * 0.05)
+                    #define KW name position
+                    ann_pos_xy = (0.7,ypos_ann)
+                    #determine position of KW correlation value
+                    val_pos_xy = (0.95, ypos_ann)
+                    #annotate the KW name
+                    axarr[row_nr, col_nr].annotate(s= cKW, xy = ann_pos_xy, fontsize=4, xycoords='axes fraction', alpha=0.75)
+                    #annotate correlation value
+                    axarr[row_nr, col_nr].annotate(s= str(corr_KW_value[ann_num]), xy = val_pos_xy, fontsize=4, xycoords='axes fraction', alpha=0.75)
+                #calculate the odds ratio (TMD/rest conservation for proteins with KW) / (TMD/rest conservation for proteins without KW)
+                odds_ratio_KW_over_nonKW = '%0.2f' % (data1.mean() / data2.mean())
+                #add odds ratio to figure
+                axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+
+                if savefig:
+                    #automatically tighten the layout of plots in the figure
+                    #fig.tight_layout()
+                    #save files
+                    fig.savefig(base_filename_summaries + '_%01d.png' % fig_nr, format='png', dpi=400)
+                    fig.savefig(base_filename_summaries + '_%01d.pdf' % fig_nr, format='pdf')
+
+
+            #only create the following for multi-pass proteins (at least 2 proteins in lost with 7 TMDs)
+            if dataset_contains_multipass_prots:
+                '''
+                Histograms split by keywords (NONENZYME AND nonGPCR)
+                '''
+                starting_Fig_Nr = Fig_Nr + 1
+                #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
+                if fig_title == "Hist keywords (NONENZYME AND nonGPCR)":
+                    pass
+
+                df_nonenzyme_nonGPCR = df_nonenzyme.loc[df_nonenzyme['G-protein coupled receptor'] == False]
+
+                #join all keywords together into a large list
+                nested_list_all_KW = list(itertools.chain(*list(df_nonenzyme_nonGPCR['uniprot_KW'])))
+                #convert list to pandas series
+                all_KW_series = pd.Series(nested_list_all_KW)
+                #obtain series of major keywords
+                KW_counts = all_KW_series.value_counts()
+                #exclude keywords with less than 50 applicable proteins
+                KW_counts_major = KW_counts[KW_counts > 50]
+
+                #remove undesired keywords from the dataframe (Transmembrane, etc.)
+                for KW in list_ignored_KW:
+                    if KW in KW_counts_major.index:
+                        KW_counts_major = KW_counts_major.drop(KW)
+
+                dict_ttest_pvalues = {}
+
+                for m, KW in enumerate(KW_counts_major.index):
+                    Fig_Nr = starting_Fig_Nr + m
+                    sys.stdout.write(str(Fig_Nr) + ', ')
+                    newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
+                    #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
+                    fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
+                    #create dataframes with entries containing, or not containing the particular keyword
+                    df_KW = df_nonenzyme_nonGPCR.loc[df_nonenzyme_nonGPCR[KW] == True]
+                    df_nonKW = df_nonenzyme_nonGPCR.loc[df_nonenzyme_nonGPCR[KW] == False]
+                    df_list_KW = [df_KW, df_nonKW]
+
+                    data_dict = {}
+                    data_names_list = ['containing keyword', 'without keyword']
+
+                    for n, dfK in enumerate(df_list_KW):
+                        data_column = 'AAIMON_ratio_mean_all_TMDs'
+                        #color = TUM_colours_list_with_greys[n + 1]
+                        color = colourlist_greys[n]
+                        alpha = 1.0
+                        col_width_value = 0.95
+                        hist2_shift_to_right = 0.01
+                        backgroundcolour = '0.95'
+                        hist_data_AAIMON_mean = np.array(dfK[data_column].dropna())
+                        #add the data to the dictionary for later analysis, named according to the list above
+                        data_dict[data_names_list[n]] = hist_data_AAIMON_mean
+                        #move the second histogram bins slightly to the right, so that the bars do not overlap
+                        binlist = binlist + (hist2_shift_to_right * n)
+                        # use numpy to create a histogram
+                        freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist)
+                        #normalize the frequency counts
+                        freq_counts_normalised = freq_counts/freq_counts.max()    #use numpy to create a histogram
+                        #assuming all of the bins are exactly the same size, make the width of the column equal to a percentage of each bin
+                        dist_between_bins = (bin_array_I[1] - bin_array_I[0])
+                        col_width = float('%0.3f' % (col_width_value * dist_between_bins))
+                        #when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+                        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+                        #the last bin is open, and holds all larger datapoints than specified in the binlist. it needs to be added to the list of bars
+                        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + dist_between_bins)
+                        #print a warning if the last bar is not actually empty
+                        if freq_counts[-1] != 0:
+                            logging.warning('for %s, the final bin (%s) has %i entries. The settings "largest_bin" may need to be adjusted.' % (KW,bin_array[-1],freq_counts[-1]))
+                        #plot the data as a bar-chart
+                        barcontainer_AAIMON_mean = axarr[row_nr, col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts_normalised,
+                                                                             align='center', width=col_width, color=color,
+                                                                             alpha=alpha, linewidth = 0.1)
+                    #obtain data from dictionary
+                    data1 = data_dict[data_names_list[0]]
+                    data2 = data_dict[data_names_list[1]]
+                    #run ttest, assuming unequal variance (http://stackoverflow.com/questions/22611446/perform-2-sample-t-test)
+                    t, p = ttest_ind(data1, data2, equal_var = False)
+                    #add the ttest results to a dictionary
+                    dict_ttest_pvalues[KW] = p
+                    #determine symbol describing stat significance
+                    signif_symbol = utils.get_signif_symbol(p)
+
+                    #label the x-axis for each plot, based on the TMD
+                    axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
+                    #move the x-axis label closer to the x-axis
+                    axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
+                    #alter x-axis limits. Note that if data outside these limits the axis will be automatically adjusted)
+                    xlim_min = 0.5
+                    xlim_max = 1.6
+                    axarr[row_nr, col_nr].set_xlim(xlim_min, xlim_max)
+                    #set x-axis ticks
+                    #use the slide selection to select every second item in the list as an xtick(axis label)
+                    axarr[row_nr, col_nr].set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
+                    axarr[row_nr, col_nr].set_ylabel('freq', rotation='vertical', fontsize=fontsize)
+                    #change axis font size
+                    axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
+                    #remove background grid
+                    axarr[row_nr, col_nr].grid(False)
+                    #add figure number to top left of subplot
+                    #axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+                    #add figure title to top left of subplot
+                    axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.' + KW, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+                    #add figure title to top left of subplot
+                    axarr[row_nr, col_nr].annotate(s='nonenzyme, nonGPCR', xy = (0.1,0.8), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+
+                    #add a legend describing which hist contains the KW, or doesn't contain the KW
+                    legend_obj = axarr[row_nr, col_nr].legend(['containing keyword','without keyword'], loc='upper right',fontsize=fontsize, )
+                    #add ttest result to graph
+                    axarr[row_nr, col_nr].annotate(s='p = %0.2g (%s)' % (p,signif_symbol), xy = (0.70,0.75), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+                    # Remove top axes and right axes ticks
+                    axarr[row_nr, col_nr].get_xaxis().tick_bottom()
+                    axarr[row_nr, col_nr].get_yaxis().tick_left()
+                    #chane the position of the axis ticklabels so they are closer to the axis
+                    axarr[row_nr, col_nr].tick_params(direction = 'out', pad = 0.4)
+                    #change background colour of graph
+                    axarr[row_nr, col_nr].set_axis_bgcolor(backgroundcolour)
+                    #change background colour of legend box
+                    legend_obj.get_frame().set_facecolor(backgroundcolour)
+                    #annotate the correlated keywords to the graph
+                    corr_KW = [xc[0:16] for xc in list(top_corr_KW_dict[KW].index)]
+                    corr_KW_value = [int(xv) for xv in list(top_corr_KW_dict[KW])]
+                    #add "correlated keywords" title
+                    axarr[row_nr, col_nr].annotate(s= 'correlated keywords', xy = (0.7,0.65), fontsize=4, xycoords='axes fraction', alpha=0.75)
+                    for ann_num, cKW in enumerate(corr_KW):
+                        #define y position for annotation
+                        ypos_ann = 0.6 - (ann_num * 0.05)
+                        #define KW name position
+                        ann_pos_xy = (0.7,ypos_ann)
+                        #determine position of KW correlation value
+                        val_pos_xy = (0.95, ypos_ann)
+                        #annotate the KW name
+                        axarr[row_nr, col_nr].annotate(s= cKW, xy = ann_pos_xy, fontsize=4, xycoords='axes fraction', alpha=0.75)
+                        #annotate correlation value
+                        axarr[row_nr, col_nr].annotate(s= str(corr_KW_value[ann_num]), xy = val_pos_xy, fontsize=4, xycoords='axes fraction', alpha=0.75)
+                    #calculate the odds ratio (TMD/rest conservation for proteins with KW) / (TMD/rest conservation for proteins without KW)
+                    odds_ratio_KW_over_nonKW = '%0.2f' % (data1.mean() / data2.mean())
+                    #add odds ratio to figure
+                    axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
+
+                    if savefig:
+                        #automatically tighten the layout of plots in the figure
+                        #fig.tight_layout()
+                        #save files
+                        fig.savefig(base_filename_summaries + '_%01d.png' % fig_nr, format='png', dpi=400)
+                        fig.savefig(base_filename_summaries + '_%01d.pdf' % fig_nr, format='pdf')
 
 
     '''
