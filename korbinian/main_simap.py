@@ -14,7 +14,6 @@ Credits:        All sections by Mark Teese. The Javascript for SIMAP accession w
 Further Details:For details regarding the java access to SIMAP, see here: E:\Stephis\Projects\Programming\Python\programs\eaSimap_MT_notes.txt
 
 PROBLEMS and TASKS
- - git: is under Git, but is not registered in the Settings.
  - check why for Q3KR37_GRM1B_HUMAN homologue 119 the TMD hit and hit_plus_surr_seq do not match! + LLLVISCVICFRYCSVVILSPHHPFHSTPPLFPGTRGLCASACFPTPSALSPHPSPWLGCRVLTPQIRVLLSVPAHRIPPARWHAWVTLSHSRAPSAGRAQGASSALRLLFPPSLVLLVVLNM	DSFHLQSVSKLLLVISCV
  - check why the total_number_of_simap_hits gives the wrong number 
  (df.loc[acc, 'total_number_of_simap_hits'] = query_sequence_node[0].attrib['number_hits'])
@@ -4364,7 +4363,8 @@ if A10_compare_lists:
         # replace df with a filtered dataframe, with all rows excluded where AAIMON_ratio_mean_all_TMDs is 1.000000
         if 1.000000 in vc_AAIMON:
             num_proteins_with_AAIMON_of_ONE = vc_AAIMON[1.000000]
-            logging.info('num_proteins_with_AAIMON_of_ONE in orig dataframe : %i', num_proteins_with_AAIMON_of_ONE)
+            total_num_prot_with_data = len(df['AAIMON_ratio_mean_all_TMDs'].dropna())
+            logging.info('num_proteins_with_AAIMON_of_ONE in orig dataframe : %i from %i total' % (num_proteins_with_AAIMON_of_ONE,total_num_prot_with_data))
             df = df.loc[df['AAIMON_ratio_mean_all_TMDs'] != 1.000000]
         df_list_excluding_AAIMON_ones.append(df)
     df_list = df_list_excluding_AAIMON_ones
@@ -4932,7 +4932,48 @@ if A10_compare_lists:
     if len(df_list) > 3:
         logging.info('df4 AAIMON_ratio_mean_all_TMDs : %0.5f' % df_list[3]['AAIMON_ratio_mean_all_TMDs'].mean())
         logging.info('df4 AASMON_ratio_mean_all_TMDs : %0.5f' % df_list[3]['AASMON_ratio_mean_all_TMDs'].mean())
-#        for ax in axarr.flat:                 
+
+
+    '''
+    SUMMARY of proportions of TM, JM regions, etc.
+    SHOULD BE SHIFTED TO AN EARLIER SCRIPT, WHICH DOES NOT REQUIRE A LIST OF DATAFRAMES
+    GIVES A SettingWithCopyWarning: WHICH MAY, OR MAY NOT BE JUSTIFIED.
+    '''
+    logging.info("starting mean calculations")
+    for n, df in enumerate(df_list):
+        for acc in df.index:
+            dict_len_TMD = {}
+            for TMD in eval(df.loc[acc, 'list_of_TMDs']):
+                if '%s_len' % TMD in df.columns:
+                    dict_len_TMD[TMD] = df.loc[acc, '%s_len' % TMD]
+                elif '%s_start' % TMD in df.columns:
+                    dict_len_TMD[TMD] = df.loc[acc, '%s_end' % TMD] - df.loc[acc, '%s_start' % TMD]
+                else:
+                    raise IndexError('neither TM01_len nor TM01_start are in df.columns')
+            df.loc[acc, 'len_all_TMD_region'] = np.sum(list(dict_len_TMD.values()))
+            #series_len_all_TMD_region = np.sum(list(dict_len_TMD.values()))
+            df.loc[acc, 'average_len_all_TMDs'] = np.mean(list(dict_len_TMD.values()))
+            #series_average_len_all_TMDs = np.mean(list(dict_len_TMD.values()))
+
+        df.loc[:,'ratio_len_all_TMD_to_seqlen'] = df['len_all_TMD_region'] / df.len_query_alignment_sequence
+        df.loc[:,'proportion_JM_region_3aa'] = df.number_of_TMDs_in_uniprot_feature_list*3*2 / df.len_query_alignment_sequence
+        df.loc[:,'proportion_JM_region_6aa'] = df.number_of_TMDs_in_uniprot_feature_list*6*2 / df.len_query_alignment_sequence
+        print("df%i\nAverage AAIMON ratio all TMDs = %0.3f\nAverage len TMD = %0.2f\nAverage len full sequence = %0.2f\nAverage TMD proportion = %0.4f (%0.2f%%)\nAverage proportion JM (3aa each side) = %0.4f (%0.2f%%)\nAverage proportion JM (6aa each side) = %0.4f (%0.2f%%)" %(
+            n,
+            df['AAIMON_ratio_mean_all_TMDs'].mean(),
+            df.len_all_TMD_region.mean(),
+            df.len_query_alignment_sequence.mean(),
+            df['ratio_len_all_TMD_to_seqlen'].mean(),
+            df['ratio_len_all_TMD_to_seqlen'].mean()*100,
+            df['proportion_JM_region_3aa'].mean(),
+            df['proportion_JM_region_3aa'].mean()*100,
+            df['proportion_JM_region_6aa'].mean(),
+            df['proportion_JM_region_6aa'].mean()*100
+            ))
+
+
+
+#        for ax in axarr.flat:
 #            #change axis font size
 #            ax.tick_params(labelsize = fontsize)
 #            #hide spines
