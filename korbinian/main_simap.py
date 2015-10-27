@@ -1961,15 +1961,6 @@ if A09_save_figures_describing_proteins_in_list:
     The singlepass dataset contained only 2 proteins, the alpha-helicas multipass only 8 with 1.000000.
     All these are excluded from the dataset (and all following graphs). Note that it would be better to exactly count the valid homologues, rather than exclude them afterwards like this.
     '''
-    # count numbers of each AAIMON ratio
-    vc_AAIMON = df.AAIMON_ratio_mean_all_TMDs.value_counts()
-    # replace df with a filtered dataframe, with all rows excluded where AAIMON_ratio_mean_all_TMDs is 1.000000
-    if 1.000000 in vc_AAIMON:
-        num_proteins_with_AAIMON_of_ONE = vc_AAIMON[1.000000]
-        total_num_prot_with_data = len(df['AAIMON_ratio_mean_all_TMDs'].dropna())
-        logging.info('num_proteins_with_AAIMON_of_ONE in orig dataframe : %i from %i total' % (num_proteins_with_AAIMON_of_ONE,total_num_prot_with_data))
-        #replace the original dataframe with the dataframe lacking data containing a TMD/rest ratio of exactly 1.
-        df = df.loc[df['AAIMON_ratio_mean_all_TMDs'] != 1.000000]
 
     for acc in df.index:
         dict_AAIMON_ratio_mean = {}
@@ -1986,7 +1977,15 @@ if A09_save_figures_describing_proteins_in_list:
         df.loc[acc, 'AASMON_ratio_mean_all_TMDs'] = np.mean(list(dict_AASMON_ratio_mean.values()))
         df.loc[acc, 'AASMON_ratio_std_all_TMDs'] = np.mean(list(dict_AASMON_ratio_std.values()))
 
-
+    # count numbers of each AAIMON ratio
+    vc_AAIMON = df.AAIMON_ratio_mean_all_TMDs.value_counts()
+    # replace df with a filtered dataframe, with all rows excluded where AAIMON_ratio_mean_all_TMDs is 1.000000
+    if 1.000000 in vc_AAIMON:
+        num_proteins_with_AAIMON_of_ONE = vc_AAIMON[1.000000]
+        total_num_prot_with_data = len(df['AAIMON_ratio_mean_all_TMDs'].dropna())
+        logging.info('num_proteins_with_AAIMON_of_ONE in orig dataframe : %i from %i total' % (num_proteins_with_AAIMON_of_ONE,total_num_prot_with_data))
+        #replace the original dataframe with the dataframe lacking data containing a TMD/rest ratio of exactly 1.
+        df = df.loc[df['AAIMON_ratio_mean_all_TMDs'] != 1.000000]
 
     '''
     Fig01: Histogram of mean AAIMON and AASMON ratios, SP vs MP
@@ -2183,7 +2182,6 @@ if A09_save_figures_describing_proteins_in_list:
     axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
     #improve ggplot style for a canvas (fig) with 4 figures (plots)
     utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
-    
     #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
     utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
 
@@ -2656,12 +2654,8 @@ if A09_save_figures_describing_proteins_in_list:
         
         #save the figure as it is
         savefig = True
-        if savefig:
-            #automatically tighten the layout of plots in the figure
-            #fig.tight_layout()
-            #save files
-            fig.savefig(base_filename_summaries + '_%01d.png' % fig_nr, format='png', dpi=400)
-            fig.savefig(base_filename_summaries + '_%01d.pdf' % fig_nr, format='pdf')    
+        #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
+        utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
     
     
     
@@ -2996,12 +2990,8 @@ if A09_save_figures_describing_proteins_in_list:
             
         #save the figure as it is
         savefig = True
-        if savefig:
-            #automatically tighten the layout of plots in the figure
-            #fig.tight_layout()
-            #save files
-            fig.savefig(base_filename_summaries + '_%01d.png' % fig_nr, format='png', dpi=400)
-            fig.savefig(base_filename_summaries + '_%01d.pdf' % fig_nr, format='pdf')
+        #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
+        utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
     
         '''
         Fig17: Less than 12 TMDs vs at least 12 TMDs
@@ -3114,7 +3104,7 @@ if A09_save_figures_describing_proteins_in_list:
         max_num_TMDs = df.number_of_TMDs.max()
         legend = []
         data_to_plot = []
-        for i in range(1, max_num_TMDs):
+        for i in range(1, max_num_TMDs + 1):
             TM = 'TM%02d' % i
             hist_data_AAIMON_each_TM = df['TM%02d_AAIMON_ratio_mean' % i].dropna()
             if len(hist_data_AAIMON_each_TM) > 0:
@@ -3262,8 +3252,6 @@ if A09_save_figures_describing_proteins_in_list:
             #improve ggplot style for a canvas (fig) with 4 figures (plots)
             utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
 
-
-
             '''
             Fig19: SHOW GPCRS VS FULL DATASET
             '''
@@ -3355,12 +3343,8 @@ if A09_save_figures_describing_proteins_in_list:
             #improve ggplot style for a canvas (fig) with 4 figures (plots)
             utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
 
-            if savefig:
-                #automatically tighten the layout of plots in the figure
-                #fig.tight_layout()
-                #save files
-                fig.savefig(base_filename_summaries + '_%01d.png' % fig_nr, format='png', dpi=400)
-                fig.savefig(base_filename_summaries + '_%01d.pdf' % fig_nr, format='pdf')
+            #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
+            utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
 
             '''
             Fig21: Boxplot only GPCRs
@@ -3384,7 +3368,7 @@ if A09_save_figures_describing_proteins_in_list:
             max_num_TMDs = df_GPCR.number_of_TMDs.max()
             legend = []
             data_to_plot = []
-            for i in range(1, max_num_TMDs):
+            for i in range(1, max_num_TMDs + 1):
                 TM = 'TM%02d' % i
                 hist_data_AAIMON_each_TM = df_GPCR['TM%02d_AAIMON_ratio_mean' % i].dropna()
                 if len(hist_data_AAIMON_each_TM) > 0:
@@ -3569,7 +3553,7 @@ if A09_save_figures_describing_proteins_in_list:
                     #add the data to the dictionary for later analysis, named according to the list above
                     data_dict[data_names_list[n]] = hist_data_AAIMON_mean
                     #move the second histogram bins slightly to the right, so that the bars do not overlap
-                    binlist = binlist + (hist2_shift_to_right * n)
+                    binlist_for_this_data = binlist + (hist2_shift_to_right * n)
                     # use numpy to create a histogram
                     freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist)
                     #normalize the frequency counts
@@ -3645,12 +3629,8 @@ if A09_save_figures_describing_proteins_in_list:
                 #add odds ratio to figure
                 axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
 
-                if savefig:
-                    #automatically tighten the layout of plots in the figure
-                    #fig.tight_layout()
-                    #save files
-                    fig.savefig(base_filename_summaries + '_%01d.png' % fig_nr, format='png', dpi=400)
-                    fig.savefig(base_filename_summaries + '_%01d.pdf' % fig_nr, format='pdf')
+                #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
+                utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
 
 
             #only create the following for multi-pass proteins (at least 2 proteins in lost with 7 TMDs)
@@ -3721,7 +3701,7 @@ if A09_save_figures_describing_proteins_in_list:
                         #add the data to the dictionary for later analysis, named according to the list above
                         data_dict[data_names_list[n]] = hist_data_AAIMON_mean
                         #move the second histogram bins slightly to the right, so that the bars do not overlap
-                        binlist = binlist + (hist2_shift_to_right * n)
+                        binlist_for_this_data = binlist + (hist2_shift_to_right * n)
                         data_dict[data_names_list[n]] = hist_data_AAIMON_mean
                         # use numpy to create a histogram
                         freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist)
@@ -3794,12 +3774,8 @@ if A09_save_figures_describing_proteins_in_list:
                     #add odds ratio to figure
                     axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
 
-                    if savefig:
-                        #automatically tighten the layout of plots in the figure
-                        #fig.tight_layout()
-                        #save files
-                        fig.savefig(base_filename_summaries + '_%01d.png' % fig_nr, format='png', dpi=400)
-                        fig.savefig(base_filename_summaries + '_%01d.pdf' % fig_nr, format='pdf')
+                    #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
+                    utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
 
             '''
             Enzymes vs NonEnzymes
@@ -3835,6 +3811,13 @@ if A09_save_figures_describing_proteins_in_list:
             data_dict = {}
             data_names_list = ['enzyme', 'nonenzyme']
 
+            #Create a specific binlist for this graph
+            # smallest_bin =
+            # largest_bin =
+            # number_of_bins =
+            # linspace_enz_binlist = np.linspace(smallest_bin,largest_bin,number_of_bins)
+            # enz_binlist = np.append(linspace_binlist, settings["hist_settings_single_protein"]["final_highest_bin"])
+
             for n, dfK in enumerate(df_list_KW):
                 data_column = 'AAIMON_ratio_mean_all_TMDs'
                 color = colourlist_greys[n]
@@ -3846,9 +3829,9 @@ if A09_save_figures_describing_proteins_in_list:
                 #add the data to the dictionary for later analysis, named according to the list above
                 data_dict[data_names_list[n]] = hist_data_AAIMON_mean
                 #move the second histogram bins slightly to the right, so that the bars do not overlap
-                binlist = binlist + (hist2_shift_to_right * n)
+                binlist_for_this_data = binlist + (hist2_shift_to_right * n)
                 # use numpy to create a histogram
-                freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist)
+                freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist_for_this_data)
                 # check if there proteins in the final bin (should be 30, and for mult proteins have a freq of 0)
                 if freq_counts[-1] != 0:
                     logging.warning('for %s, the final bin (%s) has %i entries' % (KW,bin_array[-1],freq_counts[-1]))
@@ -3903,7 +3886,10 @@ if A09_save_figures_describing_proteins_in_list:
             odds_ratio_KW_over_nonKW = '%0.2f' % (data1.mean() / data2.mean())
             #add odds ratio to figure
             axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
-
+            #improve ggplot style for a canvas (fig) with 4 figures (plots)
+            utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
+            #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
+            utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
 
             if dataset_contains_multipass_prots:
                 '''
@@ -3916,6 +3902,7 @@ if A09_save_figures_describing_proteins_in_list:
                 sys.stdout.write(str(Fig_Nr) + ', ')
 
                 newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
+                print("Enzymes vs NonEnzymes fig_nr = %i" % fig_nr)
                 #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
                 fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
 
@@ -3941,9 +3928,9 @@ if A09_save_figures_describing_proteins_in_list:
                     #add the data to the dictionary for later analysis, named according to the list above
                     data_dict[data_names_list[n]] = hist_data_AAIMON_mean
                     #move the second histogram bins slightly to the right, so that the bars do not overlap
-                    binlist = binlist + (hist2_shift_to_right * n)
+                    binlist_for_this_data = binlist + (hist2_shift_to_right * n)
                     # use numpy to create a histogram
-                    freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist)
+                    freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist_for_this_data)
                     # check if there proteins in the final bin (should be 30, and for mult proteins have a freq of 0)
                     if freq_counts[-1] != 0:
                         logging.warning('for %s, the final bin (%s) has %i entries' % (KW,bin_array[-1],freq_counts[-1]))
@@ -3999,7 +3986,8 @@ if A09_save_figures_describing_proteins_in_list:
                 #add odds ratio to figure
                 axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
 
-
+                #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
+                utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
             '''
             Histograms split by keywords (NONENZYME ONLY)
             '''
@@ -4073,9 +4061,9 @@ if A09_save_figures_describing_proteins_in_list:
                     #add the data to the dictionary for later analysis, named according to the list above
                     data_dict[data_names_list[n]] = hist_data_AAIMON_mean
                     #move the second histogram bins slightly to the right, so that the bars do not overlap
-                    binlist = binlist + (hist2_shift_to_right * n)
+                    binlist_for_this_data = binlist + (hist2_shift_to_right * n)
                     # use numpy to create a histogram
-                    freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist)
+                    freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist_for_this_data)
                     #normalize the frequency counts
                     freq_counts_normalised = freq_counts/freq_counts.max()    #use numpy to create a histogram
                     #assuming all of the bins are exactly the same size, make the width of the column equal to a percentage of each bin
@@ -4149,12 +4137,8 @@ if A09_save_figures_describing_proteins_in_list:
                 #add odds ratio to figure
                 axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
 
-                if savefig:
-                    #automatically tighten the layout of plots in the figure
-                    #fig.tight_layout()
-                    #save files
-                    fig.savefig(base_filename_summaries + '_%01d.png' % fig_nr, format='png', dpi=400)
-                    fig.savefig(base_filename_summaries + '_%01d.pdf' % fig_nr, format='pdf')
+                #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
+                utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
 
 
             #only create the following for multi-pass proteins (at least 2 proteins in lost with 7 TMDs)
@@ -4211,9 +4195,9 @@ if A09_save_figures_describing_proteins_in_list:
                         #add the data to the dictionary for later analysis, named according to the list above
                         data_dict[data_names_list[n]] = hist_data_AAIMON_mean
                         #move the second histogram bins slightly to the right, so that the bars do not overlap
-                        binlist = binlist + (hist2_shift_to_right * n)
+                        binlist_for_this_data = binlist + (hist2_shift_to_right * n)
                         # use numpy to create a histogram
-                        freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist)
+                        freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist_for_this_data)
                         #normalize the frequency counts
                         freq_counts_normalised = freq_counts/freq_counts.max()    #use numpy to create a histogram
                         #assuming all of the bins are exactly the same size, make the width of the column equal to a percentage of each bin
@@ -4297,12 +4281,8 @@ if A09_save_figures_describing_proteins_in_list:
                     #add odds ratio to figure
                     axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
 
-                    if savefig:
-                        #automatically tighten the layout of plots in the figure
-                        #fig.tight_layout()
-                        #save files
-                        fig.savefig(base_filename_summaries + '_%01d.png' % fig_nr, format='png', dpi=400)
-                        fig.savefig(base_filename_summaries + '_%01d.pdf' % fig_nr, format='pdf')
+                    #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
+                    utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
 
 
     '''
