@@ -3447,7 +3447,7 @@ if A09_save_figures_describing_proteins_in_list:
             KW_counts_major = KW_counts[KW_counts > 50]
             #create a list of keywords to be ignored
             list_ignored_KW = ['Transmembrane', 'Complete proteome', 'Reference proteome', 'Membrane', 'Transmembrane helix','Cell membrane','Repeat',
-                               'Alternative splicing', 'Sodium', 'Potassium', 'Direct protein sequencing', 'Transducer']
+                               'Alternative splicing', 'Sodium', 'Potassium', 'Direct protein sequencing', 'Transducer', 'Polymorphism', 'Glycoprotein']
             #remove undesired keywords from the dataframe (Transmembrane, etc.)
             for KW in list_ignored_KW:
                 if KW in KW_counts_major.index:
@@ -3555,7 +3555,7 @@ if A09_save_figures_describing_proteins_in_list:
                     #move the second histogram bins slightly to the right, so that the bars do not overlap
                     binlist_for_this_data = binlist + (hist2_shift_to_right * n)
                     # use numpy to create a histogram
-                    freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist)
+                    freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist_for_this_data)
                     #normalize the frequency counts
                     freq_counts_normalised = freq_counts/freq_counts.max()    #use numpy to create a histogram
                     #assuming all of the bins are exactly the same size, make the width of the column equal to a percentage of each bin
@@ -3704,7 +3704,7 @@ if A09_save_figures_describing_proteins_in_list:
                         binlist_for_this_data = binlist + (hist2_shift_to_right * n)
                         data_dict[data_names_list[n]] = hist_data_AAIMON_mean
                         # use numpy to create a histogram
-                        freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist)
+                        freq_counts, bin_array = np.histogram(hist_data_AAIMON_mean, bins=binlist_for_this_data)
                         # check if there proteins in the final bin (should be 30, and for mult proteins have a freq of 0)
                         if freq_counts[-1] != 0:
                             logging.warning('for %s, the final bin (%s) has %i entries' % (KW,bin_array[-1],freq_counts[-1]))
