@@ -1360,26 +1360,33 @@ if A08_calculate_AAIMON_ratios:
                             dfs['start_juxta_before_TM01'] = np.where(dfs['TM01_start_in_SW_alignment']>0,0,np.nan)
                             dfs['end_juxta_before_TM01'] = np.where(dfs['TM01_start_in_SW_alignment']==0,np.nan,dfs['TM01_start_in_SW_alignment'])
                             dfs['start_juxta_after_TM01'] = dfs['TM01_end_in_SW_alignment']
-                            dfs['end_juxta_after_TM01'] = dfs["TM01_end_in_SW_alignment"]+((dfs["TM02_start_in_SW_alignment"]-dfs["TM01_end_in_SW_alignment"])/2).apply(lambda x :int(x) if not np.isnan(x) else np.nan)
+                            if len(list_of_TMDs) == 1:
+                                # if there is only one TMD, TM01 == last_TMD_of_acc
+                                dfs['end_juxta_after_TM01'] = np.where(r_utils.isNaN(dfs['start_juxta_after_TM01']) == True,np.nan,dfs['len_query_alignment_sequence'])
+                            elif len(list_of_TMDs) > 1:
+                                dfs['end_juxta_after_TM01'] = dfs["TM01_end_in_SW_alignment"]+((dfs["TM02_start_in_SW_alignment"]-dfs["TM01_end_in_SW_alignment"])/2).apply(lambda x :int(x) if not np.isnan(x) else np.nan)
+
                             #dfs['seq_juxta_after_TM01_in_query'] = dfs[dfs['start_juxta_after_TM01'].notnull()].apply(r_utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
                             #dfs['seq_juxta_after_TM01_in_match'] = dfs[dfs['end_juxta_after_TM01'].notnull()].apply(r_utils.slice_juxta_after_TMD_in_match, args = (TMD,), axis=1)
 
-                        if not TMD == "TM01" and not TMD == last_TMD_of_acc:
-                            dfs['start_juxta_after_%s'%TMD] = np.where(r_utils.isNaN(dfs['TM%.2d_start_in_SW_alignment'%(int(TMD[2:])+1)])==True,np.nan,dfs['%s_end_in_SW_alignment'%TMD])
-                            dfs['end_juxta_before_%s'%TMD] = np.where(dfs["%s_start_in_SW_alignment"%TMD]!=0,dfs["%s_start_in_SW_alignment"%TMD],np.nan)
-                            dfs['end_juxta_after_%s'%TMD] = dfs["%s_end_in_SW_alignment"%TMD]+((dfs["TM%.2d_start_in_SW_alignment"%(int(TMD[2:])+1)]-dfs["%s_end_in_SW_alignment"%TMD])/2).apply(lambda x :int(x) if not np.isnan(x) else np.nan)
-                            dfs['start_juxta_before_%s'%TMD] = np.where(dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)] == dfs['end_juxta_before_%s'%TMD] ,dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)],dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)])
-                            #dfs['seq_juxta_after_%s_in_query'%TMD] = dfs[dfs['start_juxta_after_%s' % TMD].notnull()].apply(r_utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
-                            #dfs['seq_juxta_after_%s_in_match'%TMD] = dfs[dfs['end_juxta_after_%s' % TMD].notnull()].apply(r_utils.slice_juxta_after_TMD_in_match, args = (TMD,), axis=1)
+                        # the analysis is slow, so don't repeat TM01 if there is only one TM helix in the protein
+                        if len(list_of_TMDs) > 1:
+                            if not TMD == "TM01" and not TMD == last_TMD_of_acc:
+                                dfs['start_juxta_after_%s'%TMD] = np.where(r_utils.isNaN(dfs['TM%.2d_start_in_SW_alignment'%(int(TMD[2:])+1)])==True,np.nan,dfs['%s_end_in_SW_alignment'%TMD])
+                                dfs['end_juxta_before_%s'%TMD] = np.where(dfs["%s_start_in_SW_alignment"%TMD]!=0,dfs["%s_start_in_SW_alignment"%TMD],np.nan)
+                                dfs['end_juxta_after_%s'%TMD] = dfs["%s_end_in_SW_alignment"%TMD]+((dfs["TM%.2d_start_in_SW_alignment"%(int(TMD[2:])+1)]-dfs["%s_end_in_SW_alignment"%TMD])/2).apply(lambda x :int(x) if not np.isnan(x) else np.nan)
+                                dfs['start_juxta_before_%s'%TMD] = np.where(dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)] == dfs['end_juxta_before_%s'%TMD] ,dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)],dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)])
+                                #dfs['seq_juxta_after_%s_in_query'%TMD] = dfs[dfs['start_juxta_after_%s' % TMD].notnull()].apply(r_utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
+                                #dfs['seq_juxta_after_%s_in_match'%TMD] = dfs[dfs['end_juxta_after_%s' % TMD].notnull()].apply(r_utils.slice_juxta_after_TMD_in_match, args = (TMD,), axis=1)
 
-                        if TMD == last_TMD_of_acc:
-                            dfs['start_juxta_before_%s'%TMD] = dfs['end_juxta_after_TM%.2d'%(int(TMD[2:])-1)]
-                            dfs['end_juxta_before_%s'%TMD] = dfs['%s_start_in_SW_alignment'%TMD]
-                            dfs['start_juxta_after_%s'%TMD] = np.where(dfs['%s_end_in_SW_alignment'%TMD] == dfs['len_query_alignment_sequence'],np.nan,dfs['%s_end_in_SW_alignment'%TMD])
-                            dfs['end_juxta_after_%s'%TMD] = np.where(r_utils.isNaN(dfs['start_juxta_after_%s'%TMD]) == True,np.nan,dfs['len_query_alignment_sequence'])
-                            #dfs['seq_juxta_after_%s_in_query'%TMD] = dfs[dfs['start_juxta_after_%s' % TMD].notnull()].apply(r_utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
-                            #dfs['seq_juxta_after_%s_in_query'%TMD] = dfs.query_alignment_sequence[int(dfs['start_juxta_after_TM10']):int(dfs['end_juxta_after_TM10'])]
-                            #dfs['seq_juxta_after_%s_in_match'%TMD] =
+                            if TMD == last_TMD_of_acc:
+                                dfs['start_juxta_before_%s'%TMD] = dfs['end_juxta_after_TM%.2d'%(int(TMD[2:])-1)]
+                                dfs['end_juxta_before_%s'%TMD] = dfs['%s_start_in_SW_alignment'%TMD]
+                                dfs['start_juxta_after_%s'%TMD] = np.where(dfs['%s_end_in_SW_alignment'%TMD] == dfs['len_query_alignment_sequence'],np.nan,dfs['%s_end_in_SW_alignment'%TMD])
+                                dfs['end_juxta_after_%s'%TMD] = np.where(r_utils.isNaN(dfs['start_juxta_after_%s'%TMD]) == True,np.nan,dfs['len_query_alignment_sequence'])
+                                #dfs['seq_juxta_after_%s_in_query'%TMD] = dfs[dfs['start_juxta_after_%s' % TMD].notnull()].apply(r_utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
+                                #dfs['seq_juxta_after_%s_in_query'%TMD] = dfs.query_alignment_sequence[int(dfs['start_juxta_after_TM10']):int(dfs['end_juxta_after_TM10'])]
+                                #dfs['seq_juxta_after_%s_in_match'%TMD] =
 
                     for TMD in list_of_TMDs:
                         last_TMD_of_acc = list_of_TMDs[-1]
@@ -1974,18 +1981,20 @@ if A08_calculate_AAIMON_ratios:
                                     tar_out.add(fasta_file_plus_surr_path, arcname=fasta_file_plus_surr)
                                     os.remove(fasta_file_plus_surr_path)
 
-                        #remove columns to make output csv smaller
-                        if settingsdict['variables']['simap.calculate_AAIMON_ratios.drop_columns_to_reduce_csv_filesize']:
-                            dfs = dfs.drop(['match_alignment_sequence', 'query_alignment_sequence', 'alignment_markup',
-                                 'nonTMD_seq_query', 'nonTMD_markup'], axis=1)
-                        dfs.to_csv(df.loc[acc, 'SIMAP_csv_analysed_path'], sep=",", quoting=csv.QUOTE_NONNUMERIC)
-                        tar_out.add(df.loc[acc, 'SIMAP_csv_analysed_path'], arcname=df.loc[acc, 'SIMAP_csv_analysed'])
-                        #delete original uncompressed file
-                        os.remove(df.loc[acc, 'SIMAP_csv_analysed_path'])
-                        df.loc[acc, 'num_hits_with_SW_align_node'] = dfs['hit_contains_SW_node'].value_counts()[True]
-                        logging.info('num_hits_with_SW_align_node: \n%s' % df.loc[acc, 'num_hits_with_SW_align_node'])
-                        df.loc[acc, 'num_FastA_seqs_saved'] = int(dfs_filt_FastA.shape[0])
-                        logging.info('num_FastA_seqs_saved; %i\n' % df.loc[acc, 'num_FastA_seqs_saved'])
+                                #remove columns to make output csv smaller
+                                if settingsdict['variables']['simap.calculate_AAIMON_ratios.drop_columns_to_reduce_csv_filesize']:
+                                    list_cols_to_drop = ['match_alignment_sequence', 'query_alignment_sequence', 'alignment_markup','nonTMD_seq_query', 'nonTMD_markup']
+                                    for col in list_cols_to_drop:
+                                        if col in dfs.columns:
+                                            dfs.drop(col, axis=1, inplace = True)
+                                dfs.to_csv(df.loc[acc, 'SIMAP_csv_analysed_path'], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+                                tar_out.add(df.loc[acc, 'SIMAP_csv_analysed_path'], arcname=df.loc[acc, 'SIMAP_csv_analysed'])
+                                #delete original uncompressed file
+                                os.remove(df.loc[acc, 'SIMAP_csv_analysed_path'])
+                                df.loc[acc, 'num_hits_with_SW_align_node'] = dfs['hit_contains_SW_node'].value_counts()[True]
+                                logging.info('num_hits_with_SW_align_node: \n%s' % df.loc[acc, 'num_hits_with_SW_align_node'])
+                                df.loc[acc, 'num_FastA_seqs_saved'] = int(dfs_filt_FastA.shape[0])
+                                logging.info('num_FastA_seqs_saved; %i\n' % df.loc[acc, 'num_FastA_seqs_saved'])
                     #save to csv after each protein is analysed, incrementally adding the extra data
                     with open(dfout08_simap_AAIMON, 'w') as csv_out:
                         df.to_csv(csv_out, sep=",", quoting=csv.QUOTE_NONNUMERIC)
@@ -2035,29 +2044,30 @@ if A08a_calculate_gap_densities:
 
         for acc in df.index:
 
+            protein_name = df.loc[acc,'A2_protein_name']
             # The next steps (the main analysis) is only executed, if previous analysis can be overwritten or no analysis has yet been done
             if (overwrite_previous_gap_analysis == True) or (df.loc[acc,"gaps_analysed"] != True):
                 logging.info("%s"%acc)
                 list_of_TMDs = ast.literal_eval(df.loc[acc,"list_of_TMDs"])
 
                 # Checks if outputfiles (tar) exist
-                if os.path.exists("/nas/teeselab/students/rimma/databases/simap/%s/%s_outputfiles.tar.gz"%(acc[0:2],acc)):
+                if os.path.exists(df.loc[acc,'output_tarfile_path']):
 
                 # opens the analysed csv for each protein and loads it into a dataframe
-                    with tarfile.open("/nas/teeselab/students/rimma/databases/simap/%s/%s_outputfiles.tar.gz"%(acc[0:2],acc), mode= 'r:gz')as tar:
+                    with tarfile.open(df.loc[acc,'output_tarfile_path'], mode= 'r:gz')as tar:
 
                     # checks if the analysed file exists, otherwise prints that it does not exist
-                        if "%s_analysed.csv"%acc in tar.getnames():
+                        if '%s_analysed.csv' % protein_name in tar.getnames():
 
                         # loads file into analysed csv
-                            analysed_csv = tar.extractfile('%s_analysed.csv'%acc)
+                            analysed_csv = tar.extractfile('%s_analysed.csv' % protein_name)
                             analysed_df = pd.read_csv(analysed_csv,low_memory=False,index_col=[0])
 
                             # checks if first amino acid is located inside (or periplasmatic) or outside, returns a boolean, true or false
                             # if first residue is located inside, every even tmd (tmd2,tmd4,tmd6...) is reversed, otherwise every odd tmd is reversed
                             # output is a boolean for each tmd, depending on the number and on the first amino acid
 
-                            if df.n_term_ec[acc] == False:
+                            if df.loc[acc,"n_term_ec"] == False:
                                 reverse_tmd = False
                             else:
                                 reverse_tmd = True
@@ -2077,10 +2087,10 @@ if A08a_calculate_gap_densities:
 
                                 for hit in analysed_df.index:
 
-        #'''
-        #Start of the main gap analysis
-        #Code searches for "-" in the TMD sequence and returns the index!! (not the position)
-        #'''
+                                #'''
+                                #Start of the main gap analysis
+                                #Code searches for "-" in the TMD sequence and returns the index!! (not the position)
+                                #'''
 
                                     # Following if conditions only refer to gaps in the query!
                                     # Query gaps are counted as "in between positions", for example: 4,5 refers to a gap between position 4 and 5;
@@ -2134,14 +2144,14 @@ if A08a_calculate_gap_densities:
                                                 substracted_value = len([m<n for m in list_of_gaps_per_hit_in_query])
                                                 list_of_gaps_in_tmd.append(abs(n-substracted_value))
 
-        #######
-        # Start of the Juxta Consideration
-        # In the case of n_term being located intracellular:
-        # there are 4 groups: 1. juxta_before_odd_TMDs + 2.juxta_after_even_TMDs 3. Juxta_before_even_TMDs + 4. Juxta_after_odd_TMDs
-        # 1 + 2 --> Intracellular
-        # 3 + 4 --> Extracellular
-        # If the n_term is extracellular, that it's the other way round. 1+2 --> Extracellular 3+4 --> Intracellular
-        ### The data will already be flipped in order to align extracellular and intracellular parts, extracellular: + , intracellular: -
+                                    #######
+                                    # Start of the Juxta Consideration
+                                    # In the case of n_term being located intracellular:
+                                    # there are 4 groups: 1. juxta_before_odd_TMDs + 2.juxta_after_even_TMDs 3. Juxta_before_even_TMDs + 4. Juxta_after_odd_TMDs
+                                    # 1 + 2 --> Intracellular
+                                    # 3 + 4 --> Extracellular
+                                    # If the n_term is extracellular, that it's the other way round. 1+2 --> Extracellular 3+4 --> Intracellular
+                                    ### The data will already be flipped in order to align extracellular and intracellular parts, extracellular: + , intracellular: -
 
                                     # juxta before_odd_TMDs:
 
@@ -2376,16 +2386,16 @@ if A08a_calculate_gap_densities:
                                     unique_list_of_gaps_intracellular = list(set(list_of_gaps_intracellular))
                                     unique_list_of_gaps_extracellular = list(set(list_of_gaps_extracellular))
 
-                                    df["%s_occuring_gaps"%tmd][acc]=str(unique_list_of_gaps_in_tmd)
-                                    df["%s_amount_possible_gappositions"%tmd][acc]=len(unique_list_of_gaps_in_tmd)
+                                    df.loc[acc,"%s_occuring_gaps"%tmd]=str(unique_list_of_gaps_in_tmd)
+                                    df.loc[acc,"%s_amount_possible_gappositions"%tmd]=len(unique_list_of_gaps_in_tmd)
 
-                                    df['juxta_%s_intracellular_possible_gappositions'%tmd][acc] = str(unique_list_of_gaps_intracellular)
-                                    df['juxta_%s_extracellular_possible_gappositions'%tmd][acc] = str(unique_list_of_gaps_extracellular)
-                                    df['juxta_%s_intracellular_num_gaps'%tmd][acc] = len(unique_list_of_gaps_intracellular)
-                                    df['juxta_%s_exracellular_num_gaps'%tmd][acc] = len(unique_list_of_gaps_extracellular)
+                                    df.loc[acc,'juxta_%s_intracellular_possible_gappositions'%tmd] = str(unique_list_of_gaps_intracellular)
+                                    df.loc[acc,'juxta_%s_extracellular_possible_gappositions'%tmd] = str(unique_list_of_gaps_extracellular)
+                                    df.loc[acc,'juxta_%s_intracellular_num_gaps'%tmd] = len(unique_list_of_gaps_intracellular)
+                                    df.loc[acc,'juxta_%s_exracellular_num_gaps'%tmd] = len(unique_list_of_gaps_extracellular)
 
 
-                            df.gaps_analysed[acc] = "True"
+                            df.loc[acc,"gaps_analysed"] = "True"
                             logging.info("--Analysed")
                             with open(dfout10_uniprot_gaps, 'w') as csv_out:
                                 df.to_csv(csv_out, sep=",", quoting=csv.QUOTE_NONNUMERIC)
@@ -2401,9 +2411,9 @@ if A08a_calculate_gap_densities:
 
 
 #A## variables are included only to help navigate the document in PyCharm
-A08b_calculate_gap_densities = settingsdict["run_settings"]["plot.create_graph_of_gap_density"]
+A08b_create_graph_of_gap_density = settingsdict["run_settings"]["plot.create_graph_of_gap_density"]
 
-if A08b_calculate_gap_densities:
+if A08b_create_graph_of_gap_density:
     logging.info('~~~~~~~~~~~~starting creating graphs of gap density~~~~~~~~~~~~')
 
     #test if the dataframe has already been created, otherwise re-open from uniprot csv file
