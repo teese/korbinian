@@ -840,7 +840,7 @@ def create_dict_of_data_from_uniprot_record(record):
 #    return list_of_files_with_feature_tables, list_of_files_with_homologues, list_of_protein_names, list_of_org_domains
 
 
-def retrieve_simap_feature_table(input_sequence, output_file):
+def retrieve_simap_feature_table(input_sequence, max_memory_allocation,output_file):
     '''
     Uses the java program to access the simap database and download the small file containing information on that protein, called a "feature table".
     '''
@@ -850,7 +850,7 @@ def retrieve_simap_feature_table(input_sequence, output_file):
     jar_file = r"D:\Schweris\Projects\Programming\Python\programs\eaSimap.jar"
     #prepare input sequence and settings as a "java_run_string"
     #run command
-    string_to_run_as_java_command = 'java -Xmx1000m -jar %s -s %s -o %s -f' % (jar_file, input_sequence, output_file)
+    string_to_run_as_java_command = 'java -Xmx%im -jar %s -s %s -o %s -f' % (max_memory_allocation, jar_file, input_sequence, output_file)
     logging.info(string_to_run_as_java_command)
 #    for output_line in run_command(string_to_run_as_java_command):
 #        print(output_line)                          #note that nothing is actually printed

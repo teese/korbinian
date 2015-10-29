@@ -79,7 +79,7 @@ main_folder_harddrive = 'D:\\'
 #main_folder_list = [main_folder_harddrive, 'Schweris', 'Projects', 'Programming', 'Python', 'files', 'MAIN']
 main_folder_list = [main_folder_harddrive, 'Databases', 'main']
 main_folder = os.path.join(*main_folder_list)
-json_file_with_settings = os.path.join(main_folder, 'settings', 'settings_%02d.json' % settings_number)
+excel_file_with_settings = os.path.join(main_folder, 'settings', 'korbinian_python_run_settings_%02d.xlsx' % settings_number)
 
 '''
 The MAIN script starts here
@@ -107,17 +107,32 @@ import matplotlib.patches as patches
 import os
 import ast
 
-#open the settings file
-with open(json_file_with_settings, 'r') as f:
-    settings = json.load(f)
+# open the settings file
+sheetnames = ["run_settings", "file_locations", "variables"]
+settingsdict = {}
+for sheetname in sheetnames:
+    # open excel file as pandas dataframe
+    dfset = pd.read_excel(excel_file_with_settings, sheetname=sheetname)
+    # for each row, isolate the columns containing the variable names
+    for row in dfset.index:
+        cells_with_variable_names = dfset.loc[row,"col1":"col3"].dropna()
+        # join hierarchical variable names together, separated by "."
+        dfset.loc[row,'variable'] = ".".join(cells_with_variable_names)
+    # replace "FALSE" and "TRUE" with python bool values
+    dfset['value'] = dfset['value'].apply(lambda x : True if x == "TRUE" else x)
+    dfset['value'] = dfset['value'].apply(lambda x : False if x == "FALSE" else x)
+    # convert the index to the joined variable names
+    dfset.index = dfset['variable']
+    # convert the variable names and values to a dict, and add to a nested dict
+    settingsdict[sheetname] = dfset['value'].to_dict()
 
-list_number = settings["run_settings"]["uniprot_list"]
+list_number = settingsdict["run_settings"]["uniprot_list"]
 
 # import private tlab python modules
 # the utils file contains a number of necessary scripts, this needs to be visible to the system.
 # deprecated in favour of the "setup.py" method promoted by Alex
-#if settings["file_locations"]["utils"] not in sys.path:
-#    sys.path.append(settings["file_locations"]["utils"])
+#if settingsdict["file_locations"]["utils"] not in sys.path:
+#    sys.path.append(settingsdict["file_locations"]["utils"])
 
 # load the tlab utils and tools modules
 import korbinian.mtutils as utils
@@ -144,14 +159,13 @@ logfile = os.path.join(main_folder, 'logfiles','List%s_Settings%s_%s_logfile.log
 #a file to keep a record of the log settings used for that script
 utils.setup_error_logging(logfile)
 
-#if settings['logging_settings']['suppress_error_logging_to_console']:
+#if settingsdict['logging_settings']['suppress_error_logging_to_console']:
 #    logging.setLevel('WARNING')
 #'''+++++++++++++++FILENAMES++++++++++++++++++'''
 
 
 # Folder, where SIMAP download is stored; requires a lot of harddrive; 
-data_folder = settings["file_locations"]["data_folder"]
-
+data_folder = settingsdict["file_locations"]["data_folder"]
 
 uniprot_flatfile_of_selected_records = os.path.join(data_folder, 'D_uniprot', 'selected',
                                                     'List%s_selected_uniprot_records_flatfile.txt' % list_number)
@@ -183,16 +197,17 @@ csv_file_with_md5_for_each_query_sequence = os.path.join(main_folder, 'List%02d_
 csv_av_cons_ratio_all_proteins = '%s_cons_ratios_nonred_av.csv' % base_filename_summaries
 csv_std_cons_ratio_all_proteins = '%s_cons_ratios_nonred_std.csv' % base_filename_summaries
 
-A00_convert_uniprot_list_to_nonred_ff_via_uniref = settings["run_settings"]["create_uniprot_flatfile_with_selected_seqs"][
-                                               "convert_uniprot_list_to_nonred_ff_via_uniref"]["run"]
-overwrite_selected_ff = settings["run_settings"]["create_uniprot_flatfile_with_selected_seqs"]["convert_uniprot_list_to_nonred_ff_via_uniref"]["overwrite_selected_ff"]
+A00_convert_uniprot_list_to_nonred_ff_via_uniref = settingsdict["run_settings"]["uniprot.inputs.convert_uniprot_list_to_nonred_ff_via_uniref"]
+
+overwrite_selected_ff = settingsdict["variables"]["uniprot.convert_uniprot_list_to_nonred_ff_via_uniref.overwrite_selected_ff"]
+
 if A00_convert_uniprot_list_to_nonred_ff_via_uniref:
     logging.info('~~~~~~~~~~~~  starting A00_convert_uniprot_list_to_nonred_ff_via_uniref   ~~~~~~~~~~~~')
     if os.path.isfile(uniprot_flatfile_of_selected_records) == False or overwrite_selected_ff == True:
         # load uniref cutoff used (typicall 50, for UniRef50)
-        uniref_cutoff = settings["run_settings"]["create_uniprot_flatfile_with_selected_seqs"]["convert_uniprot_list_to_nonred_ff_via_uniref"]["uniref_cluster_cutoff"]
+        uniref_cutoff = settingsdict["variables"]["uniprot.convert_uniprot_list_to_nonred_ff_via_uniref.uniref_cluster_cutoff"]
         # load filters used when downloading original UniRef cluster from UniProt website    
-        uniref_filters = settings["run_settings"]["create_uniprot_flatfile_with_selected_seqs"]["convert_uniprot_list_to_nonred_ff_via_uniref"]["uniref_filters"]
+        uniref_filters = settingsdict["variables"]["uniprot.convert_uniprot_list_to_nonred_ff_via_uniref.uniref_filters"]
         # use cutoff and filters to select the correct uniref file from the databases folder
         uniref_csv_with_clusters = 'UniRef%s_%s.tab' % (uniref_cutoff, '_'.join(uniref_filters))
         uniref_csv_with_clusters_path = os.path.join(data_folder, 'D_uniref', uniref_csv_with_clusters)
@@ -246,8 +261,7 @@ if A00_convert_uniprot_list_to_nonred_ff_via_uniref:
     
         #obtain the appropriate flatfile, using the filters in the settings
         #note that the flatfile parsing is quite slow, so smaller flatfiles give faster results
-        large_uniprot_ff_filters = settings["run_settings"]["create_uniprot_flatfile_with_selected_seqs"][
-                                   "convert_uniprot_list_to_nonred_ff_via_uniref"]["large_uniprot_ff_filters"]
+        large_uniprot_ff_filters = settingsdict["variables"]["uniprot.convert_uniprot_list_to_nonred_ff_via_uniref.large_uniprot_ff_filters"]
         large_uniprot_ff = 'UniProt_FF_%s.txt' % '_'.join(large_uniprot_ff_filters)
         large_uniprot_ff_path = os.path.join(data_folder, 'D_uniprot', large_uniprot_ff)
         
@@ -266,7 +280,7 @@ if A00_convert_uniprot_list_to_nonred_ff_via_uniref:
         logging.info('(%i redundant sequences removed from dataset)' % (number_total_records - number_nonredundant_records))
 
 #A## variables are included only to help navigate the document in PyCharm
-A01_parse_large_flatfile_with_list_uniprot_accessions = settings['run_settings']["create_uniprot_flatfile_with_selected_seqs"]["parse_large_flatfile_with_list_uniprot_accessions"]
+A01_parse_large_flatfile_with_list_uniprot_accessions = settingsdict["run_settings"]["uniprot.inputs.parse_large_flatfile_with_list_uniprot_accessions"]
 if A01_parse_large_flatfile_with_list_uniprot_accessions:
     logging.info('~~~~~~~~~~~~  starting A01_parse_large_flatfile_with_list_uniprot_accessions   ~~~~~~~~~~~~')
     #parse_large_flatfile_with_list_uniprot_accessions(list_of_uniprot_accessions, uniprot_flatfile_all_single_pass, uniprot_flatfile_of_selected_records)
@@ -288,7 +302,7 @@ if A01_parse_large_flatfile_with_list_uniprot_accessions:
 
 
 #A## variables are included only to help navigate the document in PyCharm
-A02_retrieve_uniprot_data_for_acc_list_in_xlsx_file = settings["run_settings"]['create_uniprot_flatfile_with_selected_seqs']["retrieve_uniprot_data_for_acc_list_in_xlsx_file"]
+A02_retrieve_uniprot_data_for_acc_list_in_xlsx_file = settingsdict["run_settings"]["uniprot.inputs.retrieve_uniprot_data_for_acc_list_in_xlsx_file"]
 if A02_retrieve_uniprot_data_for_acc_list_in_xlsx_file:
     logging.info('~~~~~~~~~~~~  starting A02_retrieve_uniprot_data_for_acc_list_in_xlsx_file   ~~~~~~~~~~~~')
     #take list of acc, search in default uniprot flatfile. If missing, download from uniprot server.
@@ -309,7 +323,7 @@ if A02_retrieve_uniprot_data_for_acc_list_in_xlsx_file:
                 print("No SwissProt record found in %s for %s." % (input_uniprot_flatfile, uniprot_accession))
 
 #A## variables are included only to help navigate the document in PyCharm
-A03_create_csv_from_uniprot_flatfile = settings["run_settings"]["create_csv_from_uniprot_flatfile"]
+A03_create_csv_from_uniprot_flatfile = settingsdict["run_settings"]["uniprot.parse.create_csv_from_uniprot_flatfile"]
 if A03_create_csv_from_uniprot_flatfile:
     #create_csv_from_uniprot_flatfile(input_file=uniprot_flatfile_of_selected_records, output_file=csv_file_with_uniprot_data)
     ## open uniprot flatfile
@@ -500,8 +514,8 @@ if A03_create_csv_from_uniprot_flatfile:
         df = df.T
 
         ''' ~~ DETERMINE START AND STOP INDICES FOR TMD PLUS SURROUNDING SEQ ~~ '''
-        aa_before_tmd = settings["simap_match_filters"]["fasta_files"]["aa_before_tmd"]
-        aa_after_tmd = settings["simap_match_filters"]["fasta_files"]["aa_after_tmd"]
+        aa_before_tmd = settingsdict["variables"]["analyse.simap_match_filters.aa_before_tmd"]
+        aa_after_tmd = settingsdict["variables"]["analyse.simap_match_filters.aa_after_tmd"]
         #determine max number of TMD columns that need to be created
         max_num_TMDs = df['number_of_TMDs_in_uniprot_feature_list'].max()
         #currently the loop is run for each TMD, based on the sequence with the most TMDs
@@ -548,7 +562,7 @@ if A03_create_csv_from_uniprot_flatfile:
                  count_of_uniprot_records_processed, count_of_uniprot_records_added_to_csv))
 
 #A## variables are included only to help navigate the document in PyCharm
-A04_setup_df_dtypes = settings["run_settings"]["A04_setup_df_dtypes"]
+A04_setup_df_dtypes = settingsdict["run_settings"]["uniprot.parse.A04_setup_df_dtypes"]
 if A04_setup_df_dtypes:
     logging.info('~~~~~~~~~~~~  starting A04_setup_df_dtypes   ~~~~~~~~~~~~')
     #test if the dataframe has already been created, otherwise reopen from csv file
@@ -598,7 +612,7 @@ if A04_setup_df_dtypes:
     logging.info('%d duplicate_columns found %s' % (len(duplicate_columns), duplicate_columns))
 
 #A## variables are included only to help navigate the document in PyCharm
-A05_setup_df_file_locations = settings["run_settings"]["A05_setup_df_file_locations"]
+A05_setup_df_file_locations = settingsdict["run_settings"]["uniprot.parse.A05_setup_df_file_locations"]
 if A05_setup_df_file_locations:
     logging.info('~~~~~~~~~~~~  starting A05_setup_df_file_locations   ~~~~~~~~~~~~')
     #test if the dataframe has already been created, otherwise reopen from csv file
@@ -610,7 +624,7 @@ if A05_setup_df_file_locations:
         df = pd.read_csv(dfout01_uniprotcsv, sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
     #set up a folder to hold the SIMAP BLAST-like output
     #note that at the moment, files cannot be compressed
-    simap_data_folder = os.path.join(settings['file_locations']['data_folder'], 'simap')
+    simap_data_folder = os.path.join(settingsdict['file_locations']['data_folder'], 'simap')
     if "uniprot_entry_name" in df.columns:
         #join the accession and entry name to create a "protein name" for naming files
         df['A2_protein_name'] = df.A1_uniprot_accession + '_' + df.uniprot_entry_name
@@ -674,8 +688,7 @@ if A05_setup_df_file_locations:
 
 
 #A## variables are included only to help navigate the document in PyCharm
-A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv = settings["run_settings"][
-    "retrieve_simap_feature_table_and_homologues_from_list_in_csv"]
+A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv = settingsdict["run_settings"]["simap.download.retrieve_simap_feature_table_and_homologues_from_list_in_csv"]
 #'''+++++++++++++++SIMAP++++++++++++++++++'''
 if A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv:
     logging.info('~~~~~~~~~~~~  starting A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv   ~~~~~~~~~~~~')
@@ -694,16 +707,16 @@ if A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv:
     '''
     #global list_of_files_with_feature_tables, list_of_files_with_homologues
     #The SIMAP download settings can be altered as desired, using the json settings file
-    max_hits = settings["simap_homologue_download"]["max_hits"]
-    max_memory_allocation = settings["simap_homologue_download"]["java_max_RAM_memory_allocated_to_simap_download"]
-    database = settings["simap_homologue_download"]["database"]
-    taxid = settings["simap_homologue_download"]["taxid"]  # eg.'7227' for Drosophila melanogaster
+    max_hits = settingsdict["variables"]["simap.max_hits"]
+    max_memory_allocation = settingsdict["variables"]["simap.java_max_RAM_memory_allocated_to_simap_download"]
+    database = settingsdict["variables"]["simap.database"]
+    taxid = settingsdict["variables"]["simap.taxid"]  # eg.'7227' for Drosophila melanogaster
     extra_search_string = ''
 
     enough_hard_drive_space = True
     try:
         byteformat = "GB"
-        data_harddrive = settings["file_locations"]["data_harddrive"]
+        data_harddrive = settingsdict["file_locations"]["data_harddrive"]
         size = utils.get_free_space(data_harddrive, byteformat)
         logging.info('Hard disk remaining space =')
         logging.info(size)
@@ -726,18 +739,18 @@ if A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv:
             The character limit can be adjusted in the settings file
             '''
             if 'Windows' in str(platform.system()):
-                if query_sequence_length < settings["simap_homologue_download"]["max_query_sequence_length"]:
+                if query_sequence_length < settingsdict["variables"]["simap.max_query_sequence_length"]:
                     download_homologues = True
                 else:
                     download_homologues = False
                     logging.warning('%s cannot be processed into a java command in windows OS,'
                                     'as the sequence is longer than %i characters (%i). Moving to next sequence' % (
-                                    protein_name, settings["simap_homologue_download"]["max_query_sequence_length"],
+                                    protein_name, settingsdict["variables"]["simap.max_query_sequence_length"],
                                     query_sequence_length))
             else:
                 download_homologues = True
             if download_homologues == True:
-                simap_data_folder = os.path.join(settings['file_locations']['data_folder'], 'simap')
+                simap_data_folder = os.path.join(settingsdict['file_locations']['data_folder'], 'simap')
                 subfolder = simap_data_folder+ "/" + df.loc[acc, 'first_two_letters_of_uniprot_acc']
                 if os.path.isdir(subfolder) == False:
                     os.mkdir(subfolder)
@@ -748,6 +761,7 @@ if A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv:
                     if not feature_table_XML_exists:
                         #download feature table from SIMAP
                         utils.retrieve_simap_feature_table(input_sequence,
+                                                           max_memory_allocation=max_memory_allocation,
                                                            output_file=df.loc[acc, 'SIMAP_feature_table_XML_file_path'])
                     if not homologues_XML_exists:
                         #download homologue file from SIMAP
@@ -825,7 +839,7 @@ if A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv:
     logging.info('retrieve_simap_feature_table_and_homologues_from_list_in_csv is finished')
 
 #A## variables are included only to help navigate the document in PyCharm
-A07_parse_SIMAP_to_csv = settings["run_settings"]["parse_SIMAP_to_csv"]
+A07_parse_SIMAP_to_csv = settingsdict["run_settings"]["simap.parse.parse_simap_to_csv"]
 if A07_parse_SIMAP_to_csv:
     counter_XML_to_CSV = 0
     logging.info('~~~~~~~~~~~~  starting parse_SIMAP_to_csv   ~~~~~~~~~~~~')
@@ -902,7 +916,7 @@ if A07_parse_SIMAP_to_csv:
             #SIMAP_csv_from_XML_path = r"E:/Databases/simap/%s/%s_homologues.csv" % (organism_domain, protein_name[:30])
 
             #if the setting is "False", and you don't want to overwrite the files, skip this section
-            if settings["run_settings"]["calculate_AAIMON_ratios"]["overwrite_homologue_csv_files"]:
+            if settingsdict["variables"]["simap.calculate_AAIMON_ratios.overwrite_homologue_csv_files"]:
                 create_homol_csv = True
             else:
                 #check if output file already exists
@@ -928,13 +942,10 @@ if A07_parse_SIMAP_to_csv:
                                     #following the general filters, filter to only analyse sequences with TMD identity above cutoff,
                                     #and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
                                     dfs_filt_AAIMON = dfs_filt_AAIMON.loc[
-                                        dfs['%s_perc_ident' % TMD] >= settings['simap_match_filters'][
-                                            'min_identity_of_TMD_initial_filter']]
+                                        dfs['%s_perc_ident' % TMD] >= settingsdict['variables']['analyse.simap_match_filters.min_identity_of_TMD_initial_filter']]
                                     #add to original dataframe with the list of sequences
-                                    df.loc[acc, '%s_AAIMON_ratio_mean' % TMD] = dfs_filt_AAIMON[
-                                        '%s_AAIMON_ratio' % TMD].mean()
-                                    df.loc[acc, '%s_AAIMON_ratio_std' % TMD] = dfs_filt_AAIMON[
-                                        '%s_AAIMON_ratio' % TMD].std()
+                                    df.loc[acc, '%s_AAIMON_ratio_mean' % TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio' % TMD].mean()
+                                    df.loc[acc, '%s_AAIMON_ratio_std' % TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio' % TMD].std()
                                     logging.info('AIMON MEAN %s: %0.2f' % (TMD, df.loc[acc, '%s_AAIMON_ratio_mean' % TMD]))
                                 '''
                             else:
@@ -1023,17 +1034,17 @@ if A07_parse_SIMAP_to_csv:
 
                     if xml_contains_simap_homologue_hits:
                         #load the amino acid substitution matrices from the settings file
-                        list_of_aa_sub_matrices = settings['aa_substitution_scoring']['matrices']
+                        list_of_aa_sub_matrices = settingsdict['variables']['aa_substitution_scoring.matrices']
 
                         #import the amino acid substitution matrices
                         utils.import_amino_acid_substitution_matrices()
 
                         #add the similarity ratios to the csv_header_for_SIMAP_homologue_file.
                         # These will depend on the individual settings
-                        #                    if settings['run_settings']['calculate_AAIMON_ratios']['calculate_TMD_conservation_with_aa_matrices']:
-                        #                        for j in range(settings["aa_substitution_scoring"]["gap_open_penalty_min"],
-                        #                                       settings["aa_substitution_scoring"]["gap_open_penalty_max"],
-                        #                                       settings["aa_substitution_scoring"]["gap_open_penalty_increment"]):
+                        #                    if settingsdict['variables']['simap.calculate_AAIMON_ratios.calculate_TMD_conservation_with_aa_matrices']:
+                        #                        for j in range(settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_min"],
+                        #                                       settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_max"],
+                        #                                       settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_increment"]):
                         #                            gap_open_penalty = j
                         #                            gap_extension_penalty = j
                         #print('gap_open_penalty:%s' % j)
@@ -1206,11 +1217,10 @@ if A07_parse_SIMAP_to_csv:
     logging.info('****parse_SIMAP_to_csv finished!!****\n%g files parsed from SIMAP XML to csv' % counter_XML_to_CSV)
 
 #A## variables are included only to help navigate the document in PyCharm
-A08_calculate_AAIMON_ratios = settings["run_settings"]["calculate_AAIMON_ratios"]["run"]
+A08_calculate_AAIMON_ratios = settingsdict["run_settings"]["analyse.calculate_AAIMON_ratios"]
 if A08_calculate_AAIMON_ratios:
     logging.info('~~~~~~~~~~~~starting calculate_AAIMON_ratios~~~~~~~~~~~~')
-    overwrite_prev_calculated_AAIMON_ratios = settings["run_settings"]["calculate_AAIMON_ratios"][
-                                              "overwrite_prev_calculated_AAIMON_ratios"]
+    overwrite_prev_calculated_AAIMON_ratios = settingsdict["variables"]["simap.calculate_AAIMON_ratios.overwrite_prev_calculated_AAIMON_ratios"]
     #test if the dataframe has already been created, otherwise re-open from csv file containing the simap data
     try:
         logging.info('first protein acc = %s, df already exists,'
@@ -1301,7 +1311,7 @@ if A08_calculate_AAIMON_ratios:
                         dfs['len_query_alignment_sequence'] = 0
 
                     #add the list of words to the globals, to be accessed by utils.find_disallowed_words
-                    words_not_allowed_in_description = settings["simap_match_filters"]["words_not_allowed_in_description"]
+                    words_not_allowed_in_description = settingsdict["variables"]["analyse.simap_match_filters.words_not_allowed_in_descriptionn"]
                     #collect disallowed words in hit protein description (patent, synthetic, etc)
                     dfs['list_disallowed_words_in_descr'] = dfs['A4_description'].dropna().apply(
                         utils.find_disallowed_words, args=(words_not_allowed_in_description,))
@@ -1385,8 +1395,8 @@ if A08_calculate_AAIMON_ratios:
                                     dfs['seq_juxta_after_%s_in_query'%TMD][hit] = dfs.query_alignment_sequence[hit][int(dfs["start_juxta_after_%s" % TMD][hit]):int(dfs["end_juxta_after_%s" % TMD][hit])]
 
                         #redefine the number of amino acids before and after the TMD to be inserted into the FastA files
-                        aa_before_tmd = settings["simap_match_filters"]["fasta_files"]["aa_before_tmd"]
-                        aa_after_tmd = settings["simap_match_filters"]["fasta_files"]["aa_after_tmd"]
+                        aa_before_tmd = settingsdict["variables"]["analyse.simap_match_filters.aa_before_tmd"]
+                        aa_after_tmd = settingsdict["variables"]["analyse.simap_match_filters.aa_after_tmd"]
 
                         #define the start of theTMD + surrounding sequence
                         dfs['%s_start_in_SW_alignment_plus_surr' % TMD] = dfs['%s_start_in_SW_alignment' % TMD] - aa_before_tmd
@@ -1431,8 +1441,8 @@ if A08_calculate_AAIMON_ratios:
                             #note that for most calculations this is somewhat redundant, because the max number of acceptable gaps in sequence is probable ~2
                             dfs['%s_SW_align_len' % TMD] = dfs['%s_SW_m_seq_len' % TMD].apply(lambda x: x if x < len_query_TMD else len_query_TMD)
                             #create a boolean column that allows filtering by the accepted number of gaps, according to the settings file
-                            dfs['%s_SW_query_acceptable_num_gaps' % TMD] = dfs['%s_SW_query_num_gaps' % TMD] <= settings["simap_match_filters"]["number_of_gaps_allowed_in_query_TMD"]
-                            dfs['%s_SW_match_acceptable_num_gaps' % TMD] = dfs['%s_SW_match_num_gaps' % TMD] <= settings["simap_match_filters"]["number_of_gaps_allowed_in_match_TMD"]
+                            dfs['%s_SW_query_acceptable_num_gaps' % TMD] = dfs['%s_SW_query_num_gaps' % TMD] <= settingsdict["variables"]["analyse.simap_match_filters.number_of_gaps_allowed_in_query_TMD"]
+                            dfs['%s_SW_match_acceptable_num_gaps' % TMD] = dfs['%s_SW_match_num_gaps' % TMD] <= settingsdict["variables"]["analyse.simap_match_filters.number_of_gaps_allowed_in_match_TMD"]
                             #count identical residues between query and match TMDs by counting the number of pipes in the markup string
                             dfs['%s_SW_num_ident_res' % TMD] = dfs['%s_SW_markup_seq' % TMD].dropna().apply(lambda x: x.count('|'))
                             dfs['%s_SW_num_sim_res' % TMD] = dfs['%s_SW_markup_seq' % TMD].dropna().apply(lambda x: x.count(':'))
@@ -1462,7 +1472,7 @@ if A08_calculate_AAIMON_ratios:
 
                     if number_of_TMDs_containing_some_homologue_data > 0:
                         #create a boolean column that describel whether the sequence is above the minimum gapped identity
-                        minimum_identity_of_full_protein = settings["simap_match_filters"]["minimum_identity_of_full_protein"]
+                        minimum_identity_of_full_protein = settingsdict["variables"]["analyse.simap_match_filters.minimum_identity_of_full_protein"]
                         dfs['gapped_ident_above_cutoff'] = dfs['FASTA_gapped_identity'] > minimum_identity_of_full_protein
 
                         '''¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦             nonTMD calculations                        ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
@@ -1678,8 +1688,8 @@ if A08_calculate_AAIMON_ratios:
                         #                                                     gap_extension_penalty=gap_extension_penalty))
                         #                        return(score)
                         #
-                        #                    for gap_open_penalty in range(settings["aa_substitution_scoring"]["gap_open_penalty_min"],settings["aa_substitution_scoring"]["gap_open_penalty_max"],
-                        #                                   settings["aa_substitution_scoring"]["gap_open_penalty_increment"]):
+                        #                    for gap_open_penalty in range(settingsdict["aa_substitution_scoring"]["gap_open_penalty_min"],settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_max"],
+                        #                                   settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_increment"]):
                         #                        #print(gap_open_penalty)
                         #                        #for simplicity, give the gap open and gap extend the same value
                         #                        gap_extension_penalty = gap_open_penalty
@@ -1765,7 +1775,7 @@ if A08_calculate_AAIMON_ratios:
                         for TMD in list_of_TMDs:
                             len_query_TMD = len(df.loc[acc, '%s_seq' % TMD])
                             #following the general filters, filter to only analyse sequences with TMD identity above cutoff, and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
-                            min_identity_of_TMD_initial_filter = settings['simap_match_filters']['min_identity_of_TMD_initial_filter']
+                            min_identity_of_TMD_initial_filter = settingsdict['variables']['analyse.simap_match_filters.min_identity_of_TMD_initial_filter']
                             dfs_filt_AAIMON = dfs_filt.loc[dfs['%s_perc_ident' % TMD] >= min_identity_of_TMD_initial_filter]
                             #avoid a divide by zero error in the unlikely case that there are no_identical_residues_in_alignment
                             dfs_filt_AAIMON = dfs_filt_AAIMON.loc[dfs_filt_AAIMON['nonTMD_perc_ident'] != 0]
@@ -1812,12 +1822,12 @@ if A08_calculate_AAIMON_ratios:
                         #use linspace to get a fixid number of points between tha min and the max for the histogram
                         #set up evenly distributed bins between the chosen min and max
                         #if possible, 1.0 should be in the centre of a bin, to catch cases where a lot of homologues have a ratio that approximates 1
-                        linspace_binlist = np.linspace(settings["hist_settings_single_protein"]["smallest_bin"],
-                                                       settings["hist_settings_single_protein"]["largest_bin"],
-                                                       settings["hist_settings_single_protein"]["number_of_bins"])
+                        linspace_binlist = np.linspace(settingsdict["variables"]["hist_settings_single_protein.smallest_bin"],
+                                                       settingsdict["variables"]["hist_settings_single_protein.largest_bin"],
+                                                       settingsdict["variables"]["hist_settings_single_protein.number_of_bins"])
                         #add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
                         binlist = np.append(linspace_binlist,
-                                            settings["hist_settings_single_protein"]["final_highest_bin"])
+                                            settingsdict["variables"]["hist_settings_single_protein.final_highest_bin"])
 
                         #se default font size for text in the plot
                         fontsize = 4
@@ -1835,7 +1845,7 @@ if A08_calculate_AAIMON_ratios:
                             for TMD in list_of_TMDs:
                                 len_query_TMD = len(df.loc[acc, '%s_seq' % TMD])
                                 #following the general filters, filter to only analyse sequences with TMD identity above cutoff, and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
-                                min_identity_of_TMD_initial_filter = settings['simap_match_filters']['min_identity_of_TMD_initial_filter']
+                                min_identity_of_TMD_initial_filter = settingsdict['variables']['analyse.simap_match_filters.min_identity_of_TMD_initial_filter']
                                 dfs_filt_AAIMON = dfs_filt.loc[dfs['%s_perc_ident' % TMD] >= min_identity_of_TMD_initial_filter]
                                 #avoid a divide by zero error in the unlikely case that there are no_identical_residues_in_alignment
                                 dfs_filt_AAIMON = dfs_filt_AAIMON.loc[dfs_filt_AAIMON['nonTMD_perc_ident'] != 0]
@@ -1883,9 +1893,9 @@ if A08_calculate_AAIMON_ratios:
                                                                  fontsize=fontsize)
                                 if savefig:
                                     #take x-axis min from settings
-                                    xlim_min = settings["hist_settings_single_protein"]["smallest_bin"]
+                                    xlim_min = settingsdict["variables"]["hist_settings_single_protein.smallest_bin"]
                                     #take x-axis max from settings
-                                    xlim_max = settings["hist_settings_single_protein"]["largest_bin"]
+                                    xlim_max = settingsdict["variables"]["hist_settings_single_protein.largest_bin"]
                                     #apply the following formatting changes to all plots in the figure
                                     for ax in axarr.flat:
                                         #set x-axis min
@@ -1960,7 +1970,7 @@ if A08_calculate_AAIMON_ratios:
                                 os.remove(fasta_file_plus_surr_path)
 
                             #remove columns to make output csv smaller
-                            if settings['run_settings']['calculate_AAIMON_ratios']['drop_columns_to_reduce_csv_filesize']:
+                            if settingsdict['variables']['simap.calculate_AAIMON_ratios.drop_columns_to_reduce_csv_filesize']:
                                 dfs = dfs.drop(['match_alignment_sequence', 'query_alignment_sequence', 'alignment_markup',
                                      'nonTMD_seq_query', 'nonTMD_markup'], axis=1)
                             dfs.to_csv(df.loc[acc, 'SIMAP_csv_analysed_path'], sep=",", quoting=csv.QUOTE_NONNUMERIC)
@@ -1979,19 +1989,19 @@ if A08_calculate_AAIMON_ratios:
 
 
 #A## variables are included only to help navigate the document in PyCharm
-A08a_calculate_gap_densities = settings["run_settings"]["calculate_gap_densities"]["run"]
+A08a_calculate_gap_densities = settingsdict["run_settings"]["analyse.calculate_gap_densities"]
 
 if A08a_calculate_gap_densities:
     logging.info('~~~~~~~~~~~~starting calculate_gap_densities~~~~~~~~~~~~')
 
     # If script previously has been run, continues with proteins not beeing processed yet, or overwrites previous gap analysis
-    overwrite_previous_gap_analysis = settings["run_settings"]["calculate_gap_densities"]["overwrite_previous_gap_analysis"]
+    overwrite_previous_gap_analysis = settingsdict["variables"]["analyse.calculate_gap_densities.overwrite_previous_gap_analysis"]
 
     # Maximum number of gaps for tmds to be considered
-    allowed_gaps_per_tmd = settings["run_settings"]["calculate_gap_densities"]["allowed_gaps_per_tmd"]
+    allowed_gaps_per_tmd = settingsdict["variables"]["analyse.calculate_gap_densities.allowed_gaps_per_tmd"]
 
     # 24 for beta barrel proteins, can be altered if only several TMDs to consider
-    max_number_of_tmds = settings["run_settings"]["calculate_gap_densities"]["max_number_of_tmds"]
+    max_number_of_tmds = settingsdict["variables"]["analyse.calculate_gap_densities.max_number_of_tmds"]
 
     #test if the dataframe has already been created, otherwise re-open from uniprot csv file
     try:
@@ -2386,7 +2396,7 @@ if A08a_calculate_gap_densities:
 
 
 #A## variables are included only to help navigate the document in PyCharm
-A08b_calculate_gap_densities = settings["run_settings"]["create_graph_of_gap_density"]["run"]
+A08b_calculate_gap_densities = settingsdict["run_settings"]["plot.create_graph_of_gap_density"]
 
 if A08b_calculate_gap_densities:
     logging.info('~~~~~~~~~~~~starting creating graphs of gap density~~~~~~~~~~~~')
@@ -2396,9 +2406,9 @@ if A08b_calculate_gap_densities:
         df = pd.read_csv(dfout10_uniprot_gaps, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
         logging.info('df loaded from %s' % dfout10_uniprot_gaps)
     else:
-        logging.info('no analysis has been done yet, please set calculate gap densities to true')
+        raise FileNotFoundError('No gap analysis has been done yet. %s is not found. Please run calculate calculate_gap_densities' % dfout10_uniprot_gaps)
 
-    num_of_bins_in_tmd_region = settings["run_settings"]["create_graph_of_gap_density"]["num_of_bins_in_tmd_region"]
+    num_of_bins_in_tmd_region = settingsdict["variables"]["plot.create_graph_of_gap_density.num_of_bins_in_tmd_region"]
 
     flipped = []
     not_flipped = []
@@ -2627,7 +2637,7 @@ if A08b_calculate_gap_densities:
 
 
 '''+++++++++++++++ Summary figures describing the conservation ratios of proteins in the list ++++++++++++++++++'''
-A09_save_figures_describing_proteins_in_list = settings["run_settings"]["save_figures_describing_proteins_in_list"]
+A09_save_figures_describing_proteins_in_list = settingsdict["run_settings"]["plot.save_figures_describing_proteins_in_list"]
 if A09_save_figures_describing_proteins_in_list:
     backgroundcolour = '0.95'
     plt.style.use('ggplot')
@@ -2664,12 +2674,12 @@ if A09_save_figures_describing_proteins_in_list:
     df = df.loc[df['list_of_TMDs'].notnull()]
     df = df.loc[df['list_of_TMDs'] != 'nan']
     #iterate over the dataframe. Note that acc = uniprot accession here.
-    linspace_binlist = np.linspace(settings["hist_settings_mult_proteins"]["smallest_bin"],
-                                   settings["hist_settings_mult_proteins"]["largest_bin"],
-                                   settings["hist_settings_mult_proteins"]["number_of_bins"])
+    linspace_binlist = np.linspace(settingsdict["variables"]["hist_settings_mult_proteins.smallest_bin"],
+                                   settingsdict["variables"]["hist_settings_mult_proteins.largest_bin"],
+                                   settingsdict["variables"]["hist_settings_mult_proteins.number_of_bins"])
 
     #add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
-    binlist = np.append(linspace_binlist, settings["hist_settings_mult_proteins"]["final_highest_bin"])
+    binlist = np.append(linspace_binlist, settingsdict["variables"]["hist_settings_mult_proteins.final_highest_bin"])
 
     '''
     The beta-barrel dataset contained a lot of proteins with an average AAIMON of 1.000000. This can only mean that there are not enough homologues.
@@ -2747,9 +2757,9 @@ if A09_save_figures_describing_proteins_in_list:
     #pylab.rcParams['figure.figsize'] = (50.0, 40.0)
     #pylab.rcParams['figure.figsize'] = (20.0, 16.0)
     #plt.show()
-    xlim_min = settings["hist_settings_mult_proteins"]["xlim_min01"]
+    xlim_min = settingsdict["variables"]["hist_settings_mult_proteins.xlim_min01"]
     #take x-axis max from settings
-    xlim_max = settings["hist_settings_mult_proteins"]["xlim_max01"]
+    xlim_max = settingsdict["variables"]["hist_settings_mult_proteins.xlim_max01"]
     #set x-axis min
     axarr[row_nr, col_nr].set_xlim(xlim_min, xlim_max)
     #set x-axis ticks
@@ -2817,9 +2827,9 @@ if A09_save_figures_describing_proteins_in_list:
     axarr[row_nr, col_nr].set_xlabel('average standard deviation', fontsize=fontsize)
     #move the x-axis label closer to the x-axis
     axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
-    #xlim_min = settings["hist_settings_mult_proteins"]["xlim_min01"]
+    #xlim_min = settingsdict["variables"]["hist_settings_mult_proteins.xlim_min01"]
     #take x-axis max from settings
-    #xlim_max = settings["hist_settings_mult_proteins"]["xlim_max01"]
+    #xlim_max = settingsdict["variables"]["hist_settings_mult_proteins.xlim_max01"]
     #set x-axis min
     #axarr[row_nr,col_nr].set_xlim(xlim_min,xlim_max)
     #set x-axis ticks
@@ -2922,7 +2932,7 @@ if A09_save_figures_describing_proteins_in_list:
     if 'number_of_TMDs_in_uniprot_feature_list' in df.columns:
         x = np.array(df['number_of_TMDs_in_uniprot_feature_list'])
     else:
-        x = np.array(df['number_of_TMDs_in_uniprot_feature_list'])
+        x = np.array(df['number_of_TMDs'])
     y = np.array(df['AAIMON_ratio_mean_all_TMDs'])
     scattercontainer_AAIMON_AASMON_std = axarr[row_nr, col_nr].scatter(x=x, y=y, color="#0489B1", alpha=alpha, s=datapointsize)
     #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
@@ -4239,12 +4249,12 @@ if A09_save_figures_describing_proteins_in_list:
             colourlist_greys = [(0.6, 0.7764705882352941, 0.9058823529411765), 'None']
 
             #iterate over the dataframe. Note that acc = uniprot accession here.
-            linspace_binlist = np.linspace(settings["hist_settings_mult_proteins"]["smallest_bin"],
-                                           settings["hist_settings_mult_proteins"]["largest_bin"],
-                                           settings["hist_settings_mult_proteins"]["number_of_bins"])
+            linspace_binlist = np.linspace(settingsdict["variables"]["hist_settings_mult_proteins.smallest_bin"],
+                                           settingsdict["variables"]["hist_settings_mult_proteins.largest_bin"],
+                                           settingsdict["variables"]["hist_settings_mult_proteins.number_of_bins"])
 
             #add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
-            binlist = np.append(linspace_binlist, settings["hist_settings_mult_proteins"]["final_highest_bin"])
+            binlist = np.append(linspace_binlist, settingsdict["variables"]["hist_settings_mult_proteins.final_highest_bin"])
 
             dict_ttest_pvalues = {}
 
@@ -4388,13 +4398,13 @@ if A09_save_figures_describing_proteins_in_list:
                 if 'G-protein coupled receptor' in KW_counts_major.index:
                     KW_counts_major = KW_counts_major.drop('G-protein coupled receptor')
 
-                #iterate over the dataframe. Note that acc = uniprot accession here.
-                linspace_binlist = np.linspace(settings["hist_settings_mult_proteins"]["smallest_bin"],
-                                               settings["hist_settings_mult_proteins"]["largest_bin"],
-                                               settings["hist_settings_mult_proteins"]["number_of_bins"])
-
-                #add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
-                binlist = np.append(linspace_binlist, settings["hist_settings_mult_proteins"]["final_highest_bin"])
+                # #iterate over the dataframe. Note that acc = uniprot accession here.
+                # linspace_binlist = np.linspace(settingsdict["variables"]["hist_settings_mult_proteins.smallest_bin"],
+                #                                settingsdict["variables"]["hist_settings_mult_proteins.largest_bin"],
+                #                                settingsdict["variables"]["hist_settings_mult_proteins.number_of_bins"])
+                #
+                # #add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
+                # binlist = np.append(linspace_binlist, settingsdict["variables"]["hist_settings_mult_proteins.final_highest_bin"])
 
                 dict_ttest_pvalues = {}
 
@@ -4534,13 +4544,6 @@ if A09_save_figures_describing_proteins_in_list:
 
             data_dict = {}
             data_names_list = ['enzyme', 'nonenzyme']
-
-            #Create a specific binlist for this graph
-            # smallest_bin =
-            # largest_bin =
-            # number_of_bins =
-            # linspace_enz_binlist = np.linspace(smallest_bin,largest_bin,number_of_bins)
-            # enz_binlist = np.append(linspace_binlist, settings["hist_settings_single_protein"]["final_highest_bin"])
 
             for n, dfK in enumerate(df_list_KW):
                 data_column = 'AAIMON_ratio_mean_all_TMDs'
@@ -4743,13 +4746,13 @@ if A09_save_figures_describing_proteins_in_list:
             TUM_colours_list_with_greys = colour_lists['TUM_colours_list_with_greys']
             colourlist_greys = [(0.6, 0.7764705882352941, 0.9058823529411765), 'None']
 
-            #iterate over the dataframe. Note that acc = uniprot accession here.
-            linspace_binlist = np.linspace(settings["hist_settings_mult_proteins"]["smallest_bin"],
-                                           settings["hist_settings_mult_proteins"]["largest_bin"],
-                                           settings["hist_settings_mult_proteins"]["number_of_bins"])
-
-            #add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
-            binlist = np.append(linspace_binlist, settings["hist_settings_mult_proteins"]["final_highest_bin"])
+            # #iterate over the dataframe. Note that acc = uniprot accession here.
+            # linspace_binlist = np.linspace(settingsdict["variables"]["hist_settings_mult_proteins.smallest_bin"],
+            #                                settingsdict["variables"]["hist_settings_mult_proteins.largest_bin"],
+            #                                settingsdict["variables"]["hist_settings_mult_proteins.number_of_bins"])
+            #
+            # #add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
+            # binlist = np.append(linspace_binlist, settingsdict["variables"]["hist_settings_mult_proteins.final_highest_bin"]))
 
             dict_ttest_pvalues = {}
 
@@ -5025,7 +5028,7 @@ if A09_save_figures_describing_proteins_in_list:
 
 
 '''+++++++++++++++ Summary figures describing the conservation ratios of proteins in the list ++++++++++++++++++'''
-A10_compare_lists = settings["run_settings"]["compare_lists"]["run"]
+A10_compare_lists = settingsdict["run_settings"]["plot.compare_lists"]
 if A10_compare_lists:
 
 #    if 'df1' in globals():
@@ -5038,8 +5041,8 @@ if A10_compare_lists:
 
 
     #if reload_data_from_summary_files == True:
-    protein_lists = settings["run_settings"]["compare_lists"]["protein_lists"]
-    protein_list_names = settings["run_settings"]["compare_lists"]["protein_list_names"]
+    protein_lists = settingsdict["run_settings"]["protein_lists"]
+    protein_list_names = settingsdict["run_settings"]["protein_list_names"]
 
     protein_lists_joined = '_'.join(['%02d' % n for n in protein_lists])
     base_path_summ_two_lists = os.path.join(main_folder, 'summaries', 'compare_lists')
@@ -5719,7 +5722,7 @@ if A10_compare_lists:
 '''+++++++++++++++TMD CONSERVATION (OLD)++++++++++++++++++'''
 
 #A## variables are included only to help navigate the document in PyCharm
-B01_OLD_calculate_TMD_conservation = settings["run_settings"]["calculate_TMD_conservation"]["calculate_TMD_conservation"]
+B01_OLD_calculate_TMD_conservation = settingsdict["run_settings"]["simap.OLD.calculate_TMD_conservation"]
 if B01_OLD_calculate_TMD_conservation:
     #convert file to dataframe (eg List70_simap.csv)
     df_dfout05_simapcsv = pd.read_csv(dfout05_simapcsv, sep=",", index_col=0,
@@ -5759,14 +5762,11 @@ if B01_OLD_calculate_TMD_conservation:
 
     #    list_of_bins_for_histogram2 = np.linspace(0.2,2.5,24)
     #    logging.info(list_of_bins_for_histogram2)
-
-    #use linspace to get a fixid number of points between tha min and the max for the histogram
-    list_of_bins_for_histogram = np.linspace(settings["hist_settings_single_protein"]["smallest_bin"],
-                                             settings["hist_settings_single_protein"]["largest_bin"],
-                                             settings["hist_settings_single_protein"]["number_of_bins"])
+    list_of_bins_for_histogram = np.linspace(settingsdict["variables"]["hist_settings_single_protein.smallest_bin"],
+                                   settingsdict["variables"]["hist_settings_single_protein.largest_bin"],
+                                   settingsdict["variables"]["hist_settings_single_protein.number_of_bins"])
     #add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
-    list_of_bins_for_histogram = np.append(list_of_bins_for_histogram,
-                                           settings["hist_settings_single_protein"]["final_highest_bin"])
+    list_of_bins_for_histogram = np.append(list_of_bins_for_histogram, settingsdict["variables"]["hist_settings_single_protein.final_highest_bin"])
 
     list_of_keys_for_hit_identity_analysis = ['match_TMD_added_to_FastA_alignment', 'ratio_ident_mem_to_nonmem',
                                               'match_TMD_kept_for_statistical_analysis']
@@ -5861,24 +5861,24 @@ if B01_OLD_calculate_TMD_conservation:
 
 
             #filter each homologue from SIMAP
-            number_of_gaps_allowed_in_match_TMD = settings["simap_match_filters"]["number_of_gaps_allowed_in_match_TMD"]
-            number_of_gaps_allowed_in_query_TMD = settings["simap_match_filters"]["number_of_gaps_allowed_in_query_TMD"]
-            minimum_identity_of_full_protein = settings["simap_match_filters"]["minimum_identity_of_full_protein"]
-            min_identity_of_TMD_final_filter = settings["simap_match_filters"]["min_identity_of_TMD_final_filter"]
+            number_of_gaps_allowed_in_match_TMD = settingsdict["variables"]["analyse.simap_match_filters.number_of_gaps_allowed_in_match_TMD"]
+            number_of_gaps_allowed_in_query_TMD = settingsdict["variables"]["analyse.simap_match_filters.number_of_gaps_allowed_in_query_TMD"]
+            minimum_identity_of_full_protein = settingsdict["variables"]["analyse.simap_match_filters.minimum_identity_of_full_protein"]
+            min_identity_of_TMD_final_filter = settingsdict["variables"]["analyse.simap_match_filters.min_identity_of_TMD_final_filter"]
             for j in range(len(df_SIMAP_hits)):
                 df_SIMAP_hits.loc[j, 'match_TMD_kept_for_statistical_analysis'] = True if all([
-                    df_SIMAP_hits.loc[j, 'FASTA_expectation'] <= settings['simap_match_filters']['e_value_filter'],
+                    df_SIMAP_hits.loc[j, 'FASTA_expectation'] <= settingsdict['variables']['analyse.simap_match_filters.e_value_filter'],
                     df_SIMAP_hits.loc[j, 'disallowed_words_in_description'] == 'none',
-                    settings['simap_match_filters']['database'] == 'all',
+                    settingsdict['variables']['analyse.simap_match_filters.database'] == 'all',
                     df_SIMAP_hits.loc[j, 'number_of_gaps_in_match_TMD'] <= number_of_gaps_allowed_in_match_TMD,
                     df_SIMAP_hits.loc[j, 'number_of_gaps_in_query_TMD'] <= number_of_gaps_allowed_in_query_TMD,
                     df_SIMAP_hits.loc[j, 'SW_identity'] >= minimum_identity_of_full_protein,
                     df_SIMAP_hits.loc[j, 'percentage_identity_of_TMD'] >= min_identity_of_TMD_final_filter,
-                    #df_SIMAP_hits.loc[j, 'number_of_X_in_TMD'] <= settings["simap_match_filters"]["number_of_X_allowed_in_TMD"],
+                    #df_SIMAP_hits.loc[j, 'number_of_X_in_TMD'] <= settingsdict['variables']['analyse.simap_match_filters.number_of_X_allowed_in_TMD'],
                     df_SIMAP_hits.loc[j, 'SW_match_TMD_seq'] != 'TMD_not_in_SW_alignment'
                 ]) else False
-                #len(df_SIMAP_hits.loc[j,'query_aln_seq_excl_TMD']) >= settings["simap_match_filters"]["min_len_query_aln_seq_excl_TMD"]
-                #df_SIMAP_hits.loc[j,'number_of_X_in_match_seq'] <= settings["simap_match_filters"]["number_of_X_allowed_in_seq"],
+                #len(df_SIMAP_hits.loc[j,'query_aln_seq_excl_TMD']) >= settingsdict['variables']['analyse.simap_match_filters.min_len_query_aln_seq_excl_TMD']
+                #df_SIMAP_hits.loc[j,'number_of_X_in_match_seq'] <= settingsdict['variables']['analyse.simap_match_filters.number_of_X_allowed_in_seq'],
 
             #simply select the true data in a smaller dataframe
             #use the value_counts method to count the number of hits kept for statistical analysis
@@ -5905,36 +5905,34 @@ if B01_OLD_calculate_TMD_conservation:
                                                    sep=",", index_col=0, quoting=csv.QUOTE_NONNUMERIC)
                 gap_penalties_in_file = list(df_mem_nonmem_ratios.index)
                 matrices_in_file = list(df_mem_nonmem_ratios.columns)
-                if gap_penalties_in_file == list(range(settings["aa_substitution_scoring"]["gap_open_penalty_min"],
-                                                       settings["aa_substitution_scoring"]["gap_open_penalty_max"],
-                                                       settings["aa_substitution_scoring"][
-                                                           "gap_open_penalty_increment"])) and \
-                                matrices_in_file == settings['aa_substitution_scoring']['matrices']:
+                if gap_penalties_in_file == list(range(settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_min"],
+                                                       settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_max"],
+                                                       settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_increment"])) and \
+                                matrices_in_file == settingsdict["variables"]["aa_substitution_scoring.matrices"]:
                     csv_mem_nonmem_ratios_is_old = False
                 else:
                     csv_mem_nonmem_ratios_is_old = True
                     logging.info('%s is old, repeating calculation' % df.loc[
                         i, 'csv_file_av_cons_ratios_hits'])
 
-            if settings["run_settings"]["calculate_TMD_conservation"]["overwrite_csv_file_av_cons_ratios_hits"] or csv_mem_nonmem_ratios_is_old:
+            if settingsdict["variables"]["calculate_TMD_conservation.overwrite_csv_file_av_cons_ratios_hits"] or csv_mem_nonmem_ratios_is_old:
                 #if not os.path.isfile(df.loc[i,'csv_file_av_cons_ratios_hits']):
                 #create a new dataframe to hold the array of mem/nonmem ratios for the varying matrices and  gap penalties
                 df_mem_nonmem_ratios = pd.DataFrame(0.0,
                                                     index=range(
-                                                        settings["aa_substitution_scoring"]["gap_open_penalty_min"],
-                                                        settings["aa_substitution_scoring"]["gap_open_penalty_max"],
-                                                        settings["aa_substitution_scoring"][
-                                                            "gap_open_penalty_increment"]),
-                                                    columns=settings['aa_substitution_scoring']['matrices'])
+                                                        settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_min"],
+                                                        settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_max"],
+                                                        settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_increment"]),
+                                                    columns=settingsdict['variables']['aa_substitution_scoring.matrices'])
 
                 #load the amino acid substitution matrices from the settings file
-                list_of_aa_sub_matrices = settings['aa_substitution_scoring']['matrices']
+                list_of_aa_sub_matrices = settingsdict['variables']['aa_substitution_scoring.matrices']
                 dict_of_aa_matrices = {key: eval(key) for key in list_of_aa_sub_matrices}
 
                 #for each gap penalty
-                for k in range(settings["aa_substitution_scoring"]["gap_open_penalty_min"],
-                               settings["aa_substitution_scoring"]["gap_open_penalty_max"],
-                               settings["aa_substitution_scoring"]["gap_open_penalty_increment"]):
+                for k in range(settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_min"],
+                               settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_max"],
+                               settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_increment"]):
                     gap_open_penalty = k
                     #for each aa sub matrix, represented as a key in the dictionary
                     for key in dict_of_aa_matrices:
@@ -5995,7 +5993,7 @@ if B01_OLD_calculate_TMD_conservation:
 
             #determine if protein is kept for statistical analysis. Currently the only filter is the number of valid hits.
             if df_dfout05_simapcsv.loc[i, 'number_of_valid_hits'] >= \
-                    settings["hist_settings_single_protein"]["minimum_number_hits_for_data_analysis"]:
+                    settingsdict["variables"]["hist_settings_single_protein.minimum_number_hits_for_data_analysis"]:
                 df_dfout05_simapcsv.loc[i, 'protein_kept_for_statistical_analysis'] = True
                 #if there is enough valid hits, add the protein name to the list, so the data can be used later
                 list_of_proteins_kept_for_statistical_analysis.append(protein_name)
@@ -6066,7 +6064,7 @@ if B01_OLD_calculate_TMD_conservation:
         len(list_of_proteins_whose_XML_file_doesnt_exist), list_of_proteins_whose_XML_file_doesnt_exist))
     logging.info('\t%i proteins had less than %s valid homologues and were excluded from analysis:\n\t%s' % (
         len(list_of_proteins_with_not_enough_valid_hits),
-        settings["hist_settings_single_protein"]["minimum_number_hits_for_data_analysis"],
+        settingsdict["variables"]["hist_settings_single_protein.minimum_number_hits_for_data_analysis"],
         list_of_proteins_with_not_enough_valid_hits))
     logging.info('list_of_csv_files_with_homologues_that_are_old: %s' % list_of_csv_files_with_homologues_that_are_old)
 
@@ -6165,7 +6163,7 @@ if B01_OLD_calculate_TMD_conservation:
     logging.info(
         'list_of_proteins_with_damaged_file_0_valid_hits (repeating SIMAP download is necessary) : %s' % list_of_proteins_with_damaged_file_0_valid_hits)
     logging.info('list_of_proteins_with_no_csv_file_with_hit_details (if len>%i, try repeating SIMAP download) : %s' % (
-        settings["simap_homologue_download"]["max_query_sequence_length"],
+        settingsdict["variables"]["simap.max_query_sequence_length"],
         list_of_proteins_with_no_csv_file_with_hit_details))
 
     #specify data type, repeat of earlier specification for df
@@ -6353,8 +6351,7 @@ if B01_OLD_calculate_TMD_conservation:
 This is a funny system. The dictionary keys are the 5000 hits. This would be much more efficient and simple to re-write in pandas style.
 '''
 #A## variables are included only to help navigate the document in PyCharm
-B02_OLD_calculate_TMD_conservation_by_gappedIdentity = settings["run_settings"][
-    "calculate_TMD_conservation_by_gappedIdentity"]
+B02_OLD_calculate_TMD_conservation_by_gappedIdentity = settingsdict["run_settings"]["simap.OLD.calculate_TMD_conservation_by_gappedIdentity"]
 if B02_OLD_calculate_TMD_conservation_by_gappedIdentity:
     #import matplotlib.pyplot as plt
     #csv_file_with_uniprot_data = r'E:\Stephis\Projects\Programming\Python\files\20131115_bacterial_TMD_conservation\List04-parser-test_uniprot_data.csv'
@@ -6380,12 +6377,12 @@ if B02_OLD_calculate_TMD_conservation_by_gappedIdentity:
                                       'match_TMD_kept_for_statistical_analysis']
 
     #create new lists for each gapped identity cutoff
-    list_of_gappedIdentity_cutoffs = settings["analysis_by_gappedIdentity"]["gappedIdentity_cutoffs"]
+    list_of_gappedIdentity_cutoffs = settingsdict["variables"]["analysis_by_gappedIdentity.gappedIdentity_cutoffs"]
 
     for i in range(len(list_of_gappedIdentity_cutoffs) - 1):
         min_ = list_of_gappedIdentity_cutoffs[i]
         max_ = list_of_gappedIdentity_cutoffs[i + 1]
-        csv_file_with_average_rpitrh_for_GI_cutoff = r'E:\Stephis\Projects\Programming\Python\files\20131115_bacterial_TMD_conservation\List%02d_TMD_cons_ratio_identity_%s-%s.csv' % (
+        csv_file_with_average_rpitrh_for_GI_cutoff = r'D:\Schweris\Projects\Programming\Python\files\20131115_bacterial_TMD_conservation\List%02d_TMD_cons_ratio_identity_%s-%s.csv' % (
             list_number, min_, max_)
 
         #create a new ewpty file
@@ -6435,8 +6432,7 @@ if B02_OLD_calculate_TMD_conservation_by_gappedIdentity:
                                 if min_ < FASTA_gapped_identity <= max_:
                                     list_rpitrh_within_cutoffs.append(ratio_ident_mem_to_nonmem)
                 number_of_valid_hits_within_cutoff = len(list_rpitrh_within_cutoffs)
-                if number_of_valid_hits_within_cutoff >= settings["analysis_by_gappedIdentity"][
-                    "minimum_number_hits_within_GI_range"]:
+                if number_of_valid_hits_within_cutoff >= settingsdict["variables"]["analysis_by_gappedIdentity.minimum_number_hits_within_GI_range"]:
                     mean_ratio_ident_mem_to_nonmem_within_cutoff = np.mean(list_rpitrh_within_cutoffs)
                     stdev_ratio_ident_mem_to_nonmem_within_cutoff = np.std(list_rpitrh_within_cutoffs)
                 else:
@@ -6450,11 +6446,10 @@ if B02_OLD_calculate_TMD_conservation_by_gappedIdentity:
                 utils.save_list_as_row_in_csv(list_to_save_in_csv, csv_file_with_average_rpitrh_for_GI_cutoff, 'a')
 
 #A## variables are included only to help navigate the document in PyCharm
-A10_conduct_statistical_analysis_of_sim_ratios_saved_in_dfout05_simapcsv = settings["run_settings"][
-    "conduct_statistical_analysis_of_sim_ratios_saved_in_dfout05_simapcsv"]
+A10_conduct_statistical_analysis_of_sim_ratios_saved_in_dfout05_simapcsv = settingsdict["run_settings"]["simap.OLD.conduct_statistical_analysis_of_sim_ratios_saved_in_dfout05_simapcsv"]
 if A10_conduct_statistical_analysis_of_sim_ratios_saved_in_dfout05_simapcsv:
     #load the csv containing only nonredundant sequences as a pandas dataframe
-    if settings["run_settings"]["conduct_stat_analysis_with_all_seqs_or_nonredundant_seqs"] == "all":
+    if settingsdict["variables"]["conduct_statistical_analysis_of_sim_ratios_saved_in_dfout05_simapcsv.conduct_stat_analysis_with_all_seqs_or_nonredundant_seqs"] == "all":
         df_dfout05_simapcsv_stat_analysis = pd.read_csv(dfout05_simapcsv, sep=",", index_col=0,
                                                         quoting=csv.QUOTE_NONNUMERIC)
     else:
@@ -6519,7 +6514,7 @@ if A10_conduct_statistical_analysis_of_sim_ratios_saved_in_dfout05_simapcsv:
     logging.info('%s   saved' % csv_std_cons_ratio_all_proteins)
 
 #A## variables are included only to help navigate the document in PyCharm
-B03_OLD_fix_dfout05_simapcsv_by_adding_query_md5 = settings["run_settings"]["fix_dfout05_simapcsv_by_adding_query_md5"]
+B03_OLD_fix_dfout05_simapcsv_by_adding_query_md5 = settingsdict["run_settings"]["simap.OLD.fix_dfout05_simapcsv_by_adding_query_md5"]
 if B03_OLD_fix_dfout05_simapcsv_by_adding_query_md5:
     #convert the csv file to a pandas dataframe
     df_dfout05_simapcsv = pd.read_csv(dfout05_simapcsv,
