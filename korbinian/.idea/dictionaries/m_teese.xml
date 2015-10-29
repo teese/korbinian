@@ -2,6 +2,7 @@
   <dictionary name="m.teese">
     <words>
       <w>binlist</w>
+      <w>nonredundant</w>
     </words>
   </dictionary>
 </component>

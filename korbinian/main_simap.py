@@ -80,6 +80,7 @@ main_folder_harddrive = 'D:\\'
 main_folder_list = [main_folder_harddrive, 'Databases', 'main']
 main_folder = os.path.join(*main_folder_list)
 json_file_with_settings = os.path.join(main_folder, 'settings', 'settings_%02d.json' % settings_number)
+
 '''
 The MAIN script starts here
 '''
@@ -101,6 +102,10 @@ import itertools
 from scipy.stats import ttest_ind
 import sys
 import importlib
+#import utility_rimma as r_utils
+import matplotlib.patches as patches
+import os
+import ast
 
 #open the settings file
 with open(json_file_with_settings, 'r') as f:
@@ -165,7 +170,7 @@ dfout06_simapxlsx = '%s_simap.xlsx' % base_filename_summaries
 dfout07_simapnonred = '%s_simapnonred.csv' % base_filename_summaries
 dfout08_simap_AAIMON = '%s_simap_AAIMON.csv' % base_filename_summaries
 dfout09_simap_AAIMON_02 = '%s_simap_AAIMON_02.csv' % base_filename_summaries
-dfout10_ = 0
+dfout10_uniprot_gaps = '%s_gap_densities.csv' % base_filename_summaries
 dfout11_ = 0
 dfout12_ = 0
 dfout13_ = 0
@@ -392,10 +397,10 @@ if A03_create_csv_from_uniprot_flatfile:
                 #logging.info(sublist)
 
             #list of the features that we want in the final csv
-            desired_features_in_uniprot = ['TRANSMEM', 'VARIANT', 'CONFLICT', 'VAR_SEQ', 'VARSPLIC']
+            desired_features_in_uniprot = ['TRANSMEM', 'VARIANT', 'CONFLICT', 'VAR_SEQ', 'VARSPLIC', 'TOPO_DOM']
             desired_features_in_uniprot_dict = {}
-
             location_of_tmds_in_feature_list = []
+            location_of_non_tmds_in_feature_list = []
 
             for feature in desired_features_in_uniprot:
                 if feature in list_of_feature_types_in_uniprot_record:
@@ -410,11 +415,24 @@ if A03_create_csv_from_uniprot_flatfile:
                         #sort list to be sure that the "transmem" notation is definitely ordered correctly,
                         #as this order determines the TMD name
                         location_of_tmds_in_feature_list.sort()
-
+                    if feature == 'TOPO_DOM':
+                        location_of_non_tmds_in_feature_list = location_of_features_in_feature_list
+                        #sort list to be sure that the "transmem" notation is definitely ordered correctly,
+                        #as this order determines the TMD name
+                        location_of_non_tmds_in_feature_list.sort()	
+                        
             #count the number of "TRANSMEM" TMDs listed in the feature-list
-            output_dict['number_of_TMDs'] = len(location_of_tmds_in_feature_list)
+            output_dict['number_of_TMDs_in_uniprot_feature_list'] = len(location_of_tmds_in_feature_list)
 
-            if output_dict['number_of_TMDs'] > 0:
+            #information about location of first non-tmd (extracellular or perplasmic/cytoplasmic)
+            if len(location_of_non_tmds_in_feature_list)>0:
+                output_dict['loc_start']= record.features[location_of_non_tmds_in_feature_list[0]][3]
+                output_dict['n_term_ec'] = "Extracellular" in output_dict["loc_start"]
+            else:
+                output_dict['loc_start']= np.nan
+                output_dict['n_term_ec'] = np.nan
+
+            if output_dict['number_of_TMDs_in_uniprot_feature_list'] > 0:
                 list_of_TMDs = []
                 for TMD_location in location_of_tmds_in_feature_list:
                     #consequtively number the TMDs based on the "TRANSMEM" location in the feature list
@@ -480,13 +498,13 @@ if A03_create_csv_from_uniprot_flatfile:
         count_of_uniprot_records_added_to_csv = len(df.columns)
         #flip rows and columns (transverse)
         df = df.T
-        
+
         ''' ~~ DETERMINE START AND STOP INDICES FOR TMD PLUS SURROUNDING SEQ ~~ '''
         aa_before_tmd = settings["simap_match_filters"]["fasta_files"]["aa_before_tmd"]
         aa_after_tmd = settings["simap_match_filters"]["fasta_files"]["aa_after_tmd"]
         #determine max number of TMD columns that need to be created
-        max_num_TMDs = df['number_of_TMDs'].max()
-        #currently the loop is run for each TMD, based on the sequence with the most TMDs        
+        max_num_TMDs = df['number_of_TMDs_in_uniprot_feature_list'].max()
+        #currently the loop is run for each TMD, based on the sequence with the most TMDs
         for i in range(1, max_num_TMDs + 1):
             TMD = 'TM%02d' % i
             TMD_seq_name = '%s_seq' % TMD
@@ -498,7 +516,7 @@ if A03_create_csv_from_uniprot_flatfile:
             df['%s_with_surrounding_seq' % TMD] = ''
 
         ''' ~~   SLICE TMDS FROM UNIPROT SEQ    ~~ '''
-        #iterate through each TMD, slicing out the relevant sequence. 
+        #iterate through each TMD, slicing out the relevant sequence.
         #If there is no TMD, the cells will contain np.nan
         for i in range(1, max_num_TMDs + 1):
             TMD = 'TM%02d' % i
@@ -534,12 +552,12 @@ A04_setup_df_dtypes = settings["run_settings"]["A04_setup_df_dtypes"]
 if A04_setup_df_dtypes:
     logging.info('~~~~~~~~~~~~  starting A04_setup_df_dtypes   ~~~~~~~~~~~~')
     #test if the dataframe has already been created, otherwise reopen from csv file
-    if 'df' in globals():    
+    if 'df' in globals():
         if isinstance(df, pd.DataFrame):
             logging.info('first protein acc = %s, df already exists, continuing with A04_setup_df_dtypes' % df.iloc[0][0])
     else:
         logging.info('df loaded from %s' % dfout01_uniprotcsv)
-        df = pd.read_csv(dfout01_uniprotcsv, sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0) 
+        df = pd.read_csv(dfout01_uniprotcsv, sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
     '''Create Pandas Dataframe with the protein name and file locations, etc'''
     original_columns = list(df.columns)
     columns_added_after_SIMAP_analysis = ['organism_domain', 'protein_name', 'SIMAP_feature_table_XML_file_path',
@@ -584,23 +602,26 @@ A05_setup_df_file_locations = settings["run_settings"]["A05_setup_df_file_locati
 if A05_setup_df_file_locations:
     logging.info('~~~~~~~~~~~~  starting A05_setup_df_file_locations   ~~~~~~~~~~~~')
     #test if the dataframe has already been created, otherwise reopen from csv file
-    if 'df' in globals():    
+    if 'df' in globals():
         if isinstance(df, pd.DataFrame):
             logging.info('first protein acc = %s, df already exists, continuing with A05_setup_df_file_locations' % df.iloc[0][0])
     else:
         logging.info('df loaded from %s' % dfout01_uniprotcsv)
-        df = pd.read_csv(dfout01_uniprotcsv, sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0) 
+        df = pd.read_csv(dfout01_uniprotcsv, sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
     #set up a folder to hold the SIMAP BLAST-like output
     #note that at the moment, files cannot be compressed
     simap_data_folder = os.path.join(settings['file_locations']['data_folder'], 'simap')
-    #join the accession and entry name to create a "protein name" for naming files
-    df['A2_protein_name'] = df.A1_uniprot_accession + '_' + df.uniprot_entry_name
-    #create a base filename for each proteindata_fo
+    if "uniprot_entry_name" in df.columns:
+        #join the accession and entry name to create a "protein name" for naming files
+        df['A2_protein_name'] = df.A1_uniprot_accession + '_' + df.uniprot_entry_name
+    else:
+        # the list of proteins did not come from UniProt. Simply use the accession to name the files.
+        df['A2_protein_name'] = df.A1_uniprot_accession
     df['first_two_letters_of_uniprot_acc'] = df['A1_uniprot_accession'].apply(lambda x: x[0:2])
     df['simap_filename_base_linuxpath'] = simap_data_folder + '/' + df.first_two_letters_of_uniprot_acc + '/' + df.A2_protein_name
     df['simap_filename_base'] = df['simap_filename_base_linuxpath'].apply(lambda x: os.path.normpath(x))
     df.drop('simap_filename_base_linuxpath', axis=1, inplace=True)
-    
+
     #create filenames for simap output
     df['SIMAP_tarfile'] = df.simap_filename_base + '_SIMAP.tar.gz'
     df['SIMAP_feature_table_XML_file'] = df.A2_protein_name + '_feature_table.xml'
@@ -615,10 +636,10 @@ if A05_setup_df_file_locations:
     df['output_tarfile'] = df.A2_protein_name + '_outputfiles.tar.gz'
     df['output_tarfile_path'] = df.simap_filename_base + '_outputfiles.tar.gz'
     df['csv_SIMAP_homologues_kept_for_statistical_analysis'] = df.simap_filename_base + '_homologues_for_stat.csv'
-    
+
     #name the fasta file with the TMD seqs (eg A0A1F4_EYS_DROME_TMD_sequences_of_homologues.fas)
     df['fasta_file_path'] = df.simap_filename_base + '_simap_TMD_seq_homologues.fas'
-    
+
     #name the second fasta file (eg. A0T0U2_PSBE_THAPS_simap_TMD_seq_homol_&_surrounding.fas)
     df['fasta_file_plus_surr_path'] = df.simap_filename_base + '_simap_TMD_seq_homol_&_surrounding.fas'
     df[ 'fasta_file_with_homologues_kept_for_statistical_analysis'] = df.simap_filename_base + '_simap_TMD_seq_kept_stat_analysis.fas'
@@ -641,7 +662,7 @@ if A05_setup_df_file_locations:
 
     df['csv_file_av_cons_ratios_hits_BASENAME'] = df.A2_protein_name + '_cons_ratios_'
     df['csv_file_av_cons_ratios_hits_BASENAMEPATH'] = df.simap_filename_base + '_cons_ratios_'
-    
+
     #save to a csv
     df.to_csv(dfout04_uniprotcsv_incl_paths, sep=",", quoting=csv.QUOTE_NONNUMERIC)
     #save to Excel
@@ -659,13 +680,13 @@ A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv = settings["run
 if A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv:
     logging.info('~~~~~~~~~~~~  starting A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv   ~~~~~~~~~~~~')
     #test if the dataframe has already been created, otherwise reopen from csv file
-    if 'df' in globals():    
+    if 'df' in globals():
         if isinstance(df, pd.DataFrame):
             logging.info('first protein acc = %s, df already exists' % df.iloc[0][0])
     else:
         logging.info('df loaded from %s' % dfout04_uniprotcsv_incl_paths)
         df = pd.read_csv(dfout04_uniprotcsv_incl_paths, sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
-        
+
     #def retrieve_simap_feature_table_and_homologues_from_list_in_csv(input_file, list_of_keys, settings):
     '''
     First prepare the csv file from the uniprot record.
@@ -700,19 +721,19 @@ if A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv:
             input_sequence = df.loc[acc, 'uniprot_seq']
             ''' windows has a character limit in the command prompt in theory of 8191 characters,
             but the command line java command seems to cause errors with sequences above 3000 amino acids.
-            Assume that this problem only applies to Windows, 
+            Assume that this problem only applies to Windows,
             therefore in Windows systems limit the java string to proteins less than 3000 amino acids.
             The character limit can be adjusted in the settings file
             '''
             if 'Windows' in str(platform.system()):
                 if query_sequence_length < settings["simap_homologue_download"]["max_query_sequence_length"]:
                     download_homologues = True
-                if query_sequence_length > settings["simap_homologue_download"]["max_query_sequence_length"]:
+                else:
+                    download_homologues = False
                     logging.warning('%s cannot be processed into a java command in windows OS,'
                                     'as the sequence is longer than %i characters (%i). Moving to next sequence' % (
                                     protein_name, settings["simap_homologue_download"]["max_query_sequence_length"],
                                     query_sequence_length))
-                    download_homologues = False
             else:
                 download_homologues = True
             if download_homologues == True:
@@ -720,7 +741,7 @@ if A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv:
                 subfolder = simap_data_folder+ "/" + df.loc[acc, 'first_two_letters_of_uniprot_acc']
                 if os.path.isdir(subfolder) == False:
                     os.mkdir(subfolder)
-                #check which files exist. This is useful, because it is not possible to open the tarfile as 'a:gz', 
+                #check which files exist. This is useful, because it is not possible to open the tarfile as 'a:gz',
                 #therefore you cannot add files to an existing tarfile)
                 feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(df, acc)
                 if not SIMAP_tarfile_exists:
@@ -740,7 +761,7 @@ if A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv:
                     if not homologues_XML_exists:
                         #add one to the list of consecutive failed downloads.
                         number_of_files_not_found += 1
-                        #if a large number of downloads failed, then the SIMAP server is probably not working. 
+                        #if a large number of downloads failed, then the SIMAP server is probably not working.
                         #Wait some time and try again later.
                         if number_of_files_not_found > 30:
                             utils.sleep_24_hours()
@@ -752,11 +773,11 @@ if A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv:
                             utils.sleep_6_hours()
                         #utils.sleep_120_seconds()
                     else:
-                        #if download is successful or file exists, the SIMAP server must be working, 
+                        #if download is successful or file exists, the SIMAP server must be working,
                     #therefore reset the number_of_files_not_found
                         number_of_files_not_found = 0
 
-                    #since we can't add files to the compressed tarfile, only when both the feature table 
+                    #since we can't add files to the compressed tarfile, only when both the feature table
                     #and xml file are downloaded should we pack and compress them
                     if feature_table_XML_exists and homologues_XML_exists:
                         with tarfile.open(df.loc[acc, 'SIMAP_tarfile'], mode='w:gz') as tar:
@@ -809,7 +830,7 @@ if A07_parse_SIMAP_to_csv:
     counter_XML_to_CSV = 0
     logging.info('~~~~~~~~~~~~  starting parse_SIMAP_to_csv   ~~~~~~~~~~~~')
     #test if the dataframe has already been created, otherwise reopen from csv file
-    if 'df' in globals():    
+    if 'df' in globals():
         if isinstance(df, pd.DataFrame):
             logging.info('first protein acc = %s, df already exists' % df.iloc[0][0])
     else:
@@ -854,7 +875,7 @@ if A07_parse_SIMAP_to_csv:
                         #    homologues_XML_in_tarfile = False
             except (EOFError, tarfile.ReadError):
                 #file may be corrupted, if script stopped unexpectedly before compression was finished
-                logging.info('%s seems to be corrupted.' 
+                logging.info('%s seems to be corrupted.'
                              'File will be deleted, and will need to be re-downloaded next time program is run' %
                              df.loc[acc, 'SIMAP_tarfile'])
                 SIMAP_tarfile_exists = False
@@ -866,7 +887,7 @@ if A07_parse_SIMAP_to_csv:
             homologues_XML_in_tarfile = False
 
         if all([feature_table_in_tarfile, homologues_XML_in_tarfile]):
-            '''get the Phobius and TMHMM predictions from the feature table of the query sequence 
+            '''get the Phobius and TMHMM predictions from the feature table of the query sequence
             NOT USED, PHOBIUS PRED OFTEN MISSING, in the future the TMD region taken from uniprot record
             '''
             #phobius_TMD_start, phobius_TMD_end, phobius_TMD_length = get_phobius_TMD_region(simap_feature_table_root)
@@ -891,7 +912,7 @@ if A07_parse_SIMAP_to_csv:
                             #create a list of files
                             files_in_output_tarball = [t.name for t in tar]
                             #check that the analysed files are actually there
-                            if df.loc[acc, 'SIMAP_csv_from_XML'] in files_in_output_tarball: 
+                            if df.loc[acc, 'SIMAP_csv_from_XML'] in files_in_output_tarball:
                                 #read output csv in tarfile
                                 dfs = pd.read_csv(tar.extractfile(df.loc[acc, 'SIMAP_csv_from_XML']), index_col = 0)
                                 description_of_first_hit = dfs.loc[1, 'A4_description']
@@ -904,7 +925,7 @@ if A07_parse_SIMAP_to_csv:
                                 dfs_filt_AAIMON = dfs_filt.loc[dfs_filt['nonTMD_perc_ident'] != 0]
                                 list_of_TMDs = eval(df.loc[acc, 'list_of_TMDs'])
                                 for TMD in list_of_TMDs:
-                                    #following the general filters, filter to only analyse sequences with TMD identity above cutoff, 
+                                    #following the general filters, filter to only analyse sequences with TMD identity above cutoff,
                                     #and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
                                     dfs_filt_AAIMON = dfs_filt_AAIMON.loc[
                                         dfs['%s_perc_ident' % TMD] >= settings['simap_match_filters'][
@@ -920,7 +941,7 @@ if A07_parse_SIMAP_to_csv:
                                 logging.info('%s not in output file tarball, tarball will be deleted' % df.loc[acc, 'SIMAP_csv_from_XML'])
                                 os.remove(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'])
                                 create_homol_csv = True
-                        logging.info('%s already converted to csv, moving to next sequence' % 
+                        logging.info('%s already converted to csv, moving to next sequence' %
                                     df.loc[acc, 'SIMAP_csv_from_XML'])
                         create_homol_csv = False
                     except (EOFError, KeyError, tarfile.ReadError):
@@ -959,14 +980,14 @@ if A07_parse_SIMAP_to_csv:
                         df.loc[acc, 'SIMAP_total_hits'] = int(simap_homologue_root[0][0][0][1][0].attrib['total'])
                     if df.loc[acc, 'simap_version'] != '4.0':
                         logging.warning('WARNING! Your XML file is simap version %s,'
-                                        'however this SIMAP parser was developed for SIMAP version 4.0.' % 
+                                        'however this SIMAP parser was developed for SIMAP version 4.0.' %
                                          df.loc[acc, 'simap_version'])
                     counter_XML_to_CSV += 1
-                    logging.info('%s homologous sequences parsed from SIMAP XML to csv' % 
+                    logging.info('%s homologous sequences parsed from SIMAP XML to csv' %
                                  int(df.loc[acc, 'SIMAP_total_hits']))
 
                     query_sequence_node = simap_homologue_root[0][0][0][0][2][0][0]
-                    ''' xxxx CURRENTLY THE df is filled with nan values, 
+                    ''' xxxx CURRENTLY THE df is filled with nan values,
                         but that doesn't make sense as the script seems to work
                     '''
                     df.loc[acc, 'query_md5'] = query_sequence_node.attrib['md5']
@@ -988,7 +1009,7 @@ if A07_parse_SIMAP_to_csv:
                     for row in df.index:
                         #for a protein with TMDs, the list of TMD names should be ['TM01','TM02']
                         list_of_TMDs = eval(df.loc[row, 'list_of_TMDs'])
-                        
+
                     #for each hit, save all the relevant data in the form of a dictionary,
                     # so it can be added to a csv file or used in other calculations
                     simap_homologue_hits = simap_homologue_root[0][0][0][1][0]
@@ -1055,7 +1076,7 @@ if A07_parse_SIMAP_to_csv:
                                 except IndexError:
                                     hit_contains_protein_node = False
                                     number_of_hits_missing_protein_node += 1
-                                    logging.warning('%s hit %s contains no protein node' % (protein_name, 
+                                    logging.warning('%s hit %s contains no protein node' % (protein_name,
                                                                                             match_details_dict['A3_md5'])
                                                                                             )
                                 if hit_contains_protein_node:
@@ -1102,10 +1123,10 @@ if A07_parse_SIMAP_to_csv:
                                     #strangely, I think gappedIdentity is the identity EXCLUDING gaps, which is a better value to base judgements on. convert identity from e.g. 80 (80%) to 0.8
                                     match_details_dict['FASTA_gapped_identity'] = float(alignment_node[4].text) / 100
                                     '''xxx notes on the gapped identity
-                                    N.B The FASTA_gapped_identity data here is from the FASTA algorithm, that precedes the SW algorithm. 
+                                    N.B The FASTA_gapped_identity data here is from the FASTA algorithm, that precedes the SW algorithm.
                                     Occasionally they don’t match!!!
-                                    I calculate the TMD identity manually from the SW alignment, BUT 
-                                    currently for the calculation of membranous/nonmembranous I use the gappedIdentity from the FASTA output 
+                                    I calculate the TMD identity manually from the SW alignment, BUT
+                                    currently for the calculation of membranous/nonmembranous I use the gappedIdentity from the FASTA output
                                     (the SW output inly has identity including gaps)
                                     -    if I counted the gaps from the SW alignment, I COULD recalculate the gappedIdentity for the SW alignment
                                     -    OR: I could simply remove the data where the FASTA and SW don’t match.
@@ -1123,7 +1144,7 @@ if A07_parse_SIMAP_to_csv:
                                     match_details_dict['FASTA_match_end'] = int(matchSeq.attrib['end'])
                                     #some parameters that are needed for identity calculations later
                                     #FASTA_num_ident_res = FASTA_identity / 100.0 * FASTA_overlap
-                                    #check if the TMD is in the smith waterman alignment. Note that start and stop in the alignment node is based on FASTA alignment, 
+                                    #check if the TMD is in the smith waterman alignment. Note that start and stop in the alignment node is based on FASTA alignment,
                                     #which is not shown. Occasionally, this will not match the SW alignment.
                                     #xxx it might be better to insert a function that determines of the TMD is after the start of the SW alignment
                                     #is_start_of_TMD_in_FASTA = True if FASTA_query_start <= TMDstart else False
@@ -1207,7 +1228,7 @@ if A08_calculate_AAIMON_ratios:
         else:
             df = pd.read_csv(dfout05_simapcsv, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
             logging.info('df loaded from %s' % dfout05_simapcsv)
-    #filter to remove sequences where no TMDs are found, 
+    #filter to remove sequences where no TMDs are found,
     df = df.loc[df['list_of_TMDs'].notnull()]
     #filter to remove sequences where no TMDs are found (if string)
     df.loc[df['list_of_TMDs'] != 'nan']
@@ -1270,7 +1291,7 @@ if A08_calculate_AAIMON_ratios:
                         try:
                             dfs['len_query_alignment_sequence'] = dfs['query_alignment_sequence'].str.len()
                         except KeyError:
-                            #dataframe does not contain query_alignment_sequence, 
+                            #dataframe does not contain query_alignment_sequence,
                             #which means that the XML file is probably damaged somehow
                             logging.warning('SIMAP_csv_from_XML seems to be damaged for %s' % protein_name)
                             dfs['query_alignment_sequence'] = ''
@@ -1302,21 +1323,66 @@ if A08_calculate_AAIMON_ratios:
                                 'query_alignment_sequence'].apply(utils.get_start_and_end_of_TMD_in_query,
                                                                   args=(TMD_for_regular_expression_search,)
                                                                   )
-                        '''the output of the regex search is a tuple with three components. 
-                        1) a match (e.g. True), 
-                        2) the start of the match (e.g. 124), 
+                        '''the output of the regex search is a tuple with three components.
+                        1) a match (e.g. True),
+                        2) the start of the match (e.g. 124),
                         3) the end of the match (e.g. 144)
                         '''
                         #for convenience, separate the components into separate columns
                         columns_from_regex_output = ['%s_in_SW_alignment' % TMD, '%s_start_in_SW_alignment' % TMD,
                                                      '%s_end_in_SW_alignment' % TMD]
-                        #n = the index (1,2,3) in the tuple 
+                        #n = the index (1,2,3) in the tuple
                         #col = column item in the list (e.g. 'TM09_in_SW_alignment')
                         for n, col in enumerate(columns_from_regex_output):
                             #first filter to analyse only columns that contain a SW node
                             df_match = dfs.query('hit_contains_SW_node == True')
                             #add a new column which is named TM01_start, etc, and insert the appropriate integer (start or stop) or bool from the tuple
                             dfs[col] = df_match['%s_start_end_tuple_in_SW_alignment' % TMD].apply(lambda x: x[n])
+
+                    # Defining juxtaregions
+
+                    for TMD in list_of_TMDs:
+                        last_TMD_of_acc = list_of_TMDs[-1]
+
+                        if TMD == "TM01":
+                            dfs['start_juxta_before_TM01'] = np.where(dfs['TM01_start_in_SW_alignment']>0,0,np.nan)
+                            dfs['end_juxta_before_TM01'] = np.where(dfs['TM01_start_in_SW_alignment']==0,np.nan,dfs['TM01_start_in_SW_alignment'])
+                            dfs['start_juxta_after_TM01'] = dfs['TM01_end_in_SW_alignment']
+                            dfs['end_juxta_after_TM01'] = dfs["TM01_end_in_SW_alignment"]+((dfs["TM02_start_in_SW_alignment"]-dfs["TM01_end_in_SW_alignment"])/2).apply(lambda x :int(x) if not np.isnan(x) else np.nan)
+                            #dfs['seq_juxta_after_TM01_in_query'] = dfs[dfs['start_juxta_after_TM01'].notnull()].apply(r_utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
+                            #dfs['seq_juxta_after_TM01_in_match'] = dfs[dfs['end_juxta_after_TM01'].notnull()].apply(r_utils.slice_juxta_after_TMD_in_match, args = (TMD,), axis=1)
+
+                        if not TMD == "TM01" and not TMD == last_TMD_of_acc:
+                            dfs['start_juxta_after_%s'%TMD] = np.where(r_utils.isNaN(dfs['TM%.2d_start_in_SW_alignment'%(int(TMD[2:])+1)])==True,np.nan,dfs['%s_end_in_SW_alignment'%TMD])
+                            dfs['end_juxta_before_%s'%TMD] = np.where(dfs["%s_start_in_SW_alignment"%TMD]!=0,dfs["%s_start_in_SW_alignment"%TMD],np.nan)
+                            dfs['end_juxta_after_%s'%TMD] = dfs["%s_end_in_SW_alignment"%TMD]+((dfs["TM%.2d_start_in_SW_alignment"%(int(TMD[2:])+1)]-dfs["%s_end_in_SW_alignment"%TMD])/2).apply(lambda x :int(x) if not np.isnan(x) else np.nan)
+                            dfs['start_juxta_before_%s'%TMD] = np.where(dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)] == dfs['end_juxta_before_%s'%TMD] ,dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)],dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)])
+                            #dfs['seq_juxta_after_%s_in_query'%TMD] = dfs[dfs['start_juxta_after_%s' % TMD].notnull()].apply(r_utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
+                            #dfs['seq_juxta_after_%s_in_match'%TMD] = dfs[dfs['end_juxta_after_%s' % TMD].notnull()].apply(r_utils.slice_juxta_after_TMD_in_match, args = (TMD,), axis=1)
+
+                        if TMD == last_TMD_of_acc:
+                            dfs['start_juxta_before_%s'%TMD] = dfs['end_juxta_after_TM%.2d'%(int(TMD[2:])-1)]
+                            dfs['end_juxta_before_%s'%TMD] = dfs['%s_start_in_SW_alignment'%TMD]
+                            dfs['start_juxta_after_%s'%TMD] = np.where(dfs['%s_end_in_SW_alignment'%TMD] == dfs['len_query_alignment_sequence'],np.nan,dfs['%s_end_in_SW_alignment'%TMD])
+                            dfs['end_juxta_after_%s'%TMD] = np.where(r_utils.isNaN(dfs['start_juxta_after_%s'%TMD]) == True,np.nan,dfs['len_query_alignment_sequence'])
+                            #dfs['seq_juxta_after_%s_in_query'%TMD] = dfs[dfs['start_juxta_after_%s' % TMD].notnull()].apply(r_utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
+                            #dfs['seq_juxta_after_%s_in_query'%TMD] = dfs.query_alignment_sequence[int(dfs['start_juxta_after_TM10']):int(dfs['end_juxta_after_TM10'])]
+                            #dfs['seq_juxta_after_%s_in_match'%TMD] =
+
+                    for TMD in list_of_TMDs:
+                        last_TMD_of_acc = list_of_TMDs[-1]
+                        dfs['seq_juxta_before_%s_in_query'%TMD] = dfs[dfs['start_juxta_before_%s' % TMD].notnull()].apply(r_utils.slice_juxta_before_TMD_in_query, args = (TMD,), axis=1)
+                        dfs['seq_juxta_before_%s_in_match'%TMD] = dfs[dfs['start_juxta_before_%s' % TMD].notnull()].apply(r_utils.slice_juxta_before_TMD_in_match, args = (TMD,), axis=1)
+                        if not TMD == last_TMD_of_acc:
+                            dfs['seq_juxta_after_%s_in_query'%TMD] = dfs[dfs['end_juxta_after_%s' % TMD].notnull()].apply(r_utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
+                            dfs['seq_juxta_after_%s_in_match'%TMD] = dfs[dfs['end_juxta_after_%s' % TMD].notnull()].apply(r_utils.slice_juxta_after_TMD_in_match, args = (TMD,), axis=1)
+                        else:
+                            dfs['seq_juxta_after_%s_in_query'%TMD] = np.nan
+                            dfs['seq_juxta_after_%s_in_match'%TMD] = np.nan
+                            for hit in dfs.index:
+                                if not r_utils.isNaN(dfs['start_juxta_after_%s'%TMD])[hit]:
+                                    dfs['seq_juxta_after_%s_in_match'%TMD][hit] = dfs.match_alignment_sequence[hit][int(dfs["start_juxta_after_%s" % TMD][hit]):int(dfs["end_juxta_after_%s" % TMD][hit])]
+                                    dfs['seq_juxta_after_%s_in_query'%TMD][hit] = dfs.query_alignment_sequence[hit][int(dfs["start_juxta_after_%s" % TMD][hit]):int(dfs["end_juxta_after_%s" % TMD][hit])]
 
                         #redefine the number of amino acids before and after the TMD to be inserted into the FastA files
                         aa_before_tmd = settings["simap_match_filters"]["fasta_files"]["aa_before_tmd"]
@@ -1329,7 +1395,7 @@ if A08_calculate_AAIMON_ratios:
                         #define the end of the TMD + surrounding sequence
                         dfs['%s_end_in_SW_alignment_plus_surr' % TMD] = dfs['%s_end_in_SW_alignment' % TMD] + aa_after_tmd
                         #replace values longer than the actual sequence with the length of the sequence
-                        dfs.loc[dfs['%s_end_in_SW_alignment_plus_surr' % TMD] > dfs['len_query_alignment_sequence'], 
+                        dfs.loc[dfs['%s_end_in_SW_alignment_plus_surr' % TMD] > dfs['len_query_alignment_sequence'],
                                     '%s_end_in_SW_alignment_plus_surr' % TMD] = dfs['len_query_alignment_sequence']
 
 
@@ -1360,21 +1426,21 @@ if A08_calculate_AAIMON_ratios:
                             dfs['%s_SW_match_num_gaps' % TMD] = dfs['%s_SW_match_seq' % TMD].dropna().apply(lambda x: x.count('-'))
                             #calculate the length of the match TMD seq excluding gaps
                             dfs['%s_SW_m_seq_len' % TMD] = dfs['%s_SW_match_seq' % TMD].str.len()
-                            #for the alignment length, take the smallest value from the length of query or match 
+                            #for the alignment length, take the smallest value from the length of query or match
                             #this will exclude gaps from the length in the following calculations, preventing false "low conservation" where the query TMD is much longer than the match TMD)
                             #note that for most calculations this is somewhat redundant, because the max number of acceptable gaps in sequence is probable ~2
                             dfs['%s_SW_align_len' % TMD] = dfs['%s_SW_m_seq_len' % TMD].apply(lambda x: x if x < len_query_TMD else len_query_TMD)
                             #create a boolean column that allows filtering by the accepted number of gaps, according to the settings file
                             dfs['%s_SW_query_acceptable_num_gaps' % TMD] = dfs['%s_SW_query_num_gaps' % TMD] <= settings["simap_match_filters"]["number_of_gaps_allowed_in_query_TMD"]
                             dfs['%s_SW_match_acceptable_num_gaps' % TMD] = dfs['%s_SW_match_num_gaps' % TMD] <= settings["simap_match_filters"]["number_of_gaps_allowed_in_match_TMD"]
-                            #count identical residues between query and match TMDs by counting the number of pipes in the markup string                     
+                            #count identical residues between query and match TMDs by counting the number of pipes in the markup string
                             dfs['%s_SW_num_ident_res' % TMD] = dfs['%s_SW_markup_seq' % TMD].dropna().apply(lambda x: x.count('|'))
                             dfs['%s_SW_num_sim_res' % TMD] = dfs['%s_SW_markup_seq' % TMD].dropna().apply(lambda x: x.count(':'))
                             #check that the TMD seq in match is not just 100% gaps!
                             dfs['%s_in_SW_align_match' % TMD] = dfs['%s_SW_num_ident_res' % TMD].dropna() != 0
                             dfs['%s_in_SW_align_match' % TMD].fillna(value=False)
 
-                            #the percentage identity of that TMD is defined as the number of identical residues (pipes in markup) divided by the length of the the aligned residues (excluding gaps, based on the length of the shortest TMD, either match or query)                
+                            #the percentage identity of that TMD is defined as the number of identical residues (pipes in markup) divided by the length of the the aligned residues (excluding gaps, based on the length of the shortest TMD, either match or query)
                             #note that the nonTMD percentage identity is calculated the same way
                             dfs['%s_perc_ident' % TMD] = dfs['%s_SW_num_ident_res' % TMD] / dfs['%s_SW_align_len' % TMD]
                             #calculate percentage similar residues
@@ -1402,8 +1468,8 @@ if A08_calculate_AAIMON_ratios:
                         '''¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦             nonTMD calculations                        ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
                         '''
                         #filter to only analyse sequences with tho following:
-                        #1) full protein identity above cutoff 
-                        #2)containing smith waterman alignment in XML file 
+                        #1) full protein identity above cutoff
+                        #2)containing smith waterman alignment in XML file
                         #3) hit description lacks disallowedd words (patent, synthetic, etc)
                         dfs_filt = dfs.query('gapped_ident_above_cutoff == True and '
                                              'hit_contains_SW_node == True and '
@@ -1456,7 +1522,7 @@ if A08_calculate_AAIMON_ratios:
                             #select only the columns in the dataframe that are of interest, and change the data type to integer
                             index_columns = ['%s_end_in_SW_alignment' % TMD, '%s_start_in_SW_alignment' % next_TMD]
                             dfs_nonTMD[index_columns] = dfs_nonTMD[index_columns].astype('int64')
-                            #create a tuple containing the indices for the nonTMD sequence regions in between each TMD (middle indices)                 
+                            #create a tuple containing the indices for the nonTMD sequence regions in between each TMD (middle indices)
                             dfs_nonTMD['nonTMD_index_%s' % TMD] = tuple(zip(dfs_nonTMD['%s_end_in_SW_alignment' % TMD],
                                                                   dfs_nonTMD['%s_start_in_SW_alignment' % next_TMD]))
 
@@ -1524,7 +1590,7 @@ if A08_calculate_AAIMON_ratios:
                         #fill in np.nan with empty strings
                         #dfs['nonTMD_seq_query'] = dfs['nonTMD_seq_query'].fillna(value = '')
                         #dfs['nonTMD_markup'] = dfs['nonTMD_markup'].fillna(value = '')
-                        #dfs['nonTMD_seq_match'] = dfs['nonTMD_seq_match'].fillna(value = '')                   
+                        #dfs['nonTMD_seq_match'] = dfs['nonTMD_seq_match'].fillna(value = '')
 
                         #calculate identical residues in the nonTMD region (simply count the pipes '|' in the markup sequence)
                         dfs['nonTMD_num_ident_res'] = dfs['nonTMD_markup'].dropna().apply(lambda x: x.count('|'))
@@ -1672,7 +1738,7 @@ if A08_calculate_AAIMON_ratios:
                                              'hit_contains_SW_node == True and '
                                              'disallowed_words_not_in_descr == True and '
                                              'X_in_match_seq == False')
-                        
+
                         '''Calculate average values, add to original dataframe.
                            1) values associated with the FASTA output of SIMAP
                         '''
@@ -1681,9 +1747,9 @@ if A08_calculate_AAIMON_ratios:
                         #number of identical residues in FASTA alignment
                         dfs['FASTA_num_ident_res'] = dfs_filt['FASTA_identity'] / 100 * dfs_filt['FASTA_overlap']
                         df.loc[acc, 'FASTA_num_ident_res'] = float('%0.2f' % dfs_filt['FASTA_identity'].mean())
-                        
+
                         '''2) values associated with the nonTMD region
-                        '''                        
+                        '''
                         #add the average values regarding the nonTMD region to the original file/dataframe with each protein
                         df.loc[acc, 'len_nonTMD_seq_match_mean'] = float('%0.2f' % dfs_filt['len_nonTMD_seq_match'].dropna().mean())
                         df.loc[acc, 'nonTMD_perc_ident_mean'] = float('%0.3f' % dfs_filt['nonTMD_perc_ident'].dropna().mean())
@@ -1694,7 +1760,7 @@ if A08_calculate_AAIMON_ratios:
                         logging.info('nonTMD_qm_gaps_per_q_residue : %0.5f' % df.loc[acc, 'nonTMD_qm_gaps_per_q_residue_mean'])
 
                         '''3) values associated each TMD, such as average AAIMON ratio
-                        '''  
+                        '''
                         #calculate AAISMON etc for each TMD
                         for TMD in list_of_TMDs:
                             len_query_TMD = len(df.loc[acc, '%s_seq' % TMD])
@@ -1708,7 +1774,7 @@ if A08_calculate_AAIMON_ratios:
                             #calculate the Amino Acid Similarity : Membranous Over Nonmembranous (AASMON) (includes similarity + identity based on the matrix used in the SW alignment of SIMAP)
                             dfs_filt_AAIMON['%s_AASMON_ratio' % TMD] = dfs_filt_AAIMON['%s_perc_sim_plus_ident' % TMD] / dfs_filt_AAIMON['nonTMD_perc_sim_plus_ident']
                             df.loc[acc, '%s_SW_q_gaps_per_q_residue_mean' % TMD] = dfs_filt_AAIMON['%s_SW_q_gaps_per_q_residue' % TMD].dropna().mean()
-                            logging.info('%s_SW_q_gaps_per_q_residue Average: %0.3e' % 
+                            logging.info('%s_SW_q_gaps_per_q_residue Average: %0.3e' %
                                         (TMD, df.loc[acc, '%s_SW_q_gaps_per_q_residue_mean' % TMD])
                                         )
 
@@ -1717,7 +1783,7 @@ if A08_calculate_AAIMON_ratios:
                             df.loc[acc, '%s_perc_ident_mean' % TMD] = dfs_filt_AAIMON['%s_perc_ident' % TMD].mean()
                             df.loc[acc, '%s_perc_sim_mean' % TMD] = dfs_filt_AAIMON['%s_perc_sim' % TMD].mean()
                             df.loc[acc, '%s_perc_sim_plus_ident_mean' % TMD] = dfs_filt_AAIMON['%s_perc_sim_plus_ident' % TMD].mean()
-                            df.loc[acc, '%s_AAIMON_ratio_mean' % TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio' % TMD].mean()
+                            df.loc[acc, '%s_AAIMON_ratio_mean' % TMD] = float(dfs_filt_AAIMON['%s_AAIMON_ratio' % TMD].mean())
                             df.loc[acc, '%s_AAIMON_ratio_std' % TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio' % TMD].std()
                             df.loc[acc, '%s_AASMON_ratio_mean' % TMD] = dfs_filt_AAIMON['%s_AASMON_ratio' % TMD].mean()
                             df.loc[acc, '%s_AASMON_ratio_std' % TMD] = dfs_filt_AAIMON['%s_AASMON_ratio' % TMD].std()
@@ -1735,7 +1801,7 @@ if A08_calculate_AAIMON_ratios:
                             df.loc[acc, '%s_ratio_length_of_query_TMD_to_rest_of_match_protein_mean' % TMD] = float('%0.2f' % dfs['%s_ratio_length_of_query_TMD_to_rest_of_match_protein' % TMD].dropna().mean())
 
                         '''re-filter the original dataframe to create another copy with the desired sequences
-                        note that some values were added after filtering in the last round, 
+                        note that some values were added after filtering in the last round,
                         but all were added to the dataframe dfs, not the copy dfs_filt
                         '''
                         dfs_filt = dfs.query('gapped_ident_above_cutoff == True and '
@@ -1765,7 +1831,7 @@ if A08_calculate_AAIMON_ratios:
                                                    n_cols=ncols_in_each_fig
                                                    )
                         with tarfile.open(df.loc[acc, 'output_tarfile_path'], mode='w:gz') as tar_out:
-                            #calculate ratio of Amino acid Identity Membranous Over Nonmembranous  (AAIMON ratio)                 
+                            #calculate ratio of Amino acid Identity Membranous Over Nonmembranous  (AAIMON ratio)
                             for TMD in list_of_TMDs:
                                 len_query_TMD = len(df.loc[acc, '%s_seq' % TMD])
                                 #following the general filters, filter to only analyse sequences with TMD identity above cutoff, and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
@@ -1773,7 +1839,7 @@ if A08_calculate_AAIMON_ratios:
                                 dfs_filt_AAIMON = dfs_filt.loc[dfs['%s_perc_ident' % TMD] >= min_identity_of_TMD_initial_filter]
                                 #avoid a divide by zero error in the unlikely case that there are no_identical_residues_in_alignment
                                 dfs_filt_AAIMON = dfs_filt_AAIMON.loc[dfs_filt_AAIMON['nonTMD_perc_ident'] != 0]
-                                #find the TMD number (starting from 1)                                
+                                #find the TMD number (starting from 1)
                                 TMD_Nr = list_of_TMDs.index(TMD) + 1
                                 #use the dictionary to obtain the figure number, plot number in figure, plot indices, etc
                                 newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[TMD_Nr]
@@ -1810,10 +1876,10 @@ if A08_calculate_AAIMON_ratios:
                                 #create a line graph rather than a bar graph for the AAISON (ident + similarity)
                                 linecontainer_S = axarr[row_nr, col_nr].plot(centre_of_bar_in_x_axis, freq_counts,
                                                                              color="#0101DF", alpha=0.5)
-                                #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A 
+                                #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
                                 #http://html-color-codes.info/
                                 #label the x-axis for each plot, based on the TMD
-                                axarr[row_nr, col_nr].set_xlabel('%s conservation ratio (membranous over nonmembranous)' % TMD, 
+                                axarr[row_nr, col_nr].set_xlabel('%s conservation ratio (membranous over nonmembranous)' % TMD,
                                                                  fontsize=fontsize)
                                 if savefig:
                                     #take x-axis min from settings
@@ -1883,7 +1949,7 @@ if A08_calculate_AAIMON_ratios:
                                 dfs_filt_FastA_plus_surr = dfs_filt.loc[dfs['%s_SW_match_seq_plus_surr' % TMD].notnull()]
                                 with open(fasta_file_plus_surr_path, 'w') as f:
                                     #add the original query seq
-                                    f.write('>00_%s_query_seq\n%s\n' % (df.loc[acc, 'A2_protein_name'], 
+                                    f.write('>00_%s_query_seq\n%s\n' % (df.loc[acc, 'A2_protein_name'],
                                             df.loc[acc, '%s_with_surrounding_seq' % TMD]))
                                     for hit in dfs_filt_FastA.loc[dfs_filt_FastA['%s_SW_match_seq_plus_surr' % TMD].notnull()].index:
                                         f.write('>%04d_%s_%s\n%s\n' % (hit,str(dfs_filt_FastA.loc[hit, 'A2_organism'])[:30],
@@ -1911,6 +1977,655 @@ if A08_calculate_AAIMON_ratios:
 
     logging.info('calculate_AAIMON_ratios is finished.')
 
+
+#A## variables are included only to help navigate the document in PyCharm
+A08a_calculate_gap_densities = settings["run_settings"]["calculate_gap_densities"]["run"]
+
+if A08a_calculate_gap_densities:
+    logging.info('~~~~~~~~~~~~starting calculate_gap_densities~~~~~~~~~~~~')
+
+    # If script previously has been run, continues with proteins not beeing processed yet, or overwrites previous gap analysis
+    overwrite_previous_gap_analysis = settings["run_settings"]["calculate_gap_densities"]["overwrite_previous_gap_analysis"]
+
+    # Maximum number of gaps for tmds to be considered
+    allowed_gaps_per_tmd = settings["run_settings"]["calculate_gap_densities"]["allowed_gaps_per_tmd"]
+
+    # 24 for beta barrel proteins, can be altered if only several TMDs to consider
+    max_number_of_tmds = settings["run_settings"]["calculate_gap_densities"]["max_number_of_tmds"]
+
+    #test if the dataframe has already been created, otherwise re-open from uniprot csv file
+    try:
+        logging.info('first protein acc = %s, df already exists,'
+                     'continuing with parse_list_proteins_to_csv_and_fasta' % df.iloc[0][0])
+    except NameError:
+        if os.path.isfile(dfout10_uniprot_gaps):
+            df = pd.read_csv(dfout10_uniprot_gaps, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
+            logging.info('df loaded from %s' % dfout10_uniprot_gaps)
+        else:
+            df = pd.read_csv(dfout08_simap_AAIMON, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
+            logging.info('no gap file found, df loaded from %s' % dfout08_simap_AAIMON)
+
+            # If no previous analysis had been done, uniprot csv is opened and additional columns are created
+            df["gaps_analysed"]= np.nan     # Column, containing true or false
+            for n in range (1,max_number_of_tmds+1):
+                df["TM%.2d_occuring_gaps"%n]=np.nan     # List of unique gappositions, which occur in the tmd
+                df["TM%.2d_amount_possible_gappositions"%n]=np.nan
+                df['total_amount_of_TM%.2d'%n] = np.nan     # How often TMD is considered
+                df['juxta_TM%.2d_intracellular_possible_gappositions'%n] = np.nan   # List of unique gappositions, which occur in the intracellular loop-part/end
+                df['juxta_TM%.2d_extracellular_possible_gappositions'%n] = np.nan   # List of unique gappositions, which occur in the intracellular loop-part/end
+                df['juxta_TM%.2d_intracellular_num_gaps'%n] = np.nan
+                df['juxta_TM%.2d_exracellular_num_gaps'%n] = np.nan
+                df['len_juxta_TM%.2d_intracellular'%n] = np.nan
+                df['len_juxta_TM%.2d_extracellular'%n] = np.nan
+
+        for acc in df.index:
+
+            # The next steps (the main analysis) is only executed, if previous analysis can be overwritten or no analysis has yet been done
+            if (overwrite_previous_gap_analysis == True) or (df.loc[acc,"gaps_analysed"] != True):
+                logging.info("%s"%acc)
+                list_of_TMDs = ast.literal_eval(df.loc[acc,"list_of_TMDs"])
+
+                # Checks if outputfiles (tar) exist
+                if os.path.exists("/nas/teeselab/students/rimma/databases/simap/%s/%s_outputfiles.tar.gz"%(acc[0:2],acc)):
+
+                # opens the analysed csv for each protein and loads it into a dataframe
+                    with tarfile.open("/nas/teeselab/students/rimma/databases/simap/%s/%s_outputfiles.tar.gz"%(acc[0:2],acc), mode= 'r:gz')as tar:
+
+                    # checks if the analysed file exists, otherwise prints that it does not exist
+                        if "%s_analysed.csv"%acc in tar.getnames():
+
+                        # loads file into analysed csv
+                            analysed_csv = tar.extractfile('%s_analysed.csv'%acc)
+                            analysed_df = pd.read_csv(analysed_csv,low_memory=False,index_col=[0])
+
+                            # checks if first amino acid is located inside (or periplasmatic) or outside, returns a boolean, true or false
+                            # if first residue is located inside, every even tmd (tmd2,tmd4,tmd6...) is reversed, otherwise every odd tmd is reversed
+                            # output is a boolean for each tmd, depending on the number and on the first amino acid
+
+                            if df.n_term_ec[acc] == False:
+                                reverse_tmd = False
+                            else:
+                                reverse_tmd = True
+                            print (reverse_tmd)
+
+
+                            # for each TMD in the proteins, creates new lists which will contain gappositions, lists are saved in a column and created again for each tmd
+                            for tmd in list_of_TMDs:
+                                print(tmd)
+                                tmd_int = int(tmd[-2:])
+                                len_of_query = len(analysed_df["%s_SW_query_seq"%tmd][1])
+                                len_of_query_reversed= ((1/len_of_query)+1)
+                                list_of_gaps_in_tmd = []
+                                list_of_gaps_intracellular = []
+                                list_of_gaps_extracellular = []
+
+
+                                for hit in analysed_df.index:
+
+        #'''
+        #Start of the main gap analysis
+        #Code searches for "-" in the TMD sequence and returns the index!! (not the position)
+        #'''
+
+                                    # Following if conditions only refer to gaps in the query!
+                                    # Query gaps are counted as "in between positions", for example: 4,5 refers to a gap between position 4 and 5;
+                                    # if two gaps occur one after another: only one position (between two amino acids is considered)
+
+                                    # Filter to make sure, that there are 1 or 2 gaps in the query sequence and up to the max allowed gaps in the match
+                                    if (analysed_df["%s_SW_query_num_gaps"%tmd][hit] != 0.0) and (analysed_df["%s_SW_query_num_gaps"%tmd][hit] <= 2.0)\
+                                        and (analysed_df["%s_SW_match_num_gaps"%tmd][hit] <= int("%s"%allowed_gaps_per_tmd)):
+
+                                        # Stores the endpoints in a temp list; endpoints are used, to switch from python indices to numbers
+                                        list_of_gaps_per_hit_in_query = [m.start() for m in re.finditer("-",analysed_df.loc[hit,"%s_SW_query_seq"%tmd]) if m.start()]
+                                        print (list_of_gaps_per_hit_in_query)
+
+                                        # if there are two gaps in the query (and 2 allowed), code checks if they are side by side (difference of 1)
+                                        # and appends the gap position, else appends both gap positions
+                                        # 0.5 is substracted in order to make them "in between" position;
+                                        #if two gaps are observed, 1.5 is substracted from the second one, since the residue positions are moved due to the first gap
+                                        if len(list_of_gaps_per_hit_in_query) == 2 and allowed_gaps_per_tmd==2:
+
+                                            if list_of_gaps_per_hit_in_query[1]- list_of_gaps_per_hit_in_query[0] ==1:
+                                                list_of_gaps_in_tmd.append(list_of_gaps_per_hit_in_query[0]-0.5)
+
+                                            else:
+                                                list_of_gaps_in_tmd.append(list_of_gaps_per_hit_in_query[0]-0.5)
+                                                list_of_gaps_in_tmd.append(list_of_gaps_per_hit_in_query[1]-1.5)
+
+                                        # if there is only one gap in query or only one gap is allowed, it appends the first (and only) gap from the list_of_gaps_per_hit_in_query to the list_of_TMDs
+                                        else:
+                                            if len(list_of_gaps_per_hit_in_query) == 1:
+                                                list_of_gaps_in_tmd.append (list_of_gaps_per_hit_in_query[0]-0.5)
+
+
+                                    # Following if conditions only refer to gaps in the match!
+                                    # Query gaps are counted as deletions of positions; for example: 4 refers to a gap on position 4;
+                                    # if two gaps occur one after another, both are considered since two actual amino acids from the original query are deleted
+                                    # Since the gap positions are dependend on the query sequence, query-gap positions in the same alignment have to be considered as well
+
+
+                                    # Filter to make sure, that there are 1 or 2 gaps in the match sequence and up to the max allowed gaps in the query
+                                    if (analysed_df["%s_SW_query_num_gaps"%tmd][hit] <=2.0) and (analysed_df["%s_SW_match_num_gaps"%tmd][hit] <= 2.0)\
+                                        and (analysed_df["%s_SW_match_num_gaps"%tmd][hit] != 0.0):
+
+                                        # It's not sure that the list of hits in query was already determined, maybe there were no gaps, anyway here it is important how many
+                                        list_of_gaps_per_hit_in_query = [m.start() for m in re.finditer("-",analysed_df.loc[hit,"%s_SW_query_seq"%tmd]) if m.start()]
+                                        list_of_gaps_per_hit_in_match = [m.start() for m in re.finditer("-",analysed_df.loc[hit,"%s_SW_match_seq"%tmd])if m.start()]
+                                        #print (list_of_gaps_per_hit_in_query)
+                                        #print (list_of_gaps_per_hit_in_match)
+
+                                        if len(list_of_gaps_per_hit_in_match)>0:
+                                            for n in list(reversed(list_of_gaps_per_hit_in_match)):
+                                                substracted_value = len([m<n for m in list_of_gaps_per_hit_in_query])
+                                                list_of_gaps_in_tmd.append(abs(n-substracted_value))
+
+        #######
+        # Start of the Juxta Consideration
+        # In the case of n_term being located intracellular:
+        # there are 4 groups: 1. juxta_before_odd_TMDs + 2.juxta_after_even_TMDs 3. Juxta_before_even_TMDs + 4. Juxta_after_odd_TMDs
+        # 1 + 2 --> Intracellular
+        # 3 + 4 --> Extracellular
+        # If the n_term is extracellular, that it's the other way round. 1+2 --> Extracellular 3+4 --> Intracellular
+        ### The data will already be flipped in order to align extracellular and intracellular parts, extracellular: + , intracellular: -
+
+                                    # juxta before_odd_TMDs:
+
+                                    if r_utils.isOdd(tmd_int)==True:  # also für 1 , 3 ...
+
+
+                                        # makes sure that the search is done in a string
+                                        if type(analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int])== str:
+
+                                            # list of gap indices
+                                            list_of_gaps_in_query_before_odd = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int][::-1])if m.start()+0.5 < 31]
+
+                                            # if one gap is found, code checks location and appends it
+                                            if len (list_of_gaps_in_query_before_odd)==1:
+                                                if reverse_tmd == False:
+                                                    list_of_gaps_intracellular.append(list_of_gaps_in_query_before_odd[0])
+                                                else:
+                                                    list_of_gaps_extracellular.append(list_of_gaps_in_query_before_odd[0])
+                                            # if more than one gap is found, code checks if the gapy are one after another in the query!
+                                            if len (list_of_gaps_in_query_before_odd)>1.0:
+                                                following_gap = 0
+                                                rev_value = list_of_gaps_in_query_before_odd[0]
+                                                for n in list_of_gaps_in_query_before_odd:
+                                                    if n-following_gap == rev_value:
+                                                        if reverse_tmd == False:
+                                                            list_of_gaps_intracellular.append(n-following_gap)
+
+                                                            following_gap = following_gap+1
+                                                        else:
+                                                            list_of_gaps_extracellular.append(n-following_gap)
+                                                            following_gap = following_gap+1
+                                                    else:
+                                                        if reverse_tmd == False:
+                                                            list_of_gaps_intracellular.append(n-following_gap)
+                                                            following_gap = following_gap+1
+                                                            rev_value = n
+                                                        else:
+                                                            list_of_gaps_extracellular.append(n-following_gap)
+                                                            following_gap = following_gap+1
+                                                            rev_value = n
+
+
+                                            if type(analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_match"%tmd_int])== str:
+                                            # Makes a list of gaps of the match of the odd juxta before the TMD
+                                                list_of_gaps_in_query_before_odd = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int][::-1])if m.start() < 32]
+
+                                                list_of_gaps_in_match_before_odd = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_match"%tmd_int][::-1])if m.start() < 32]
+
+                                                for n in list(reversed(list_of_gaps_in_match_before_odd)):
+                                                    greater_values = sum(i< n for i in list_of_gaps_in_query_before_odd)
+                                                    if reverse_tmd== False:
+                                                        list_of_gaps_intracellular.append(n-greater_values)
+
+                                                    else:
+                                                        list_of_gaps_extracellular.append(n-greater_values)
+
+# juxta after odd TMDs:
+
+                                            if type(analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int])== str:
+
+                                                list_of_gaps_in_query_after_odd = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int])if m.start()+0.5 < 31]
+
+                                                # if one gap is found, code checks location and appends it
+                                                if len (list_of_gaps_in_query_after_odd)==1:
+                                                    if reverse_tmd == False:
+                                                        list_of_gaps_extracellular.append(list_of_gaps_in_query_after_odd[0])
+                                                    else:
+                                                        list_of_gaps_intracellular.append(list_of_gaps_in_query_after_odd[0])
+
+                                                # if more than one gap is found, code checks if the gaps are one after another in the query!
+                                                if len (list_of_gaps_in_query_after_odd)>1.0:
+                                                    following_gap = 0
+                                                    rev_value = list_of_gaps_in_query_after_odd[0]
+                                                    for n in list_of_gaps_in_query_after_odd:
+                                                        if n+following_gap == rev_value:
+                                                            if reverse_tmd == False:
+                                                                list_of_gaps_extracellular.append(n-following_gap)
+                                                                following_gap = following_gap+1
+                                                            else:
+                                                                list_of_gaps_intracellular.append(n-following_gap)
+                                                                following_gap = following_gap+1
+                                                        else:
+                                                            if reverse_tmd == False:
+                                                                list_of_gaps_extracellular.append(n-following_gap)
+                                                                following_gap = following_gap+1
+                                                                rev_value = n
+                                                            else:
+                                                                list_of_gaps_intracellular.append(n-following_gap)
+                                                                following_gap = following_gap+1
+                                                                rev_value = n
+         # juxta after odd TMDs:
+
+
+#                               if type(analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int])== str:
+
+                             #                   list_of_gaps_in_query_after_odd = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int])if m.start()+0.5 < 31]
+
+                                                # if one gap is found, code checks location and appends it
+                            #                    if len (list_of_gaps_in_query_after_odd)==1:
+                            #                        if reverse_tmd == False:
+                            #                            list_of_gaps_extracellular.append(list_of_gaps_in_query_after_odd[0])
+                            #                        else:
+                            #                            list_of_gaps_intracellular.append(list_of_gaps_in_query_after_odd[0])
+
+                                                # if more than one gap is found, code checks if the gaps are one after another in the query!
+                            #                    if len (list_of_gaps_in_query_after_odd)>1.0:
+                             #                       following_gap = 0
+                             #                       rev_value = list_of_gaps_in_query_after_odd[0]
+                              #                      for n in list_of_gaps_in_query_after_odd:
+                              #                          if n+following_gap == rev_value:
+                              #                              if reverse_tmd == False:
+                              ##                                  list_of_gaps_extracellular.append(n-following_gap)
+                              #                                  following_gap = following_gap+1
+                              #                              else:
+                              #                                  list_of_gaps_intracellular.append(n-following_gap)
+                              #                                  following_gap = following_gap+1
+                             #                           else:
+                             #                               if reverse_tmd == False:
+                             #                                   list_of_gaps_extracellular.append(n-following_gap)
+                            #                                    following_gap = following_gap+1
+                             #                                   rev_value = n
+                             #                               else:
+                             #                                   list_of_gaps_intracellular.append(n-following_gap)
+                             #                                   following_gap = following_gap+1
+                             #                                   rev_value = n
+
+                                        else:  # for 2,4
+
+                                        # juxta before even TMDs:
+
+                                        # makes sure that the search is done in a string
+                                            if type(analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int])== str:
+
+                                                # list of gap indices
+                                                list_of_gaps_in_query_before_even = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int])if m.start()+0.5 < 31]
+
+                                                # if one gap is found, code checks location and appends it
+                                                if len (list_of_gaps_in_query_before_even)==1:
+                                                    if reverse_tmd == False:
+                                                        list_of_gaps_extracellular.append(list_of_gaps_in_query_before_even[0])
+                                                    else:
+                                                        list_of_gaps_intracellular.append(list_of_gaps_in_query_before_even[0])
+
+                                                # if more than one gap is found, code checks if the gapy are one after another in the query!
+                                                if len (list_of_gaps_in_query_before_even)>1.0:
+                                                    following_gap = 0
+                                                    rev_value = list_of_gaps_in_query_before_even[0]
+                                                    for n in list_of_gaps_in_query_before_even:
+                                                        if n+following_gap == rev_value:
+                                                            if reverse_tmd == False:
+                                                                list_of_gaps_extracellular.append(n-following_gap)
+                                                                following_gap = following_gap+1
+                                                            else:
+                                                                list_of_gaps_intracellular.append(n-following_gap)
+                                                                following_gap = following_gap+1
+                                                        else:
+                                                            if reverse_tmd == False:
+                                                                list_of_gaps_extracellular.append(n-following_gap)
+                                                                following_gap = following_gap+1
+                                                                rev_value = n
+                                                            else:
+                                                                list_of_gaps_intracellular.append(n-following_gap)
+                                                                following_gap = following_gap+1
+                                                                rev_value = n
+
+                                            if type(analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_match"%tmd_int])== str:
+                                            # Makes a list of gaps of the match of the odd juxta before the TMD
+                                                list_of_gaps_in_query_before_even = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int])if m.start()+0.5 < 31]
+
+                                                list_of_gaps_in_match_before_even = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_match"%tmd_int])if m.start() < 31]
+
+                                                for n in list(reversed(list_of_gaps_in_match_before_even)):
+                                                    greater_values = sum(i< n for i in list_of_gaps_in_query_before_even)
+                                                    if reverse_tmd== False:
+                                                        list_of_gaps_extracellular.append(n-greater_values)
+                                                    else:
+                                                        list_of_gaps_intracellular.append(n-greater_values)
+
+
+
+                                            # juxta after even TMDs:
+
+                                            if type(analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int])== str:
+
+                                                list_of_gaps_in_query_after_even = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int][::-1]) if m.start()+0.5 < 31]
+
+                                                # if one gap is found, code checks location and appends it
+                                                if len (list_of_gaps_in_query_after_even)==1:
+                                                    if reverse_tmd == False:
+                                                        list_of_gaps_intracellular.append(list_of_gaps_in_query_after_even[0])
+                                                    else:
+                                                        list_of_gaps_extracellular.append(list_of_gaps_in_query_after_even[0])
+
+                                                # if more than one gap is found, code checks if the gaps are one after another in the query!
+                                                if len (list_of_gaps_in_query_after_even)>1.0:
+                                                    following_gap = 0
+                                                    rev_value = list_of_gaps_in_query_after_even[0]
+                                                    for n in list_of_gaps_in_query_after_even:
+                                                        if n-following_gap == rev_value:
+                                                            if reverse_tmd == False:
+                                                                list_of_gaps_intracellular.append(n-following_gap)
+                                                                following_gap = following_gap+1
+                                                            else:
+                                                                list_of_gaps_extracellular.append(n-following_gap)
+                                                                following_gap = following_gap+1
+                                                        else:
+                                                            if reverse_tmd == False:
+                                                                list_of_gaps_intracellular.append(n-following_gap)
+                                                                following_gap = following_gap+1
+                                                                rev_value = n
+                                                            else:
+                                                                list_of_gaps_extracellular.append(n-following_gap)
+                                                                following_gap = following_gap+1
+                                                                rev_value = n
+
+                                                           # Makes a list of gaps of the match of the odd juxta before the TMD
+
+                                            if type(analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_match"%tmd_int])== str and type(analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int])==str:
+
+                                                list_of_gaps_in_query_after_even = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int][::-1])if m.start()+0.5 < 31]
+                                                list_of_gaps_in_match_after_even = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_match"%tmd_int][::-1])if m.start() < 31]
+
+                                                for n in list(reversed(list_of_gaps_in_match_after_even)):
+                                                    greater_values = sum(i< n for i in list_of_gaps_in_query_after_even)
+                                                    if reverse_tmd== False:
+                                                        list_of_gaps_intracellular.append(n-greater_values)
+
+                                                    else:
+                                                        list_of_gaps_extracellular.append(n-greater_values)
+
+                                    unique_list_of_gaps_in_tmd = list(set(list_of_gaps_in_tmd))
+                                    unique_list_of_gaps_intracellular = list(set(list_of_gaps_intracellular))
+                                    unique_list_of_gaps_extracellular = list(set(list_of_gaps_extracellular))
+
+                                    df["%s_occuring_gaps"%tmd][acc]=str(unique_list_of_gaps_in_tmd)
+                                    df["%s_amount_possible_gappositions"%tmd][acc]=len(unique_list_of_gaps_in_tmd)
+
+                                    df['juxta_%s_intracellular_possible_gappositions'%tmd][acc] = str(unique_list_of_gaps_intracellular)
+                                    df['juxta_%s_extracellular_possible_gappositions'%tmd][acc] = str(unique_list_of_gaps_extracellular)
+                                    df['juxta_%s_intracellular_num_gaps'%tmd][acc] = len(unique_list_of_gaps_intracellular)
+                                    df['juxta_%s_exracellular_num_gaps'%tmd][acc] = len(unique_list_of_gaps_extracellular)
+
+
+                            df.gaps_analysed[acc] = "True"
+                            logging.info("--Analysed")
+                            with open(dfout10_uniprot_gaps, 'w') as csv_out:
+                                df.to_csv(csv_out, sep=",", quoting=csv.QUOTE_NONNUMERIC)
+
+
+                        else:
+                            logging.info("Analysed csv for %s does not exist" %acc)
+                else:
+                    logging.info("Output file for %s does not exist" %acc)
+
+            else:
+                logging.info("Gap analysis for %s already done" %acc)
+
+
+#A## variables are included only to help navigate the document in PyCharm
+A08b_calculate_gap_densities = settings["run_settings"]["create_graph_of_gap_density"]["run"]
+
+if A08b_calculate_gap_densities:
+    logging.info('~~~~~~~~~~~~starting creating graphs of gap density~~~~~~~~~~~~')
+
+    #test if the dataframe has already been created, otherwise re-open from uniprot csv file
+    if os.path.isfile(dfout10_uniprot_gaps):
+        df = pd.read_csv(dfout10_uniprot_gaps, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
+        logging.info('df loaded from %s' % dfout10_uniprot_gaps)
+    else:
+        logging.info('no analysis has been done yet, please set calculate gap densities to true')
+
+    num_of_bins_in_tmd_region = settings["run_settings"]["create_graph_of_gap_density"]["num_of_bins_in_tmd_region"]
+
+    flipped = []
+    not_flipped = []
+
+    for acc in df.index:
+        print(acc)
+
+        for num_TMD in range(1,int(df.loc[acc,"number_of_TMDs_in_uniprot_feature_list"])+1,2):
+
+            if not r_utils.isNaN(df.loc[acc,"TM%.2d_occuring_gaps"%num_TMD]):
+                for n in ast.literal_eval(df.loc[acc,"TM%.2d_occuring_gaps"%num_TMD]):
+                    #print (n)
+                   # print ((df.loc[acc,"TM%.2d_len"%num_TMD]-1) )
+
+                    if df.loc[acc,"n_term_ec"] == False:
+                        not_flipped.append ((n/(len(df.loc[acc,"TM%.2d_seq"%num_TMD])-1))*num_of_bins_in_tmd_region)
+                    if df.loc[acc,"n_term_ec"] == True:
+                        flipped.append(num_of_bins_in_tmd_region-((n/(len(df.loc[acc,"TM%.2d_seq"%num_TMD])-1))*num_of_bins_in_tmd_region))
+                   # print ((n/(df.loc[acc,"TM%.2d_len"%num_TMD]-1))*10)
+
+
+        for num_TMD in range(2,int(df.loc[acc,"number_of_TMDs_in_uniprot_feature_list"])+1,2):
+            #print(num_TMD)
+            if not r_utils.isNaN(df.loc[acc,"TM%.2d_occuring_gaps"%num_TMD]):
+                for n in ast.literal_eval(df.loc[acc,"TM%.2d_occuring_gaps"%num_TMD]):
+                    #print(n)
+                   # print(df.loc[acc,"TM%.2d_len"%num_TMD])
+
+                   # m = np.prod(df.loc[acc,"TM%.2d_len"%num_TMD]*float(n))
+
+                    if df.loc[acc,"n_term_ec"] == False:
+
+                        flipped.append (num_of_bins_in_tmd_region-((n/(len(df.loc[acc,"TM%.2d_seq"%num_TMD])-1))*num_of_bins_in_tmd_region))
+
+                    if df.loc[acc,"n_term_ec"] == True:
+
+                        not_flipped.append((n/(len(df.loc[acc,"TM%.2d_seq"%num_TMD])-1))*num_of_bins_in_tmd_region)
+
+        fig, axarr = plt.subplots()
+
+        tmd_gaps = flipped+not_flipped
+
+        n, bins, patches = plt.hist(tmd_gaps,bins=num_of_bins_in_tmd_region,range=(0,num_of_bins_in_tmd_region),normed=True,histtype='bar',color="darkblue",zorder=3, edgecolor = "white")
+
+        axarr.set_ylabel("Propability for gapposition",fontsize=8,color="black")
+        axarr.set_xlabel("Depth of Residue",fontsize=8,color="black")
+        #axarr.set_title("Gap distribution along TMD", fontsize=16,color="black")
+
+        axarr.set_xlim(0,num_of_bins_in_tmd_region)
+        axarr.set_xticks(np.linspace(0.8,19.2,2))
+        axarr.set_xticklabels(("intracellular","extracellular"),fontsize=8,color="black")
+        axarr.tick_params(reset=True, labelsize=8,color="black")
+
+        for tic in axarr.xaxis.get_major_ticks():
+            tic.tick1On = tic.tick2On = False
+        axarr.grid(False, 'minor', color='0.99', linestyle='-', linewidth=0.7)
+        #fig.patch.set_visible(False)
+
+        axarr.spines['top'].set_visible(False)
+        axarr.spines['right'].set_visible(False)
+        axarr.yaxis.tick_left()
+        axarr.patch.set_facecolor('white')
+        axarr.yaxis.grid(True,zorder = 0,color = "grey",linestyle=":")
+        fig.savefig("/nas/teeselab/students/rimma/omp/summaries/test.png", format='png', dpi=200)
+
+
+        nested_list_of_gaps_intracellular = [ast.literal_eval(m) for n in range (1,25) for m in df['juxta_TM%.2d_intracellular_possible_gappositions'%n].dropna().tolist()]
+        hist_data_juxta_intracellular = np.array (list(itertools.chain(*nested_list_of_gaps_intracellular)))
+
+
+        min_value = int(abs(hist_data_juxta_intracellular.min()))
+        #y-axis_intracell = [(freq_counts_I.tolist()[::-1][n]/frequency_of_position_intracellular(n)) for n in range (1,int(min_value))]
+
+        # data for extracellular part --> right
+        nested_list_of_gaps_extracellular = [ast.literal_eval(m) for n in range (1,25) for m in df['juxta_TM%.2d_extracellular_possible_gappositions'%n].dropna().tolist()]
+        hist_data_juxta_extracellular = np.array (list(itertools.chain(*nested_list_of_gaps_extracellular)))
+
+        # data for tmd --> middle
+
+        hist_data_tmds = np.array (tmd_gaps)
+        # times 2, because TMDs in gap and in query are considered! --> double amount
+        total_amount_of_TMDs_in_protein = df.loc[df.gaps_analysed==True,"number_of_TMDs_in_uniprot_feature_list"].sum()*2
+        #total_amount_of_TMDs_in_protein = len([TMD for acc in df.index for TMD in ast.literal_eval(df.loc[acc,"list_of_TMDs"])if (df.loc[acc,"gaps_analysed"]==True)and(r_utils.isNaN(df.loc[acc,"list_of_TMDs"]))])*2
+
+        list_of_positionfrequency_extra = []
+        list_of_positionfrequency_intra = []
+
+        for acc in df.index:
+            if df.loc[acc,"gaps_analysed"] == True:
+                print(acc)
+                if df.loc[acc,"n_term_ec"] == True:
+                    for n in range (1,25,1):
+                        list_of_positionfrequency_extra.append(df.loc[acc,'len_juxta_before_TM%.2d'%n].tolist())
+                        list_of_positionfrequency_intra.append(df.loc[acc,'len_juxta_after_TM%.2d'%n].tolist())
+                    for n in range (1,25,2):
+                        list_of_positionfrequency_extra.append(df.loc[acc,'len_juxta_after_TM%.2d'%n].tolist())
+                        list_of_positionfrequency_intra.append(df.loc[acc,'len_juxta_before_TM%.2d'%n].tolist())
+
+                if df.loc[acc,"n_term_ec"] == False:
+                    for n in range (1,25,1):
+                        list_of_positionfrequency_extra.append(df.loc[acc,'len_juxta_after_TM%.2d'%n].tolist())
+                        list_of_positionfrequency_intra.append(df.loc[acc,'len_juxta_before_TM%.2d'%n].tolist())
+                    for n in range (1,25,2):
+                        list_of_positionfrequency_extra.append(df.loc[acc,'len_juxta_before_TM%.2d'%n].tolist())
+                        list_of_positionfrequency_intra.append(df.loc[acc,'len_juxta_after_TM%.2d'%n].tolist())
+
+        def positionfreq_in_list_extra(position):
+            return (len([n  for n in list_of_positionfrequency_extra if n>=position])*2)
+        def positionfreq_in_list_intra(position):
+            return ( len([n  for n in list_of_positionfrequency_intra if n>=position])*2)
+
+        fig, axarr = plt.subplots()
+
+        fontsize = 8
+
+        ### Intracellular
+
+        freq_counts_I, bin_array_I = np.histogram(hist_data_juxta_intracellular, bins = hist_data_juxta_intracellular.max())
+        centre_of_bar_in_x_axis_I = -((bin_array_I[:-2] + bin_array_I[1:-1]) / 2)
+
+        bar_width_I = centre_of_bar_in_x_axis_I[3] - centre_of_bar_in_x_axis_I[2]
+
+
+        centre_of_bar_in_x_axis_I = np.append(centre_of_bar_in_x_axis_I, centre_of_bar_in_x_axis_I[-1] + bar_width_I)
+
+        axarr.bar(left=centre_of_bar_in_x_axis_I, height= [((freq_counts_I.tolist()[n])/(positionfreq_in_list_intra(n))) for n in range (0,32)],  width=0.4, color="mediumblue", linewidth = 0,zorder = 3)  # edgecolor='black',
+
+        ######### TMD
+
+        hist_data_tmds = np.array (tmd_gaps)
+        freq_counts_II, bin_array_II = np.histogram(hist_data_tmds,bins = 20,range = (0,20))
+
+        centre_of_bar_in_x_axis_II = (bin_array_II[:-2] + bin_array_II[1:-1]) / 2
+
+        bar_width_II =  centre_of_bar_in_x_axis_II[3] - centre_of_bar_in_x_axis_II[2]
+
+        centre_of_bar_in_x_axis_II = np.append(centre_of_bar_in_x_axis_II, centre_of_bar_in_x_axis_II[-1] + bar_width_II)
+
+        axarr.bar(left=centre_of_bar_in_x_axis_II, height=[n/total_amount_of_TMDs_in_protein for n in freq_counts_II.tolist()], align='center', width=0.5, color="blue",linewidth =0,zorder=3)  # edgecolor='black',
+
+        #####Extracellular
+
+        freq_counts_III, bin_array_III = np.histogram(hist_data_juxta_extracellular,bins = hist_data_juxta_extracellular.max())
+
+        centre_of_bar_in_x_axis_III = ((bin_array_III[:-2] + bin_array_III[1:-1]) / 2)
+
+        bar_width_III = centre_of_bar_in_x_axis_III[3] - centre_of_bar_in_x_axis_III[2]
+
+        centre_of_bar_in_x_axis_III = np.append(centre_of_bar_in_x_axis_III, centre_of_bar_in_x_axis_III[-1] + bar_width_III)
+
+        axarr.bar(left=centre_of_bar_in_x_axis_III+19.5, height= [((freq_counts_III.tolist()[n])/(positionfreq_in_list_extra(n))) for n in range (0,32)],  width=0.4, color="mediumblue", linewidth = 0,zorder=3)  # edgecolor='black',
+
+        #axarr.bar(left=centre_of_bar_in_x_axis_III+9.5, height=[(freq_counts_III.tolist()[n]/frequency_of_position_extracellular(n)) for n in range (0,207)], align = 'center', width=0.4, color="mediumblue" ,linewidth=0)  # edgecolor='black',
+
+
+        #axarr.bar(left=centre_of_bar_in_x_axis_III+9.5, height=[(freq_counts_III.tolist()[n]/frequency_of_position_extracellular(n)) for n in range (0,207)], align = 'center', width=0.4, color="mediumblue" ,linewidth=0)  # edgecolor='black',
+
+        ##### Style
+        axarr.set_xlim(-30,40)
+        axarr.set_ylim(0,8)
+        axarr.set_xlabel("residue position relative to TM domain",fontsize=fontsize)
+        axarr.set_ylabel("gap propensity",color="mediumblue",fontsize=fontsize )
+
+        axarr.set_xticks([-30, -25, -20, -15, -10, -5,-1,10,21,25,30,35,40,45,50])
+        labels = ["-30", "-25", "-20", "-15", "-10", "-5","-1", "TM domain","1","5","10","15","20","25","30"]
+        axarr.set_xticklabels(labels,color="mediumblue")
+
+        axarr.tick_params(reset=True, labelsize=8,color="mediumblue")
+
+        for tic in axarr.xaxis.get_major_ticks():
+            tic.tick1On = tic.tick2On = False
+
+        axarr.grid(False)
+
+        #fig.patch.set_visible(False)
+
+        #axarr.spines['top'].set_visible(False)
+        #axarr.spines['right'].set_visible(False)
+        #axarr.spines['left'].set_visible(True)
+        #axarr.spines['right'].set_visible(False)
+
+        axarr.yaxis.tick_left()
+
+        axarr.patch.set_facecolor('white')
+        axarr.yaxis.grid(True,zorder =0,linestyle = ":", color = "g")
+
+        axarr.add_patch(patches.Rectangle((0, 0),20,10,alpha=0.1,linewidth=None,facecolor="lightseagreen"))
+
+        axarr.annotate('Intracellular', xy = (0,0),xytext=(-20,1.7),alpha=0.5, fontsize=fontsize )
+        axarr.annotate('Extracellular', xy = (0,0),xytext=(30,1.7),alpha=0.5,fontsize=fontsize )
+        axarr.annotate('TM', xy = (10,0),xytext =(8.6,1.3),alpha=0.5,fontsize=fontsize )
+        axarr.annotate('helix', xy = (10,0),xytext =(8.2,1.2),alpha=0.5,fontsize=fontsize )
+
+        axarr.spines['left'].set_color('mediumblue')
+        #axarr.spines['left'].set_visible(True)
+        #axarr.spines['bottom'].set_color('black')
+        #### Second y- axis
+        #axarr.spines[]
+
+        axarr2 = axarr.twinx()
+        axarr2.spines['right'].set_color("black")
+        axarr2.grid(False)
+
+        axarr2.plot([n+20 for n in range(0,30)],[positionfreq_in_list_extra(n) for n in range(0,30)],"black",linewidth=1.2)
+        #axarr2.plot()
+
+        axarr2.plot([-n for n in range(0,30)],[positionfreq_in_list_intra(n) for n in range (0,30)],"black",linewidth=1.2)
+        #axarr2.plot()
+
+
+        #axarr2.plot(x_axis,y_axis,"black",linewidth=1.2)
+
+        axarr2.set_ylabel("Frequency of considered position in dataset",color="black",fontsize=fontsize)
+
+        axarr2.yaxis.label.set_size(fontsize)
+        axarr2.tick_params(axis='y', colors='black',labelsize=fontsize)
+        axarr2.spines["left"].set_color("mediumblue")
+
+        axarr.set_xlim(-30,50)
+        axarr.set_ylim(0,2)
+        axarr.set_yticks=([0,0.2,0.4,0.6,0.8,1.0])
+        axarr.set_yticklabels (["0.0","0.2","0.4","0.6","0.8","1.0"], color = "mediumblue")
+
+        #rcParams['savefig.dpi'] = 200
+        fig.savefig("/nas/teeselab/students/rimma/omp/summaries/Test234.png", format='png', dpi=200)
+
+
 '''+++++++++++++++ Summary figures describing the conservation ratios of proteins in the list ++++++++++++++++++'''
 A09_save_figures_describing_proteins_in_list = settings["run_settings"]["save_figures_describing_proteins_in_list"]
 if A09_save_figures_describing_proteins_in_list:
@@ -1918,7 +2633,7 @@ if A09_save_figures_describing_proteins_in_list:
     plt.style.use('ggplot')
     #add non-functional object to aid document navigation in some IDEs (e.g. Spyder)
     fig_title = ''
-    
+
     '''
     Prepare subplots and default fontsizes etc
     '''
@@ -1937,7 +2652,7 @@ if A09_save_figures_describing_proteins_in_list:
     '''
     Prepare data for following figures
     '''
-    
+
     #test if the dataframe has already been created, otherwise re-open from csv file containing the simap data
     try:
         logging.info('first protein acc = %s, df already exists, '
@@ -1945,16 +2660,16 @@ if A09_save_figures_describing_proteins_in_list:
     except NameError:
         logging.info('df loaded from %s' % dfout08_simap_AAIMON)
         df = pd.read_csv(dfout08_simap_AAIMON, sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
-    #filter to remove sequences where no TMDs are found (will contain either np.nan, or 'nan') 
+    #filter to remove sequences where no TMDs are found (will contain either np.nan, or 'nan')
     df = df.loc[df['list_of_TMDs'].notnull()]
     df = df.loc[df['list_of_TMDs'] != 'nan']
-    #iterate over the dataframe. Note that acc = uniprot accession here.    
+    #iterate over the dataframe. Note that acc = uniprot accession here.
     linspace_binlist = np.linspace(settings["hist_settings_mult_proteins"]["smallest_bin"],
                                    settings["hist_settings_mult_proteins"]["largest_bin"],
                                    settings["hist_settings_mult_proteins"]["number_of_bins"])
 
     #add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
-    binlist = np.append(linspace_binlist, settings["hist_settings_mult_proteins"]["final_highest_bin"])   
+    binlist = np.append(linspace_binlist, settings["hist_settings_mult_proteins"]["final_highest_bin"])
 
     '''
     The beta-barrel dataset contained a lot of proteins with an average AAIMON of 1.000000. This can only mean that there are not enough homologues.
@@ -1997,7 +2712,7 @@ if A09_save_figures_describing_proteins_in_list:
     sys.stdout.write('Figures Processed' + str(Fig_Nr) + ', ')
     title = 'Mean ratios'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
-    #for the first figure, create empty objects that will be overwritten into matplotlib objects. 
+    #for the first figure, create empty objects that will be overwritten into matplotlib objects.
     fig, axarr = 'empty', 'objects'
     #create a new figure
     fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
@@ -2023,7 +2738,7 @@ if A09_save_figures_describing_proteins_in_list:
     #create a line graph rather than a bar graph for the AAISON (ident + similarity)
     linecontainer_AAISON_mean = axarr[row_nr, col_nr].plot(centre_of_bar_in_x_axis, freq_counts_S, color="#0101DF",
                                                            alpha=0.5)
-    #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A 
+    #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
     #http://html-color-codes.info/
     #label the x-axis for each plot, based on the TMD
     axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
@@ -2049,10 +2764,19 @@ if A09_save_figures_describing_proteins_in_list:
     #add figure number to top left of subplot
     axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
     #add figure title to top left of subplot
-    axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
+    axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
     #improve ggplot style for a canvas (fig) with 4 figures (plots)
     utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
-
+    # FROM RIMMA SCRIPT
+    axarr[row_nr, col_nr].yaxis.grid(True,zorder =0,linestyle = ":", color = "grey")
+    axarr[row_nr, col_nr]
+    for tic in axarr[row_nr, col_nr].xaxis.get_major_ticks():
+        tic.tick1On  = False
+    for tic in axarr[row_nr, col_nr].yaxis.get_major_ticks():
+        tic.tick1On  = False
+    axarr[row_nr, col_nr].spines['top'].set_visible(False)
+    axarr[row_nr, col_nr].spines['right'].set_visible(False)
+    # END FROM RIMMA SCRIPT
 
     '''
     Fig02: Histogram of standard deviations for AAIMON and AASMON (std among homologues for each protein)
@@ -2060,7 +2784,7 @@ if A09_save_figures_describing_proteins_in_list:
     Fig_Nr = 2
     #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
     if fig_title == "Fig02: Histogram of standard deviations for AAIMON and AASMON":
-        pass    
+        pass
     sys.stdout.write(str(Fig_Nr) + ', ')
     title = 'Standard Deviaton, SP vs MP'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
@@ -2087,7 +2811,7 @@ if A09_save_figures_describing_proteins_in_list:
     #create a line graph rather than a bar graph for the AAISON (ident + similarity)
     linecontainer_AAISON_std = axarr[row_nr, col_nr].plot(centre_of_bar_in_x_axis, freq_counts, color="#0101DF",
                                                           alpha=0.5)
-    #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A 
+    #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
     #http://html-color-codes.info/
     #label the x-axis for each plot, based on the TMD
     axarr[row_nr, col_nr].set_xlabel('average standard deviation', fontsize=fontsize)
@@ -2110,10 +2834,10 @@ if A09_save_figures_describing_proteins_in_list:
     #add figure number to top left of subplot
     axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
     #add figure title to top left of subplot
-    axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
+    axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
     #improve ggplot style for a canvas (fig) with 4 figures (plots)
     utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
- 
+
 
     '''
     Fig03: Scattergram comparing mean AAIMON and AASMON
@@ -2121,7 +2845,7 @@ if A09_save_figures_describing_proteins_in_list:
     Fig_Nr = 3
     #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
     if fig_title == "Fig03: Scattergram comparing mean AAIMON and AASMON":
-        pass  
+        pass
     sys.stdout.write(str(Fig_Nr) + ', ')
     title = 'AAIMON vs AASMON'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
@@ -2143,17 +2867,17 @@ if A09_save_figures_describing_proteins_in_list:
     #add figure number to top left of subplot
     axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
     #add figure title to top left of subplot
-    axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
+    axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
     #improve ggplot style for a canvas (fig) with 4 figures (plots)
     utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
-    
+
     '''
     Fig04: Scattergram comparing standard deviation AAIMON and AASMON
     '''
     Fig_Nr = 4
     #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
     if fig_title == "Fig04: Scattergram comparing standard deviation AAIMON and AASMON":
-        pass  
+        pass
     title = 'standard deviation AAIMON vs AASMON'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
@@ -2161,7 +2885,7 @@ if A09_save_figures_describing_proteins_in_list:
     x = np.array(df['AAIMON_ratio_std_all_TMDs'])
     y = np.array(df['AASMON_ratio_std_all_TMDs'])
     scattercontainer_AAIMON_AASMON_std = axarr[row_nr, col_nr].scatter(x=x, y=y, color="#B45F04", alpha=alpha, s=datapointsize)
-    #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A 
+    #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
     #http://html-color-codes.info/
     #label the x-axis for each plot, based on the TMD
     axarr[row_nr, col_nr].set_xlabel('AAIMON_ratio', fontsize=fontsize)
@@ -2171,7 +2895,7 @@ if A09_save_figures_describing_proteins_in_list:
     #set x-axis ticks
     #use the slide selection to select every second item in the list as an xtick(axis label)
     #axarr[row_nr,col_nr].set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
-    #axarr[row_nr,col_nr].set_ylabel('freq',rotation = 'vertical', fontsize = fontsize)                                    
+    #axarr[row_nr,col_nr].set_ylabel('freq',rotation = 'vertical', fontsize = fontsize)
     #change axis font size
     axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
     #create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
@@ -2179,7 +2903,7 @@ if A09_save_figures_describing_proteins_in_list:
     #add figure number to top left of subplot
     axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
     #add figure title to top left of subplot
-    axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
+    axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
     #improve ggplot style for a canvas (fig) with 4 figures (plots)
     utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
     #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
@@ -2198,10 +2922,10 @@ if A09_save_figures_describing_proteins_in_list:
     if 'number_of_TMDs_in_uniprot_feature_list' in df.columns:
         x = np.array(df['number_of_TMDs_in_uniprot_feature_list'])
     else:
-        x = np.array(df['number_of_TMDs'])
+        x = np.array(df['number_of_TMDs_in_uniprot_feature_list'])
     y = np.array(df['AAIMON_ratio_mean_all_TMDs'])
     scattercontainer_AAIMON_AASMON_std = axarr[row_nr, col_nr].scatter(x=x, y=y, color="#0489B1", alpha=alpha, s=datapointsize)
-    #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A 
+    #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
     #http://html-color-codes.info/
     #label the x-axis for each plot, based on the TMD
     axarr[row_nr, col_nr].set_xlabel('number of TMDs in protein', fontsize=fontsize)
@@ -2217,17 +2941,17 @@ if A09_save_figures_describing_proteins_in_list:
     #add figure number to top left of subplot
     axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
     #add figure title to top left of subplot
-    axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
+    axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
     #improve ggplot style for a canvas (fig) with 4 figures (plots)
     utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
-    
+
     '''
     Fig06: Scattergram comparing query_length with mean AAIMON
     '''
     Fig_Nr = 6
     #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
     if fig_title == "Fig06: Scattergram comparing query_length with mean AAIMON":
-        pass  
+        pass
     sys.stdout.write(str(Fig_Nr) + ', ')
     title = 'query_length vs AAIMON'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
@@ -2247,7 +2971,7 @@ if A09_save_figures_describing_proteins_in_list:
     #add figure number to top left of subplot
     axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
     #add figure title to top left of subplot
-    axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
+    axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
     #improve ggplot style for a canvas (fig) with 4 figures (plots)
     utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
 
@@ -2274,11 +2998,11 @@ if A09_save_figures_describing_proteins_in_list:
     #add figure number to top left of subplot
     axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
     #add figure title to top left of subplot
-    axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
+    axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
     #improve ggplot style for a canvas (fig) with 4 figures (plots)
     utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
-    
-    
+
+
     '''
     Fig08: Scattergram comparing total_number_of_simap_hits with mean AAIMON
     note that the total hits comes from SIMAP, so this doesn't say anything about how much data is available for each protein
@@ -2286,7 +3010,7 @@ if A09_save_figures_describing_proteins_in_list:
     Fig_Nr = 8
     #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
     if fig_title == "Fig08: Scattergram comparing total_number_of_simap_hits with mean AAIMON":
-        pass  
+        pass
     sys.stdout.write(str(Fig_Nr) + ', ')
     title = 'number SIMAP hits'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
@@ -2306,7 +3030,7 @@ if A09_save_figures_describing_proteins_in_list:
     #add figure number to top left of subplot
     axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
     #add figure title to top left of subplot
-    axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
+    axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
     #improve ggplot style for a canvas (fig) with 4 figures (plots)
     utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
     #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
@@ -2319,23 +3043,23 @@ if A09_save_figures_describing_proteins_in_list:
     #create list of colours to use in figures
     colour_lists = utils.create_colour_lists()
     tableau20 = colour_lists['tableau20']
-    
+
 
     '''
     Fig09: Histogram of mean AAIMON ratios for each TMD separately
     '''
     Fig_Nr = 9
     sys.stdout.write(str(Fig_Nr) + ', ')
-    title = 'Histogram of mean AAIMON ratios'    
-    
-    if 'number_of_TMDs' not in df.columns:
-        df['number_of_TMDs'] = df.list_of_TMDs.apply(lambda list_tmds : len(eval(list_tmds)))
+    title = 'Histogram of mean AAIMON ratios'
+
+    if 'number_of_TMDs_in_uniprot_feature_list' not in df.columns:
+        df['number_of_TMDs_in_uniprot_feature_list'] = df.list_of_TMDs.apply(lambda list_tmds : len(eval(list_tmds)))
     df_mean_AAIMON_each_TM, max_num_TMDs, legend = utils.create_df_with_mean_AAIMON_each_TM(df)
-    
+
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
     fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
-    
+
     title = 'AAIMON each TMD separately'
     num_bins = 30
     #"#0489B1"
@@ -2343,7 +3067,7 @@ if A09_save_figures_describing_proteins_in_list:
     col_width_value = 0.95
     ylabel = 'freq'
     xlabel = 'average conservation ratio (membranous over nonmembranous)'
-            
+
     for n, TM in enumerate(df_mean_AAIMON_each_TM.columns):
         #define the colour for that TMD
         #if there are more TMDs than colours, simply start from the beginning of the list again
@@ -2352,7 +3076,7 @@ if A09_save_figures_describing_proteins_in_list:
         else:
             color_num = n - len(tableau20)
         color = tableau20[color_num]
-        
+
         hist_data = np.array(df_mean_AAIMON_each_TM[TM].dropna())
         '''
         Calculated the bins for a histogram, even for highly non-normal data
@@ -2403,20 +3127,20 @@ if A09_save_figures_describing_proteins_in_list:
     #add figure number to top left of subplot
     axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
     #add figure title to top left of subplot
-    axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
+    axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
     #improve ggplot style for a canvas (fig) with 4 figures (plots)
     utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
-    
-    
+
+
     '''
     Fig10: Line histogram of mean AAIMON ratios for each TMD separately
-    '''        
+    '''
     Fig_Nr = 10
     #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
     if fig_title == "Fig10: Line histogram of mean AAIMON ratios for each TMD separately":
-        pass  
+        pass
     sys.stdout.write(str(Fig_Nr) + ', ')
-    title = 'Line histogram each TMD'    
+    title = 'Line histogram each TMD'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
     fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
@@ -2426,7 +3150,7 @@ if A09_save_figures_describing_proteins_in_list:
     col_width_value = 0.95
     ylabel = 'freq'
     xlabel = 'average conservation ratio (membranous over nonmembranous)'
-    
+
     for n, TM in enumerate(df_mean_AAIMON_each_TM.columns):
         #define the colour for that TMD
         #if there are more TMDs than colours, simply start from the beginning of the list again
@@ -2435,7 +3159,7 @@ if A09_save_figures_describing_proteins_in_list:
         else:
             color_num = n - len(tableau20)
         color = tableau20[color_num]
-        
+
         hist_data = np.array(df_mean_AAIMON_each_TM[TM].dropna())
         '''
         Calculated the bins for a histogram, even for highly non-normal data
@@ -2482,10 +3206,10 @@ if A09_save_figures_describing_proteins_in_list:
     #add figure number to top left of subplot
     axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
     #add figure title to top left of subplot
-    axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
+    axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
     #improve ggplot style for a canvas (fig) with 4 figures (plots)
     utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
-    
+
 
 
     #these graphs are only applicable for multi-pass proteins. Use where at least 2 proteins have a 7th TMD
@@ -2496,10 +3220,10 @@ if A09_save_figures_describing_proteins_in_list:
     if dataset_contains_multipass_prots:
         '''
         Fig11: Line histogram of mean AAIMON ratios for selected TMDs, highlighting difference for TM07
-        '''         
+        '''
         Fig_Nr = 11
         sys.stdout.write(str(Fig_Nr) + ', ')
-        title = 'Select TMDs, all data'    
+        title = 'Select TMDs, all data'
         cols_for_analysis = ['TM01','TM07','TM08','last_TM_AAIMON_ratio_mean']
         newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
         #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
@@ -2510,7 +3234,7 @@ if A09_save_figures_describing_proteins_in_list:
         col_width_value = 0.95
         ylabel = 'freq'
         xlabel = 'average conservation ratio (membranous over nonmembranous)'
-     
+
         for n, TM in enumerate(cols_for_analysis):
             #define the colour for that TMD
             #if there are more TMDs than colours, simply start from the beginning of the list again
@@ -2519,7 +3243,7 @@ if A09_save_figures_describing_proteins_in_list:
             else:
                 color_num = n - len(tableau20)
             color = tableau20[color_num]
-            
+
             hist_data = np.array(df_mean_AAIMON_each_TM[TM].dropna())
             '''
             Calculated the bins for a histogram, even for highly non-normal data
@@ -2566,23 +3290,23 @@ if A09_save_figures_describing_proteins_in_list:
         #add figure number to top left of subplot
         axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
         #add figure title to top left of subplot
-        axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
+        axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
         #improve ggplot style for a canvas (fig) with 4 figures (plots)
         utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
-        
-    
+
+
         '''
         Fig12: TMD 1-5 only
         '''
         Fig_Nr = 12
         #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
         if fig_title == "Fig12: TMD 1-5 only":
-            pass  
+            pass
         sys.stdout.write(str(Fig_Nr) + ', ')
         col_start = 0
         col_end = 5
         cols_to_analyse = df_mean_AAIMON_each_TM.columns[col_start:col_end]
-        title = 'TMD 1 to 5, all data'    
+        title = 'TMD 1 to 5, all data'
         newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
         #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
         fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
@@ -2592,7 +3316,7 @@ if A09_save_figures_describing_proteins_in_list:
         col_width_value = 0.95
         ylabel = 'freq'
         xlabel = 'average conservation ratio (membranous over nonmembranous)'
-        
+
         for n, TM in enumerate(cols_to_analyse):
             #define the colour for that TMD
             #if there are more TMDs than colours, simply start from the beginning of the list again
@@ -2601,7 +3325,7 @@ if A09_save_figures_describing_proteins_in_list:
             else:
                 color_num = n - len(tableau20)
             color = tableau20[color_num]
-            
+
             hist_data = np.array(df_mean_AAIMON_each_TM[TM].dropna())
             '''
             Calculated the bins for a histogram, even for highly non-normal data
@@ -2648,27 +3372,27 @@ if A09_save_figures_describing_proteins_in_list:
         #add figure number to top left of subplot
         axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
         #add figure title to top left of subplot
-        axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
+        axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
         #improve ggplot style for a canvas (fig) with 4 figures (plots)
         utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
-        
+
         #save the figure as it is
         savefig = True
         #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
         utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
-    
-    
-    
+
+
+
         '''
         Fig13: TMD 5-10 only
         '''
         Fig_Nr = 13
-        title = 'TMD 5-10, all data' 
+        title = 'TMD 5-10, all data'
         sys.stdout.write(str(Fig_Nr) + ', ')
         col_start = 5
         col_end = 10
         cols_to_analyse = ['TM01'] + list(df_mean_AAIMON_each_TM.columns[col_start:col_end])
-       
+
         newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
         #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
         fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
@@ -2678,8 +3402,8 @@ if A09_save_figures_describing_proteins_in_list:
         col_width_value = 0.95
         ylabel = 'freq'
         xlabel = 'average conservation ratio (membranous over nonmembranous)'
-        
-        
+
+
         for n, TM in enumerate(cols_to_analyse):
             #define the colour for that TMD
             #if there are more TMDs than colours, simply start from the beginning of the list again
@@ -2688,7 +3412,7 @@ if A09_save_figures_describing_proteins_in_list:
             else:
                 color_num = n - len(tableau20)
             color = tableau20[color_num]
-            
+
             hist_data = np.array(df_mean_AAIMON_each_TM[TM].dropna())
             '''
             Calculated the bins for a histogram, even for highly non-normal data
@@ -2735,23 +3459,23 @@ if A09_save_figures_describing_proteins_in_list:
         #add figure number to top left of subplot
         axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
         #add figure title to top left of subplot
-        axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
+        axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
         #improve ggplot style for a canvas (fig) with 4 figures (plots)
         utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
-        
-    
+
+
         '''
         Fig14: TMD 10-15 only
-        '''    
+        '''
         Fig_Nr = 14
         #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
         if fig_title == "Fig14: TMD 10-15 only":
-            pass  
+            pass
         title = 'TMD 10-15, all data'
         sys.stdout.write(str(Fig_Nr) + ', ')
         col_start = 10
         col_end = 15
-        cols_to_analyse = ['TM01'] + list(df_mean_AAIMON_each_TM.columns[col_start:col_end])   
+        cols_to_analyse = ['TM01'] + list(df_mean_AAIMON_each_TM.columns[col_start:col_end])
         newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
         #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
         fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
@@ -2761,7 +3485,7 @@ if A09_save_figures_describing_proteins_in_list:
         col_width_value = 0.95
         ylabel = 'freq'
         xlabel = 'average conservation ratio (membranous over nonmembranous)'
-        
+
         for n, TM in enumerate(cols_to_analyse):
             #define the colour for that TMD
             #if there are more TMDs than colours, simply start from the beginning of the list again
@@ -2770,7 +3494,7 @@ if A09_save_figures_describing_proteins_in_list:
             else:
                 color_num = n - len(tableau20)
             color = tableau20[color_num]
-            
+
             hist_data = np.array(df_mean_AAIMON_each_TM[TM].dropna())
             '''
             Calculated the bins for a histogram, even for highly non-normal data
@@ -2795,7 +3519,7 @@ if A09_save_figures_describing_proteins_in_list:
             freq_counts_I, bin_array_I = np.histogram(hist_data, bins = binlist)
             #normalize the frequency counts
             freq_counts_normalised = freq_counts_I/freq_counts_I.max()
-    
+
             #assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
             col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
             #when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
@@ -2818,15 +3542,15 @@ if A09_save_figures_describing_proteins_in_list:
         #add figure number to top left of subplot
         axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
         #add figure title to top left of subplot
-        axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
+        axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
         #improve ggplot style for a canvas (fig) with 4 figures (plots)
         utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
-        
+
         '''
         Fig15: TMD 15-20 only
-        '''    
+        '''
         Fig_Nr = 15
-        title = 'TMD 15-20, all data' 
+        title = 'TMD 15-20, all data'
         sys.stdout.write(str(Fig_Nr) + ', ')
         col_start = 15
         col_end = 20
@@ -2840,7 +3564,7 @@ if A09_save_figures_describing_proteins_in_list:
         col_width_value = 0.95
         ylabel = 'freq'
         xlabel = 'average conservation ratio (membranous over nonmembranous)'
-        
+
         for n, TM in enumerate(cols_to_analyse):
             #define the colour for that TMD
             #if there are more TMDs than colours, simply start from the beginning of the list again
@@ -2849,7 +3573,7 @@ if A09_save_figures_describing_proteins_in_list:
             else:
                 color_num = n - len(tableau20)
             color = tableau20[color_num]
-            
+
             hist_data = np.array(df_mean_AAIMON_each_TM[TM].dropna())
             '''
             Calculated the bins for a histogram, even for highly non-normal data
@@ -2896,21 +3620,21 @@ if A09_save_figures_describing_proteins_in_list:
         #add figure number to top left of subplot
         axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
         #add figure title to top left of subplot
-        axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
+        axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
         #improve ggplot style for a canvas (fig) with 4 figures (plots)
         utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
-            
+
         '''
         Fig16: ONLY proteins with 7 TMDs
-        '''  
+        '''
         Fig_Nr = 16
         #add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
         if fig_title == "Fig16: ONLY proteins with 7 TMDs":
-            pass  
+            pass
         title = 'ONLY prot with 7 TMDs'
         sys.stdout.write(str(Fig_Nr) + ', ')
         #create a new dataframe containing data only for proteins with 7 TMDs
-        df_seven = df.loc[df.number_of_TMDs == 7].copy()
+        df_seven = df.loc[df.number_of_TMDs_in_uniprot_feature_list == 7].copy()
         logging.info('df_seven.shape: %s' % str(df_seven.shape))
 
         # if there are any proteins with 7 TM helices in the dataset (may not be true for beta-barrel datasets)
@@ -2987,20 +3711,20 @@ if A09_save_figures_describing_proteins_in_list:
             axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
             #improve ggplot style for a canvas (fig) with 4 figures (plots)
             utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
-            
+
         #save the figure as it is
         savefig = True
         #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
         utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
-    
+
         '''
         Fig17: Less than 12 TMDs vs at least 12 TMDs
         '''
         Fig_Nr = 17
         title = '<12 TMDs vs >12 TMDs'
         sys.stdout.write(str(Fig_Nr) + ', ')
-        df_under_12 = df.loc[df.number_of_TMDs < 12]
-    
+        df_under_12 = df.loc[df.number_of_TMDs_in_uniprot_feature_list < 12]
+
         newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
         #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
         fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
@@ -3018,7 +3742,7 @@ if A09_save_figures_describing_proteins_in_list:
         barcontainer_AAIMON_mean = axarr[row_nr, col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts_I,
                                                              align='center', width=col_width, color="#0489B1",
                                                              alpha=0.5, linewidth = 0.1)  # edgecolor='black',
-        #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A 
+        #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
         #http://html-color-codes.info/
         #label the x-axis for each plot, based on the TMD
         axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
@@ -3035,12 +3759,12 @@ if A09_save_figures_describing_proteins_in_list:
         axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
         #improve ggplot style for a canvas (fig) with 4 figures (plots)
         utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
-            
+
         '''
         At least 12 TMDs
         '''
-        df_at_least_12 = df.loc[df.number_of_TMDs >= 12]
-        
+        df_at_least_12 = df.loc[df.number_of_TMDs_in_uniprot_feature_list >= 12]
+
         #create numpy array of membranous over nonmembranous conservation ratios (identity)
         hist_data_AAIMON_mean = np.array(df_at_least_12['AAIMON_ratio_mean_all_TMDs'].dropna())
         #use numpy to create a histogram
@@ -3055,7 +3779,7 @@ if A09_save_figures_describing_proteins_in_list:
         barcontainer_AAIMON_mean = axarr[row_nr, col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts_I*5,
                                                              align='center', width=col_width, color='#B45F04',
                                                              alpha=0.5, linewidth = 0.1)  # edgecolor='black',
-        #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A 
+        #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
         #http://html-color-codes.info/
         #label the x-axis for each plot, based on the TMD
         axarr[row_nr, col_nr].set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
@@ -3076,7 +3800,7 @@ if A09_save_figures_describing_proteins_in_list:
         #add figure number to top left of subplot
         axarr[row_nr, col_nr].annotate(s=str(Fig_Nr) + '.', xy = (0.04,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
         #add figure title to top left of subplot
-        axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)    
+        axarr[row_nr, col_nr].annotate(s=title, xy = (0.1,0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
         #improve ggplot style for a canvas (fig) with 4 figures (plots)
         utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
 
@@ -3101,7 +3825,7 @@ if A09_save_figures_describing_proteins_in_list:
         xlabel = 'average conservation ratio (membranous over nonmembranous)'
         #legend =
 
-        max_num_TMDs = df.number_of_TMDs.max()
+        max_num_TMDs = df.number_of_TMDs_in_uniprot_feature_list.max()
         legend = []
         data_to_plot = []
         for i in range(1, max_num_TMDs + 1):
@@ -3365,7 +4089,7 @@ if A09_save_figures_describing_proteins_in_list:
             xlabel = 'average conservation ratio (membranous over nonmembranous)'
             #legend =
 
-            max_num_TMDs = df_GPCR.number_of_TMDs.max()
+            max_num_TMDs = df_GPCR.number_of_TMDs_in_uniprot_feature_list.max()
             legend = []
             data_to_plot = []
             for i in range(1, max_num_TMDs + 1):
@@ -4287,7 +5011,7 @@ if A09_save_figures_describing_proteins_in_list:
 
     '''
     FINAL - MAKE SURE LAST GRAPHS ARE SAVED
-    '''        
+    '''
     #save the figure as it is
     savefig = True
     #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
@@ -4298,7 +5022,7 @@ if A09_save_figures_describing_proteins_in_list:
     with open(dfout09_simap_AAIMON_02, 'w') as csv_out:
         df.to_csv(csv_out, sep = ",", quoting = csv.QUOTE_NONNUMERIC)
     logging.info('A07b_save_figures_describing_proteins_in_list is finished')
-    
+
 
 '''+++++++++++++++ Summary figures describing the conservation ratios of proteins in the list ++++++++++++++++++'''
 A10_compare_lists = settings["run_settings"]["compare_lists"]["run"]
@@ -4311,18 +5035,18 @@ if A10_compare_lists:
 #            reload_data_from_summary_files = True
 #    else:
 #        reload_data_from_summary_files = True
- 
-     
+
+
     #if reload_data_from_summary_files == True:
     protein_lists = settings["run_settings"]["compare_lists"]["protein_lists"]
     protein_list_names = settings["run_settings"]["compare_lists"]["protein_list_names"]
-    
+
     protein_lists_joined = '_'.join(['%02d' % n for n in protein_lists])
     base_path_summ_two_lists = os.path.join(main_folder, 'summaries', 'compare_lists')
     if os.path.isdir(base_path_summ_two_lists) == False:
         os.mkdir(base_path_summ_two_lists)
     base_filename_summ_two_lists = os.path.join(base_path_summ_two_lists,'Lists_%s' % protein_lists_joined)
-        
+
     df_list = []
     for index, list_num in enumerate(protein_lists):
         base_filename_summ = os.path.join(main_folder, 'summaries', 'List%02d' % list_num)
@@ -4389,7 +5113,7 @@ if A10_compare_lists:
     Fig01: Histogram of mean AAIMON ratios
     '''
     Fig_Nr = 1
-    title = 'Histogram of mean AAIMON ratios'    
+    title = 'Histogram of mean AAIMON ratios'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if the plot is the last one, the figure should be saved
     #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
@@ -4398,9 +5122,9 @@ if A10_compare_lists:
         plt.close('all')
         #create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
-    
+
     for n, df in enumerate(df_list):
-        data_column = 'AAIMON_ratio_mean_all_TMDs'  
+        data_column = 'AAIMON_ratio_mean_all_TMDs'
         color = TUM_colours_list_with_greys[n+2]#"#0489B1"
         alpha = 0.7
         col_width_value = 0.95
@@ -4417,9 +5141,9 @@ if A10_compare_lists:
                                 xlabel=xlabel,
                                 ylabel=ylabel,legend=protein_list_names
                                 )
-    
+
     Fig_Nr = 2
-    title = 'Histogram of mean AASMON ratios'  
+    title = 'Histogram of mean AASMON ratios'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if the plot is the last one, the figure should be saved
     #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
@@ -4428,9 +5152,9 @@ if A10_compare_lists:
         plt.close('all')
         #create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
-    
+
     for n, df in enumerate(df_list):
-        data_column = 'AASMON_ratio_mean_all_TMDs'  
+        data_column = 'AASMON_ratio_mean_all_TMDs'
         color = TUM_colours_list_with_greys[n+2]#"#0489B1"
         alpha = 0.7
         col_width_value = 0.95
@@ -4448,7 +5172,7 @@ if A10_compare_lists:
                                     ylabel=ylabel,legend=protein_list_names
                                     )
     Fig_Nr = 3
-    title = 'len_nonTMD_seq_match_mean' 
+    title = 'len_nonTMD_seq_match_mean'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if the plot is the last one, the figure should be saved
     #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
@@ -4457,7 +5181,7 @@ if A10_compare_lists:
         plt.close('all')
         #create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
-    
+
     for n, df in enumerate(df_list):
         data_column = 'len_nonTMD_seq_match_mean'
         color = TUM_colours_list_with_greys[n+2]#"#0489B1"
@@ -4465,7 +5189,7 @@ if A10_compare_lists:
         col_width_value = 0.95
         ylabel = 'freq'
         xlabel = data_column
-    
+
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                 title=title,row_nr=row_nr,col_nr=col_nr,axarr=axarr,num_bins=60,
                                                 settings=settings,
@@ -4478,7 +5202,7 @@ if A10_compare_lists:
                                                 ylabel=ylabel,legend=protein_list_names
                                                 )
     Fig_Nr = 4
-    title = 'len_nonTMD_align_mean' 
+    title = 'len_nonTMD_align_mean'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if the plot is the last one, the figure should be saved
     #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
@@ -4487,7 +5211,7 @@ if A10_compare_lists:
         plt.close('all')
         #create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
-    
+
     for n, df in enumerate(df_list):
         data_column = 'len_nonTMD_align_mean'
         color = TUM_colours_list_with_greys[n+2]#"#0489B1"
@@ -4495,7 +5219,7 @@ if A10_compare_lists:
         col_width_value = 0.95
         ylabel = 'freq'
         xlabel = data_column
-    
+
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                 title=title,row_nr=row_nr,col_nr=col_nr,axarr=axarr,num_bins=100,
                                                 settings=settings,
@@ -4506,7 +5230,7 @@ if A10_compare_lists:
                                                 fontsize=fontsize,
                                                 xlabel=xlabel,
                                                 ylabel=ylabel,legend=protein_list_names
-                                                )        
+                                                )
     #save the figure as it is
     if savefig:
         utils.save_fig_with_subplots(fig=fig, axarr = axarr, base_filename = base_filename_summ_two_lists,
@@ -4514,7 +5238,7 @@ if A10_compare_lists:
 
 
     Fig_Nr = 5
-    title = 'nonTMD_perc_ident_mean' 
+    title = 'nonTMD_perc_ident_mean'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if the plot is the last one, the figure should be saved
     #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
@@ -4523,7 +5247,7 @@ if A10_compare_lists:
         plt.close('all')
         #create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
-    
+
     for n, df in enumerate(df_list):
         data_column = 'nonTMD_perc_ident_mean'
         color = TUM_colours_list_with_greys[n+2]#"#0489B1"
@@ -4531,7 +5255,7 @@ if A10_compare_lists:
         col_width_value = 0.95
         ylabel = 'freq'
         xlabel = data_column
-    
+
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                 title=title,row_nr=row_nr,col_nr=col_nr,axarr=axarr,num_bins=60,
                                                 settings=settings,
@@ -4575,7 +5299,7 @@ if A10_compare_lists:
                                                 ylabel=ylabel,legend=protein_list_names
                                                 )
     Fig_Nr = Fig_Nr + 1
-    title = 'nonTMD_perc_sim_mean' 
+    title = 'nonTMD_perc_sim_mean'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if the plot is the last one, the figure should be saved
     #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
@@ -4584,7 +5308,7 @@ if A10_compare_lists:
         plt.close('all')
         #create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
-    
+
     for n, df in enumerate(df_list):
         data_column = 'nonTMD_perc_sim_mean'
         color = TUM_colours_list_with_greys[n+2]#"#0489B1"
@@ -4592,7 +5316,7 @@ if A10_compare_lists:
         col_width_value = 0.95
         ylabel = 'freq'
         xlabel = data_column
-    
+
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                 title=title,row_nr=row_nr,col_nr=col_nr,axarr=axarr,num_bins=60,
                                                 settings=settings,
@@ -4603,10 +5327,10 @@ if A10_compare_lists:
                                                 fontsize=fontsize,
                                                 xlabel=xlabel,
                                                 ylabel=ylabel,legend=protein_list_names
-                                                )        
+                                                )
 
     Fig_Nr = Fig_Nr + 1
-    title = 'nonTMD_perc_sim_plus_ident_mean' 
+    title = 'nonTMD_perc_sim_plus_ident_mean'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if the plot is the last one, the figure should be saved
     #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
@@ -4615,7 +5339,7 @@ if A10_compare_lists:
         plt.close('all')
         #create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
-    
+
     for n, df in enumerate(df_list):
         data_column = 'nonTMD_perc_sim_plus_ident_mean'
         color = TUM_colours_list_with_greys[n+2]#"#0489B1"
@@ -4623,7 +5347,7 @@ if A10_compare_lists:
         col_width_value = 0.95
         ylabel = 'freq'
         xlabel = data_column
-    
+
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                 title=title,row_nr=row_nr,col_nr=col_nr,axarr=axarr,num_bins=60,
                                                 settings=settings,
@@ -4634,11 +5358,11 @@ if A10_compare_lists:
                                                 fontsize=fontsize,
                                                 xlabel=xlabel,
                                                 ylabel=ylabel,legend=protein_list_names
-                                                )          
+                                                )
 
-                                     
+
     Fig_Nr = Fig_Nr + 1
-    title = 'nonTMD_qm_gaps_per_q_residue_mean' 
+    title = 'nonTMD_qm_gaps_per_q_residue_mean'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if the plot is the last one, the figure should be saved
     #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
@@ -4647,7 +5371,7 @@ if A10_compare_lists:
         plt.close('all')
         #create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
-    
+
     for n, df in enumerate(df_list):
         data_column = 'nonTMD_qm_gaps_per_q_residue_mean'
         color = TUM_colours_list_with_greys[n+2]#"#0489B1"
@@ -4655,7 +5379,7 @@ if A10_compare_lists:
         col_width_value = 0.95
         ylabel = 'freq'
         xlabel = data_column
-    
+
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                 title=title,row_nr=row_nr,col_nr=col_nr,axarr=axarr,num_bins=60,
                                                 settings=settings,
@@ -4666,8 +5390,8 @@ if A10_compare_lists:
                                                 fontsize=fontsize,
                                                 xlabel=xlabel,
                                                 ylabel=ylabel,legend=protein_list_names
-                                                )   
-                                                
+                                                )
+
 
     #save the figure as it is
     if savefig:
@@ -4677,7 +5401,7 @@ if A10_compare_lists:
 
 
     Fig_Nr = Fig_Nr + 1
-    title = 'TM01_AAIMON_ratio_mean' 
+    title = 'TM01_AAIMON_ratio_mean'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if the plot is the last one, the figure should be saved
     #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
@@ -4686,7 +5410,7 @@ if A10_compare_lists:
         plt.close('all')
         #create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
-    
+
     for n, df in enumerate(df_list):
         data_column = 'TM01_AAIMON_ratio_mean'
         color = TUM_colours_list_with_greys[n+2]#"#0489B1"
@@ -4694,7 +5418,7 @@ if A10_compare_lists:
         col_width_value = 0.95
         ylabel = 'freq'
         xlabel = data_column
-    
+
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                 title=title,row_nr=row_nr,col_nr=col_nr,axarr=axarr,num_bins=60,
                                                 settings=settings,
@@ -4705,7 +5429,7 @@ if A10_compare_lists:
                                                 fontsize=fontsize,
                                                 xlabel=xlabel,
                                                 ylabel=ylabel,legend=protein_list_names
-                                                )                                                   
+                                                )
 
     Fig_Nr = Fig_Nr + 1
     title = 'TM01_perc_ident_mean'
@@ -4774,9 +5498,9 @@ if A10_compare_lists:
                                                 xlabel=xlabel,
                                                 ylabel=ylabel,legend=protein_list_names
                                                 )
-                                                                                         
+
     Fig_Nr = Fig_Nr + 1
-    title = 'number_of_TMDs_in_uniprot_feature_list' 
+    title = 'number_of_TMDs_in_uniprot_feature_list'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if the plot is the last one, the figure should be saved
     #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
@@ -4785,17 +5509,17 @@ if A10_compare_lists:
         plt.close('all')
         #create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
-    
+
     for n, df in enumerate(df_list):
         data_column = 'number_of_TMDs_in_uniprot_feature_list'
         if data_column not in df.columns:
-            data_column = 'number_of_TMDs'
+            data_column = 'number_of_TMDs_in_uniprot_feature_list'
         color = TUM_colours_list_with_greys[n+2]#"#0489B1"
         alpha = 0.7
         col_width_value = 0.95
         ylabel = 'freq'
         xlabel = data_column
-    
+
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                 title=title,row_nr=row_nr,col_nr=col_nr,axarr=axarr,num_bins=60,
                                                 settings=settings,
@@ -4806,11 +5530,11 @@ if A10_compare_lists:
                                                 fontsize=fontsize,
                                                 xlabel=xlabel,
                                                 ylabel=ylabel,legend=protein_list_names
-                                                )                                                   
+                                                )
 
-                                                                                         
+
     Fig_Nr = Fig_Nr + 1
-    title = 'TM01_ratio_length_of_query_TMD_to_rest_of_match_protein_mean' 
+    title = 'TM01_ratio_length_of_query_TMD_to_rest_of_match_protein_mean'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if the plot is the last one, the figure should be saved
     #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
@@ -4819,7 +5543,7 @@ if A10_compare_lists:
         plt.close('all')
         #create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
-    
+
     for n, df in enumerate(df_list):
         data_column = 'TM01_ratio_length_of_query_TMD_to_rest_of_match_protein_mean'
         color = TUM_colours_list_with_greys[n+2]#"#0489B1"
@@ -4827,7 +5551,7 @@ if A10_compare_lists:
         col_width_value = 0.95
         ylabel = 'freq'
         xlabel = data_column
-    
+
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                 title=title,row_nr=row_nr,col_nr=col_nr,axarr=axarr,num_bins=60,
                                                 settings=settings,
@@ -4838,13 +5562,13 @@ if A10_compare_lists:
                                                 fontsize=fontsize,
                                                 xlabel=xlabel,
                                                 ylabel=ylabel,legend=protein_list_names
-                                                )  
+                                                )
     #save the figure as it is
     if savefig:
         utils.save_fig_with_subplots(fig=fig, axarr = axarr, base_filename = base_filename_summ_two_lists,
                                      fig_nr = fig_nr, fontsize=fontsize)
     Fig_Nr = Fig_Nr + 1
-    title = 'SIMAP_total_hits' 
+    title = 'SIMAP_total_hits'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     #if the plot is the last one, the figure should be saved
     #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
@@ -4853,7 +5577,7 @@ if A10_compare_lists:
         plt.close('all')
         #create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
-    
+
     for n, df in enumerate(df_list):
         data_column = 'SIMAP_total_hits'
         color = TUM_colours_list_with_greys[n+2]#"#0489B1"
@@ -4861,7 +5585,7 @@ if A10_compare_lists:
         col_width_value = 0.95
         ylabel = 'freq'
         xlabel = data_column
-    
+
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                 title=title,row_nr=row_nr,col_nr=col_nr,axarr=axarr,num_bins=60,
                                                 settings=settings,
@@ -4872,12 +5596,12 @@ if A10_compare_lists:
                                                 fontsize=fontsize,
                                                 xlabel=xlabel,
                                                 ylabel=ylabel,legend=protein_list_names
-                                                )                                                                                                      
+                                                )
 
 
 #
 #    Fig_Nr = 14
-#    title = 'number_of_valid_hits' 
+#    title = 'number_of_valid_hits'
 #    newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
 #    #if the plot is the last one, the figure should be saved
 #    #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
@@ -4886,7 +5610,7 @@ if A10_compare_lists:
 #        plt.close('all')
 #        #create a new figure
 #        fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
-#    
+#
 #    for n, df in enumerate(df_list):
 #        data_column = 'number_of_valid_hits'
 #        color = TUM_colours_list_with_greys[n+2]#"#0489B1"
@@ -4894,7 +5618,7 @@ if A10_compare_lists:
 #        col_width_value = 0.95
 #        ylabel = 'freq'
 #        xlabel = data_column
-#    
+#
 #        utils.create_hist_from_df_col_with_auto_binlist(df=df,
 #                                                title=title,row_nr=row_nr,col_nr=col_nr,axarr=axarr,num_bins=60,
 #                                                settings=settings,
@@ -4905,7 +5629,7 @@ if A10_compare_lists:
 #                                                fontsize=fontsize,
 #                                                xlabel=xlabel,
 #                                                ylabel=ylabel,legend=protein_list_names
-#                                                )    
+#                                                )
 
 #    #save the figure as it is
 #    if savefig:
@@ -4913,7 +5637,7 @@ if A10_compare_lists:
 #                                     fig_nr = fig_nr, fontsize=fontsize)
 #
 
-                      
+
     #save the figure as it is
     savefig = True
     if savefig:
