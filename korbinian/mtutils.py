@@ -1315,8 +1315,8 @@ def setup_error_logging(logfile):
     #    f.write(json.dumps(config, f, indent=4, sort_keys=True))
     
     #create a blank logging file (if desired)
-    f = open(logfile, 'w')
-    f.close()
+    with open(logfile, 'w') as f:
+        pass
     
     #clear any previous logging handlers that might have been previously run in the console
     logging.getLogger('').handlers = [] 
@@ -1324,39 +1324,39 @@ def setup_error_logging(logfile):
     logging.config.dictConfig(config)
     
     #write system settings to logfile
-    logging.warning('LOGGING LEVEL')
-    logging.critical('Example of critical-level error. Current logging settings are level %s. At level DEBUG this logfile should also contain examples of WARNING and INFO level reports.' % config['handlers']['console']['level'])
-    logging.warning('Example of warning-level error')
-    logging.info('Example of info-level error\n')
+    logging.warning('LOGGING LEVEL: %s' % config["loggers"]["simpleExample"]["level"])
+    #logging.critical('Example of critical-level error. Current logging settings are level %s. At level DEBUG this logfile should also contain examples of WARNING and INFO level reports.' % config['handlers']['console']['level'])
+    #logging.warning('Example of warning-level error')
+    #logging.info('Example of info-level error\n')
     logging.info('SYSTEM INFORMATION')
-    logging.info('system description: %s' % str(platform.uname()))
-    logging.info('system       : %s', str(platform.system()))
-    logging.info('architecture : %s', str(platform.architecture()))
-    logging.info('network_name : %s', str(platform.node()))
-    logging.info('release      : %s', str(platform.release()))
-    logging.info('version      : %s', str(platform.version()))
-    logging.info('machine      : %s', str(platform.machine()))
-    logging.info('processor    : %s', str(platform.processor()))
-    logging.info('python_version: %s', str(platform.python_version()))
-    logging.info('python_build : %s', str(platform.python_build()))
-    logging.info('python_compiler: %s\n', str(platform.python_compiler()))
-    logging.info('PATH INFORMATION')
-    logging.info("argv: %r"%(sys.argv,))
-    logging.info("dirname(argv[0]): %s" % os.path.abspath(os.path.expanduser(os.path.dirname(sys.argv[0]))))
-    logging.info("pwd: %s\n" % os.path.abspath(os.path.expanduser(os.path.curdir)))
-    
+    system_settings_dict = {}
+    system_settings_dict["system description"] = platform.uname()
+    system_settings_dict["system"] = platform.system()
+    system_settings_dict["architecture"] = platform.architecture()
+    system_settings_dict["network_name"] = platform.node()
+    system_settings_dict["release"] = platform.release()
+    system_settings_dict["version"] = platform.version()
+    system_settings_dict["machine"] = platform.machine()
+    system_settings_dict["processor"] = platform.processor()
+    system_settings_dict["python_version"] = platform.python_version()
+    system_settings_dict["python_build"] = platform.python_build()
+    system_settings_dict["python_compiler"] = platform.python_compiler()
+    system_settings_dict["argv"] = sys.argv
+    system_settings_dict["dirname(argv[0])"] = os.path.abspath(os.path.expanduser(os.path.dirname(sys.argv[0])))
+    system_settings_dict["pwd"] = os.path.abspath(os.path.expanduser(os.path.curdir))
+    logging.warning(system_settings_dict)
     #save the logging settings in the logfile    
-    logging.info('LOGGING SETTINGS FOR THIS RUN IN JSON FORMAT')    
-    logging.info("%s\n" % config)
+    #logging.info('LOGGING SETTINGS FOR THIS RUN IN JSON FORMAT')
+    #logging.info("%s\n" % config)
     
     #test error message reporting
-    logging.warning('LOGGING TEST:')
-    try:
-        open('/path/to/does/not/exist', 'rb')
-    except (SystemExit, KeyboardInterrupt):
-        raise
-    except Exception:
-        logging.error('Failed to open file', exc_info=True)
+    #logging.warning('LOGGING TEST:')
+    #try:
+    #    open('/path/to/does/not/exist', 'rb')
+    #except (SystemExit, KeyboardInterrupt):
+    #    raise
+    #except Exception:
+    #    logging.error('Failed to open file', exc_info=True)
     logging.warning('LOGGING SETUP IS SUCCESSFUL\n\nLOG INFORMATION STARTS HERE:\n')
 
 

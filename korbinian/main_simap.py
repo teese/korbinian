@@ -85,7 +85,6 @@ excel_file_with_settings = os.path.join(main_folder, 'settings', 'korbinian_pyth
 The MAIN script starts here
 '''
 # import publicly available python modules
-import json
 import csv
 import xml.etree.ElementTree as ET
 import numpy as np
@@ -102,7 +101,6 @@ import itertools
 from scipy.stats import ttest_ind
 import sys
 import importlib
-#import utility_rimma as r_utils
 import matplotlib.patches as patches
 import os
 import ast
@@ -168,9 +166,8 @@ utils.setup_error_logging(logfile)
 
 # Folder, where SIMAP download is stored; requires a lot of harddrive; 
 data_folder = settingsdict["file_locations"]["data_folder"]
-
-uniprot_flatfile_of_selected_records = os.path.join(data_folder, 'D_uniprot', 'selected',
-                                                    'List%s_selected_uniprot_records_flatfile.txt' % list_number)
+uniprot_folder = os.path.join(data_folder, 'D_uniprot', 'selected')
+uniprot_flatfile_of_selected_records = os.path.join(uniprot_folder,'List%s_selected_uniprot_records_flatfile.txt' % list_number)
 
 base_filename_summaries = os.path.join(main_folder, 'summaries', 'List%02d' % list_number)
 #base_filename_input_acc_lists = '%s/input_acc_lists/List%02d'  % (main_folder, list_number)
@@ -204,17 +201,18 @@ A00_convert_uniprot_list_to_nonred_ff_via_uniref = settingsdict["run_settings"][
 overwrite_selected_ff = settingsdict["variables"]["uniprot.convert_uniprot_list_to_nonred_ff_via_uniref.overwrite_selected_ff"]
 
 if A00_convert_uniprot_list_to_nonred_ff_via_uniref:
-    logging.info('~~~~~~~~~~~~  starting A00_convert_uniprot_list_to_nonred_ff_via_uniref   ~~~~~~~~~~~~')
+    logging.info('~~~~~~~~~~~~  starting A00_convert_redundant_uniprot_list_to_nonred_ff_via_uniref   ~~~~~~~~~~~~')
     if os.path.isfile(uniprot_flatfile_of_selected_records) == False or overwrite_selected_ff == True:
-        # load uniref cutoff used (typicall 50, for UniRef50)
+        # load uniref cutoff used (typically 50, for UniRef50)
         uniref_cutoff = settingsdict["variables"]["uniprot.convert_uniprot_list_to_nonred_ff_via_uniref.uniref_cluster_cutoff"]
-        # load filters used when downloading original UniRef cluster from UniProt website    
-        uniref_filters = settingsdict["variables"]["uniprot.convert_uniprot_list_to_nonred_ff_via_uniref.uniref_filters"]
-        # use cutoff and filters to select the correct uniref file from the databases folder
-        uniref_csv_with_clusters = 'UniRef%s_%s.tab' % (uniref_cutoff, '_'.join(uniref_filters))
-        uniref_csv_with_clusters_path = os.path.join(data_folder, 'D_uniref', uniref_csv_with_clusters)
+        # define path to csv file containing the list of redundant uniprot accessions
+        redundant_list_uniprot_acc_csv = os.path.join(uniprot_folder,"List%02d_redundant_list_uniprot_acc.tab" % list_number)
+        # define path to uniprot flatfile containing the redundant protein records
+        redundant_uniprot_flatfile = os.path.join(uniprot_folder,"List%02d_redundant_uniprot_flatfile.txt" % list_number)
+        # define path to the csv file containing the relevant uniref clusters applicable to this list of proteins
+        uniref_clusters_csv = os.path.join(uniprot_folder,"List%02d_UniRef%02d_clusters.tab" % (list_number,uniref_cutoff))
         #create a new dataframe with the uniref csv file, containing the accessions of the reference sequences
-        df_uniref = pd.read_table(uniref_csv_with_clusters_path)
+        df_uniref = pd.read_table(uniref_clusters_csv)
         #to simplify, keep only the columns with the uniprot accessions
         #for backwards compatibility, check if the old header is used
         if 'Cluster member(s)' in df_uniref.columns:
@@ -226,14 +224,12 @@ if A00_convert_uniprot_list_to_nonred_ff_via_uniref:
         df_uniref.index.names = ['cluster_ID']
         #convert the list of uniprot accessions in each cluster to a python list format
         df_uniref['all_acc_in_cluster'] = df_uniref['Cluster members'].apply(lambda x : [x.strip() for x in x.split(';')])
-        nonred_folder = os.path.join(data_folder, 'D_uniprot', 'redundant')
-        selected_uniprot_acc_nonred= 'List%02d_selected_uniprot_acc_nonred.tab' % list_number
-        selected_uniprot_acc_nonred_path = os.path.join(nonred_folder, selected_uniprot_acc_nonred)
-        if os.path.isfile(selected_uniprot_acc_nonred_path) == False:
-            logging.warning('warning, file with nonredundant uniprot acc does not exist : %s' % 
-                            selected_uniprot_acc_nonred_path)
+        # delete the original list of clusters
+        df_uniref.drop("Cluster members", axis=1, inplace=True)
+        if os.path.isfile(redundant_list_uniprot_acc_csv) == False:
+            logging.warning('warning, file with nonredundant uniprot acc does not exist : %s' % redundant_list_uniprot_acc_csv)
         #open up large csv containing the uniprot acc of all single-pass proteins in uniprot
-        df_uniprot_acc = pd.read_table(selected_uniprot_acc_nonred_path)
+        df_uniprot_acc = pd.read_table(redundant_list_uniprot_acc_csv)
         #set the uniprot acc as the index
         df_uniprot_acc = df_uniprot_acc.set_index('Entry')
         #create an empty column to contain the cluster ID
@@ -244,28 +240,23 @@ if A00_convert_uniprot_list_to_nonred_ff_via_uniref:
         for acc in df_uniprot_acc.index:
             #check if the accession is already a uniref representative (saves searching time!)
             if 'UniRef%i_%s' % (uniref_cutoff, acc) in df_uniref.index:
-                df_uniprot_acc.loc[acc, 'Cluster ID'] = 'UniRef50_%s' % acc
+                df_uniprot_acc.loc[acc, 'Cluster ID'] = 'UniRef%i_%s' % (uniref_cutoff,acc)
             else:
                 #if it is not a uniref representative, go through each uniref cluster, checking to see if it is a member
                 for acc_cluster in list(df_uniref['all_acc_in_cluster']):
                     if acc in acc_cluster:
                         #if the acc is a member of a uniref cluster, add the cluster name to the original dataframe
-                        df_uniprot_acc.loc[acc, 'Cluster ID'] = 'UniRef50_%s' % acc_cluster[0]
+                        df_uniprot_acc.loc[acc, 'Cluster ID'] = 'UniRef%i_%s' % (uniref_cutoff, acc_cluster[0])
             acc_counter += 1
+            # write a dot on the screen for each protein, so that it is easy to see that the script is still working
+            #sys.stdout.write(". ")
             if acc_counter % 100 == 0:
                 logging.info('%i records checked for redundancy' % acc_counter)
         #determine which cluster IDs are in the database only once, as these uniprot entries are already nonredundant
         series_unique_bool = df_uniprot_acc['Cluster ID'].value_counts() == 1
-        list_uniref_clusters_matching_only_one_acc =  series_unique_bool.loc[series_unique_bool == True].index
+        list_uniref_clusters_matching_only_one_acc = series_unique_bool.loc[series_unique_bool == True].index
         #now use this list to label the original sequences that are nonredundant
-        df_uniprot_acc['nonred'] = df_uniprot_acc['Cluster ID'].apply(
-                                   lambda x : x in list_uniref_clusters_matching_only_one_acc)
-    
-        #obtain the appropriate flatfile, using the filters in the settings
-        #note that the flatfile parsing is quite slow, so smaller flatfiles give faster results
-        large_uniprot_ff_filters = settingsdict["variables"]["uniprot.convert_uniprot_list_to_nonred_ff_via_uniref.large_uniprot_ff_filters"]
-        large_uniprot_ff = 'UniProt_FF_%s.txt' % '_'.join(large_uniprot_ff_filters)
-        large_uniprot_ff_path = os.path.join(data_folder, 'D_uniprot', large_uniprot_ff)
+        df_uniprot_acc['nonred'] = df_uniprot_acc['Cluster ID'].apply(lambda x : x in list_uniref_clusters_matching_only_one_acc)
         
         #create a list of uniprot accessions that are nonredundant
         df_uniprot_acc_nonred = df_uniprot_acc.loc[df_uniprot_acc['nonred'] == True]
@@ -273,13 +264,17 @@ if A00_convert_uniprot_list_to_nonred_ff_via_uniref:
         
         #create a uniprot flatfile containing only the desired nonredundant accessions
         utils.retrieve_selected_uniprot_records_from_flatfile(list_nonred_acc,
-                                                              large_uniprot_ff_path,
+                                                              redundant_uniprot_flatfile,
                                                               uniprot_flatfile_of_selected_records)
         number_nonredundant_records = len(list_nonred_acc)
         number_total_records = df_uniprot_acc.shape[0]
-        logging.info('convert_uniprot_list_to_nonred_ff_via_uniref is finished,\n%i from %i records were nonredundant' % 
-                     (number_nonredundant_records,number_total_records))
-        logging.info('(%i redundant sequences removed from dataset)' % (number_total_records - number_nonredundant_records))
+        number_redundant_records = number_total_records - number_nonredundant_records
+
+        logging.info('number_total_records = {0}, number_redundant_records removed = {1}, '
+                     'final number_nonredundant_records = {2}'.format(number_total_records,
+                                                                      number_redundant_records,
+                                                                      number_nonredundant_records))
+    logging.info("A00_convert_uniprot_list_to_nonred_ff_via_uniref is finished")
 
 #A## variables are included only to help navigate the document in PyCharm
 A01_parse_large_flatfile_with_list_uniprot_accessions = settingsdict["run_settings"]["uniprot.inputs.parse_large_flatfile_with_list_uniprot_accessions"]
@@ -287,8 +282,8 @@ if A01_parse_large_flatfile_with_list_uniprot_accessions:
     logging.info('~~~~~~~~~~~~  starting A01_parse_large_flatfile_with_list_uniprot_accessions   ~~~~~~~~~~~~')
     #parse_large_flatfile_with_list_uniprot_accessions(list_of_uniprot_accessions, uniprot_flatfile_all_single_pass, uniprot_flatfile_of_selected_records)
     #def parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, input_uniprot_flatfile, output_uniprot_flatfile):
-    input_accession_list = list_of_uniprot_accessions
-    input_uniprot_flatfile = uniprot_flatfile_all_single_pass
+    # define path to large uniprot flatfile containing the protein records to be extracted
+    input_uniprot_flatfile = os.path.join(uniprot_folder,"List%02d_large_uniprot_flatfile.txt" % list_number)
     output_uniprot_flatfile = uniprot_flatfile_of_selected_records
     #from Bio import SeqIO
     #create a list of all the uniprot accessions of the proteins to be selected from the larger uniprot file 
@@ -524,6 +519,11 @@ if A03_create_csv_from_uniprot_flatfile:
         for i in range(1, max_num_TMDs + 1):
             TMD = 'TM%02d' % i
             TMD_seq_name = '%s_seq' % TMD
+            # instead of integers showing the start or end of the TMD, some people write strings such as "<5" or "?"
+            # it is necessary to convert them all to np.nan as floats, and then the numbers back to integers again
+            df['%s_start' % TMD] = df['%s_end' % TMD].convert_objects(convert_numeric = True).dropna().astype('int64')
+            df['%s_end' % TMD] = df['%s_end' % TMD].convert_objects(convert_numeric = True).dropna().astype('int64')
+            # determine the integerst describing the positions of the surrounding sequence
             df['start_surrounding_seq_in_query_%s' % TMD] = df['%s_start' % TMD] - aa_before_tmd - 1
             df['start_surrounding_seq_in_query_%s' % TMD][df['start_surrounding_seq_in_query_%s' % TMD] < 0] = 0
             df['end_surrounding_seq_in_query_%s' % TMD] = df['%s_end' % TMD] + aa_after_tmd
@@ -687,7 +687,7 @@ if A05_setup_df_file_locations:
     df.T.to_excel(writer, sheet_name='dfout01')
     writer.save()
     writer.close()
-
+    logging.info("A05_setup_df_file_locations is finished")
 
 #A## variables are included only to help navigate the document in PyCharm
 A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv = settingsdict["run_settings"]["simap.download.retrieve_simap_feature_table_and_homologues_from_list_in_csv"]
@@ -1224,22 +1224,23 @@ if A08_calculate_AAIMON_ratios:
     logging.info('~~~~~~~~~~~~starting calculate_AAIMON_ratios~~~~~~~~~~~~')
     overwrite_prev_calculated_AAIMON_ratios = settingsdict["variables"]["simap.calculate_AAIMON_ratios.overwrite_prev_calculated_AAIMON_ratios"]
     #test if the dataframe has already been created, otherwise re-open from csv file containing the simap data
-    try:
-        logging.info('first protein acc = %s, df already exists,'
-                     'continuing with parse_list_proteins_to_csv_and_fasta' % df.iloc[0][0])
-    except NameError:
-        if os.path.isfile(dfout08_simap_AAIMON):
-            #backup_original_file
-            dfout08_simap_AAIMON_backup_before_adding_data = dfout08_simap_AAIMON[:-4] + 'backup.csv'
-            import shutil
-            #copy file, keeping original modification and access info
-            shutil.copy2(dfout08_simap_AAIMON, dfout08_simap_AAIMON_backup_before_adding_data)
-            #open file as dataframe
-            df = pd.read_csv(dfout08_simap_AAIMON, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-            logging.info('df loaded from %s' % dfout08_simap_AAIMON)
+    if "df" in globals():
+        if isinstance(df, pd.DataFrame):
+            logging.info('df already in memory. continuing with parse_list_proteins_to_csv_and_fasta. first protein is %s' % df.index[0])
         else:
-            df = pd.read_csv(dfout05_simapcsv, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-            logging.info('df loaded from %s' % dfout05_simapcsv)
+            raise TypeError("df is in the list of globals, but not a valid DataFrame")
+    elif os.path.isfile(dfout08_simap_AAIMON):
+        #backup_original_file
+        dfout08_simap_AAIMON_backup_before_adding_data = dfout08_simap_AAIMON[:-4] + 'backup.csv'
+        import shutil
+        #copy file, keeping original modification and access info
+        shutil.copy2(dfout08_simap_AAIMON, dfout08_simap_AAIMON_backup_before_adding_data)
+        #open file as dataframe
+        df = pd.read_csv(dfout08_simap_AAIMON, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+        logging.info('df loaded from %s. backup of original csv was created' % dfout08_simap_AAIMON)
+    else:
+        df = pd.read_csv(dfout05_simapcsv, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+        logging.info('dfout08_simap_AAIMON not found, df loaded from %s. ' % dfout05_simapcsv)
     #filter to remove sequences where no TMDs are found,
     df = df.loc[df['list_of_TMDs'].notnull()]
     #filter to remove sequences where no TMDs are found (if string)
@@ -2018,396 +2019,397 @@ if A08a_calculate_gap_densities:
     max_number_of_tmds = settingsdict["variables"]["analyse.calculate_gap_densities.max_number_of_tmds"]
 
     #test if the dataframe has already been created, otherwise re-open from uniprot csv file
-    try:
-        logging.info('first protein acc = %s, df already exists,'
-                     'continuing with parse_list_proteins_to_csv_and_fasta' % df.iloc[0][0])
-    except NameError:
-        if os.path.isfile(dfout10_uniprot_gaps):
-            df = pd.read_csv(dfout10_uniprot_gaps, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
-            logging.info('df loaded from %s' % dfout10_uniprot_gaps)
+    if "df" in globals():
+        if isinstance(df, pd.DataFrame):
+            logging.info('df already in memory. continuing with parse_list_proteins_to_csv_and_fasta. first protein is %s' % df.index[0])
         else:
-            df = pd.read_csv(dfout08_simap_AAIMON, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
-            logging.info('no gap file found, df loaded from %s' % dfout08_simap_AAIMON)
+            raise TypeError("df is in the list of globals, but not a valid DataFrame")
+    elif os.path.isfile(dfout10_uniprot_gaps):
+        df = pd.read_csv(dfout10_uniprot_gaps, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
+        logging.info('df loaded from %s' % dfout10_uniprot_gaps)
+    elif os.path.isfile(dfout08_simap_AAIMON):
+        df = pd.read_csv(dfout08_simap_AAIMON, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
+        logging.info('df loaded from %s' % dfout08_simap_AAIMON)
+        # If no previous analysis had been done, uniprot csv is opened and additional columns are created
+        df["gaps_analysed"]= np.nan     # Column, containing true or false
+        for n in range (1,max_number_of_tmds+1):
+            df["TM%.2d_occuring_gaps"%n]=np.nan     # List of unique gappositions, which occur in the tmd
+            df["TM%.2d_amount_possible_gappositions"%n]=np.nan
+            df['total_amount_of_TM%.2d'%n] = np.nan     # How often TMD is considered
+            df['juxta_TM%.2d_intracellular_possible_gappositions'%n] = np.nan   # List of unique gappositions, which occur in the intracellular loop-part/end
+            df['juxta_TM%.2d_extracellular_possible_gappositions'%n] = np.nan   # List of unique gappositions, which occur in the intracellular loop-part/end
+            df['juxta_TM%.2d_intracellular_num_gaps'%n] = np.nan
+            df['juxta_TM%.2d_exracellular_num_gaps'%n] = np.nan
+            df['len_juxta_TM%.2d_intracellular'%n] = np.nan
+            df['len_juxta_TM%.2d_extracellular'%n] = np.nan
+    else:
+        raise IOError("df is not in memory, and neither %s nor %s are found" % (dfout10_uniprot_gaps,dfout08_simap_AAIMON))
 
-            # If no previous analysis had been done, uniprot csv is opened and additional columns are created
-            df["gaps_analysed"]= np.nan     # Column, containing true or false
-            for n in range (1,max_number_of_tmds+1):
-                df["TM%.2d_occuring_gaps"%n]=np.nan     # List of unique gappositions, which occur in the tmd
-                df["TM%.2d_amount_possible_gappositions"%n]=np.nan
-                df['total_amount_of_TM%.2d'%n] = np.nan     # How often TMD is considered
-                df['juxta_TM%.2d_intracellular_possible_gappositions'%n] = np.nan   # List of unique gappositions, which occur in the intracellular loop-part/end
-                df['juxta_TM%.2d_extracellular_possible_gappositions'%n] = np.nan   # List of unique gappositions, which occur in the intracellular loop-part/end
-                df['juxta_TM%.2d_intracellular_num_gaps'%n] = np.nan
-                df['juxta_TM%.2d_exracellular_num_gaps'%n] = np.nan
-                df['len_juxta_TM%.2d_intracellular'%n] = np.nan
-                df['len_juxta_TM%.2d_extracellular'%n] = np.nan
+    for acc in df.index:
 
-        for acc in df.index:
+        protein_name = df.loc[acc,'A2_protein_name']
+        # The next steps (the main analysis) is only executed, if previous analysis can be overwritten or no analysis has yet been done
+        if (overwrite_previous_gap_analysis == True) or (df.loc[acc,"gaps_analysed"] != True):
+            logging.info("%s"%acc)
+            list_of_TMDs = ast.literal_eval(df.loc[acc,"list_of_TMDs"])
 
-            protein_name = df.loc[acc,'A2_protein_name']
-            # The next steps (the main analysis) is only executed, if previous analysis can be overwritten or no analysis has yet been done
-            if (overwrite_previous_gap_analysis == True) or (df.loc[acc,"gaps_analysed"] != True):
-                logging.info("%s"%acc)
-                list_of_TMDs = ast.literal_eval(df.loc[acc,"list_of_TMDs"])
+            # Checks if outputfiles (tar) exist
+            if os.path.exists(df.loc[acc,'output_tarfile_path']):
 
-                # Checks if outputfiles (tar) exist
-                if os.path.exists(df.loc[acc,'output_tarfile_path']):
+            # opens the analysed csv for each protein and loads it into a dataframe
+                with tarfile.open(df.loc[acc,'output_tarfile_path'], mode= 'r:gz')as tar:
 
-                # opens the analysed csv for each protein and loads it into a dataframe
-                    with tarfile.open(df.loc[acc,'output_tarfile_path'], mode= 'r:gz')as tar:
+                # checks if the analysed file exists, otherwise prints that it does not exist
+                    if '%s_analysed.csv' % protein_name in tar.getnames():
 
-                    # checks if the analysed file exists, otherwise prints that it does not exist
-                        if '%s_analysed.csv' % protein_name in tar.getnames():
+                    # loads file into analysed csv
+                        analysed_csv = tar.extractfile('%s_analysed.csv' % protein_name)
+                        analysed_df = pd.read_csv(analysed_csv,low_memory=False,index_col=[0])
 
-                        # loads file into analysed csv
-                            analysed_csv = tar.extractfile('%s_analysed.csv' % protein_name)
-                            analysed_df = pd.read_csv(analysed_csv,low_memory=False,index_col=[0])
+                        # checks if first amino acid is located inside (or periplasmatic) or outside, returns a boolean, true or false
+                        # if first residue is located inside, every even tmd (tmd2,tmd4,tmd6...) is reversed, otherwise every odd tmd is reversed
+                        # output is a boolean for each tmd, depending on the number and on the first amino acid
 
-                            # checks if first amino acid is located inside (or periplasmatic) or outside, returns a boolean, true or false
-                            # if first residue is located inside, every even tmd (tmd2,tmd4,tmd6...) is reversed, otherwise every odd tmd is reversed
-                            # output is a boolean for each tmd, depending on the number and on the first amino acid
-
-                            if df.loc[acc,"n_term_ec"] == False:
-                                reverse_tmd = False
-                            else:
-                                reverse_tmd = True
-                            print (reverse_tmd)
-
-
-                            # for each TMD in the proteins, creates new lists which will contain gappositions, lists are saved in a column and created again for each tmd
-                            for tmd in list_of_TMDs:
-                                print(tmd)
-                                tmd_int = int(tmd[-2:])
-                                len_of_query = len(analysed_df["%s_SW_query_seq"%tmd][1])
-                                len_of_query_reversed= ((1/len_of_query)+1)
-                                list_of_gaps_in_tmd = []
-                                list_of_gaps_intracellular = []
-                                list_of_gaps_extracellular = []
+                        if df.loc[acc,"n_term_ec"] == False:
+                            reverse_tmd = False
+                        else:
+                            reverse_tmd = True
+                        print (reverse_tmd)
 
 
-                                for hit in analysed_df.index:
+                        # for each TMD in the proteins, creates new lists which will contain gappositions, lists are saved in a column and created again for each tmd
+                        for tmd in list_of_TMDs:
+                            print(tmd)
+                            tmd_int = int(tmd[-2:])
+                            len_of_query = len(analysed_df["%s_SW_query_seq"%tmd][1])
+                            len_of_query_reversed= ((1/len_of_query)+1)
+                            list_of_gaps_in_tmd = []
+                            list_of_gaps_intracellular = []
+                            list_of_gaps_extracellular = []
 
-                                #'''
-                                #Start of the main gap analysis
-                                #Code searches for "-" in the TMD sequence and returns the index!! (not the position)
-                                #'''
 
-                                    # Following if conditions only refer to gaps in the query!
-                                    # Query gaps are counted as "in between positions", for example: 4,5 refers to a gap between position 4 and 5;
-                                    # if two gaps occur one after another: only one position (between two amino acids is considered)
+                            for hit in analysed_df.index:
 
-                                    # Filter to make sure, that there are 1 or 2 gaps in the query sequence and up to the max allowed gaps in the match
-                                    if (analysed_df.loc[hit,"%s_SW_query_num_gaps"%tmd] != 0.0) and (analysed_df.loc[hit,"%s_SW_query_num_gaps"%tmd] <= 2.0)\
-                                        and (analysed_df.loc[hit,"%s_SW_match_num_gaps"%tmd] <= int("%s"%allowed_gaps_per_tmd)):
+                            #'''
+                            #Start of the main gap analysis
+                            #Code searches for "-" in the TMD sequence and returns the index!! (not the position)
+                            #'''
 
-                                        # Stores the endpoints in a temp list; endpoints are used, to switch from python indices to numbers
-                                        list_of_gaps_per_hit_in_query = [m.start() for m in re.finditer("-",analysed_df.loc[hit,"%s_SW_query_seq"%tmd]) if m.start()]
-                                        print (list_of_gaps_per_hit_in_query)
+                                # Following if conditions only refer to gaps in the query!
+                                # Query gaps are counted as "in between positions", for example: 4,5 refers to a gap between position 4 and 5;
+                                # if two gaps occur one after another: only one position (between two amino acids is considered)
 
-                                        # if there are two gaps in the query (and 2 allowed), code checks if they are side by side (difference of 1)
-                                        # and appends the gap position, else appends both gap positions
-                                        # 0.5 is substracted in order to make them "in between" position;
-                                        #if two gaps are observed, 1.5 is substracted from the second one, since the residue positions are moved due to the first gap
-                                        if len(list_of_gaps_per_hit_in_query) == 2 and allowed_gaps_per_tmd==2:
+                                # Filter to make sure, that there are 1 or 2 gaps in the query sequence and up to the max allowed gaps in the match
+                                if (analysed_df.loc[hit,"%s_SW_query_num_gaps"%tmd] != 0.0) and (analysed_df.loc[hit,"%s_SW_query_num_gaps"%tmd] <= 2.0)\
+                                    and (analysed_df.loc[hit,"%s_SW_match_num_gaps"%tmd] <= int("%s"%allowed_gaps_per_tmd)):
 
-                                            if list_of_gaps_per_hit_in_query[1]- list_of_gaps_per_hit_in_query[0] ==1:
-                                                list_of_gaps_in_tmd.append(list_of_gaps_per_hit_in_query[0]-0.5)
+                                    # Stores the endpoints in a temp list; endpoints are used, to switch from python indices to numbers
+                                    list_of_gaps_per_hit_in_query = [m.start() for m in re.finditer("-",analysed_df.loc[hit,"%s_SW_query_seq"%tmd]) if m.start()]
+                                    print (list_of_gaps_per_hit_in_query)
 
-                                            else:
-                                                list_of_gaps_in_tmd.append(list_of_gaps_per_hit_in_query[0]-0.5)
-                                                list_of_gaps_in_tmd.append(list_of_gaps_per_hit_in_query[1]-1.5)
+                                    # if there are two gaps in the query (and 2 allowed), code checks if they are side by side (difference of 1)
+                                    # and appends the gap position, else appends both gap positions
+                                    # 0.5 is substracted in order to make them "in between" position;
+                                    #if two gaps are observed, 1.5 is substracted from the second one, since the residue positions are moved due to the first gap
+                                    if len(list_of_gaps_per_hit_in_query) == 2 and allowed_gaps_per_tmd==2:
 
-                                        # if there is only one gap in query or only one gap is allowed, it appends the first (and only) gap from the list_of_gaps_per_hit_in_query to the list_of_TMDs
+                                        if list_of_gaps_per_hit_in_query[1]- list_of_gaps_per_hit_in_query[0] ==1:
+                                            list_of_gaps_in_tmd.append(list_of_gaps_per_hit_in_query[0]-0.5)
+
                                         else:
-                                            if len(list_of_gaps_per_hit_in_query) == 1:
-                                                list_of_gaps_in_tmd.append (list_of_gaps_per_hit_in_query[0]-0.5)
+                                            list_of_gaps_in_tmd.append(list_of_gaps_per_hit_in_query[0]-0.5)
+                                            list_of_gaps_in_tmd.append(list_of_gaps_per_hit_in_query[1]-1.5)
+
+                                    # if there is only one gap in query or only one gap is allowed, it appends the first (and only) gap from the list_of_gaps_per_hit_in_query to the list_of_TMDs
+                                    else:
+                                        if len(list_of_gaps_per_hit_in_query) == 1:
+                                            list_of_gaps_in_tmd.append (list_of_gaps_per_hit_in_query[0]-0.5)
 
 
-                                    # Following if conditions only refer to gaps in the match!
-                                    # Query gaps are counted as deletions of positions; for example: 4 refers to a gap on position 4;
-                                    # if two gaps occur one after another, both are considered since two actual amino acids from the original query are deleted
-                                    # Since the gap positions are dependend on the query sequence, query-gap positions in the same alignment have to be considered as well
+                                # Following if conditions only refer to gaps in the match!
+                                # Query gaps are counted as deletions of positions; for example: 4 refers to a gap on position 4;
+                                # if two gaps occur one after another, both are considered since two actual amino acids from the original query are deleted
+                                # Since the gap positions are dependend on the query sequence, query-gap positions in the same alignment have to be considered as well
 
 
-                                    # Filter to make sure, that there are 1 or 2 gaps in the match sequence and up to the max allowed gaps in the query
-                                    if (analysed_df.loc[hit,"%s_SW_query_num_gaps"%tmd] <=2.0) and (analysed_df.loc[hit,"%s_SW_match_num_gaps"%tmd] <= 2.0)\
-                                        and (analysed_df.loc[hit,"%s_SW_match_num_gaps"%tmd] != 0.0):
+                                # Filter to make sure, that there are 1 or 2 gaps in the match sequence and up to the max allowed gaps in the query
+                                if (analysed_df.loc[hit,"%s_SW_query_num_gaps"%tmd] <=2.0) and (analysed_df.loc[hit,"%s_SW_match_num_gaps"%tmd] <= 2.0)\
+                                    and (analysed_df.loc[hit,"%s_SW_match_num_gaps"%tmd] != 0.0):
 
-                                        # It's not sure that the list of hits in query was already determined, maybe there were no gaps, anyway here it is important how many
-                                        list_of_gaps_per_hit_in_query = [m.start() for m in re.finditer("-",analysed_df.loc[hit,"%s_SW_query_seq"%tmd]) if m.start()]
-                                        list_of_gaps_per_hit_in_match = [m.start() for m in re.finditer("-",analysed_df.loc[hit,"%s_SW_match_seq"%tmd])if m.start()]
-                                        #print (list_of_gaps_per_hit_in_query)
-                                        #print (list_of_gaps_per_hit_in_match)
+                                    # It's not sure that the list of hits in query was already determined, maybe there were no gaps, anyway here it is important how many
+                                    list_of_gaps_per_hit_in_query = [m.start() for m in re.finditer("-",analysed_df.loc[hit,"%s_SW_query_seq"%tmd]) if m.start()]
+                                    list_of_gaps_per_hit_in_match = [m.start() for m in re.finditer("-",analysed_df.loc[hit,"%s_SW_match_seq"%tmd])if m.start()]
+                                    #print (list_of_gaps_per_hit_in_query)
+                                    #print (list_of_gaps_per_hit_in_match)
 
-                                        if len(list_of_gaps_per_hit_in_match)>0:
-                                            for n in list(reversed(list_of_gaps_per_hit_in_match)):
-                                                substracted_value = len([m<n for m in list_of_gaps_per_hit_in_query])
-                                                list_of_gaps_in_tmd.append(abs(n-substracted_value))
+                                    if len(list_of_gaps_per_hit_in_match)>0:
+                                        for n in list(reversed(list_of_gaps_per_hit_in_match)):
+                                            substracted_value = len([m<n for m in list_of_gaps_per_hit_in_query])
+                                            list_of_gaps_in_tmd.append(abs(n-substracted_value))
 
-                                    #######
-                                    # Start of the Juxta Consideration
-                                    # In the case of n_term being located intracellular:
-                                    # there are 4 groups: 1. juxta_before_odd_TMDs + 2.juxta_after_even_TMDs 3. Juxta_before_even_TMDs + 4. Juxta_after_odd_TMDs
-                                    # 1 + 2 --> Intracellular
-                                    # 3 + 4 --> Extracellular
-                                    # If the n_term is extracellular, that it's the other way round. 1+2 --> Extracellular 3+4 --> Intracellular
-                                    ### The data will already be flipped in order to align extracellular and intracellular parts, extracellular: + , intracellular: -
+                                #######
+                                # Start of the Juxta Consideration
+                                # In the case of n_term being located intracellular:
+                                # there are 4 groups: 1. juxta_before_odd_TMDs + 2.juxta_after_even_TMDs 3. Juxta_before_even_TMDs + 4. Juxta_after_odd_TMDs
+                                # 1 + 2 --> Intracellular
+                                # 3 + 4 --> Extracellular
+                                # If the n_term is extracellular, that it's the other way round. 1+2 --> Extracellular 3+4 --> Intracellular
+                                ### The data will already be flipped in order to align extracellular and intracellular parts, extracellular: + , intracellular: -
 
-                                    # juxta before_odd_TMDs:
+                                # juxta before_odd_TMDs:
 
-                                    if r_utils.isOdd(tmd_int)==True:  # also für 1 , 3 ...
+                                if r_utils.isOdd(tmd_int)==True:  # also für 1 , 3 ...
 
 
-                                        # makes sure that the search is done in a string
-                                        if type(analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int])== str:
+                                    # makes sure that the search is done in a string
+                                    if type(analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int])== str:
 
-                                            # list of gap indices
-                                            list_of_gaps_in_query_before_odd = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int][::-1])if m.start()+0.5 < 31]
+                                        # list of gap indices
+                                        list_of_gaps_in_query_before_odd = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int][::-1])if m.start()+0.5 < 31]
 
-                                            # if one gap is found, code checks location and appends it
-                                            if len (list_of_gaps_in_query_before_odd)==1:
-                                                if reverse_tmd == False:
-                                                    list_of_gaps_intracellular.append(list_of_gaps_in_query_before_odd[0])
+                                        # if one gap is found, code checks location and appends it
+                                        if len (list_of_gaps_in_query_before_odd)==1:
+                                            if reverse_tmd == False:
+                                                list_of_gaps_intracellular.append(list_of_gaps_in_query_before_odd[0])
+                                            else:
+                                                list_of_gaps_extracellular.append(list_of_gaps_in_query_before_odd[0])
+                                        # if more than one gap is found, code checks if the gapy are one after another in the query!
+                                        if len (list_of_gaps_in_query_before_odd)>1.0:
+                                            following_gap = 0
+                                            rev_value = list_of_gaps_in_query_before_odd[0]
+                                            for n in list_of_gaps_in_query_before_odd:
+                                                if n-following_gap == rev_value:
+                                                    if reverse_tmd == False:
+                                                        list_of_gaps_intracellular.append(n-following_gap)
+
+                                                        following_gap = following_gap+1
+                                                    else:
+                                                        list_of_gaps_extracellular.append(n-following_gap)
+                                                        following_gap = following_gap+1
                                                 else:
-                                                    list_of_gaps_extracellular.append(list_of_gaps_in_query_before_odd[0])
-                                            # if more than one gap is found, code checks if the gapy are one after another in the query!
-                                            if len (list_of_gaps_in_query_before_odd)>1.0:
-                                                following_gap = 0
-                                                rev_value = list_of_gaps_in_query_before_odd[0]
-                                                for n in list_of_gaps_in_query_before_odd:
-                                                    if n-following_gap == rev_value:
-                                                        if reverse_tmd == False:
-                                                            list_of_gaps_intracellular.append(n-following_gap)
-
-                                                            following_gap = following_gap+1
-                                                        else:
-                                                            list_of_gaps_extracellular.append(n-following_gap)
-                                                            following_gap = following_gap+1
+                                                    if reverse_tmd == False:
+                                                        list_of_gaps_intracellular.append(n-following_gap)
+                                                        following_gap = following_gap+1
+                                                        rev_value = n
                                                     else:
-                                                        if reverse_tmd == False:
-                                                            list_of_gaps_intracellular.append(n-following_gap)
-                                                            following_gap = following_gap+1
-                                                            rev_value = n
-                                                        else:
-                                                            list_of_gaps_extracellular.append(n-following_gap)
-                                                            following_gap = following_gap+1
-                                                            rev_value = n
+                                                        list_of_gaps_extracellular.append(n-following_gap)
+                                                        following_gap = following_gap+1
+                                                        rev_value = n
 
 
-                                            if type(analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_match"%tmd_int])== str:
-                                            # Makes a list of gaps of the match of the odd juxta before the TMD
-                                                list_of_gaps_in_query_before_odd = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int][::-1])if m.start() < 32]
+                                        if type(analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_match"%tmd_int])== str:
+                                        # Makes a list of gaps of the match of the odd juxta before the TMD
+                                            list_of_gaps_in_query_before_odd = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int][::-1])if m.start() < 32]
 
-                                                list_of_gaps_in_match_before_odd = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_match"%tmd_int][::-1])if m.start() < 32]
+                                            list_of_gaps_in_match_before_odd = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_match"%tmd_int][::-1])if m.start() < 32]
 
-                                                for n in list(reversed(list_of_gaps_in_match_before_odd)):
-                                                    greater_values = sum(i< n for i in list_of_gaps_in_query_before_odd)
-                                                    if reverse_tmd== False:
-                                                        list_of_gaps_intracellular.append(n-greater_values)
+                                            for n in list(reversed(list_of_gaps_in_match_before_odd)):
+                                                greater_values = sum(i< n for i in list_of_gaps_in_query_before_odd)
+                                                if reverse_tmd== False:
+                                                    list_of_gaps_intracellular.append(n-greater_values)
 
-                                                    else:
-                                                        list_of_gaps_extracellular.append(n-greater_values)
+                                                else:
+                                                    list_of_gaps_extracellular.append(n-greater_values)
 
 # juxta after odd TMDs:
 
-                                            if type(analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int])== str:
+                                        if type(analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int])== str:
 
-                                                list_of_gaps_in_query_after_odd = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int])if m.start()+0.5 < 31]
+                                            list_of_gaps_in_query_after_odd = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int])if m.start()+0.5 < 31]
 
-                                                # if one gap is found, code checks location and appends it
-                                                if len (list_of_gaps_in_query_after_odd)==1:
-                                                    if reverse_tmd == False:
-                                                        list_of_gaps_extracellular.append(list_of_gaps_in_query_after_odd[0])
-                                                    else:
-                                                        list_of_gaps_intracellular.append(list_of_gaps_in_query_after_odd[0])
+                                            # if one gap is found, code checks location and appends it
+                                            if len (list_of_gaps_in_query_after_odd)==1:
+                                                if reverse_tmd == False:
+                                                    list_of_gaps_extracellular.append(list_of_gaps_in_query_after_odd[0])
+                                                else:
+                                                    list_of_gaps_intracellular.append(list_of_gaps_in_query_after_odd[0])
 
-                                                # if more than one gap is found, code checks if the gaps are one after another in the query!
-                                                if len (list_of_gaps_in_query_after_odd)>1.0:
-                                                    following_gap = 0
-                                                    rev_value = list_of_gaps_in_query_after_odd[0]
-                                                    for n in list_of_gaps_in_query_after_odd:
-                                                        if n+following_gap == rev_value:
-                                                            if reverse_tmd == False:
-                                                                list_of_gaps_extracellular.append(n-following_gap)
-                                                                following_gap = following_gap+1
-                                                            else:
-                                                                list_of_gaps_intracellular.append(n-following_gap)
-                                                                following_gap = following_gap+1
+                                            # if more than one gap is found, code checks if the gaps are one after another in the query!
+                                            if len (list_of_gaps_in_query_after_odd)>1.0:
+                                                following_gap = 0
+                                                rev_value = list_of_gaps_in_query_after_odd[0]
+                                                for n in list_of_gaps_in_query_after_odd:
+                                                    if n+following_gap == rev_value:
+                                                        if reverse_tmd == False:
+                                                            list_of_gaps_extracellular.append(n-following_gap)
+                                                            following_gap = following_gap+1
                                                         else:
-                                                            if reverse_tmd == False:
-                                                                list_of_gaps_extracellular.append(n-following_gap)
-                                                                following_gap = following_gap+1
-                                                                rev_value = n
-                                                            else:
-                                                                list_of_gaps_intracellular.append(n-following_gap)
-                                                                following_gap = following_gap+1
-                                                                rev_value = n
-         # juxta after odd TMDs:
+                                                            list_of_gaps_intracellular.append(n-following_gap)
+                                                            following_gap = following_gap+1
+                                                    else:
+                                                        if reverse_tmd == False:
+                                                            list_of_gaps_extracellular.append(n-following_gap)
+                                                            following_gap = following_gap+1
+                                                            rev_value = n
+                                                        else:
+                                                            list_of_gaps_intracellular.append(n-following_gap)
+                                                            following_gap = following_gap+1
+                                                            rev_value = n
+     # juxta after odd TMDs:
 
 
 #                               if type(analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int])== str:
 
-                             #                   list_of_gaps_in_query_after_odd = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int])if m.start()+0.5 < 31]
+                         #                   list_of_gaps_in_query_after_odd = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int])if m.start()+0.5 < 31]
 
-                                                # if one gap is found, code checks location and appends it
-                            #                    if len (list_of_gaps_in_query_after_odd)==1:
-                            #                        if reverse_tmd == False:
-                            #                            list_of_gaps_extracellular.append(list_of_gaps_in_query_after_odd[0])
-                            #                        else:
-                            #                            list_of_gaps_intracellular.append(list_of_gaps_in_query_after_odd[0])
+                                            # if one gap is found, code checks location and appends it
+                        #                    if len (list_of_gaps_in_query_after_odd)==1:
+                        #                        if reverse_tmd == False:
+                        #                            list_of_gaps_extracellular.append(list_of_gaps_in_query_after_odd[0])
+                        #                        else:
+                        #                            list_of_gaps_intracellular.append(list_of_gaps_in_query_after_odd[0])
 
-                                                # if more than one gap is found, code checks if the gaps are one after another in the query!
-                            #                    if len (list_of_gaps_in_query_after_odd)>1.0:
-                             #                       following_gap = 0
-                             #                       rev_value = list_of_gaps_in_query_after_odd[0]
-                              #                      for n in list_of_gaps_in_query_after_odd:
-                              #                          if n+following_gap == rev_value:
-                              #                              if reverse_tmd == False:
-                              ##                                  list_of_gaps_extracellular.append(n-following_gap)
-                              #                                  following_gap = following_gap+1
-                              #                              else:
-                              #                                  list_of_gaps_intracellular.append(n-following_gap)
-                              #                                  following_gap = following_gap+1
-                             #                           else:
-                             #                               if reverse_tmd == False:
-                             #                                   list_of_gaps_extracellular.append(n-following_gap)
-                            #                                    following_gap = following_gap+1
-                             #                                   rev_value = n
-                             #                               else:
-                             #                                   list_of_gaps_intracellular.append(n-following_gap)
-                             #                                   following_gap = following_gap+1
-                             #                                   rev_value = n
+                                            # if more than one gap is found, code checks if the gaps are one after another in the query!
+                        #                    if len (list_of_gaps_in_query_after_odd)>1.0:
+                         #                       following_gap = 0
+                         #                       rev_value = list_of_gaps_in_query_after_odd[0]
+                          #                      for n in list_of_gaps_in_query_after_odd:
+                          #                          if n+following_gap == rev_value:
+                          #                              if reverse_tmd == False:
+                          ##                                  list_of_gaps_extracellular.append(n-following_gap)
+                          #                                  following_gap = following_gap+1
+                          #                              else:
+                          #                                  list_of_gaps_intracellular.append(n-following_gap)
+                          #                                  following_gap = following_gap+1
+                         #                           else:
+                         #                               if reverse_tmd == False:
+                         #                                   list_of_gaps_extracellular.append(n-following_gap)
+                        #                                    following_gap = following_gap+1
+                         #                                   rev_value = n
+                         #                               else:
+                         #                                   list_of_gaps_intracellular.append(n-following_gap)
+                         #                                   following_gap = following_gap+1
+                         #                                   rev_value = n
 
-                                        else:  # for 2,4
+                                    else:  # for 2,4
 
-                                        # juxta before even TMDs:
+                                    # juxta before even TMDs:
 
-                                        # makes sure that the search is done in a string
-                                            if type(analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int])== str:
+                                    # makes sure that the search is done in a string
+                                        if type(analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int])== str:
 
-                                                # list of gap indices
-                                                list_of_gaps_in_query_before_even = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int])if m.start()+0.5 < 31]
+                                            # list of gap indices
+                                            list_of_gaps_in_query_before_even = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int])if m.start()+0.5 < 31]
 
-                                                # if one gap is found, code checks location and appends it
-                                                if len (list_of_gaps_in_query_before_even)==1:
-                                                    if reverse_tmd == False:
-                                                        list_of_gaps_extracellular.append(list_of_gaps_in_query_before_even[0])
-                                                    else:
-                                                        list_of_gaps_intracellular.append(list_of_gaps_in_query_before_even[0])
+                                            # if one gap is found, code checks location and appends it
+                                            if len (list_of_gaps_in_query_before_even)==1:
+                                                if reverse_tmd == False:
+                                                    list_of_gaps_extracellular.append(list_of_gaps_in_query_before_even[0])
+                                                else:
+                                                    list_of_gaps_intracellular.append(list_of_gaps_in_query_before_even[0])
 
-                                                # if more than one gap is found, code checks if the gapy are one after another in the query!
-                                                if len (list_of_gaps_in_query_before_even)>1.0:
-                                                    following_gap = 0
-                                                    rev_value = list_of_gaps_in_query_before_even[0]
-                                                    for n in list_of_gaps_in_query_before_even:
-                                                        if n+following_gap == rev_value:
-                                                            if reverse_tmd == False:
-                                                                list_of_gaps_extracellular.append(n-following_gap)
-                                                                following_gap = following_gap+1
-                                                            else:
-                                                                list_of_gaps_intracellular.append(n-following_gap)
-                                                                following_gap = following_gap+1
+                                            # if more than one gap is found, code checks if the gapy are one after another in the query!
+                                            if len (list_of_gaps_in_query_before_even)>1.0:
+                                                following_gap = 0
+                                                rev_value = list_of_gaps_in_query_before_even[0]
+                                                for n in list_of_gaps_in_query_before_even:
+                                                    if n+following_gap == rev_value:
+                                                        if reverse_tmd == False:
+                                                            list_of_gaps_extracellular.append(n-following_gap)
+                                                            following_gap = following_gap+1
                                                         else:
-                                                            if reverse_tmd == False:
-                                                                list_of_gaps_extracellular.append(n-following_gap)
-                                                                following_gap = following_gap+1
-                                                                rev_value = n
-                                                            else:
-                                                                list_of_gaps_intracellular.append(n-following_gap)
-                                                                following_gap = following_gap+1
-                                                                rev_value = n
-
-                                            if type(analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_match"%tmd_int])== str:
-                                            # Makes a list of gaps of the match of the odd juxta before the TMD
-                                                list_of_gaps_in_query_before_even = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int])if m.start()+0.5 < 31]
-
-                                                list_of_gaps_in_match_before_even = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_match"%tmd_int])if m.start() < 31]
-
-                                                for n in list(reversed(list_of_gaps_in_match_before_even)):
-                                                    greater_values = sum(i< n for i in list_of_gaps_in_query_before_even)
-                                                    if reverse_tmd== False:
-                                                        list_of_gaps_extracellular.append(n-greater_values)
+                                                            list_of_gaps_intracellular.append(n-following_gap)
+                                                            following_gap = following_gap+1
                                                     else:
-                                                        list_of_gaps_intracellular.append(n-greater_values)
-
-
-
-                                            # juxta after even TMDs:
-
-                                            if type(analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int])== str:
-
-                                                list_of_gaps_in_query_after_even = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int][::-1]) if m.start()+0.5 < 31]
-
-                                                # if one gap is found, code checks location and appends it
-                                                if len (list_of_gaps_in_query_after_even)==1:
-                                                    if reverse_tmd == False:
-                                                        list_of_gaps_intracellular.append(list_of_gaps_in_query_after_even[0])
-                                                    else:
-                                                        list_of_gaps_extracellular.append(list_of_gaps_in_query_after_even[0])
-
-                                                # if more than one gap is found, code checks if the gaps are one after another in the query!
-                                                if len (list_of_gaps_in_query_after_even)>1.0:
-                                                    following_gap = 0
-                                                    rev_value = list_of_gaps_in_query_after_even[0]
-                                                    for n in list_of_gaps_in_query_after_even:
-                                                        if n-following_gap == rev_value:
-                                                            if reverse_tmd == False:
-                                                                list_of_gaps_intracellular.append(n-following_gap)
-                                                                following_gap = following_gap+1
-                                                            else:
-                                                                list_of_gaps_extracellular.append(n-following_gap)
-                                                                following_gap = following_gap+1
+                                                        if reverse_tmd == False:
+                                                            list_of_gaps_extracellular.append(n-following_gap)
+                                                            following_gap = following_gap+1
+                                                            rev_value = n
                                                         else:
-                                                            if reverse_tmd == False:
-                                                                list_of_gaps_intracellular.append(n-following_gap)
-                                                                following_gap = following_gap+1
-                                                                rev_value = n
-                                                            else:
-                                                                list_of_gaps_extracellular.append(n-following_gap)
-                                                                following_gap = following_gap+1
-                                                                rev_value = n
+                                                            list_of_gaps_intracellular.append(n-following_gap)
+                                                            following_gap = following_gap+1
+                                                            rev_value = n
 
-                                                           # Makes a list of gaps of the match of the odd juxta before the TMD
+                                        if type(analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_match"%tmd_int])== str:
+                                        # Makes a list of gaps of the match of the odd juxta before the TMD
+                                            list_of_gaps_in_query_before_even = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int])if m.start()+0.5 < 31]
 
-                                            if type(analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_match"%tmd_int])== str and type(analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int])==str:
+                                            list_of_gaps_in_match_before_even = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_match"%tmd_int])if m.start() < 31]
 
-                                                list_of_gaps_in_query_after_even = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int][::-1])if m.start()+0.5 < 31]
-                                                list_of_gaps_in_match_after_even = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_match"%tmd_int][::-1])if m.start() < 31]
+                                            for n in list(reversed(list_of_gaps_in_match_before_even)):
+                                                greater_values = sum(i< n for i in list_of_gaps_in_query_before_even)
+                                                if reverse_tmd== False:
+                                                    list_of_gaps_extracellular.append(n-greater_values)
+                                                else:
+                                                    list_of_gaps_intracellular.append(n-greater_values)
 
-                                                for n in list(reversed(list_of_gaps_in_match_after_even)):
-                                                    greater_values = sum(i< n for i in list_of_gaps_in_query_after_even)
-                                                    if reverse_tmd== False:
-                                                        list_of_gaps_intracellular.append(n-greater_values)
 
+
+                                        # juxta after even TMDs:
+
+                                        if type(analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int])== str:
+
+                                            list_of_gaps_in_query_after_even = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int][::-1]) if m.start()+0.5 < 31]
+
+                                            # if one gap is found, code checks location and appends it
+                                            if len (list_of_gaps_in_query_after_even)==1:
+                                                if reverse_tmd == False:
+                                                    list_of_gaps_intracellular.append(list_of_gaps_in_query_after_even[0])
+                                                else:
+                                                    list_of_gaps_extracellular.append(list_of_gaps_in_query_after_even[0])
+
+                                            # if more than one gap is found, code checks if the gaps are one after another in the query!
+                                            if len (list_of_gaps_in_query_after_even)>1.0:
+                                                following_gap = 0
+                                                rev_value = list_of_gaps_in_query_after_even[0]
+                                                for n in list_of_gaps_in_query_after_even:
+                                                    if n-following_gap == rev_value:
+                                                        if reverse_tmd == False:
+                                                            list_of_gaps_intracellular.append(n-following_gap)
+                                                            following_gap = following_gap+1
+                                                        else:
+                                                            list_of_gaps_extracellular.append(n-following_gap)
+                                                            following_gap = following_gap+1
                                                     else:
-                                                        list_of_gaps_extracellular.append(n-greater_values)
+                                                        if reverse_tmd == False:
+                                                            list_of_gaps_intracellular.append(n-following_gap)
+                                                            following_gap = following_gap+1
+                                                            rev_value = n
+                                                        else:
+                                                            list_of_gaps_extracellular.append(n-following_gap)
+                                                            following_gap = following_gap+1
+                                                            rev_value = n
 
-                                    unique_list_of_gaps_in_tmd = list(set(list_of_gaps_in_tmd))
-                                    unique_list_of_gaps_intracellular = list(set(list_of_gaps_intracellular))
-                                    unique_list_of_gaps_extracellular = list(set(list_of_gaps_extracellular))
+                                                       # Makes a list of gaps of the match of the odd juxta before the TMD
 
-                                    df.loc[acc,"%s_occuring_gaps"%tmd]=str(unique_list_of_gaps_in_tmd)
-                                    df.loc[acc,"%s_amount_possible_gappositions"%tmd]=len(unique_list_of_gaps_in_tmd)
+                                        if type(analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_match"%tmd_int])== str and type(analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int])==str:
 
-                                    df.loc[acc,'juxta_%s_intracellular_possible_gappositions'%tmd] = str(unique_list_of_gaps_intracellular)
-                                    df.loc[acc,'juxta_%s_extracellular_possible_gappositions'%tmd] = str(unique_list_of_gaps_extracellular)
-                                    df.loc[acc,'juxta_%s_intracellular_num_gaps'%tmd] = len(unique_list_of_gaps_intracellular)
-                                    df.loc[acc,'juxta_%s_exracellular_num_gaps'%tmd] = len(unique_list_of_gaps_extracellular)
+                                            list_of_gaps_in_query_after_even = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int][::-1])if m.start()+0.5 < 31]
+                                            list_of_gaps_in_match_after_even = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_match"%tmd_int][::-1])if m.start() < 31]
+
+                                            for n in list(reversed(list_of_gaps_in_match_after_even)):
+                                                greater_values = sum(i< n for i in list_of_gaps_in_query_after_even)
+                                                if reverse_tmd== False:
+                                                    list_of_gaps_intracellular.append(n-greater_values)
+
+                                                else:
+                                                    list_of_gaps_extracellular.append(n-greater_values)
+
+                                unique_list_of_gaps_in_tmd = list(set(list_of_gaps_in_tmd))
+                                unique_list_of_gaps_intracellular = list(set(list_of_gaps_intracellular))
+                                unique_list_of_gaps_extracellular = list(set(list_of_gaps_extracellular))
+
+                                df.loc[acc,"%s_occuring_gaps"%tmd]=str(unique_list_of_gaps_in_tmd)
+                                df.loc[acc,"%s_amount_possible_gappositions"%tmd]=len(unique_list_of_gaps_in_tmd)
+
+                                df.loc[acc,'juxta_%s_intracellular_possible_gappositions'%tmd] = str(unique_list_of_gaps_intracellular)
+                                df.loc[acc,'juxta_%s_extracellular_possible_gappositions'%tmd] = str(unique_list_of_gaps_extracellular)
+                                df.loc[acc,'juxta_%s_intracellular_num_gaps'%tmd] = len(unique_list_of_gaps_intracellular)
+                                df.loc[acc,'juxta_%s_exracellular_num_gaps'%tmd] = len(unique_list_of_gaps_extracellular)
+
+                        df.loc[acc,"gaps_analysed"] = "True"
+                        logging.info("--Analysed")
+                        with open(dfout10_uniprot_gaps, 'w') as csv_out:
+                            df.to_csv(csv_out, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
 
-                            df.loc[acc,"gaps_analysed"] = "True"
-                            logging.info("--Analysed")
-                            with open(dfout10_uniprot_gaps, 'w') as csv_out:
-                                df.to_csv(csv_out, sep=",", quoting=csv.QUOTE_NONNUMERIC)
-
-
-                        else:
-                            logging.info("Analysed csv for %s does not exist" %acc)
-                else:
-                    logging.info("Output file for %s does not exist" %acc)
-
+                    else:
+                        logging.info("Analysed csv for %s does not exist" %acc)
             else:
-                logging.info("Gap analysis for %s already done" %acc)
+                logging.info("Output file for %s does not exist" %acc)
+
+        else:
+            logging.info("Gap analysis for %s already done" %acc)
 
 
 #A## variables are included only to help navigate the document in PyCharm
