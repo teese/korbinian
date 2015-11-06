@@ -3068,9 +3068,8 @@ if A09_save_figures_describing_proteins_in_list:
     SHOW THE DATA FOR EACH TMD IN THE DATASET
     '''
     #create list of colours to use in figures
-    colour_lists = utils.create_colour_lists()
+    colour_lists = tools.create_colour_lists()
     tableau20 = colour_lists['tableau20']
-
 
     '''
     Fig09: Histogram of mean AAIMON ratios for each TMD separately
@@ -4261,7 +4260,7 @@ if A09_save_figures_describing_proteins_in_list:
             25 and onwards: Colour lists and Histograms
             '''
             #prepare colour lists
-            colour_lists = utils.create_colour_lists()
+            colour_lists = tools.create_colour_lists()
             TUM_colours_list_with_greys = colour_lists['TUM_colours_list_with_greys']
             colourlist_greys = [(0.6, 0.7764705882352941, 0.9058823529411765), 'None']
 
@@ -4759,7 +4758,7 @@ if A09_save_figures_describing_proteins_in_list:
                     KW_counts_major = KW_counts_major.drop(KW)
 
             #prepare colour lists
-            colour_lists = utils.create_colour_lists()
+            colour_lists = tools.create_colour_lists()
             TUM_colours_list_with_greys = colour_lists['TUM_colours_list_with_greys']
             colourlist_greys = [(0.6, 0.7764705882352941, 0.9058823529411765), 'None']
 
@@ -5126,7 +5125,7 @@ if A10_compare_lists:
                                                                      n_rows=nrows_in_each_fig,
                                                                      n_cols=ncols_in_each_fig)
 
-    colour_lists = utils.create_colour_lists()
+    colour_lists = tools.create_colour_lists()
     TUM_colours_list_with_greys = colour_lists['TUM_colours_list_with_greys']
 
     '''
