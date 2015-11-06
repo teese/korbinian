@@ -2,7 +2,10 @@
   <dictionary name="m.teese">
     <words>
       <w>binlist</w>
+      <w>hlab</w>
+      <w>matplotlib</w>
       <w>nonredundant</w>
+      <w>savefig</w>
     </words>
   </dictionary>
 </component>
