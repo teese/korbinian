@@ -4,8 +4,10 @@
       <w>binlist</w>
       <w>hlab</w>
       <w>matplotlib</w>
+      <w>motifabundance</w>
       <w>nonredundant</w>
       <w>savefig</w>
+      <w>tlabprojects</w>
     </words>
   </dictionary>
 </component>
