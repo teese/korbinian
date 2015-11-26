@@ -403,6 +403,8 @@ def slice_SW_markup_TMD_plus_surr(x, TMD):
     return x['alignment_markup'][int(x['%s_start_in_SW_alignment_plus_surr' % TMD]):int(x['%s_end_in_SW_alignment_plus_surr' % TMD])]
 def slice_SW_match_TMD_seq_plus_surr(x, TMD):
     return x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr' % TMD]):int(x['%s_end_in_SW_alignment_plus_surr' % TMD])]
+def find_indices_longer_than_prot_seq(df, TMD):
+    return df['end_surrounding_seq_in_query_%s' % TMD] > df['uniprot_seqlen']
 
 def create_indextuple_nonTMD_last(x):
     ''' Joins two columns into a tuple. Used to create the last tuple of the nonTMD region in the sequence.
@@ -761,7 +763,7 @@ def create_dict_of_data_from_uniprot_record(record):
 #    return list_of_files_with_feature_tables, list_of_files_with_homologues, list_of_protein_names, list_of_org_domains
 
 
-def retrieve_simap_feature_table(input_sequence, max_memory_allocation,output_file):
+def retrieve_simap_feature_table(input_sequence, max_memory_allocation, output_file):
     '''
     Uses the java program to access the simap database and download the small file containing information on that protein, called a "feature table".
     '''
@@ -812,7 +814,7 @@ def retrieve_simap_feature_table(input_sequence, max_memory_allocation,output_fi
 #        sys.stdout.flush()
 #    print(' .')
 
-def retrieve_simap_homologues(input_sequence, output_file, database, max_hits, max_memory_allocation, taxid, extra_search_string):
+def retrieve_simap_homologues(input_sequence, output_file, database, max_hits, max_memory_allocation, taxid):
     '''
     Uses the java program to access the simap database and download the large file containing all homologues of that protein.
     '''
@@ -822,19 +824,20 @@ def retrieve_simap_homologues(input_sequence, output_file, database, max_hits, m
     #jar_file = r'/nas/teeselab/programs/eaSimap.jar'
     jar_file = r"D:\Schweris\Projects\Programming\Python\programs\eaSimap.jar"
     #set parameters
-    database = '' #leave blank('') for SIMAP all database. 'uniprot_swissprot' 'uniprot_trembl' 'refseq' 'Escherichia coli' 'Homo sapiens' 'Hot springs metagenome'
+    #database = '' #leave blank('') for SIMAP all database. 'uniprot_swissprot' 'uniprot_trembl' 'refseq' 'Escherichia coli' 'Homo sapiens' 'Hot springs metagenome'
     database_dictionary = {313: 'uniprot_swissprot', 314: 'uniprot_trembl', 595: 'refseq', 721: 'Escherichia coli', 1296: 'Homo sapiens', 4250: 'Hot springs metagenome'}
     database_dictionary_reversed = {}     
     for v,k in database_dictionary.items():
         database_dictionary_reversed[k] = v
-    database_search_string = '' if database == '' else '-d %s' % database_dictionary_reversed[database]  # -d in java interface is currently not working, but could be functional at some stage
-    taxid_search_string = '' if taxid == '' else '-i %s' % taxid
+    print("in retr simap, database = %s" % database)
+    database_search_string = '' if database == '""' else '-d %s' % database_dictionary_reversed[database]  # -d in java interface is currently not working, but could be functional at some stage
+    taxid_search_string = '' if taxid == '""' else '-i %s' % taxid
     #note that windows has a character limit in the command prompt in theory of 8191 characters, but the command line java command seems to cause errors with sequences above 3000 amino acids.
     #the 3000 character limit is currently applied in the main_simap script, rather than here
     #run command
-    string_to_run_as_java_command = 'java -Xmx%im -jar %s -s %s -m %s -o %s -x %s%s%s' % (max_memory_allocation,jar_file, input_sequence, 
+    string_to_run_as_java_command = 'java -Xmx%im -jar %s -s %s -m %s -o %s -x %s%s' % (max_memory_allocation,jar_file, input_sequence,
                                                                                            max_hits, output_file, 
-                                                                                          database_search_string, extra_search_string, taxid_search_string)
+                                                                                          database_search_string, taxid_search_string)
     logging.info(string_to_run_as_java_command)
 #    for output_line in run_command(string_to_run_as_java_command):
 #        print(output_line)                           #note that nothing is actually printed

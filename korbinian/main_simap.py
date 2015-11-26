@@ -377,9 +377,6 @@ if A03_create_csv_from_uniprot_flatfile:
                                               )
                     if comment_match:
                         regex_subcell_loc_dict[search_word] = True
-                        #else:
-                        #print('pattern not found')
-                        #regex_subcell_loc_result_dict[search_word] = False
             #the dictionary could also be nested within one column
             #output_dict['regex_subcell_loc_dict'] = regex_subcell_loc_dict
             #add all of the fields to the dictionary
@@ -508,7 +505,7 @@ if A03_create_csv_from_uniprot_flatfile:
         #count records in dataframe
         count_of_uniprot_records_added_to_csv = len(df.columns)
         #flip rows and columns (transverse)
-        df = df.T
+        df = df.T.copy()
 
         ''' ~~ DETERMINE START AND STOP INDICES FOR TMD PLUS SURROUNDING SEQ ~~ '''
         aa_before_tmd = settingsdict["variables"]["analyse.simap_match_filters.aa_before_tmd"]
@@ -519,17 +516,25 @@ if A03_create_csv_from_uniprot_flatfile:
         for i in range(1, max_num_TMDs + 1):
             TMD = 'TM%02d' % i
             TMD_seq_name = '%s_seq' % TMD
-            # instead of integers showing the start or end of the TMD, some people write strings such as "<5" or "?"
-            # it is necessary to convert them all to np.nan as floats, and then the numbers back to integers again
-            df['%s_start' % TMD] = df['%s_end' % TMD].convert_objects(convert_numeric = True).dropna().astype('int64')
+            # instead of integers showing the start or end of the TMD, some people write strings into the
+            # UniProt database, such as "<5" or "?"
+            # to avoid the bugs that this introduces, it is necessary to convert all strings to np.nan (as floats),
+            # using the convert objects function. The numbers can then be converted back from floats to integers.
+            df['%s_start' % TMD] = df['%s_start' % TMD].convert_objects(convert_numeric = True).dropna().astype('int64')
             df['%s_end' % TMD] = df['%s_end' % TMD].convert_objects(convert_numeric = True).dropna().astype('int64')
-            # determine the integerst describing the positions of the surrounding sequence
-            df['start_surrounding_seq_in_query_%s' % TMD] = df['%s_start' % TMD] - aa_before_tmd - 1
-            df['start_surrounding_seq_in_query_%s' % TMD][df['start_surrounding_seq_in_query_%s' % TMD] < 0] = 0
+            # determine the position of the start of the surrounding sequence
+            df['start_surrounding_seq_in_query_%s' % TMD] = df['%s_start' % TMD] - aa_before_tmd
+            # replace negative values with zero. (slicing method was replaced with lambda function to avoid CopyWithSetting warning)
+            df['start_surrounding_seq_in_query_%s' % TMD] = df['start_surrounding_seq_in_query_%s' % TMD].apply(lambda x: x if x > 0 else 0)
             df['end_surrounding_seq_in_query_%s' % TMD] = df['%s_end' % TMD] + aa_after_tmd
-            df['end_surrounding_seq_in_query_%s' % TMD][df['end_surrounding_seq_in_query_%s' % TMD] > df['uniprot_seqlen']] = df['uniprot_seqlen']
-            #set up empty column for each sequence [[necessary??]]
-            df['%s_with_surrounding_seq' % TMD] = ''
+            # create a boolean series, describing whether the end_surrounding_seq_in_query is longer than the protein seq
+            series_indices_longer_than_prot_seq = df.apply(utils.find_indices_longer_than_prot_seq, args=(TMD,), axis=1)
+            # obtain the indices of proteins in the series
+            uniprot_acc_indices_longer_than_prot_seq = series_indices_longer_than_prot_seq[series_indices_longer_than_prot_seq].index
+            # use indices to select the main dataframe, and convert these end_surrounding_seq_in_query values to the uniprot_seqlen value
+            df.loc[uniprot_acc_indices_longer_than_prot_seq,'end_surrounding_seq_in_query_%s' % TMD] = df.loc[uniprot_acc_indices_longer_than_prot_seq,'uniprot_seqlen']
+            # df = df['end_surrounding_seq_in_query_%s' % TMD].apply(lambda x: x['end_surrounding_seq_in_query_%s' % TMD] if x < df['uniprot_seqlen'] else df['uniprot_seqlen'])
+            # df['end_surrounding_seq_in_query_%s' % TMD][df['end_surrounding_seq_in_query_%s' % TMD] > df['uniprot_seqlen']] = df['uniprot_seqlen']
 
         ''' ~~   SLICE TMDS FROM UNIPROT SEQ    ~~ '''
         #iterate through each TMD, slicing out the relevant sequence.
@@ -770,8 +775,7 @@ if A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv:
                         utils.retrieve_simap_homologues(input_sequence,
                                                         output_file=df.loc[acc, 'SIMAP_homologues_XML_file_path'],
                                                         database=database, max_hits=max_hits,
-                                                        max_memory_allocation=max_memory_allocation, taxid=taxid,
-                                                        extra_search_string=extra_search_string)
+                                                        max_memory_allocation=max_memory_allocation, taxid=taxid)
                         #now check again if the files exist
                     feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(df, acc)
                     if not homologues_XML_exists:
@@ -1314,7 +1318,7 @@ if A08_calculate_AAIMON_ratios:
                         dfs['len_query_alignment_sequence'] = 0
 
                     #add the list of words to the globals, to be accessed by utils.find_disallowed_words
-                    words_not_allowed_in_description = settingsdict["variables"]["analyse.simap_match_filters.words_not_allowed_in_description"]
+                    words_not_allowed_in_description = eval(settingsdict["variables"]["analyse.simap_match_filters.words_not_allowed_in_description"])
                     #collect disallowed words in hit protein description (patent, synthetic, etc)
                     dfs['list_disallowed_words_in_descr'] = dfs['A4_description'].dropna().apply(
                         utils.find_disallowed_words, args=(words_not_allowed_in_description,))
@@ -1516,13 +1520,10 @@ if A08_calculate_AAIMON_ratios:
                             dfs_nonTMD = dfs.loc[dfs['all_tmds_in_SW_alignment'].notnull()].query('all_tmds_in_SW_alignment == True')
                             #filter to contain only hits that do not include disallowed words
                             dfs_nonTMD = dfs_nonTMD.query('disallowed_words_not_in_descr == True')
-                            #print(dfs_nonTMD2.shape)
                             #filter to contain only hits where the index for the TMD is present
                             first_TMD_start_index = '%s_start_in_SW_alignment' % list_of_TMDs[0]
 
                             dfs_nonTMD = dfs_nonTMD.loc[dfs_nonTMD[first_TMD_start_index].notnull()]
-                            #print(dfs_nonTMD2.shape)
-                            #print(dfs_nonTMD2[first_TMD_end_index])
                             dfs_nonTMD['nonTMD_index_tuple_first'] = dfs_nonTMD[first_TMD_start_index].apply(lambda x: (0, int(x)))
 
                             #create start and stop indices for all sections between tmds
