@@ -64,21 +64,6 @@ def all_df_in_list_contain_data(df_list_KW, title = '', KW = '', data_names_list
             both_df_contain_data = False
     return both_df_contain_data
 
-def savefig_if_necessary(savefig, fig, fig_nr, base_filepath, tight_layout = False, formats = 'png', dpi = 400):
-    '''
-    Function to save figure with multiple subplots. (i.e., a canvas containing multiple figures)
-    Designed to work with the function create_dict_organising_subplots(), which creates a bool object "savefig".
-    Automatically names the figure based on the figure number (fig_nr), using a previously defined file path as a base.
-    for multiple formats, try formats = ['png','pdf']
-    '''
-    if savefig:
-        if 'png' in formats:
-            fig.savefig(base_filepath + '_%01d.png' % fig_nr, format='png', dpi=dpi)
-        if 'pdf' in formats:
-            fig.savefig(base_filepath + '_%01d.pdf' % fig_nr, format='pdf')
-        #close any open figures
-        plt.close('all')
-
 def create_df_with_mean_AAIMON_each_TM(df):
     '''Takes a dataframe containing a list of proteins, and the average AAIMON ratio
     calculated for each TMD.

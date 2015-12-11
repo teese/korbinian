@@ -2935,7 +2935,7 @@ if A09_save_figures_describing_proteins_in_list:
     #improve ggplot style for a canvas (fig) with 4 figures (plots)
     utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
     #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-    utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
+    tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
 
     '''
     Fig05: Scattergram comparing number_of_TMDs_in_uniprot_feature_list with mean AAIMON
@@ -3062,7 +3062,7 @@ if A09_save_figures_describing_proteins_in_list:
     #improve ggplot style for a canvas (fig) with 4 figures (plots)
     utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
     #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-    utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
+    tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
 
 
     '''
@@ -3406,7 +3406,7 @@ if A09_save_figures_describing_proteins_in_list:
         #save the figure as it is
         savefig = True
         #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-        utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
+        tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
 
 
 
@@ -3742,7 +3742,7 @@ if A09_save_figures_describing_proteins_in_list:
         #save the figure as it is
         savefig = True
         #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-        utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
+        tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
 
         '''
         Fig17: Less than 12 TMDs vs at least 12 TMDs
@@ -4095,7 +4095,7 @@ if A09_save_figures_describing_proteins_in_list:
             utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
 
             #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-            utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
+            tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
 
             '''
             Fig21: Boxplot only GPCRs
@@ -4176,7 +4176,7 @@ if A09_save_figures_describing_proteins_in_list:
             #save the figure as it is
             savefig = True
             #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-            utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
+            tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
 
             '''
             Fig25 AND ONWARDS: Histograms split by keywords
@@ -4381,7 +4381,7 @@ if A09_save_figures_describing_proteins_in_list:
                 axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
 
                 #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-                utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
+                tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
 
 
             #only create the following for multi-pass proteins (at least 2 proteins in lost with 7 TMDs)
@@ -4526,7 +4526,7 @@ if A09_save_figures_describing_proteins_in_list:
                     axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
 
                     #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-                    utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
+                    tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
 
             '''
             Enzymes vs NonEnzymes
@@ -4633,7 +4633,7 @@ if A09_save_figures_describing_proteins_in_list:
             #improve ggplot style for a canvas (fig) with 4 figures (plots)
             utils.improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour, legend_obj)
             #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-            utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
+            tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
 
             if dataset_contains_multipass_prots:
                 '''
@@ -4731,7 +4731,7 @@ if A09_save_figures_describing_proteins_in_list:
                 axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
 
                 #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-                utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
+                tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
             '''
             Histograms split by keywords (NONENZYME ONLY)
             '''
@@ -4882,7 +4882,7 @@ if A09_save_figures_describing_proteins_in_list:
                 axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
 
                 #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-                utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
+                tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
 
 
             #only create the following for multi-pass proteins (at least 2 proteins in lost with 7 TMDs)
@@ -5026,7 +5026,7 @@ if A09_save_figures_describing_proteins_in_list:
                     axarr[row_nr, col_nr].annotate(s='odds ratio = ' + odds_ratio_KW_over_nonKW, xy = (0.7,0.70), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
 
                     #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-                    utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
+                    tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
 
 
     '''
@@ -5035,7 +5035,7 @@ if A09_save_figures_describing_proteins_in_list:
     #save the figure as it is
     savefig = True
     #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-    utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
+    tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
     '''
     save the updated dataframe, containing the various extra columns used for the figure
     '''
