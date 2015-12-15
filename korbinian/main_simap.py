@@ -5035,7 +5035,6 @@ if A09_save_figures_describing_proteins_in_list:
     #save the figure as it is
     savefig = True
     #save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-    tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath = base_filename_summaries)
     '''
     save the updated dataframe, containing the various extra columns used for the figure
     '''
