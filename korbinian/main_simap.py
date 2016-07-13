@@ -67,6 +67,17 @@ else:
 64390643         188 --------------AFDQIGGYEQLEAAYAQAVPSRIVPNTTCHLPRADA    223
  - in rare cases the only alignable sequence is the TMD!! The sequence excluding TMD is therefore '', too small for an analysis, but as long as the program runs successfully this can be filtered out later, at the "calculate conservation" step using pandas dataframes
 """
+
+def aaa(df_or_series):
+    """ Function for use in debugging.
+    Saves pandas Series or Dataframes to a user-defined csv file.
+    """
+     # convert any series to dataframe
+    if isinstance(df_or_series, pd.Series):
+        df_or_series = df_or_series.to_frame()
+    csv_out = r"D:\data\000_aaa_temp_df_out.csv"
+    df_or_series.to_csv(csv_out, sep=",", quoting=csv.QUOTE_NONNUMERIC)
+
 # def run_main():
 import os
 
@@ -279,6 +290,7 @@ if A00_convert_uniprot_list_to_nonred_ff_via_uniref:
 #A## variables are included only to help navigate the document in PyCharm
 A01_parse_large_flatfile_with_list_uniprot_accessions = settingsdict["run_settings"]["uniprot.inputs.parse_large_flatfile_with_list_uniprot_accessions"]
 if A01_parse_large_flatfile_with_list_uniprot_accessions:
+    input_accession_list = "NEED TO ADD VARIABLE SOMEWHERE"
     logging.info('~~~~~~~~~~~~  starting A01_parse_large_flatfile_with_list_uniprot_accessions   ~~~~~~~~~~~~')
     #parse_large_flatfile_with_list_uniprot_accessions(list_of_uniprot_accessions, uniprot_flatfile_all_single_pass, uniprot_flatfile_of_selected_records)
     #def parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, input_uniprot_flatfile, output_uniprot_flatfile):
@@ -301,6 +313,7 @@ if A01_parse_large_flatfile_with_list_uniprot_accessions:
 #A## variables are included only to help navigate the document in PyCharm
 A02_retrieve_uniprot_data_for_acc_list_in_xlsx_file = settingsdict["run_settings"]["uniprot.inputs.retrieve_uniprot_data_for_acc_list_in_xlsx_file"]
 if A02_retrieve_uniprot_data_for_acc_list_in_xlsx_file:
+    uniprot_flatfile_all_human_membrane_compressed = "NEED TO ADD VARIABLE SOMEWHERE"
     logging.info('~~~~~~~~~~~~  starting A02_retrieve_uniprot_data_for_acc_list_in_xlsx_file   ~~~~~~~~~~~~')
     #take list of acc, search in default uniprot flatfile. If missing, download from uniprot server.
     input_uniprot_flatfile = uniprot_flatfile_all_human_membrane_compressed
@@ -458,7 +471,7 @@ if A03_create_csv_from_uniprot_flatfile:
                 list_of_variant_types_in_uniprot = ['VARIANT', 'CONFLICT', 'VARSPLIC', 'VAR_SEQ']
                 for TMD in list_of_TMDs:
                     #array_of_all_variants_in_tmd = np.zeros(4)
-                    array_of_all_variants_in_tmd = ([])
+                    array_of_all_variants_in_tmd = np.array([])
                     for variant_type in list_of_variant_types_in_uniprot:
                         if variant_type in desired_features_in_uniprot_dict.keys():
                             #if that variant is in the uniprot data for that protein, create a list of the indices showing where that variant is found
@@ -487,13 +500,12 @@ if A03_create_csv_from_uniprot_flatfile:
                                          variant_description, variant_feature_identifier])
                                     if array_of_all_variants_in_tmd != ([]):
                                         #add array with the data for this variant to the array/list for all variants
-                                        array_of_all_variants_in_tmd = np.row_stack(
-                                            (array_of_all_variants_in_tmd, variant_array))
+                                        array_of_all_variants_in_tmd = np.row_stack((array_of_all_variants_in_tmd, variant_array))
                                     else:
                                         #if the array is empty, replace the array for all variants with the array for the first variant
                                         array_of_all_variants_in_tmd = variant_array
-                    #if there were variants added, convert to string and add them to the output dictionary
-                    if array_of_all_variants_in_tmd != ([]):
+                    # if there were variants added (array is not empty), convert to string and add them to the output dictionary
+                    if array_of_all_variants_in_tmd.size:
                         output_dict['%s_seq_variants' % TMD] = str(array_of_all_variants_in_tmd)
 
             count_of_uniprot_records_processed += 1
@@ -520,8 +532,8 @@ if A03_create_csv_from_uniprot_flatfile:
             # UniProt database, such as "<5" or "?"
             # to avoid the bugs that this introduces, it is necessary to convert all strings to np.nan (as floats),
             # using the convert objects function. The numbers can then be converted back from floats to integers.
-            df['%s_start' % TMD] = df['%s_start' % TMD].convert_objects(convert_numeric = True).dropna().astype('int64')
-            df['%s_end' % TMD] = df['%s_end' % TMD].convert_objects(convert_numeric = True).dropna().astype('int64')
+            df['%s_start' % TMD] = pd.to_numeric(df['%s_start' % TMD]).dropna().astype('int64')
+            df['%s_end' % TMD] = pd.to_numeric(df['%s_end' % TMD]).dropna().astype('int64')
             # determine the position of the start of the surrounding sequence
             df['start_surrounding_seq_in_query_%s' % TMD] = df['%s_start' % TMD] - aa_before_tmd
             # replace negative values with zero. (slicing method was replaced with lambda function to avoid CopyWithSetting warning)
@@ -1572,11 +1584,13 @@ if A08_calculate_AAIMON_ratios:
                             list_tuple_indices_all_nonTMD_regions = list(dfs_tuples.itertuples(index=False))
                             #convert to a series, and reindex with the original index from the dataframe
                             tuples_series = pd.Series(list_tuple_indices_all_nonTMD_regions, index=dfs_nonTMD.index)
+                            # for some reason, the tuples are a pandas object "Pandas(nonTMD_index_tuple_first=(0, 592), nonTMD_index_tuple_last=(615, 618))"
+                            # convert to simple tuples
+                            tuples_series = tuples_series.apply(lambda x: tuple(x))
 
                             dfs_nonTMD['nested_tuple_indices_all_nonTMD_regions'] = tuples_series
                             #change to a string, in case this solves the weird effect with only the last tuple shown
-                            dfs_nonTMD['nested_tuple_indices_all_nonTMD_regions'] = dfs_nonTMD[
-                                'nested_tuple_indices_all_nonTMD_regions'].astype(str)
+                            dfs_nonTMD['nested_tuple_indices_all_nonTMD_regions'] = dfs_nonTMD['nested_tuple_indices_all_nonTMD_regions'].astype(str)
                             #you can test that the original index is maintained as follows:
                             #add the series as a new column in the original dataframe. Missing data (when not all TMDs found) will be filled using np.nan
                             dfs['nested_tuple_indices_all_nonTMD_regions'] = dfs_nonTMD['nested_tuple_indices_all_nonTMD_regions']
@@ -1597,14 +1611,11 @@ if A08_calculate_AAIMON_ratios:
                             #for each hit, perform the slice
                             for hit in dfs_nonTMD.index:
                                 dfs_nonTMD.loc[hit, 'nonTMD_seq_query'] = utils.slice_with_nested_tuple(dfs_nonTMD.loc[hit, 'query_alignment_sequence'],
-                                                                          dfs.loc[hit, 'nested_tuple_indices_all_nonTMD_regions']
-                                                                          )
+                                                                          dfs_nonTMD.loc[hit, 'nested_tuple_indices_all_nonTMD_regions'])
                                 dfs_nonTMD.loc[hit, 'nonTMD_markup'] = utils.slice_with_nested_tuple(dfs_nonTMD.loc[hit, 'alignment_markup'],
-                                                                       dfs_nonTMD.loc[hit, 'nested_tuple_indices_all_nonTMD_regions']
-                                                                       )
+                                                                       dfs_nonTMD.loc[hit, 'nested_tuple_indices_all_nonTMD_regions'])
                                 dfs_nonTMD.loc[hit, 'nonTMD_seq_match'] = utils.slice_with_nested_tuple(dfs_nonTMD.loc[hit, 'match_alignment_sequence'],
-                                                                          dfs_nonTMD.loc[hit, 'nested_tuple_indices_all_nonTMD_regions']
-                                                                          )
+                                                                          dfs_nonTMD.loc[hit, 'nested_tuple_indices_all_nonTMD_regions'])
                             #transfer to original dataframe (index should still match the original, partial seqs will be filled with np.nan)
                             dfs['nonTMD_seq_query'] = dfs_nonTMD['nonTMD_seq_query']
                             dfs['nonTMD_markup'] = dfs_nonTMD['nonTMD_markup']
@@ -6576,4 +6587,3 @@ if B03_OLD_fix_dfout05_simapcsv_by_adding_query_md5:
     #now save the improved dataframe to the csv
     with open(dfout05_simapcsv, 'w') as f:
         df_dfout05_simapcsv.to_csv(f, sep=",", quoting=csv.QUOTE_NONNUMERIC)
-
