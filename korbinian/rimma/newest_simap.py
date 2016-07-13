@@ -519,18 +519,17 @@ if A03_create_csv_from_uniprot_flatfile:
             df['%s_seq' % TMD] = df[df['%s_start' % TMD].notnull()].apply(utils.slice_uniprot_TMD_seq, args = (TMD,), axis=1)
             #slice TMD plus surrounding seq
             df['%s_with_surrounding_seq' % TMD] = df[df['%s_start' % TMD].notnull()].apply(utils.slice_uniprot_TMD_plus_surr_seq, args = (TMD,), axis=1)
-        #save to a csv
-        df.to_csv(dfout01_uniprotcsv, sep=",", quoting=csv.QUOTE_NONNUMERIC)
-        #flip rows and columns, and save again as csv for an alternative view
-        df.T.to_csv(dfout02_uniprotTcsv, sep=",", quoting=csv.QUOTE_NONNUMERIC)
-        #save both the inverted and original data as worksheets in excel
-        #first convert python datatypes to strings, as these currently give a TypeError
-        df['uniprot_orgclass'] = df['uniprot_orgclass'].astype(str)
+
+        # extract the organism domain (e.g. Eukaryota)
         df['organism_domain'] = df.uniprot_orgclass.apply(lambda x: x.strip("'[]").split("', '")[0])
+        # convert python datatypes to strings, as these currently give a TypeError when saving to excel
+        df['uniprot_orgclass'] = df['uniprot_orgclass'].astype(str)
         df['uniprot_all_accessions'] = df['uniprot_all_accessions'].astype(str)
         df['uniprot_KW'] = df['uniprot_KW'].astype(str)
         df['uniprot_features'] = df['uniprot_features'].astype(str)
         df['list_of_TMDs'] = df['list_of_TMDs'].astype(str)
+        #save to a csv
+        df.to_csv(dfout01_uniprotcsv, sep=",", quoting=csv.QUOTE_NONNUMERIC)
         #save to Excel
         writer = pd.ExcelWriter(dfout03_uniprotxlsx)  #engine='xlsxwriter'
         df.to_excel(writer, sheet_name='dfout02')

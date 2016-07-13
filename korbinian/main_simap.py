@@ -99,8 +99,6 @@ The MAIN script starts here
 import csv
 import xml.etree.ElementTree as ET
 import numpy as np
-from Bio import SwissProt
-from Bio import SeqIO
 import logging
 import tarfile
 from time import strftime
@@ -112,38 +110,10 @@ import itertools
 from scipy.stats import ttest_ind
 import sys
 import importlib
-import matplotlib.patches as patches
 import os
 import ast
-
-# open the settings file
-sheetnames = ["run_settings", "file_locations", "variables"]
-settingsdict = {}
-for sheetname in sheetnames:
-    # open excel file as pandas dataframe
-    dfset = pd.read_excel(excel_file_with_settings, sheetname=sheetname)
-    # for each row, isolate the columns containing the variable names
-    for row in dfset.index:
-        cells_with_variable_names = dfset.loc[row,"col1":"col3"].dropna()
-        # join hierarchical variable names together, separated by "."
-        dfset.loc[row,'variable'] = ".".join(cells_with_variable_names)
-    # replace "FALSE" and "TRUE" with python bool values
-    dfset['value'] = dfset['value'].apply(lambda x : True if x == "TRUE" else x)
-    dfset['value'] = dfset['value'].apply(lambda x : False if x == "FALSE" else x)
-    # convert the index to the joined variable names
-    dfset.index = dfset['variable']
-    # convert the variable names and values to a dict, and add to a nested dict
-    settingsdict[sheetname] = dfset['value'].to_dict()
-
-list_number = settingsdict["run_settings"]["uniprot_list"]
-
-# import private tlab python modules
-# the utils file contains a number of necessary scripts, this needs to be visible to the system.
-# deprecated in favour of the "setup.py" method promoted by Alex
-#if settingsdict["file_locations"]["utils"] not in sys.path:
-#    sys.path.append(settingsdict["file_locations"]["utils"])
-
-# load the tlab utils and tools modules
+import korbinian
+from korbinian.uniprot import convert_uniprot_list_to_nonred_ff_via_uniref, parse_large_flatfile_with_list_uniprot_accessions, retrieve_uniprot_data_for_acc_list_in_xlsx_file, create_csv_from_uniprot_flatfile
 import korbinian.mtutils as utils
 import korbinian.rimma_utility as r_utils
 import tlabtools.tools as tools
@@ -154,26 +124,17 @@ importlib.reload(r_utils)
 importlib.reload(tools)
 importlib.reload(figs)
 
-''' -------Setup keyboard interrupt----------
-'''
-#import arcgisscripting
-import signal
-def ctrlc(sig, frame):
-    raise KeyboardInterrupt("CTRL-C!")
-signal.signal(signal.SIGINT, ctrlc)
-'''+++++++++++++++LOGGING++++++++++++++++++'''
-date_string_with_hour = strftime("%Y-%m-%d-%H-%M")
-date_string = strftime("%Y%m%d")
+settingsdict = korbinian.common.create_settingsdict(excel_file_with_settings)
 
-#designate the output logfile
-logfile = os.path.join(main_folder, 'logfiles','List%s_Settings%s_%s_logfile.log' % (list_number, settings_number, date_string))
-#a file to keep a record of the log settings used for that script
-utils.setup_error_logging(logfile)
+list_number = settingsdict["run_settings"]["uniprot_list"]
 
-#if settingsdict['logging_settings']['suppress_error_logging_to_console']:
-#    logging.setLevel('WARNING')
-#'''+++++++++++++++FILENAMES++++++++++++++++++'''
+# import private tlab python modules
+# the utils file contains a number of necessary scripts, this needs to be visible to the system.
+# deprecated in favour of the "setup.py" method promoted by Alex
+#if settingsdict["file_locations"]["utils"] not in sys.path:
+#    sys.path.append(settingsdict["file_locations"]["utils"])
 
+korbinian.common.setup_keyboard_interrupt_and_error_logging(main_folder, list_number, settings_number)
 
 # Folder, where SIMAP download is stored; requires a lot of harddrive; 
 data_folder = settingsdict["file_locations"]["data_folder"]
@@ -183,1056 +144,46 @@ uniprot_flatfile_of_selected_records = os.path.join(uniprot_folder,'List%s_selec
 base_filename_summaries = os.path.join(main_folder, 'summaries', 'List%02d' % list_number)
 #base_filename_input_acc_lists = '%s/input_acc_lists/List%02d'  % (main_folder, list_number)
 excelfile_with_uniprot_accessions = os.path.join(base_filename_summaries, '.xlsx')
+
 list_of_uniprot_accessions = 'List%02d_uniprot_accessions.txt' % list_number
-list_of_uniprot_accessions_path = os.path.join(main_folder, 'input_acc_lists', list_of_uniprot_accessions)
-dfout01_uniprotcsv = '%s_uniprot.csv' % base_filename_summaries
-dfout02_uniprotTcsv = '%s_uniprotT.csv' % base_filename_summaries
-dfout03_uniprotxlsx = '%s_uniprot.xlsx' % base_filename_summaries
-dfout04_uniprotcsv_incl_paths = '%s_uniprot_incl_paths.csv' % base_filename_summaries
-dfout05_simapcsv = '%s_simap.csv' % base_filename_summaries
-dfout06_simapxlsx = '%s_simap.xlsx' % base_filename_summaries
-dfout07_simapnonred = '%s_simapnonred.csv' % base_filename_summaries
-dfout08_simap_AAIMON = '%s_simap_AAIMON.csv' % base_filename_summaries
-dfout09_simap_AAIMON_02 = '%s_simap_AAIMON_02.csv' % base_filename_summaries
-dfout10_uniprot_gaps = '%s_gap_densities.csv' % base_filename_summaries
-dfout11_ = 0
-dfout12_ = 0
-dfout13_ = 0
+# create dictionary of paths for output files
+pathdict = korbinian.common.create_pathdict(main_folder, base_filename_summaries, list_of_uniprot_accessions, list_number)
 
-csv_file_with_histogram_data = os.path.join(main_folder, 'List%02d_histogram.csv' % list_number)
-csv_file_with_histogram_data_normalised = os.path.join(main_folder, 'List%02d_histogram_normalised.csv' % list_number)
-csv_file_with_histogram_data_normalised_redundant_removed = os.path.join(main_folder,'List%02d_histogram_normalised_redundant_removed.csv' % list_number)
-csv_file_with_md5_for_each_query_sequence = os.path.join(main_folder, 'List%02d_query_md5_checksums.csv' % list_number)
-
-csv_av_cons_ratio_all_proteins = '%s_cons_ratios_nonred_av.csv' % base_filename_summaries
-csv_std_cons_ratio_all_proteins = '%s_cons_ratios_nonred_std.csv' % base_filename_summaries
-
+#A## variables are included only to help navigate the document in PyCharm
 A00_convert_uniprot_list_to_nonred_ff_via_uniref = settingsdict["run_settings"]["uniprot.inputs.convert_uniprot_list_to_nonred_ff_via_uniref"]
-
-overwrite_selected_ff = settingsdict["variables"]["uniprot.convert_uniprot_list_to_nonred_ff_via_uniref.overwrite_selected_ff"]
-
 if A00_convert_uniprot_list_to_nonred_ff_via_uniref:
     logging.info('~~~~~~~~~~~~  starting A00_convert_redundant_uniprot_list_to_nonred_ff_via_uniref   ~~~~~~~~~~~~')
+    overwrite_selected_ff = settingsdict["variables"]["uniprot.convert_uniprot_list_to_nonred_ff_via_uniref.overwrite_selected_ff"]
     if os.path.isfile(uniprot_flatfile_of_selected_records) == False or overwrite_selected_ff == True:
-        # load uniref cutoff used (typically 50, for UniRef50)
-        uniref_cutoff = settingsdict["variables"]["uniprot.convert_uniprot_list_to_nonred_ff_via_uniref.uniref_cluster_cutoff"]
-        # define path to csv file containing the list of redundant uniprot accessions
-        redundant_list_uniprot_acc_csv = os.path.join(uniprot_folder,"List%02d_redundant_list_uniprot_acc.tab" % list_number)
-        # define path to uniprot flatfile containing the redundant protein records
-        redundant_uniprot_flatfile = os.path.join(uniprot_folder,"List%02d_redundant_uniprot_flatfile.txt" % list_number)
-        # define path to the csv file containing the relevant uniref clusters applicable to this list of proteins
-        uniref_clusters_csv = os.path.join(uniprot_folder,"List%02d_UniRef%02d_clusters.tab" % (list_number,uniref_cutoff))
-        #create a new dataframe with the uniref csv file, containing the accessions of the reference sequences
-        df_uniref = pd.read_table(uniref_clusters_csv)
-        #to simplify, keep only the columns with the uniprot accessions
-        #for backwards compatibility, check if the old header is used
-        if 'Cluster member(s)' in df_uniref.columns:
-            df_uniref.rename(columns={'Cluster member(s)': 'Cluster members'})
-        #to simplify, keep only the columns with the uniprot accessions
-        df_uniref = df_uniref[['Cluster ID', 'Cluster members']]# 'Organisms'
-        df_uniref = df_uniref.set_index('Cluster ID')
-        #change the cluster ID to the index
-        df_uniref.index.names = ['cluster_ID']
-        #convert the list of uniprot accessions in each cluster to a python list format
-        df_uniref['all_acc_in_cluster'] = df_uniref['Cluster members'].apply(lambda x : [x.strip() for x in x.split(';')])
-        # delete the original list of clusters
-        df_uniref.drop("Cluster members", axis=1, inplace=True)
-        if os.path.isfile(redundant_list_uniprot_acc_csv) == False:
-            logging.warning('warning, file with nonredundant uniprot acc does not exist : %s' % redundant_list_uniprot_acc_csv)
-        #open up large csv containing the uniprot acc of all single-pass proteins in uniprot
-        df_uniprot_acc = pd.read_table(redundant_list_uniprot_acc_csv)
-        #set the uniprot acc as the index
-        df_uniprot_acc = df_uniprot_acc.set_index('Entry')
-        #create an empty column to contain the cluster ID
-        df_uniprot_acc['Cluster ID'] = ''
-        #create a new dataframe with the uniref csv file, containing the accessions of the reference sequences
-        #find the appropriate uniref cluster containing each acc
-        acc_counter = 0
-        for acc in df_uniprot_acc.index:
-            #check if the accession is already a uniref representative (saves searching time!)
-            if 'UniRef%i_%s' % (uniref_cutoff, acc) in df_uniref.index:
-                df_uniprot_acc.loc[acc, 'Cluster ID'] = 'UniRef%i_%s' % (uniref_cutoff,acc)
-            else:
-                #if it is not a uniref representative, go through each uniref cluster, checking to see if it is a member
-                for acc_cluster in list(df_uniref['all_acc_in_cluster']):
-                    if acc in acc_cluster:
-                        #if the acc is a member of a uniref cluster, add the cluster name to the original dataframe
-                        df_uniprot_acc.loc[acc, 'Cluster ID'] = 'UniRef%i_%s' % (uniref_cutoff, acc_cluster[0])
-            acc_counter += 1
-            # write a dot on the screen for each protein, so that it is easy to see that the script is still working
-            #sys.stdout.write(". ")
-            if acc_counter % 100 == 0:
-                logging.info('%i records checked for redundancy' % acc_counter)
-        #determine which cluster IDs are in the database only once, as these uniprot entries are already nonredundant
-        series_unique_bool = df_uniprot_acc['Cluster ID'].value_counts() == 1
-        list_uniref_clusters_matching_only_one_acc = series_unique_bool.loc[series_unique_bool == True].index
-        #now use this list to label the original sequences that are nonredundant
-        df_uniprot_acc['nonred'] = df_uniprot_acc['Cluster ID'].apply(lambda x : x in list_uniref_clusters_matching_only_one_acc)
-        
-        #create a list of uniprot accessions that are nonredundant
-        df_uniprot_acc_nonred = df_uniprot_acc.loc[df_uniprot_acc['nonred'] == True]
-        list_nonred_acc = list(df_uniprot_acc_nonred.index)
-        
-        #create a uniprot flatfile containing only the desired nonredundant accessions
-        utils.retrieve_selected_uniprot_records_from_flatfile(list_nonred_acc,
-                                                              redundant_uniprot_flatfile,
-                                                              uniprot_flatfile_of_selected_records)
-        number_nonredundant_records = len(list_nonred_acc)
-        number_total_records = df_uniprot_acc.shape[0]
-        number_redundant_records = number_total_records - number_nonredundant_records
+        convert_uniprot_list_to_nonred_ff_via_uniref(settingsdict, list_number, uniprot_folder, logging,
+                                                     uniprot_flatfile_of_selected_records)
 
-        logging.info('number_total_records = {0}, number_redundant_records removed = {1}, '
-                     'final number_nonredundant_records = {2}'.format(number_total_records,
-                                                                      number_redundant_records,
-                                                                      number_nonredundant_records))
-    logging.info("A00_convert_uniprot_list_to_nonred_ff_via_uniref is finished")
-
-#A## variables are included only to help navigate the document in PyCharm
 A01_parse_large_flatfile_with_list_uniprot_accessions = settingsdict["run_settings"]["uniprot.inputs.parse_large_flatfile_with_list_uniprot_accessions"]
 if A01_parse_large_flatfile_with_list_uniprot_accessions:
-    input_accession_list = "NEED TO ADD VARIABLE SOMEWHERE"
-    logging.info('~~~~~~~~~~~~  starting A01_parse_large_flatfile_with_list_uniprot_accessions   ~~~~~~~~~~~~')
-    #parse_large_flatfile_with_list_uniprot_accessions(list_of_uniprot_accessions, uniprot_flatfile_all_single_pass, uniprot_flatfile_of_selected_records)
-    #def parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, input_uniprot_flatfile, output_uniprot_flatfile):
-    # define path to large uniprot flatfile containing the protein records to be extracted
-    input_uniprot_flatfile = os.path.join(uniprot_folder,"List%02d_large_uniprot_flatfile.txt" % list_number)
-    output_uniprot_flatfile = uniprot_flatfile_of_selected_records
-    #from Bio import SeqIO
-    #create a list of all the uniprot accessions of the proteins to be selected from the larger uniprot file 
-    accession_list = [line.strip() for line in open(input_accession_list, "r")]
-    uniprot_index_handle = SeqIO.index(input_uniprot_flatfile, "swiss")
-    with open(output_uniprot_flatfile, "wb") as output:
-        for acc in accession_list:
-            try:
-                #add the selected records to the file, but adds a new line after each line! Doesn't affect later conversion to SeqRecord object
-                output.write(uniprot_index_handle.get_raw(acc))
-            except KeyError:
-                logging.info("No SwissProt record found in %s for %s." % (input_uniprot_flatfile, acc))
+    parse_large_flatfile_with_list_uniprot_accessions(uniprot_folder, list_number, logging, uniprot_flatfile_of_selected_records)
 
-
-#A## variables are included only to help navigate the document in PyCharm
 A02_retrieve_uniprot_data_for_acc_list_in_xlsx_file = settingsdict["run_settings"]["uniprot.inputs.retrieve_uniprot_data_for_acc_list_in_xlsx_file"]
 if A02_retrieve_uniprot_data_for_acc_list_in_xlsx_file:
-    uniprot_flatfile_all_human_membrane_compressed = "NEED TO ADD VARIABLE SOMEWHERE"
-    logging.info('~~~~~~~~~~~~  starting A02_retrieve_uniprot_data_for_acc_list_in_xlsx_file   ~~~~~~~~~~~~')
-    #take list of acc, search in default uniprot flatfile. If missing, download from uniprot server.
-    input_uniprot_flatfile = uniprot_flatfile_all_human_membrane_compressed
-    df_uniprot_accessions = pd.read_excel(excelfile_with_uniprot_accessions, sheetname='uniprot_numbers')
-    #remove proteins that are marked as 'not included in analysis'
-    df_uniprot_accessions = df_uniprot_accessions[df_uniprot_accessions['include_in_analysis'] == True]
-    #accession_list = [line.strip() for line in open(input_accession_list, "r")]
-    uniprot_index_handle = SeqIO.index(input_uniprot_flatfile, "swiss")
-    with open(uniprot_flatfile_of_selected_records, "wb") as output:
-        for uniprot_accession in df_uniprot_accessions['A1_uniprot_accession']:
-            try:
-                # this adds the selected records to the file, but adds a new line after each line!
-                #Doesn't affect conversion to SeqRecord object)
-                assert isinstance(uniprot_index_handle, object)
-                output.write(uniprot_index_handle.get_raw(uniprot_accession))
-            except KeyError:
-                print("No SwissProt record found in %s for %s." % (input_uniprot_flatfile, uniprot_accession))
+    retrieve_uniprot_data_for_acc_list_in_xlsx_file(excelfile_with_uniprot_accessions, logging, uniprot_flatfile_of_selected_records)
 
-#A## variables are included only to help navigate the document in PyCharm
 A03_create_csv_from_uniprot_flatfile = settingsdict["run_settings"]["uniprot.parse.create_csv_from_uniprot_flatfile"]
 if A03_create_csv_from_uniprot_flatfile:
-    #create_csv_from_uniprot_flatfile(input_file=uniprot_flatfile_of_selected_records, output_file=csv_file_with_uniprot_data)
-    ## open uniprot flatfile
-    #def create_csv_from_uniprot_flatfile(input_file, output_file):
-    #global uniprot_record, uni_dict, record
-    #input_file=uniprot_flatfile_of_selected_records
-    #output_file=csv_file_with_uniprot_data
-    logging.info('~~~~~~~~~~~~  starting A03_create_csv_from_uniprot_flatfile   ~~~~~~~~~~~~')
-    uniprot_dict_all_proteins = {}
-    with open(uniprot_flatfile_of_selected_records, "r")as f:
-        records = SwissProt.parse(f)
-        count_of_uniprot_records_processed = 0
-        count_of_uniprot_records_added_to_csv = 0
-        for record in records:
-            #uni_dict = utils.create_dict_of_data_from_uniprot_record(record)
-            #create an empty output dictionary to hold the uniprot data for each record
-            output_dict = {}
-            #extract the subcellular location detail from the (poorly organized and unsorted) uniprot comments section
-            comments_dict = {}
-            #utils.create_dictionary_of_comments(record, comments_dict)
-            try:
-                for comment in record.comments:
-                    # splits comments based on first ":" symbol, creates a list called split_comment
-                    split_comment = comment.strip().split(': ', 1)
-                    # several comments have the same name. need to check if it is already in the dictionary
-                    if split_comment[0] in comments_dict:
-                        # list the different comments, one after another
-                        comments_dict[split_comment[0]] += ", %s" % split_comment[1]
-                    else:
-                        comments_dict[split_comment[0]] = split_comment[1]
-                output_dict['comments_subcellular_location_uniprot'] = comments_dict['SUBCELLULAR LOCATION']
-            except (AttributeError, KeyError):
-                #there are no comments in this uniprot file!
-                logging.info('no comments in Uniprot file')
-                output_dict['comments_subcellular_location_uniprot'] = ''
-
-            #use regex to search for text describing subcellular locations
-            #[ -]? accepts either space, hyphen, or no dividing character
-            regex_word_dict = {'multipass': ['multi[ -]?(pass|span)', 'poly[ -]?topic'],
-                               'singlepass': ['single[ -]?(pass|span)', 'bi[ -]?topic'],
-                               'membrane': ['membran', 'lipid[ -](anchor|bound)'],
-                               'typeI': ['type[ -](one|1|I)[ -]membran'],
-                               'typeII': ['type[ -](two|2|II)[ -]membran']}
-            #comments_subcellular_location_uniprot = 'Membrane; Bitopictype I membrane protein.'
-            regex_subcell_loc_dict = {}
-            for search_word in regex_word_dict:
-                regex_subcell_loc_dict[search_word] = False
-                regex_search_list = regex_word_dict[search_word]
-                for regex_search_string in regex_search_list:
-                    #search for the regex string, ignoring any mismatches in upper or lower case
-                    comment_match = re.search(regex_search_string, 
-                                              output_dict['comments_subcellular_location_uniprot'],
-                                              re.IGNORECASE
-                                              )
-                    if comment_match:
-                        regex_subcell_loc_dict[search_word] = True
-            #the dictionary could also be nested within one column
-            #output_dict['regex_subcell_loc_dict'] = regex_subcell_loc_dict
-            #add all of the fields to the dictionary
-            output_dict.update(regex_subcell_loc_dict)
-
-            #print accession number
-            logging.info(record.accessions[0])
-
-            #add data to dictionary
-            output_dict['A1_uniprot_accession'] = record.accessions[0]
-            output_dict['organism'] = record.organism
-            output_dict['uniprot_entry_name'] = record.entry_name
-            output_dict['uniprot_gene_name'] = record.gene_name
-            output_dict['uniprot_descr'] = record.description
-            output_dict['uniprot_seq'] = record.sequence
-            output_dict['uniprot_orgclass'] = record.organism_classification
-            output_dict['uniprot_all_accessions'] = record.accessions
-            output_dict['uniprot_KW'] = record.keywords
-            output_dict['uniprot_features'] = record.features
-            output_dict['uniprot_seqlen'] = record.sequence_length
-
-            #create a list of all the feature types (signal, transmem, etc)
-            list_of_feature_types_in_uniprot_record = []
-            for sublist in record.features:
-                list_of_feature_types_in_uniprot_record.append(sublist[0])
-                #logging.info(sublist)
-
-            #list of the features that we want in the final csv
-            desired_features_in_uniprot = ['TRANSMEM', 'VARIANT', 'CONFLICT', 'VAR_SEQ', 'VARSPLIC', 'TOPO_DOM']
-            desired_features_in_uniprot_dict = {}
-            location_of_tmds_in_feature_list = []
-            location_of_non_tmds_in_feature_list = []
-
-            for feature in desired_features_in_uniprot:
-                if feature in list_of_feature_types_in_uniprot_record:
-                    #find the features in the feature list.
-                    #For polytopic membrane proteins, there will be more than one tmd (labelled "TRANSMEM".
-                    location_of_features_in_feature_list = [i for i, x in
-                                                            enumerate(list_of_feature_types_in_uniprot_record) if
-                                                            x == feature]
-                    desired_features_in_uniprot_dict[feature] = location_of_features_in_feature_list
-                    if feature == 'TRANSMEM':
-                        location_of_tmds_in_feature_list = location_of_features_in_feature_list
-                        #sort list to be sure that the "transmem" notation is definitely ordered correctly,
-                        #as this order determines the TMD name
-                        location_of_tmds_in_feature_list.sort()
-                    if feature == 'TOPO_DOM':
-                        location_of_non_tmds_in_feature_list = location_of_features_in_feature_list
-                        #sort list to be sure that the "transmem" notation is definitely ordered correctly,
-                        #as this order determines the TMD name
-                        location_of_non_tmds_in_feature_list.sort()	
-                        
-            #count the number of "TRANSMEM" TMDs listed in the feature-list
-            output_dict['number_of_TMDs_in_uniprot_feature_list'] = len(location_of_tmds_in_feature_list)
-
-            #information about location of first non-tmd (extracellular or perplasmic/cytoplasmic)
-            if len(location_of_non_tmds_in_feature_list)>0:
-                output_dict['loc_start']= record.features[location_of_non_tmds_in_feature_list[0]][3]
-                output_dict['n_term_ec'] = "Extracellular" in output_dict["loc_start"]
-            else:
-                output_dict['loc_start']= np.nan
-                output_dict['n_term_ec'] = np.nan
-
-            if output_dict['number_of_TMDs_in_uniprot_feature_list'] > 0:
-                list_of_TMDs = []
-                for TMD_location in location_of_tmds_in_feature_list:
-                    #consequtively number the TMDs based on the "TRANSMEM" location in the feature list
-                    TMD = 'TM%02d' % (location_of_tmds_in_feature_list.index(TMD_location) + 1)
-                    list_of_TMDs.append(TMD)
-                    #add the start and stop of each TMD, and the comments
-                    output_dict['%s_start' % TMD] = record.features[TMD_location][1]
-                    output_dict['%s_end' % TMD] = record.features[TMD_location][2]
-                    output_dict['%s_description' % TMD] = record.features[TMD_location][3]
-
-                #add the list of TMD names to the dictionary and dataframe
-                output_dict['list_of_TMDs'] = list_of_TMDs
-
-                #create a numpy array of any sequence variants are in the TMD region
-                list_of_variant_types_in_uniprot = ['VARIANT', 'CONFLICT', 'VARSPLIC', 'VAR_SEQ']
-                for TMD in list_of_TMDs:
-                    #array_of_all_variants_in_tmd = np.zeros(4)
-                    array_of_all_variants_in_tmd = np.array([])
-                    for variant_type in list_of_variant_types_in_uniprot:
-                        if variant_type in desired_features_in_uniprot_dict.keys():
-                            #if that variant is in the uniprot data for that protein, create a list of the indices showing where that variant is found
-                            list_of_variant_locations = list(desired_features_in_uniprot_dict[variant_type])
-                            #get the specific start, end and details of that variant
-                            for v in range(len(list_of_variant_locations)):
-                                #get start
-                                start_of_variant_in_seq = record.features[list_of_variant_locations[v]][1]
-                                #get end
-                                end_of_variant_in_seq = record.features[list_of_variant_locations[v]][2]
-                                #get description
-                                variant_description = record.features[list_of_variant_locations[v]][3]
-                                variant_feature_identifier = record.features[list_of_variant_locations[v]][4]
-                                #check if the variant is in the tmd
-                                start_of_variant_is_after_start_of_tmd = True if start_of_variant_in_seq > output_dict[
-                                    '%s_start' % TMD] else False
-                                end_of_variant_is_before_end_of_tmd = True if end_of_variant_in_seq < output_dict[
-                                    '%s_end' % TMD] else False
-                                variant_is_in_tmd = True if all([start_of_variant_is_after_start_of_tmd,
-                                                                 end_of_variant_is_before_end_of_tmd]) else False
-                                # if the variants are the tmd region, add to numpy array
-                                if variant_is_in_tmd:
-                                    #create array of the variant data
-                                    variant_array = np.array(
-                                        [variant_type, start_of_variant_in_seq, end_of_variant_in_seq,
-                                         variant_description, variant_feature_identifier])
-                                    if array_of_all_variants_in_tmd != ([]):
-                                        #add array with the data for this variant to the array/list for all variants
-                                        array_of_all_variants_in_tmd = np.row_stack((array_of_all_variants_in_tmd, variant_array))
-                                    else:
-                                        #if the array is empty, replace the array for all variants with the array for the first variant
-                                        array_of_all_variants_in_tmd = variant_array
-                    # if there were variants added (array is not empty), convert to string and add them to the output dictionary
-                    if array_of_all_variants_in_tmd.size:
-                        output_dict['%s_seq_variants' % TMD] = str(array_of_all_variants_in_tmd)
-
-            count_of_uniprot_records_processed += 1
-            #nest each dictionary containing the data for each protein into a large dictionary that contains all data from all proteins
-            uniprot_dict_all_proteins[output_dict['A1_uniprot_accession']] = output_dict
-
-        #convert that nested dict into a pandas dataframe
-        df = pd.DataFrame(uniprot_dict_all_proteins).sort_index()
-        #count records in dataframe
-        count_of_uniprot_records_added_to_csv = len(df.columns)
-        #flip rows and columns (transverse)
-        df = df.T.copy()
-
-        ''' ~~ DETERMINE START AND STOP INDICES FOR TMD PLUS SURROUNDING SEQ ~~ '''
-        aa_before_tmd = settingsdict["variables"]["analyse.simap_match_filters.aa_before_tmd"]
-        aa_after_tmd = settingsdict["variables"]["analyse.simap_match_filters.aa_after_tmd"]
-        #determine max number of TMD columns that need to be created
-        max_num_TMDs = df['number_of_TMDs_in_uniprot_feature_list'].max()
-        #currently the loop is run for each TMD, based on the sequence with the most TMDs
-        for i in range(1, max_num_TMDs + 1):
-            TMD = 'TM%02d' % i
-            TMD_seq_name = '%s_seq' % TMD
-            # instead of integers showing the start or end of the TMD, some people write strings into the
-            # UniProt database, such as "<5" or "?"
-            # to avoid the bugs that this introduces, it is necessary to convert all strings to np.nan (as floats),
-            # using the convert objects function. The numbers can then be converted back from floats to integers.
-            df['%s_start' % TMD] = pd.to_numeric(df['%s_start' % TMD]).dropna().astype('int64')
-            df['%s_end' % TMD] = pd.to_numeric(df['%s_end' % TMD]).dropna().astype('int64')
-            # determine the position of the start of the surrounding sequence
-            df['start_surrounding_seq_in_query_%s' % TMD] = df['%s_start' % TMD] - aa_before_tmd
-            # replace negative values with zero. (slicing method was replaced with lambda function to avoid CopyWithSetting warning)
-            df['start_surrounding_seq_in_query_%s' % TMD] = df['start_surrounding_seq_in_query_%s' % TMD].apply(lambda x: x if x > 0 else 0)
-            df['end_surrounding_seq_in_query_%s' % TMD] = df['%s_end' % TMD] + aa_after_tmd
-            # create a boolean series, describing whether the end_surrounding_seq_in_query is longer than the protein seq
-            series_indices_longer_than_prot_seq = df.apply(utils.find_indices_longer_than_prot_seq, args=(TMD,), axis=1)
-            # obtain the indices of proteins in the series
-            uniprot_acc_indices_longer_than_prot_seq = series_indices_longer_than_prot_seq[series_indices_longer_than_prot_seq].index
-            # use indices to select the main dataframe, and convert these end_surrounding_seq_in_query values to the uniprot_seqlen value
-            df.loc[uniprot_acc_indices_longer_than_prot_seq,'end_surrounding_seq_in_query_%s' % TMD] = df.loc[uniprot_acc_indices_longer_than_prot_seq,'uniprot_seqlen']
-            # df = df['end_surrounding_seq_in_query_%s' % TMD].apply(lambda x: x['end_surrounding_seq_in_query_%s' % TMD] if x < df['uniprot_seqlen'] else df['uniprot_seqlen'])
-            # df['end_surrounding_seq_in_query_%s' % TMD][df['end_surrounding_seq_in_query_%s' % TMD] > df['uniprot_seqlen']] = df['uniprot_seqlen']
-
-        ''' ~~   SLICE TMDS FROM UNIPROT SEQ    ~~ '''
-        #iterate through each TMD, slicing out the relevant sequence.
-        #If there is no TMD, the cells will contain np.nan
-        for i in range(1, max_num_TMDs + 1):
-            TMD = 'TM%02d' % i
-            #slice TMD
-            df['%s_seq' % TMD] = df[df['%s_start' % TMD].notnull()].apply(utils.slice_uniprot_TMD_seq, args = (TMD,), axis=1)
-            #slice TMD plus surrounding seq
-            df['%s_with_surrounding_seq' % TMD] = df[df['%s_start' % TMD].notnull()].apply(utils.slice_uniprot_TMD_plus_surr_seq, args = (TMD,), axis=1)
-        #save to a csv
-        df.to_csv(dfout01_uniprotcsv, sep=",", quoting=csv.QUOTE_NONNUMERIC)
-        #flip rows and columns, and save again as csv for an alternative view
-        df.T.to_csv(dfout02_uniprotTcsv, sep=",", quoting=csv.QUOTE_NONNUMERIC)
-        #save both the inverted and original data as worksheets in excel
-        #first convert python datatypes to strings, as these currently give a TypeError
-        df['uniprot_orgclass'] = df['uniprot_orgclass'].astype(str)
-        df['organism_domain'] = df.uniprot_orgclass.apply(lambda x: x.strip("'[]").split("', '")[0])
-        df['uniprot_all_accessions'] = df['uniprot_all_accessions'].astype(str)
-        df['uniprot_KW'] = df['uniprot_KW'].astype(str)
-        df['uniprot_features'] = df['uniprot_features'].astype(str)
-        df['list_of_TMDs'] = df['list_of_TMDs'].astype(str)
-        #save to Excel
-        writer = pd.ExcelWriter(dfout03_uniprotxlsx)  #engine='xlsxwriter'
-        df.to_excel(writer, sheet_name='dfout02')
-        df.T.to_excel(writer, sheet_name='dfout01')
-        writer.save()
-        writer.close()
-
-    logging.info('A03_create_csv_from_uniprot_flatfile was successful:'
-                 '\n\t%i uniprot records processed\n\t%i uniprot records parsed to csv' % (
-                 count_of_uniprot_records_processed, count_of_uniprot_records_added_to_csv))
-
-#A## variables are included only to help navigate the document in PyCharm
-A04_setup_df_dtypes = settingsdict["run_settings"]["uniprot.parse.A04_setup_df_dtypes"]
-if A04_setup_df_dtypes:
-    logging.info('~~~~~~~~~~~~  starting A04_setup_df_dtypes   ~~~~~~~~~~~~')
-    #test if the dataframe has already been created, otherwise reopen from csv file
-    if 'df' in globals():
-        if isinstance(df, pd.DataFrame):
-            logging.info('first protein acc = %s, df already exists, continuing with A04_setup_df_dtypes' % df.iloc[0][0])
-    else:
-        logging.info('df loaded from %s' % dfout01_uniprotcsv)
-        df = pd.read_csv(dfout01_uniprotcsv, sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
-    '''Create Pandas Dataframe with the protein name and file locations, etc'''
-    original_columns = list(df.columns)
-    columns_added_after_SIMAP_analysis = ['organism_domain', 'protein_name', 'SIMAP_feature_table_XML_file_path',
-                                          'SIMAP_homologues_XML_file_path', 'SIMAP_csv_analysed_path',
-                                          'SIMAP_input_seq_details_dict', 'SIMAP_filter_string',
-                                          'SIMAP_resultSpecification_dict', 'database_details_dict',
-                                          'simap_version', 'SIMAP_total_hits',
-                                          'fasta_file_path',
-                                          'fasta_file_plus_surr_path',
-                                          'query_md5', 'query_length', 'query_selfscore', 'query_sequenceid',
-                                          'total_number_of_simap_hits',
-                                          'query_sequence_from_homologue_XML_file',
-                                          'number_of_hits_in_homologue_XML_file',
-                                          'kept_after_redundancy_check',
-                                          'number_of_valid_hits',
-                                          'df_mem_nonmem_ratios',
-                                          'mean_ratio_ident_mem_to_nonmem',
-                                          'stdev_ratio_ident_mem_to_nonmem',
-                                          'protein_kept_for_statistical_analysis',
-                                          'fasta_file_with_homologues_kept_for_statistical_analysis',
-                                          'csv_file_av_cons_ratios_hits',
-                                          'csv_SIMAP_homologues_kept_for_statistical_analysis'
-                                          ]
-    new_unique_column_list = set(original_columns + columns_added_after_SIMAP_analysis)
-    #add extra columns
-    df = df.reindex(index=df.index, columns=new_unique_column_list)
-    #sort columns
-    df = df.sort_index(axis=1)
-
-    #to avoid trouble with dtypes, change all the new columns to dtype=object
-    for column in columns_added_after_SIMAP_analysis:
-        df[column] = df[column].astype(object)
-
-    '''Useful debugging tool: check for duplicates'''
-    import collections
-    list01 = original_columns + columns_added_after_SIMAP_analysis
-    duplicate_columns = [x for x, y in collections.Counter(list01).items() if y > 1]
-    logging.info('%d duplicate_columns found %s' % (len(duplicate_columns), duplicate_columns))
+    create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, settingsdict, logging, pathdict)
 
 #A## variables are included only to help navigate the document in PyCharm
 A05_setup_df_file_locations = settingsdict["run_settings"]["uniprot.parse.A05_setup_df_file_locations"]
 if A05_setup_df_file_locations:
-    logging.info('~~~~~~~~~~~~  starting A05_setup_df_file_locations   ~~~~~~~~~~~~')
-    #test if the dataframe has already been created, otherwise reopen from csv file
-    if 'df' in globals():
-        if isinstance(df, pd.DataFrame):
-            logging.info('first protein acc = %s, df already exists, continuing with A05_setup_df_file_locations' % df.iloc[0][0])
-    else:
-        logging.info('df loaded from %s' % dfout01_uniprotcsv)
-        df = pd.read_csv(dfout01_uniprotcsv, sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
-    #set up a folder to hold the SIMAP BLAST-like output
-    #note that at the moment, files cannot be compressed
-    simap_data_folder = os.path.join(settingsdict['file_locations']['data_folder'], 'simap')
-    if "uniprot_entry_name" in df.columns:
-        #join the accession and entry name to create a "protein name" for naming files
-        df['A2_protein_name'] = df.A1_uniprot_accession + '_' + df.uniprot_entry_name
-    else:
-        # the list of proteins did not come from UniProt. Simply use the accession to name the files.
-        df['A2_protein_name'] = df.A1_uniprot_accession
-    df['first_two_letters_of_uniprot_acc'] = df['A1_uniprot_accession'].apply(lambda x: x[0:2])
-    df['simap_filename_base_linuxpath'] = simap_data_folder + '/' + df.first_two_letters_of_uniprot_acc + '/' + df.A2_protein_name
-    df['simap_filename_base'] = df['simap_filename_base_linuxpath'].apply(lambda x: os.path.normpath(x))
-    df.drop('simap_filename_base_linuxpath', axis=1, inplace=True)
+    df = pd.read_csv(pathdict["dfout01_uniprotcsv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    df = korbinian.common.setup_file_locations_in_df(df, settingsdict, pathdict)
 
-    #create filenames for simap output
-    df['SIMAP_tarfile'] = df.simap_filename_base + '_SIMAP.tar.gz'
-    df['SIMAP_feature_table_XML_file'] = df.A2_protein_name + '_feature_table.xml'
-    df['SIMAP_feature_table_XML_file_path'] = df.simap_filename_base + '_feature_table.xml'
-    df['SIMAP_homologues_XML_file'] = df.A2_protein_name + '_homologues.xml'
-    df['SIMAP_homologues_XML_file_path'] = df.simap_filename_base + '_homologues.xml'
-    df['SIMAP_csv_from_XML'] = df.A2_protein_name + '.csv'
-    df['SIMAP_csv_from_XML_path'] = df.simap_filename_base + '.csv'
-    df['SIMAP_csv_from_XML_tarfile'] = df.simap_filename_base + '.csv.tar.gz'
-    df['SIMAP_csv_analysed'] = df.A2_protein_name + '_analysed.csv'
-    df['SIMAP_csv_analysed_path'] = df.simap_filename_base + '_analysed.csv'
-    df['output_tarfile'] = df.A2_protein_name + '_outputfiles.tar.gz'
-    df['output_tarfile_path'] = df.simap_filename_base + '_outputfiles.tar.gz'
-    df['csv_SIMAP_homologues_kept_for_statistical_analysis'] = df.simap_filename_base + '_homologues_for_stat.csv'
-
-    #name the fasta file with the TMD seqs (eg A0A1F4_EYS_DROME_TMD_sequences_of_homologues.fas)
-    df['fasta_file_path'] = df.simap_filename_base + '_simap_TMD_seq_homologues.fas'
-
-    #name the second fasta file (eg. A0T0U2_PSBE_THAPS_simap_TMD_seq_homol_&_surrounding.fas)
-    df['fasta_file_plus_surr_path'] = df.simap_filename_base + '_simap_TMD_seq_homol_&_surrounding.fas'
-    df[ 'fasta_file_with_homologues_kept_for_statistical_analysis'] = df.simap_filename_base + '_simap_TMD_seq_kept_stat_analysis.fas'
-    df['csv_file_av_cons_ratios_hits'] = df.simap_filename_base + '_cons_ratios.csv'
-    '''
-    FOR multiple TMDs, create a BASE from which the TMDs can be numbered
-    '''
-    df['fasta_file_BASENAME'] = df.A2_protein_name + '_simap_seq_homologues_'
-    df['fasta_file_BASENAMEPATH'] = df.simap_filename_base + '_simap_seq_homologues_'
-
-    #name the second fasta file (eg. A0T0U2_PSBE_THAPS_simap_TMD_seq_homol_&_surrounding.fas)
-    df['fasta_file_plus_surr_path_BASENAME'] = df.A2_protein_name + '_simap_seq_homol_&_surrounding_'
-    df['fasta_file_plus_surr_path_BASENAMEPATH'] = df.simap_filename_base + '_simap_seq_homol_&_surrounding_'
-
-    #create a basename for the output histograms
-    df['AAIMON_hist_BASENAME'] = df.A2_protein_name + '_AAIMON_hist'
-    df['AAIMON_hist_BASENAMEPATH'] = df.simap_filename_base + '_AAIMON_hist'
-    df['AASMON_hist_BASENAME'] = df.A2_protein_name + '_AASMON_hist'
-    df['AASMON_hist_BASENAMEPATH'] = df.simap_filename_base + '_AASMON_hist'
-
-    df['csv_file_av_cons_ratios_hits_BASENAME'] = df.A2_protein_name + '_cons_ratios_'
-    df['csv_file_av_cons_ratios_hits_BASENAMEPATH'] = df.simap_filename_base + '_cons_ratios_'
-
-    #save to a csv
-    df.to_csv(dfout04_uniprotcsv_incl_paths, sep=",", quoting=csv.QUOTE_NONNUMERIC)
-    #save to Excel
-    writer = pd.ExcelWriter(dfout03_uniprotxlsx)  #engine='xlsxwriter'
-    df.to_excel(writer, sheet_name='dfout02')
-    df.T.to_excel(writer, sheet_name='dfout01')
-    writer.save()
-    writer.close()
-    logging.info("A05_setup_df_file_locations is finished")
-
-#A## variables are included only to help navigate the document in PyCharm
 A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv = settingsdict["run_settings"]["simap.download.retrieve_simap_feature_table_and_homologues_from_list_in_csv"]
-#'''+++++++++++++++SIMAP++++++++++++++++++'''
 if A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv:
-    logging.info('~~~~~~~~~~~~  starting A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv   ~~~~~~~~~~~~')
-    #test if the dataframe has already been created, otherwise reopen from csv file
-    if 'df' in globals():
-        if isinstance(df, pd.DataFrame):
-            logging.info('first protein acc = %s, df already exists' % df.iloc[0][0])
-    else:
-        logging.info('df loaded from %s' % dfout04_uniprotcsv_incl_paths)
-        df = pd.read_csv(dfout04_uniprotcsv_incl_paths, sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
-
-    #def retrieve_simap_feature_table_and_homologues_from_list_in_csv(input_file, list_of_keys, settings):
-    '''
-    First prepare the csv file from the uniprot record.
-    Run this to save the files based on their domain.
-    '''
-    #global list_of_files_with_feature_tables, list_of_files_with_homologues
-    #The SIMAP download settings can be altered as desired, using the json settings file
-    max_hits = settingsdict["variables"]["simap.max_hits"]
-    max_memory_allocation = settingsdict["variables"]["simap.java_max_RAM_memory_allocated_to_simap_download"]
-    database = settingsdict["variables"]["simap.database"]
-    taxid = settingsdict["variables"]["simap.taxid"]  # eg.'7227' for Drosophila melanogaster
-    extra_search_string = ''
-
-    enough_hard_drive_space = True
-    try:
-        byteformat = "GB"
-        data_harddrive = settingsdict["file_locations"]["data_harddrive"]
-        size = utils.get_free_space(data_harddrive, byteformat)
-        logging.info('Hard disk remaining space =')
-        logging.info(size)
-        if size[0] < 5:
-            raise utils.HardDriveSpaceException("Hard drive space limit reached, there is only %s %s space left." % (size[0], size[1]))
-            enough_hard_drive_space = False
-    except utils.HardDriveSpaceException as e:
-        logging.warning(e)
-    if enough_hard_drive_space:
-        #iterate over each uniprot record contained in the dataframe. note that acc = uniprot accession number
-        number_of_files_not_found = 0
-        for acc in df.index:
-            protein_name = df.loc[acc, 'A2_protein_name']
-            query_sequence_length = df.loc[acc, 'uniprot_seqlen']
-            input_sequence = df.loc[acc, 'uniprot_seq']
-            ''' windows has a character limit in the command prompt in theory of 8191 characters,
-            but the command line java command seems to cause errors with sequences above 3000 amino acids.
-            Assume that this problem only applies to Windows,
-            therefore in Windows systems limit the java string to proteins less than 3000 amino acids.
-            The character limit can be adjusted in the settings file
-            '''
-            if 'Windows' in str(platform.system()):
-                if query_sequence_length < settingsdict["variables"]["simap.max_query_sequence_length"]:
-                    download_homologues = True
-                else:
-                    download_homologues = False
-                    logging.warning('%s cannot be processed into a java command in windows OS,'
-                                    'as the sequence is longer than %i characters (%i). Moving to next sequence' % (
-                                    protein_name, settingsdict["variables"]["simap.max_query_sequence_length"],
-                                    query_sequence_length))
-            else:
-                download_homologues = True
-            if download_homologues == True:
-                simap_data_folder = os.path.join(settingsdict['file_locations']['data_folder'], 'simap')
-                subfolder = simap_data_folder+ "/" + df.loc[acc, 'first_two_letters_of_uniprot_acc']
-                if os.path.isdir(subfolder) == False:
-                    os.mkdir(subfolder)
-                #check which files exist. This is useful, because it is not possible to open the tarfile as 'a:gz',
-                #therefore you cannot add files to an existing tarfile)
-                feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(df, acc)
-                if not SIMAP_tarfile_exists:
-                    if not feature_table_XML_exists:
-                        #download feature table from SIMAP
-                        utils.retrieve_simap_feature_table(input_sequence,
-                                                           max_memory_allocation=max_memory_allocation,
-                                                           output_file=df.loc[acc, 'SIMAP_feature_table_XML_file_path'])
-                    if not homologues_XML_exists:
-                        #download homologue file from SIMAP
-                        utils.retrieve_simap_homologues(input_sequence,
-                                                        output_file=df.loc[acc, 'SIMAP_homologues_XML_file_path'],
-                                                        database=database, max_hits=max_hits,
-                                                        max_memory_allocation=max_memory_allocation, taxid=taxid)
-                        #now check again if the files exist
-                    feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(df, acc)
-                    if not homologues_XML_exists:
-                        #add one to the list of consecutive failed downloads.
-                        number_of_files_not_found += 1
-                        #if a large number of downloads failed, then the SIMAP server is probably not working.
-                        #Wait some time and try again later.
-                        if number_of_files_not_found > 30:
-                            utils.sleep_24_hours()
-                        if number_of_files_not_found == 20:
-                            utils.sleep_24_hours()
-                        if number_of_files_not_found == 15:
-                            utils.sleep_6_hours()
-                        if number_of_files_not_found == 10:
-                            utils.sleep_6_hours()
-                        #utils.sleep_120_seconds()
-                    else:
-                        #if download is successful or file exists, the SIMAP server must be working,
-                    #therefore reset the number_of_files_not_found
-                        number_of_files_not_found = 0
-
-                    #since we can't add files to the compressed tarfile, only when both the feature table
-                    #and xml file are downloaded should we pack and compress them
-                    if feature_table_XML_exists and homologues_XML_exists:
-                        with tarfile.open(df.loc[acc, 'SIMAP_tarfile'], mode='w:gz') as tar:
-                            #add the files to the compressed tarfile
-                            logging.info(
-                                '%s XML files will be moved into the tarball, original XML files deleted' % protein_name)
-                            tar.add(df.loc[acc, 'SIMAP_feature_table_XML_file_path'],
-                                    arcname=df.loc[acc, 'SIMAP_feature_table_XML_file'])
-                            tar.add(df.loc[acc, 'SIMAP_homologues_XML_file_path'],
-                                    arcname=df.loc[acc, 'SIMAP_homologues_XML_file'])
-                        #delete the original files
-                        try:
-                            os.remove(df.loc[acc, 'SIMAP_feature_table_XML_file_path'])
-                            os.remove(df.loc[acc, 'SIMAP_homologues_XML_file_path'])
-                        except FileNotFoundError:
-                            pass
-
-                            #now add the downloaded files to the tarball, and delete the original XML files
-
-                        #            directory = r'E:/Stephis/Projects/Programming/Python/files/learning/tarfile'
-                        #            newtar = directory + r'/newtar.tar.gz'
-                        #            SIMAP_feature_table_XML_file_basename = 'P29274_AA2AR_HUMAN_feature_table.xml'
-                        #            SIMAP_feature_table_XML_file = '%s/%s' % (directory, SIMAP_feature_table_XML_file_basename)
-                        #            SIMAP_homologues_XML_file_basename = 'P29274_AA2AR_HUMAN_homologues.xml'
-                        #            SIMAP_homologues_XML_file = '%s/%s' % (directory, SIMAP_homologues_XML_file_basename)
-                        #
-                        #            with tarfile.open(df.loc[acc, 'SIMAP_tarfile'], 'w:gz') as tar:
-                        #                tar.add(SIMAP_feature_table_XML_file, arcname = SIMAP_feature_table_XML_file_basename)
-                        #                tar.add(SIMAP_homologues_XML_file, arcname = SIMAP_homologues_XML_file_basename)
-                        #            with tarfile.open(newtar, 'r:gz') as tar:
-                        #                for tarinfo in tar:
-                        #                    print(tarinfo.isreg())
-                        #                    print(tarinfo.name)
-                        #                    print(tarinfo.size)
-                        #
-                        #            df['SIMAP_tarfile'] = df.simap_filename_base + '_SIMAP.tar.gz'
-                        #            df['SIMAP_feature_table_XML_file'] = df.A2_protein_name + '_feature_table.xml'
-                        #            df['SIMAP_feature_table_XML_file_path'] = df.simap_filename_base + '_feature_table.xml'
-                        #            df['SIMAP_homologues_XML_file'] = df.A2_protein_name + '_homologues.xml'
-                        #            df['SIMAP_homologues_XML_file_path'] = df.A2_protein_name + '_homologues.xml'
-                        #            df['SIMAP_csv_from_XML'] = df.simap_filename_base + '_homologues.csv'
-                        #            df['SIMAP_csv_from_XML_path'] = df.simap_filename_base + '_homologues.csv'
-                        #            df['csv_SIMAP_homologues_kept_for_statistical_analysis'] = df.simap_filename_base + '_homologues_for_stat.csv'
-            #print("download homologues = %s" % download_homologues)
-    logging.info('retrieve_simap_feature_table_and_homologues_from_list_in_csv is finished')
+    korbinian.simap.download_homologues_from_simap(pathdict, settingsdict, logging)
 
 #A## variables are included only to help navigate the document in PyCharm
 A07_parse_SIMAP_to_csv = settingsdict["run_settings"]["simap.parse.parse_simap_to_csv"]
 if A07_parse_SIMAP_to_csv:
-    counter_XML_to_CSV = 0
-    logging.info('~~~~~~~~~~~~  starting parse_SIMAP_to_csv   ~~~~~~~~~~~~')
-    #test if the dataframe has already been created, otherwise reopen from csv file
-    if 'df' in globals():
-        if isinstance(df, pd.DataFrame):
-            logging.info('first protein acc = %s, df already exists' % df.iloc[0][0])
-    else:
-        logging.info('df loaded from %s' % dfout04_uniprotcsv_incl_paths)
-        df = pd.read_csv(dfout04_uniprotcsv_incl_paths, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-
-    #filter to remove sequences where no TMDs are found
-    df = df.loc[df['list_of_TMDs'].notnull()]
-    #filter to remove sequences where no TMDs are found (if string)
-    df = df.loc[df['list_of_TMDs'] != 'nan']
-
-    #iterate over the dataframe.
-    for acc in df.index:
-        #set up counters
-        number_of_hits_missing_protein_node = 0
-        num_hits_with_SW_align_node = 0
-        number_of_hits_missing_smithWatermanAlignment_node = 0
-        #number_of_hits_kept_for_statistical_analysis = 0  # number_of_hits
-        organism_domain = df.loc[acc, 'organism_domain']
-        protein_name = df.loc[acc, 'A2_protein_name']
-        #try:
-        logging.info('%s' % protein_name)
-        #check which files exist
-        feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(df, acc)
-        #check if the feature table and homologue files actually exist
-        if os.path.isfile(df.loc[acc, 'SIMAP_tarfile']):
-            SIMAP_tarfile_exists = True
-        else:
-            SIMAP_tarfile_exists = False
-            #at the moment, we'll only create the tarfile if both the feature table and
-        #homologue XML files downloaded successfully, but this might change depending on preference
-        if SIMAP_tarfile_exists:
-            try:
-                with tarfile.open(df.loc[acc, 'SIMAP_tarfile'], mode='r:gz') as tar:
-                    if df.loc[acc, 'SIMAP_feature_table_XML_file'] in [tarinfo.name for tarinfo in tar]:
-                        feature_table_in_tarfile = True
-                    #else:
-                    #    feature_table_in_tarfile = False
-                    if df.loc[acc, 'SIMAP_homologues_XML_file'] in [tarinfo.name for tarinfo in tar]:
-                        homologues_XML_in_tarfile = True
-                        #else:
-                        #    homologues_XML_in_tarfile = False
-            except (EOFError, tarfile.ReadError):
-                #file may be corrupted, if script stopped unexpectedly before compression was finished
-                logging.info('%s seems to be corrupted.'
-                             'File will be deleted, and will need to be re-downloaded next time program is run' %
-                             df.loc[acc, 'SIMAP_tarfile'])
-                SIMAP_tarfile_exists = False
-                feature_table_in_tarfile = False
-                homologues_XML_in_tarfile = False
-                os.remove(df.loc[acc, 'SIMAP_tarfile'])
-        if not SIMAP_tarfile_exists:
-            feature_table_in_tarfile = False
-            homologues_XML_in_tarfile = False
-
-        if all([feature_table_in_tarfile, homologues_XML_in_tarfile]):
-            '''get the Phobius and TMHMM predictions from the feature table of the query sequence
-            NOT USED, PHOBIUS PRED OFTEN MISSING, in the future the TMD region taken from uniprot record
-            '''
-            #phobius_TMD_start, phobius_TMD_end, phobius_TMD_length = get_phobius_TMD_region(simap_feature_table_root)
-            #TMHMM_TMD_start, TMHMM_TMD_end = get_TMHMM_TMD_region(simap_feature_table_root)
-            #df.loc[acc,'phobius_TMD_start'] = phobius_TMD_start
-            #df.loc[acc,'phobius_TMD_end'] = phobius_TMD_end
-            #df.loc[acc,'phobius_TMD_length'] = phobius_TMD_length
-            #df.loc[acc,'TMHMM_TMD_start'] = TMHMM_TMD_start
-            #df.loc[acc,'TMHMM_TMD_end'] = TMHMM_TMD_end
-
-            #create a new file to store all of the simap data, and write the csv header
-            #SIMAP_csv_from_XML_path = r"E:/Databases/simap/%s/%s_homologues.csv" % (organism_domain, protein_name[:30])
-
-            #if the setting is "False", and you don't want to overwrite the files, skip this section
-            if settingsdict["variables"]["simap.calculate_AAIMON_ratios.overwrite_homologue_csv_files"]:
-                create_homol_csv = True
-            else:
-                #check if output file already exists
-                if os.path.isfile(df.loc[acc, 'SIMAP_csv_from_XML_tarfile']):
-                    try:
-                        with tarfile.open(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'], 'r:gz') as tar:
-                            #create a list of files
-                            files_in_output_tarball = [t.name for t in tar]
-                            #check that the analysed files are actually there
-                            if df.loc[acc, 'SIMAP_csv_from_XML'] in files_in_output_tarball:
-                                #read output csv in tarfile
-                                dfs = pd.read_csv(tar.extractfile(df.loc[acc, 'SIMAP_csv_from_XML']), index_col = 0)
-                                description_of_first_hit = dfs.loc[1, 'A4_description']
-                                logging.info('%s homologues already converted to csv. (%s)' % (acc, description_of_first_hit))
-                                #filter to include only desired hits
-                                '''OLD STUFF, from when XML to CSV was not saved separately
-                                dfs_filt = dfs.query(
-                                    'gapped_ident_above_cutoff == True and hit_contains_SW_node == True and disallowed_words_not_in_descr == True')
-                                #avoid a divide by zero error in the unlikely case that there are no_identical_residues_in_alignment
-                                dfs_filt_AAIMON = dfs_filt.loc[dfs_filt['nonTMD_perc_ident'] != 0]
-                                list_of_TMDs = eval(df.loc[acc, 'list_of_TMDs'])
-                                for TMD in list_of_TMDs:
-                                    #following the general filters, filter to only analyse sequences with TMD identity above cutoff,
-                                    #and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
-                                    dfs_filt_AAIMON = dfs_filt_AAIMON.loc[
-                                        dfs['%s_perc_ident' % TMD] >= settingsdict['variables']['analyse.simap_match_filters.min_identity_of_TMD_initial_filter']]
-                                    #add to original dataframe with the list of sequences
-                                    df.loc[acc, '%s_AAIMON_ratio_mean' % TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio' % TMD].mean()
-                                    df.loc[acc, '%s_AAIMON_ratio_std' % TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio' % TMD].std()
-                                    logging.info('AIMON MEAN %s: %0.2f' % (TMD, df.loc[acc, '%s_AAIMON_ratio_mean' % TMD]))
-                                '''
-                            else:
-                                logging.info('%s not in output file tarball, tarball will be deleted' % df.loc[acc, 'SIMAP_csv_from_XML'])
-                                os.remove(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'])
-                                create_homol_csv = True
-                        logging.info('%s already converted to csv, moving to next sequence' %
-                                    df.loc[acc, 'SIMAP_csv_from_XML'])
-                        create_homol_csv = False
-                    except (EOFError, KeyError, tarfile.ReadError):
-                        #file may be corrupted, if script stopped unexpectedly before compression was finished
-                        logging.info(
-                            '%s seems to be corrupted. File will be deleted.' % df.loc[acc, 'SIMAP_csv_from_XML_tarfile'])
-                        os.remove(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'])
-                        create_homol_csv = True
-                else:
-                    logging.info('%s not found, create_homol_csv = True' % df.loc[acc, 'SIMAP_csv_from_XML_tarfile'])
-                    create_homol_csv = True
-            #if the files don't exist, or you want to overwrite them
-            if create_homol_csv:
-                #extract the tarfile so that it can be read as xml
-                with tarfile.open(df.loc[acc, 'SIMAP_tarfile'], 'r:gz') as tar:
-                    SIMAP_homologues_XML_file_extracted = tar.extractfile(df.loc[acc, 'SIMAP_homologues_XML_file'])
-
-                    #parse the XML file with elementtree, define the 'root' of the XML file
-                    simap_homologue_tree = ET.parse(SIMAP_homologues_XML_file_extracted)
-                    simap_homologue_root = simap_homologue_tree.getroot()
-
-                    #print the simap search details (database, e-value cutoff etc)
-                    #dict_with_query_data = print_query_details_from_homologue_XML(simap_homologue_root, dict_with_query_data)
-                    for parameters in simap_homologue_root[0][0][0][0].iter('parameters'):
-                        df.loc[acc, 'SIMAP_input_seq_details_dict'] = str(parameters[0][0].attrib)
-                        for SIMAP_filter in parameters.iter('filter'):
-                            SIMAP_filter_string = SIMAP_filter.text
-                        df.loc[acc, 'SIMAP_filter_string'] = str(SIMAP_filter_string)
-                        for resultSpecification in parameters.iter('resultSpecification'):
-                            SIMAP_resultSpecification_dict = resultSpecification.attrib
-                        df.loc[acc, 'SIMAP_resultSpecification_dict'] = '"%s"' % SIMAP_resultSpecification_dict
-                        for databases in parameters.iter('databases'):
-                            database_details_dict = databases[0].attrib
-                        df.loc[acc, 'database_details_dict'] = '"%s"' % database_details_dict
-                        df.loc[acc, 'simap_version'] = simap_homologue_root[0][0][0][0][0].attrib['version']
-                        df.loc[acc, 'SIMAP_total_hits'] = int(simap_homologue_root[0][0][0][1][0].attrib['total'])
-                    if df.loc[acc, 'simap_version'] != '4.0':
-                        logging.warning('WARNING! Your XML file is simap version %s,'
-                                        'however this SIMAP parser was developed for SIMAP version 4.0.' %
-                                         df.loc[acc, 'simap_version'])
-                    counter_XML_to_CSV += 1
-                    logging.info('%s homologous sequences parsed from SIMAP XML to csv' %
-                                 int(df.loc[acc, 'SIMAP_total_hits']))
-
-                    query_sequence_node = simap_homologue_root[0][0][0][0][2][0][0]
-                    ''' xxxx CURRENTLY THE df is filled with nan values,
-                        but that doesn't make sense as the script seems to work
-                    '''
-                    df.loc[acc, 'query_md5'] = query_sequence_node.attrib['md5']
-                    df.loc[acc, 'query_length'] = int(query_sequence_node.attrib['length'])
-                    df.loc[acc, 'query_selfscore'] = query_sequence_node.attrib['selfscore']
-                    df.loc[acc, 'query_sequenceid'] = query_sequence_node.attrib['sequenceid']
-                    df.loc[acc, 'total_number_of_simap_hits'] = query_sequence_node[0].attrib['number_hits']
-                    df.loc[acc, 'query_sequence_from_homologue_XML_file'] = query_sequence_node[0][0].text
-                    df.loc[acc, 'number_of_hits_in_homologue_XML_file'] = int(
-                        simap_homologue_root[0][0][0][1][0].attrib['total'])
-                    '''
-                    Create an updated csv_file_with_uniprot_data to include the data from SIMAP regarding the query
-                    '''
-                    #save current df to csv
-                    with open(dfout05_simapcsv, 'w') as f:
-                        df.to_csv(f, sep=",", quoting=csv.QUOTE_NONNUMERIC)
-
-                    #create new files to store the fasta sequences, and save the query sequence (the row here is the uniprot number in th df index)
-                    for row in df.index:
-                        #for a protein with TMDs, the list of TMD names should be ['TM01','TM02']
-                        list_of_TMDs = eval(df.loc[row, 'list_of_TMDs'])
-
-                    #for each hit, save all the relevant data in the form of a dictionary,
-                    # so it can be added to a csv file or used in other calculations
-                    simap_homologue_hits = simap_homologue_root[0][0][0][1][0]
-
-                    #see if there are any hits at all
-                    try:
-                        test2 = simap_homologue_root[0][0][0][1][0][0]
-                        xml_contains_simap_homologue_hits = True
-                    except IndexError:
-                        xml_contains_simap_homologue_hits = False
-
-                    if xml_contains_simap_homologue_hits:
-                        #load the amino acid substitution matrices from the settings file
-                        list_of_aa_sub_matrices = settingsdict['variables']['aa_substitution_scoring.matrices']
-
-                        #import the amino acid substitution matrices
-                        utils.import_amino_acid_substitution_matrices()
-
-                        #add the similarity ratios to the csv_header_for_SIMAP_homologue_file.
-                        # These will depend on the individual settings
-                        #                    if settingsdict['variables']['simap.calculate_AAIMON_ratios.calculate_TMD_conservation_with_aa_matrices']:
-                        #                        for j in range(settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_min"],
-                        #                                       settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_max"],
-                        #                                       settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_increment"]):
-                        #                            gap_open_penalty = j
-                        #                            gap_extension_penalty = j
-                        #print('gap_open_penalty:%s' % j)
-                        #                            for matrix_name in list_of_aa_sub_matrices:
-                        #                                column_name = 'sim_ratio_%s_gapo%i' % (matrix_name.replace("'", "")[0:-7], j)
-                        #                                csv_header_for_SIMAP_homologue_file.append(column_name)
-
-                        #import the necessary matrices
-                        #for matrix_name in list_of_aa_sub_matrices:
-                        #matrix = matrix_name[0:-7]
-                        #print (matrix)
-                        #from Bio.SubsMat.MatrixInfo import matrix as matrix_name
-
-                        #print('SIMAP_csv_from_XML_path %s' % df.loc[acc, 'SIMAP_csv_from_XML_path'])
-
-                        SIMAP_csv_from_XML_path = df.loc[acc, 'SIMAP_csv_from_XML_path']
-                        #fasta_file_path = df.loc[acc, 'fasta_file_path']
-
-                        #create an empty file
-                        open(SIMAP_csv_from_XML_path, 'w').close()
-
-                        #reopen to add match details iteratively from dictionary
-                        with open(SIMAP_csv_from_XML_path, 'a') as csvfile:
-
-                            #set up a bool to catch those files where not a single hit actually gives data
-                            at_least_one_hit_contains_SW_node = False
-
-                            for hit in simap_homologue_hits:
-                                match_details_dict = {}
-
-                                #add desired hit information to the dictionary for transfer to csv
-                                A1_hit_number = int(hit.attrib['number'])
-                                match_details_dict['A1_hit_number'] = A1_hit_number
-                                match_details_dict['A3_md5'] = hit[1].attrib['md5']
-
-                                #define the major nodes in the XML-file
-                                try:
-                                    protein_node = hit[1][1]
-                                    hit_contains_protein_node = True
-                                except IndexError:
-                                    hit_contains_protein_node = False
-                                    number_of_hits_missing_protein_node += 1
-                                    logging.warning('%s hit %s contains no protein node' % (protein_name,
-                                                                                            match_details_dict['A3_md5'])
-                                                                                            )
-                                if hit_contains_protein_node:
-                                    try:
-                                        smithWatermanAlignment_node = hit[0][0][14]
-                                        hit_contains_SW_node = True
-                                        num_hits_with_SW_align_node += 1
-                                    except IndexError:
-                                        hit_contains_SW_node = False
-                                    match_details_dict['hit_contains_SW_node'] = hit_contains_SW_node
-                                    #add the description. Make an empty string if it is the first (query) hit, preventing the presence of np.nan in the later dataframe
-                                    if A1_hit_number == 1:
-                                        A4_description = '%s_SIMAP_query_sequence' % protein_name
-                                    else:
-                                        A4_description = protein_node.attrib['description']
-                                    match_details_dict['A4_description'] = A4_description
-                                    try:
-                                        databaseId = int(protein_node[1].attrib['databaseId'])
-                                        match_details_dict['databaseId'] = int(protein_node[1].attrib['databaseId'])
-                                    except KeyError:
-                                        databaseId = 0
-                                        #match_details_dict['databaseId'] = int(0)
-                                    #databaseId = int(protein_node[1].attrib['databaseId'])
-                                    databasenode = protein_node[1]
-                                    match_details_dict['database'] = databasenode.attrib['name']
-                                    try:
-                                        taxonomyNode = protein_node[2]
-                                        match_details_dict['A2_organism'] = taxonomyNode.attrib['name']
-                                        match_details_dict['taxonomy_node_id'] = taxonomyNode.attrib['node_id']
-                                        match_details_dict['taxonomy_rank'] = taxonomyNode.attrib['rank']
-                                    except IndexError:
-                                        #sequence is probably synthetic, as it has no database node
-                                        match_details_dict['A4_description'] += ', synthetic'
-                                        match_details_dict['A2_organism'] = 'synthetic'
-                                        match_details_dict['taxonomy_node_id'] = 'synthetic'
-                                        match_details_dict['taxonomy_rank'] = 'synthetic'
-                                    match_details_dict['len_full_match_seq'] = len(hit[1][0][0].text)
-                                    #len_full_match_seq = len(full_match_seq)
-                                    alignment_node = hit[0][0]
-                                    #E-value for hit
-                                    match_details_dict['FASTA_expectation'] = float(alignment_node[1].text)
-                                    #convert identity from e.g. 80 (80%) to 0.8
-                                    match_details_dict['FASTA_identity'] = float(alignment_node[3].text) / 100
-                                    #strangely, I think gappedIdentity is the identity EXCLUDING gaps, which is a better value to base judgements on. convert identity from e.g. 80 (80%) to 0.8
-                                    match_details_dict['FASTA_gapped_identity'] = float(alignment_node[4].text) / 100
-                                    '''xxx notes on the gapped identity
-                                    N.B The FASTA_gapped_identity data here is from the FASTA algorithm, that precedes the SW algorithm.
-                                    Occasionally they don’t match!!!
-                                    I calculate the TMD identity manually from the SW alignment, BUT
-                                    currently for the calculation of membranous/nonmembranous I use the gappedIdentity from the FASTA output
-                                    (the SW output inly has identity including gaps)
-                                    -    if I counted the gaps from the SW alignment, I COULD recalculate the gappedIdentity for the SW alignment
-                                    -    OR: I could simply remove the data where the FASTA and SW don’t match.
-                                    '''
-                                    #FASTA overlap should be the length of the aligned region after running the FASTA algorithm (alignment is not shown by SIMAP)
-                                    match_details_dict['FASTA_overlap'] = int(alignment_node[5].text)
-                                    match_details_dict['FASTA_query_coverage'] = float(alignment_node[11].text)
-                                    match_details_dict['FASTA_match_coverage'] = float(alignment_node[12].text)
-                                    #find the start and the stop of the hsp
-                                    querySeq = alignment_node[6]
-                                    match_details_dict['FASTA_query_start'] = int(querySeq.attrib['start'])
-                                    match_details_dict['FASTA_query_end'] = int(querySeq.attrib['end'])
-                                    matchSeq = alignment_node[7]
-                                    match_details_dict['FASTA_match_start'] = int(matchSeq.attrib['start'])
-                                    match_details_dict['FASTA_match_end'] = int(matchSeq.attrib['end'])
-                                    #some parameters that are needed for identity calculations later
-                                    #FASTA_num_ident_res = FASTA_identity / 100.0 * FASTA_overlap
-                                    #check if the TMD is in the smith waterman alignment. Note that start and stop in the alignment node is based on FASTA alignment,
-                                    #which is not shown. Occasionally, this will not match the SW alignment.
-                                    #xxx it might be better to insert a function that determines of the TMD is after the start of the SW alignment
-                                    #is_start_of_TMD_in_FASTA = True if FASTA_query_start <= TMDstart else False
-                                    #is_end_of_TMD_in_FASTA = True if TMDend <= FASTA_query_end else False
-                                    #is_TMD_in_FASTA_alignment = True if all(
-                                    #    [is_start_of_TMD_in_FASTA, is_end_of_TMD_in_FASTA]) else False
-                                    #mmmmm TEMP
-                                    #logging.info('gapped_identity_too_low: %s' % gapped_identity_too_low)
-                                    '''***********************if the TMD region is actually covered by the hsp, then conduct some further analyses of the match TMD region*************************'''
-                                    if hit_contains_SW_node:
-                                        #check that at least one hit gives data
-                                        at_least_one_hit_contains_SW_node = True
-                                        query_alignment_sequence = ''
-                                        '''For the moment, there is no need to put the whole match hsp sequence into the csv file'''
-                                        #for smithWatermanAlignment in alignment_node.iter('smithWatermanAlignment'):
-                                        match_details_dict['SW_query_score_ratio'] = smithWatermanAlignment_node[0].text
-                                        match_details_dict['SW_match_score_ratio'] = smithWatermanAlignment_node[1].text
-                                        match_details_dict['SW_query_coverage'] = smithWatermanAlignment_node[2].text
-                                        match_details_dict['SW_match_coverage'] = smithWatermanAlignment_node[3].text
-                                        match_details_dict['SW_coverage_ratio'] = smithWatermanAlignment_node[4].text
-                                        match_details_dict['A5_alignment_pretty'] = smithWatermanAlignment_node[8].text
-                                        match_details_dict['SW_alignment_seq1offset'] = int(smithWatermanAlignment_node.attrib['alignment-seq1offset'])
-                                        match_details_dict['SW_alignment_seq2offset'] = int(smithWatermanAlignment_node.attrib['alignment-seq2offset'])
-                                        match_details_dict['SW_identity'] = float(smithWatermanAlignment_node.attrib['identity'])
-                                        match_details_dict['SW_similarity'] = float(smithWatermanAlignment_node.attrib['similarity'])
-                                        #Get the full sequences. Note that they greatly increase the size of the csv file.
-                                        match_details_dict['query_alignment_sequence'] = smithWatermanAlignment_node[5].text
-                                        match_details_dict['alignment_markup'] = smithWatermanAlignment_node[6].text
-                                        match_details_dict['match_alignment_sequence'] = smithWatermanAlignment_node[7].text
-                                        #create a list of TMD names to be used in the loops below (TM01, TM02 etc)
-                                        list_of_TMDs = eval(df.loc[acc, 'list_of_TMDs'])
-                                        #run the search using the regular expression that will find the TMD even if it contains gaps
-                                        for TMD in list_of_TMDs:
-                                            #if is_TMD_in_FASTA_alignment:
-                                            query_TMD_sequence = df.loc[acc, '%s_seq' % TMD]
-                                            query_TMD_length = len(query_TMD_sequence)
-                                    else:
-                                        number_of_hits_missing_smithWatermanAlignment_node += 1
-                                    if A1_hit_number == 1:
-                                        #sort
-                                        csv_header_for_SIMAP_homologue_file = sorted(list(match_details_dict.keys()))
-                                        #save the csv header to the csv file
-                                        writer = csv.writer(csvfile, delimiter=',', quotechar='"', lineterminator='\n',
-                                                            quoting=csv.QUOTE_NONNUMERIC, doublequote=True)
-                                        writer.writerow(csv_header_for_SIMAP_homologue_file)
-                                    #save the match_details_dict as a line in the csv file
-                                    writer = csv.DictWriter(csvfile, fieldnames=csv_header_for_SIMAP_homologue_file,
-                                                            extrasaction='ignore', delimiter=',', quotechar='"',
-                                                            lineterminator='\n', quoting=csv.QUOTE_NONNUMERIC,
-                                                            doublequote=True)
-                                    writer.writerow(match_details_dict)
-
-                        with tarfile.open(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'], 'w:gz') as tar_SIMAP_out:
-                            tar_SIMAP_out.add(SIMAP_csv_from_XML_path, arcname=df.loc[acc, 'SIMAP_csv_from_XML'])
-                        os.remove(SIMAP_csv_from_XML_path)
-    logging.info(
-        'number_of_hits_missing_smithWatermanAlignment_node: %i' % number_of_hits_missing_smithWatermanAlignment_node)
-    logging.info('number_of_hits_missing_protein_node: %i' % number_of_hits_missing_protein_node)
-    logging.info('****parse_SIMAP_to_csv finished!!****\n%g files parsed from SIMAP XML to csv' % counter_XML_to_CSV)
+    korbinian.simap.parse_SIMAP_to_csv(pathdict, settingsdict, logging)
 
 #A## variables are included only to help navigate the document in PyCharm
 A08_calculate_AAIMON_ratios = settingsdict["run_settings"]["analyse.calculate_AAIMON_ratios"]
@@ -1245,18 +196,18 @@ if A08_calculate_AAIMON_ratios:
             logging.info('df already in memory. continuing with parse_list_proteins_to_csv_and_fasta. first protein is %s' % df.index[0])
         else:
             raise TypeError("df is in the list of globals, but not a valid DataFrame")
-    elif os.path.isfile(dfout08_simap_AAIMON):
+    elif os.path.isfile(pathdict["dfout08_simap_AAIMON"]):
         #backup_original_file
-        dfout08_simap_AAIMON_backup_before_adding_data = dfout08_simap_AAIMON[:-4] + 'backup.csv'
+        pathdict["dfout08_simap_AAIMON_backup_before_adding_data"] = pathdict["dfout08_simap_AAIMON"][:-4] + 'backup.csv'
         import shutil
         #copy file, keeping original modification and access info
-        shutil.copy2(dfout08_simap_AAIMON, dfout08_simap_AAIMON_backup_before_adding_data)
+        shutil.copy2(pathdict["dfout08_simap_AAIMON"], pathdict["dfout08_simap_AAIMON_backup_before_adding_data"])
         #open file as dataframe
-        df = pd.read_csv(dfout08_simap_AAIMON, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-        logging.info('df loaded from %s. backup of original csv was created' % dfout08_simap_AAIMON)
+        df = pd.read_csv(pathdict["dfout08_simap_AAIMON"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+        logging.info('df loaded from %s. backup of original csv was created' % pathdict["dfout08_simap_AAIMON"])
     else:
-        df = pd.read_csv(dfout05_simapcsv, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-        logging.info('dfout08_simap_AAIMON not found, df loaded from %s. ' % dfout05_simapcsv)
+        df = pd.read_csv(pathdict["dfout05_simapcsv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+        logging.info('pathdict["dfout08_simap_AAIMON"] not found, df loaded from %s. ' % pathdict["dfout05_simapcsv"])
     #filter to remove sequences where no TMDs are found,
     df = df.loc[df['list_of_TMDs'].notnull()]
     #filter to remove sequences where no TMDs are found (if string)
@@ -2009,7 +960,7 @@ if A08_calculate_AAIMON_ratios:
                                 df.loc[acc, 'num_FastA_seqs_saved'] = int(dfs_filt_FastA.shape[0])
                                 logging.info('num_FastA_seqs_saved; %i\n' % df.loc[acc, 'num_FastA_seqs_saved'])
                     #save to csv after each protein is analysed, incrementally adding the extra data
-                    with open(dfout08_simap_AAIMON, 'w') as csv_out:
+                    with open(pathdict["dfout08_simap_AAIMON"], 'w') as csv_out:
                         df.to_csv(csv_out, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     logging.info('calculate_AAIMON_ratios is finished.')
@@ -2036,12 +987,12 @@ if A08a_calculate_gap_densities:
             logging.info('df already in memory. continuing with parse_list_proteins_to_csv_and_fasta. first protein is %s' % df.index[0])
         else:
             raise TypeError("df is in the list of globals, but not a valid DataFrame")
-    elif os.path.isfile(dfout10_uniprot_gaps):
-        df = pd.read_csv(dfout10_uniprot_gaps, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
-        logging.info('df loaded from %s' % dfout10_uniprot_gaps)
-    elif os.path.isfile(dfout08_simap_AAIMON):
-        df = pd.read_csv(dfout08_simap_AAIMON, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
-        logging.info('df loaded from %s' % dfout08_simap_AAIMON)
+    elif os.path.isfile(pathdict["dfout10_uniprot_gaps"]):
+        df = pd.read_csv(pathdict["dfout10_uniprot_gaps"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
+        logging.info('df loaded from %s' % pathdict["dfout10_uniprot_gaps"])
+    elif os.path.isfile(pathdict["dfout08_simap_AAIMON"]):
+        df = pd.read_csv(pathdict["dfout08_simap_AAIMON"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
+        logging.info('df loaded from %s' % pathdict["dfout08_simap_AAIMON"])
         # If no previous analysis had been done, uniprot csv is opened and additional columns are created
         df["gaps_analysed"]= np.nan     # Column, containing true or false
         for n in range (1,max_number_of_tmds+1):
@@ -2055,7 +1006,7 @@ if A08a_calculate_gap_densities:
             df['len_juxta_TM%.2d_intracellular'%n] = np.nan
             df['len_juxta_TM%.2d_extracellular'%n] = np.nan
     else:
-        raise IOError("df is not in memory, and neither %s nor %s are found" % (dfout10_uniprot_gaps,dfout08_simap_AAIMON))
+        raise IOError("df is not in memory, and neither %s nor %s are found" % (pathdict["dfout10_uniprot_gaps"],pathdict["dfout08_simap_AAIMON"]))
 
     for acc in df.index:
 
@@ -2411,7 +1362,7 @@ if A08a_calculate_gap_densities:
 
                         df.loc[acc,"gaps_analysed"] = "True"
                         logging.info("--Analysed")
-                        with open(dfout10_uniprot_gaps, 'w') as csv_out:
+                        with open(pathdict["dfout10_uniprot_gaps"], 'w') as csv_out:
                             df.to_csv(csv_out, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
 
@@ -2431,11 +1382,11 @@ if A08b_create_graph_of_gap_density:
     logging.info('~~~~~~~~~~~~starting creating graphs of gap density~~~~~~~~~~~~')
 
     #test if the dataframe has already been created, otherwise re-open from uniprot csv file
-    if os.path.isfile(dfout10_uniprot_gaps):
-        df = pd.read_csv(dfout10_uniprot_gaps, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
-        logging.info('df loaded from %s' % dfout10_uniprot_gaps)
+    if os.path.isfile(pathdict["dfout10_uniprot_gaps"]):
+        df = pd.read_csv(pathdict["dfout10_uniprot_gaps"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
+        logging.info('df loaded from %s' % pathdict["dfout10_uniprot_gaps"])
     else:
-        raise FileNotFoundError('No gap analysis has been done yet. %s is not found. Please run calculate calculate_gap_densities' % dfout10_uniprot_gaps)
+        raise FileNotFoundError('No gap analysis has been done yet. %s is not found. Please run calculate calculate_gap_densities' % pathdict["dfout10_uniprot_gaps"])
 
     num_of_bins_in_tmd_region = settingsdict["variables"]["plot.create_graph_of_gap_density.num_of_bins_in_tmd_region"]
 
@@ -2697,8 +1648,8 @@ if A09_save_figures_describing_proteins_in_list:
         logging.info('first protein acc = %s, df already exists, '
                      'continuing with save_figures_describing_proteins_in_list' % df.iloc[0][0])
     except NameError:
-        logging.info('df loaded from %s' % dfout08_simap_AAIMON)
-        df = pd.read_csv(dfout08_simap_AAIMON, sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
+        logging.info('df loaded from %s' % pathdict["dfout08_simap_AAIMON"])
+        df = pd.read_csv(pathdict["dfout08_simap_AAIMON"], sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
     #filter to remove sequences where no TMDs are found (will contain either np.nan, or 'nan')
     df = df.loc[df['list_of_TMDs'].notnull()]
     df = df.loc[df['list_of_TMDs'] != 'nan']
@@ -5049,7 +4000,7 @@ if A09_save_figures_describing_proteins_in_list:
     '''
     save the updated dataframe, containing the various extra columns used for the figure
     '''
-    with open(dfout09_simap_AAIMON_02, 'w') as csv_out:
+    with open(pathdict["dfout09_simap_AAIMON_02"], 'w') as csv_out:
         df.to_csv(csv_out, sep = ",", quoting = csv.QUOTE_NONNUMERIC)
     logging.info('A07b_save_figures_describing_proteins_in_list is finished')
 
@@ -5057,7 +4008,7 @@ if A09_save_figures_describing_proteins_in_list:
 '''+++++++++++++++ Summary figures describing the conservation ratios of proteins in the list ++++++++++++++++++'''
 A10_compare_lists = settingsdict["run_settings"]["plot.compare_lists"]
 if A10_compare_lists:
-
+    settings = "need to convert Rimma's settings file to excel"
 #    if 'df1' in globals():
 #        if isinstance(df1, pd.DataFrame):
 #            reload_data_from_summary_files = False
@@ -5080,24 +4031,24 @@ if A10_compare_lists:
     df_list = []
     for index, list_num in enumerate(protein_lists):
         base_filename_summ = os.path.join(main_folder, 'summaries', 'List%02d' % list_num)
-        dfout09_simap_AAIMON_02 = '%s_simap_AAIMON_02.csv' % base_filename_summ
+        pathdict["dfout09_simap_AAIMON_02"] = '%s_simap_AAIMON_02.csv' % base_filename_summ
         if index == 0:
-            df1 = pd.read_csv(dfout09_simap_AAIMON_02, sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
+            df1 = pd.read_csv(pathdict["dfout09_simap_AAIMON_02"], sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
             df_list.append(df1)
         if index == 1:
-            df2 = pd.read_csv(dfout09_simap_AAIMON_02, sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
+            df2 = pd.read_csv(pathdict["dfout09_simap_AAIMON_02"], sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
             df_list.append(df2)
         if index == 2:
-            df3 = pd.read_csv(dfout09_simap_AAIMON_02, sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
+            df3 = pd.read_csv(pathdict["dfout09_simap_AAIMON_02"], sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
             df_list.append(df3)
         if index == 3:
-            df4 = pd.read_csv(dfout09_simap_AAIMON_02, sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
+            df4 = pd.read_csv(pathdict["dfout09_simap_AAIMON_02"], sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
             df_list.append(df4)
         if index == 4:
-            df5 = pd.read_csv(dfout09_simap_AAIMON_02, sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
+            df5 = pd.read_csv(pathdict["dfout09_simap_AAIMON_02"], sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
             df_list.append(df5)
         if index == 5:
-            df6 = pd.read_csv(dfout09_simap_AAIMON_02, sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
+            df6 = pd.read_csv(pathdict["dfout09_simap_AAIMON_02"], sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
             df_list.append(df6)
         if index == 6:
             logging.warning('ERROR! Too many lists included for analysis in A10_compare_lists')
@@ -5752,7 +4703,7 @@ if A10_compare_lists:
 B01_OLD_calculate_TMD_conservation = settingsdict["run_settings"]["simap.OLD.calculate_TMD_conservation"]
 if B01_OLD_calculate_TMD_conservation:
     #convert file to dataframe (eg List70_simap.csv)
-    df_dfout05_simapcsv = pd.read_csv(dfout05_simapcsv, sep=",", index_col=0,
+    df_dfout05_simapcsv = pd.read_csv(pathdict["dfout05_simapcsv"], sep=",", index_col=0,
                                       quoting=csv.QUOTE_NONNUMERIC)  # index_col = 0, only wher reopening a saved pandas file
     #add desired columns (only necessary if for loop method is kept)
     original_columns = list(df_dfout05_simapcsv.columns)
@@ -6057,8 +5008,8 @@ if B01_OLD_calculate_TMD_conservation:
 
                 #for the first file, create a new file and save the csv header
                 if number_query_seq_added_to_histogram == 0:
-                    utils.save_list_as_row_in_csv(header_with_bins_for_csv, csv_file_with_histogram_data, 'w')
-                    utils.save_list_as_row_in_csv(header_with_bins_for_csv, csv_file_with_histogram_data_normalised,'w')
+                    utils.save_list_as_row_in_csv(header_with_bins_for_csv, pathdict["csv_file_with_histogram_data"], 'w')
+                    utils.save_list_as_row_in_csv(header_with_bins_for_csv, pathdict["csv_file_with_histogram_data_normalised"],'w')
 
                 #rpitrh = ratio_ident_mem_to_nonmem
                 array_rpitrh = np.array(hist_ratio_ident_mem_to_nonmem)
@@ -6077,9 +5028,9 @@ if B01_OLD_calculate_TMD_conservation:
                 hist_ratio_ident_mem_to_nonmem_normalised_csv_row = list_protein_name + hist_ratio_ident_mem_to_nonmem_normalised_list
 
                 #save data to csv
-                utils.save_list_as_row_in_csv(hist_ratio_ident_mem_to_nonmem_csv_row, csv_file_with_histogram_data, 'a')
+                utils.save_list_as_row_in_csv(hist_ratio_ident_mem_to_nonmem_csv_row, pathdict["csv_file_with_histogram_data"], 'a')
                 utils.save_list_as_row_in_csv(hist_ratio_ident_mem_to_nonmem_normalised_csv_row,
-                                              csv_file_with_histogram_data_normalised, 'a')
+                                              pathdict["csv_file_with_histogram_data_normalised"], 'a')
 
                 number_query_seq_added_to_histogram += 1
         number_query_seq_processed += 1
@@ -6337,10 +5288,10 @@ if B01_OLD_calculate_TMD_conservation:
     df_dfout05_simapcsv = df_dfout05_simapcsv.sort_index(
         axis=1)
     #save the updated DataFrame of all proteins to file
-    with open(dfout05_simapcsv, 'w') as f:
+    with open(pathdict["dfout05_simapcsv"], 'w') as f:
         df_dfout05_simapcsv.to_csv(f, sep=",", quoting=csv.QUOTE_NONNUMERIC)
     #save the updated DataFrame of nonredundant proteins to file
-    with open(dfout07_simapnonred, 'w') as f:
+    with open(pathdict["dfout07_simapnonred"], 'w') as f:
         df_dfout07_simapnonred.to_csv(f, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     '''
@@ -6349,11 +5300,11 @@ if B01_OLD_calculate_TMD_conservation:
     The query with the MOST VALID HITS will be kept for further analysis.
     '''
 
-    with open(csv_file_with_histogram_data_normalised, mode='r') as infile:
+    with open(pathdict["csv_file_with_histogram_data_normalised"], mode='r') as infile:
         reader = csv.reader(infile)
-        with open(csv_file_with_histogram_data_normalised_redundant_removed, 'w') as outfile:
+        with open(pathdict["csv_file_with_histogram_data_normalised_redundant_removed"], 'w') as outfile:
             pass
-        with open(csv_file_with_histogram_data_normalised_redundant_removed, 'a') as outfile:
+        with open(pathdict["csv_file_with_histogram_data_normalised_redundant_removed"], 'a') as outfile:
             writer = csv.writer(outfile, delimiter=',', quotechar='"', lineterminator='\n',
                                 quoting=csv.QUOTE_NONNUMERIC, doublequote=True)
             rownumber = 0
@@ -6383,10 +5334,10 @@ if B02_OLD_calculate_TMD_conservation_by_gappedIdentity:
     #import matplotlib.pyplot as plt
     #csv_file_with_uniprot_data = r'E:\Stephis\Projects\Programming\Python\files\20131115_bacterial_TMD_conservation\List04-parser-test_uniprot_data.csv'
 
-    csv_file_with_histogram_data_normalised_redundant_removed = r'E:\Stephis\Projects\Programming\Python\files\20131115_bacterial_TMD_conservation\List%02d_histogram_normalised_redundant_removed.csv' % list_number
+    pathdict["csv_file_with_histogram_data_normalised_redundant_removed"] = r'E:\Stephis\Projects\Programming\Python\files\20131115_bacterial_TMD_conservation\List%02d_histogram_normalised_redundant_removed.csv' % list_number
     fieldnames_list_nonredundant_protein_names = ['A2_protein_name']
     nested_list_from_csv_nonred = utils.create_nested_dict_from_csv(
-        csv_file_with_histogram_data_normalised_redundant_removed, fieldnames_list_nonredundant_protein_names)
+        pathdict["csv_file_with_histogram_data_normalised_redundant_removed"], fieldnames_list_nonredundant_protein_names)
     list_nonredundant_protein_names = []
     for i in range(1, len(nested_list_from_csv_nonred)):
         list_nonredundant_protein_names.append(nested_list_from_csv_nonred[i]['A2_protein_name'])
@@ -6477,10 +5428,10 @@ A10_conduct_statistical_analysis_of_sim_ratios_saved_in_dfout05_simapcsv = setti
 if A10_conduct_statistical_analysis_of_sim_ratios_saved_in_dfout05_simapcsv:
     #load the csv containing only nonredundant sequences as a pandas dataframe
     if settingsdict["variables"]["conduct_statistical_analysis_of_sim_ratios_saved_in_dfout05_simapcsv.conduct_stat_analysis_with_all_seqs_or_nonredundant_seqs"] == "all":
-        df_dfout05_simapcsv_stat_analysis = pd.read_csv(dfout05_simapcsv, sep=",", index_col=0,
+        df_dfout05_simapcsv_stat_analysis = pd.read_csv(pathdict["dfout05_simapcsv"], sep=",", index_col=0,
                                                         quoting=csv.QUOTE_NONNUMERIC)
     else:
-        df_dfout05_simapcsv_stat_analysis = pd.read_csv(dfout07_simapnonred, sep=",", index_col=0,
+        df_dfout05_simapcsv_stat_analysis = pd.read_csv(pathdict["dfout07_simapnonred"], sep=",", index_col=0,
                                                         quoting=csv.QUOTE_NONNUMERIC)
 
     #create a dictionary that contains the average conservation ratios for each protein, for each gap penalty and matrix
@@ -6520,9 +5471,9 @@ if A10_conduct_statistical_analysis_of_sim_ratios_saved_in_dfout05_simapcsv:
         #add the series to the final dataframe summary
         df_av_cons_ratio_all_proteins[matrix] = pd.Series(mean_for_each_gap_penalty)
     #save the averages to file
-    with open(csv_av_cons_ratio_all_proteins, 'w') as f:
+    with open(pathdict["csv_av_cons_ratio_all_proteins"], 'w') as f:
         df_av_cons_ratio_all_proteins.to_csv(f, sep=",", quoting=csv.QUOTE_NONNUMERIC)
-        logging.info('%s   saved' % csv_av_cons_ratio_all_proteins)
+        logging.info('%s   saved' % pathdict["csv_av_cons_ratio_all_proteins"])
 
     #calculate the standard deviation of the conservation ratios
     #create empty dataframe
@@ -6536,21 +5487,20 @@ if A10_conduct_statistical_analysis_of_sim_ratios_saved_in_dfout05_simapcsv:
         #add the series to the final dataframe summary
         df_std_cons_ratio_all_proteins[matrix] = pd.Series(std_for_each_gap_penalty)
     #save the averages to file
-    with open(csv_std_cons_ratio_all_proteins, 'w') as f:
+    with open(pathdict["csv_std_cons_ratio_all_proteins"], 'w') as f:
         df_std_cons_ratio_all_proteins.to_csv(f, sep=",", quoting=csv.QUOTE_NONNUMERIC)
-    logging.info('%s   saved' % csv_std_cons_ratio_all_proteins)
+    logging.info('%s   saved' % pathdict["csv_std_cons_ratio_all_proteins"])
 
 #A## variables are included only to help navigate the document in PyCharm
 B03_OLD_fix_dfout05_simapcsv_by_adding_query_md5 = settingsdict["run_settings"]["simap.OLD.fix_dfout05_simapcsv_by_adding_query_md5"]
 if B03_OLD_fix_dfout05_simapcsv_by_adding_query_md5:
     #convert the csv file to a pandas dataframe
-    df_dfout05_simapcsv = pd.read_csv(dfout05_simapcsv,
+    df_dfout05_simapcsv = pd.read_csv(pathdict["dfout05_simapcsv"],
                                       sep=",", na_values=['nan'],
                                       quoting=csv.QUOTE_NONNUMERIC)
     #create backup
-    dfout05_simapcsv_backup = dfout05_simapcsv[
-                              0:-4] + '_backup_after_query_md5_addition.csv'
-    with open(dfout05_simapcsv_backup, 'w') as f:
+    pathdict["dfout05_simapcsv_backup"] = pathdict["dfout05_simapcsv"][0:-4] + '_backup_after_query_md5_addition.csv'
+    with open(pathdict["dfout05_simapcsv_backup"], 'w') as f:
         df_dfout05_simapcsv.to_csv(f, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     #check that the query md5s are not there at first
@@ -6585,5 +5535,5 @@ if B03_OLD_fix_dfout05_simapcsv_by_adding_query_md5:
     print(df_dfout05_simapcsv.query_md5)
 
     #now save the improved dataframe to the csv
-    with open(dfout05_simapcsv, 'w') as f:
+    with open(pathdict["dfout05_simapcsv"], 'w') as f:
         df_dfout05_simapcsv.to_csv(f, sep=",", quoting=csv.QUOTE_NONNUMERIC)
