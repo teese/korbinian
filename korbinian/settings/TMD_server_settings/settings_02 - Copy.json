@@ -1,0 +1,153 @@
+{
+	"run_settings" : {
+		"create_uniprot_flatfile_with_selected_seqs" : {
+			"parse_large_flatfile_with_list_uniprot_accessions" : false,
+			"retrieve_uniprot_data_for_acc_list_in_xlsx_file" : false,
+			"convert_uniprot_list_to_nonred_ff_via_uniref" : {
+				"run" : false,
+				"overwrite_selected_ff" : true,
+				"uniref_cluster_cutoff" : 50,
+				"uniref_filters" : [
+					"membrane",
+					"human",
+                    "multipass"
+					],
+				"large_uniprot_ff_filters" : [
+					"membrane",
+					"human"
+					]
+                }
+            },
+		"create_csv_from_uniprot_flatfile" : false,
+		"A04_setup_df_dtypes": false,
+		"A05_setup_df_file_locations" : false,
+		"retrieve_simap_feature_table_and_homologues_from_list_in_csv" : false,
+		"parse_SIMAP_to_csv" : false,
+		"calculate_AAIMON_ratios" : {
+			"run" : false,
+			"overwrite_prev_calculated_AAIMON_ratios" : false,
+			"drop_columns_to_reduce_csv_filesize" : true,
+			"calculate_TMD_conservation_with_aa_matrices" : false,
+			"overwrite_homologue_csv_files": false
+			},
+        "save_figures_describing_proteins_in_list" : false,
+        "compare_lists" : {
+			"run" : true,
+			"protein_lists" : [
+				77,
+				79
+			],
+			"protein_list_names" : [
+				"singlepass",
+				"multipass"
+			]
+		},
+		"calculate_TMD_conservation" : {
+			"calculate_TMD_conservation" : false,
+			"overwrite_csv_file_av_cons_ratios_hits" : false
+			},
+		"calculate_TMD_conservation_by_gappedIdentity" : false,
+		"calculate_TMD_conservation_moment" : false,
+		"conduct_statistical_analysis_of_sim_ratios_saved_in_dfout05_simapcsv" : false,
+		"conduct_stat_analysis_with_all_seqs_or_nonredundant_seqs" : "all",
+		"fix_dfout05_simapcsv_by_adding_query_md5" : false,
+		"uniprot_list" : 77
+	},
+	"file_locations" : {
+		"utils" : "/nas/teeselab/mark/scripts",
+		"data_harddrive" : "/nas",
+		"data_folder" : "/nas/teeselab/students/rimma/databases",
+		"uniprot_flatfile_path" : "/nas/teeselab/students/rimma/databases/D_uniprot/selected"
+	},
+	"simap_match_filters" : {
+		"e_value_filter" : 1e-05,
+		"words_not_allowed_in_description" : [
+			"patent",
+			"Patent",
+			"synthetic",
+			"Synthetic",
+			"artificial",
+			"Artificial",
+			"bad sequence",
+			"low quality"
+		],
+		"database" : "all",
+		"number_of_gaps_allowed_in_match_TMD" : 2,
+		"number_of_gaps_allowed_in_query_TMD" : 2,
+		"minimum_identity_of_full_protein" : 0.7,
+		"min_identity_of_TMD_initial_filter" : 0.2,
+		"min_identity_of_TMD_final_filter" : 0.2,	
+		"number_of_X_allowed_in_TMD" : 0,
+		"number_of_X_allowed_in_seq" : 0,
+		"min_len_query_aln_seq_excl_TMD" : 20,
+		"identity_method" : "gappedIdentity",
+		"maximum_identity_of_full_protein" : 1.1,
+		"mimimum_length_match_sequence" : 0,
+		"mimimum_length_non_TMD_sequence" : 0,
+		"randomised_tmd" : false,
+		"fasta_files" : {
+			"aa_before_tmd" : 10,
+			"aa_after_tmd" : 10
+		}
+	},
+	"logging_settings" : {
+		"suppress_error_logging_to_console" : false
+	},
+	"hist_settings_single_protein" : {
+		"final_highest_bin" : 30,
+		"fixed_bins" : true,
+		"largest_bin" : 3.05,
+		"minimum_number_hits_for_data_analysis" : 20,
+		"number_of_bins" : 31,
+		"overwrite_histogram_files" : true,
+		"pylab_automatic_bins" : false,
+		"smallest_bin" : 0.05
+	},
+	"hist_settings_mult_proteins" : {
+		"final_highest_bin" : 3,
+		"fixed_bins" : true,
+		"largest_bin" : 1.455,
+		"number_of_bins" : 91,
+		"pylab_automatic_bins" : false,
+		"smallest_bin" : 0.555,
+        "xlim_min01" : 0.5,
+        "xlim_max01" : 1.75
+	},
+	"analysis_by_gappedIdentity" : {
+		"minimum_number_hits_within_GI_range" : 5,
+		"gappedIdentity_cutoffs" : [
+			0.40,
+			0.50,
+			0.60,
+			0.70,
+			0.80,
+			0.90,
+			1.0
+		]
+	},
+	"aa_substitution_scoring" : {
+		"gap_open_penalty_min" : 0,
+		"gap_open_penalty_max" : -12,
+		"gap_open_penalty_increment" : -2,
+		"gap_ext_penalty_type" : "single_value",
+		"gap_ext_penalty_fixed" : -0.2,
+		"gap_ext_penalty_min" : -1,
+		"gap_ext_penalty_max" : -1,
+		"gap_ext_penalty_increment" : 0,
+		"matrices" : [
+			"ident_matrix",
+			"blosum62_matrix",
+			"pam120_matrix",
+			"levin_matrix"
+		]
+	},
+	"simap_homologue_download" : {
+        "java_max_RAM_memory_allocated_to_simap_download" : 3000,
+		"database" : "",
+		"e_value_cutoff" : 1e-05,
+		"max_hits" : 5000,
+		"max_query_sequence_length" : 3000,
+		"overwrite_homologue_files" : false,
+		"taxid" : ""
+    }
+}

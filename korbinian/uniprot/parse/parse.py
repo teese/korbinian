@@ -114,7 +114,7 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, setti
                         location_of_non_tmds_in_feature_list.sort()
 
             # count the number of "TRANSMEM" TMDs listed in the feature-list
-            output_dict['number_of_TMDs_in_uniprot_feature_list'] = len(location_of_tmds_in_feature_list)
+            output_dict['number_of_TMDs'] = len(location_of_tmds_in_feature_list)
 
             # information about location of first non-tmd (extracellular or perplasmic/cytoplasmic)
             if len(location_of_non_tmds_in_feature_list) > 0:
@@ -124,7 +124,7 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, setti
                 output_dict['loc_start'] = np.nan
                 output_dict['n_term_ec'] = np.nan
 
-            if output_dict['number_of_TMDs_in_uniprot_feature_list'] > 0:
+            if output_dict['number_of_TMDs'] > 0:
                 list_of_TMDs = []
                 for TMD_location in location_of_tmds_in_feature_list:
                     # consequtively number the TMDs based on the "TRANSMEM" location in the feature list
@@ -195,7 +195,7 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, setti
         aa_before_tmd = settingsdict["variables"]["analyse.simap_match_filters.aa_before_tmd"]
         aa_after_tmd = settingsdict["variables"]["analyse.simap_match_filters.aa_after_tmd"]
         # determine max number of TMD columns that need to be created
-        max_num_TMDs = df['number_of_TMDs_in_uniprot_feature_list'].max()
+        max_num_TMDs = df['number_of_TMDs'].max()
         # currently the loop is run for each TMD, based on the sequence with the most TMDs
         for i in range(1, max_num_TMDs + 1):
             TMD = 'TM%02d' % i

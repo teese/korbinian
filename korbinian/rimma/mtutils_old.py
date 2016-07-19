@@ -85,7 +85,7 @@ def create_df_with_mean_AAIMON_each_TM(df):
     Returns a list of the TMDs that can be used for iteration, etc.
     '''
     #find max number of TMDs in the whole dateset
-    max_num_TMDs = df.number_of_TMDs_in_uniprot_feature_list.max()
+    max_num_TMDs = df.number_of_TMDs.max()
     #create empty dictionaries to hold the mean values etc
     nested_dict_hist_data_AAIMON_each_TM = {}
     nested_dict_mean_AAIMON_each_TM = {}
@@ -116,7 +116,7 @@ def create_df_with_mean_AAIMON_each_TM(df):
     df['last_TM_AAIMON_ratio_mean'] = np.nan
     #obtain data from last TMD for all proteins
     for acc in df.index:
-        df.loc[acc,'last_TM_AAIMON_ratio_mean'] = df.loc[acc,'TM%02d_AAIMON_ratio_mean' % df.loc[acc,'number_of_TMDs_in_uniprot_feature_list']]
+        df.loc[acc,'last_TM_AAIMON_ratio_mean'] = df.loc[acc,'TM%02d_AAIMON_ratio_mean' % df.loc[acc,'number_of_TMDs']]
     AAIMON_last_TM = df['last_TM_AAIMON_ratio_mean'].dropna()
     #add the data for the last TMD to the dataframe
     df_mean_AAIMON_each_TM['last_TM_AAIMON_ratio_mean'] = AAIMON_last_TM

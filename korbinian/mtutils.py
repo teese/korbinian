@@ -6,22 +6,33 @@ More recent functions are at the top.
 Authors: Mark Teese, Rimma Jenske
 Created on Fri Nov  8 15:45:06 2013
 """
-import subprocess, threading, time, sys
 from Bio import SeqIO
-import os.path
-import logging
-import ctypes
-import platform
-import os
-import tarfile
 import csv
-import re
-import numpy as np
+import ctypes
+import logging
 import matplotlib.pyplot as plt
+import numpy as np
+import os
+import pandas as pd
+import platform
+import re
+import subprocess, threading, time, sys
+import tarfile
 
 '''
 ************************************************************The uniprot functions start here.***************************************************************
 '''
+
+def aaa(df_or_series):
+    """ Function for use in debugging.
+    Saves pandas Series or Dataframes to a user-defined csv file.
+    """
+     # convert any series to dataframe
+    if isinstance(df_or_series, pd.Series):
+        df_or_series = df_or_series.to_frame()
+    csv_out = r"D:\data\000_aaa_temp_df_out.csv"
+    df_or_series.to_csv(csv_out, sep=",", quoting=csv.QUOTE_NONNUMERIC)
+
 
 # Fibonacci numbers module. Use this to test that the utilities are working
 def fib(n):    # write Fibonacci series up to n

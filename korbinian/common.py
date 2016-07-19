@@ -49,6 +49,8 @@ def create_settingsdict(excel_file_with_settings):
 
 def create_pathdict(main_folder, base_filename_summaries, list_of_uniprot_accessions, list_number):
     pathdict = {}
+    pathdict["main_folder"] = main_folder
+    pathdict["base_filename_summaries"] = base_filename_summaries
     pathdict["list_of_uniprot_accessions_path"] = os.path.join(main_folder, 'input_acc_lists', list_of_uniprot_accessions)
     pathdict["dfout01_uniprotcsv"] = '%s_uniprot.csv' % base_filename_summaries
     pathdict["dfout02_uniprotTcsv"] = '%s_uniprotT.csv' % base_filename_summaries
@@ -60,7 +62,7 @@ def create_pathdict(main_folder, base_filename_summaries, list_of_uniprot_access
     pathdict["dfout08_simap_AAIMON"] = '%s_simap_AAIMON.csv' % base_filename_summaries
     pathdict["dfout09_simap_AAIMON_02"] = '%s_simap_AAIMON_02.csv' % base_filename_summaries
     pathdict["dfout10_uniprot_gaps"] = '%s_gap_densities.csv' % base_filename_summaries
-    pathdict["dfout11"] = 0
+    pathdict["dfout11_gap_test_out_png"] = '%s_gap_test_out.png' % base_filename_summaries
     pathdict["dfout12"] = 0
     pathdict["dfout13"] = 0
     pathdict["csv_file_with_histogram_data"] = os.path.join(main_folder, 'List%02d_histogram.csv' % list_number)
@@ -69,6 +71,7 @@ def create_pathdict(main_folder, base_filename_summaries, list_of_uniprot_access
     pathdict["csv_file_with_md5_for_each_query_sequence"] = os.path.join(main_folder,'List%02d_query_md5_checksums.csv' % list_number)
     pathdict["csv_av_cons_ratio_all_proteins"] = '%s_cons_ratios_nonred_av.csv' % base_filename_summaries
     pathdict["csv_std_cons_ratio_all_proteins"] = '%s_cons_ratios_nonred_std.csv' % base_filename_summaries
+    pathdict["create_graph_of_gap_density_png"] = '%s_create_graph_of_gap_density.png' % base_filename_summaries
     return pathdict
 
 def setup_file_locations_in_df(df, settingsdict, pathdict):

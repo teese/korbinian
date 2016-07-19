@@ -413,7 +413,7 @@ if A03_create_csv_from_uniprot_flatfile:
                         location_of_non_tmds_in_feature_list.sort()	
 
             #count the number of "TRANSMEM" TMDs listed in the feature-list
-            output_dict['number_of_TMDs_in_uniprot_feature_list'] = len(location_of_tmds_in_feature_list)
+            output_dict['number_of_TMDs'] = len(location_of_tmds_in_feature_list)
             
             #information about location of first non-tmd (extracellular or perplasmic/cytoplasmic)
             if len(location_of_non_tmds_in_feature_list)>0:
@@ -424,7 +424,7 @@ if A03_create_csv_from_uniprot_flatfile:
                 output_dict['n_term_ec'] = np.nan
             		
 			
-            if output_dict['number_of_TMDs_in_uniprot_feature_list'] > 0:
+            if output_dict['number_of_TMDs'] > 0:
                 list_of_TMDs = []
                 for TMD_location in location_of_tmds_in_feature_list:
                     #consequtively number the TMDs based on the "TRANSMEM" location in the feature list
@@ -497,7 +497,7 @@ if A03_create_csv_from_uniprot_flatfile:
         aa_before_tmd = settings["simap_match_filters"]["fasta_files"]["aa_before_tmd"]
         aa_after_tmd = settings["simap_match_filters"]["fasta_files"]["aa_after_tmd"]
         #determine max number of TMD columns that need to be created
-        max_num_TMDs = df['number_of_TMDs_in_uniprot_feature_list'].max()
+        max_num_TMDs = df['number_of_TMDs'].max()
         #currently the loop is run for each TMD, based on the sequence with the most TMDs        
         for i in range(1, max_num_TMDs + 1):
             TMD = 'TM%02d' % i
@@ -2381,7 +2381,7 @@ if A08b_calculate_gap_densities:
         
         # Checks for gap positions in TMD 1,3,5,7... and appends it to the right lists (depending on the orientation of the tmd), if the tmd needs to be reversed
         # the "reversed value" is appended
-        for num_TMD in range(1,int(df.loc[acc,"number_of_TMDs_in_uniprot_feature_list"])+1,2):
+        for num_TMD in range(1,int(df.loc[acc,"number_of_TMDs"])+1,2):
 
             if not r_utils.isNaN(df.loc[acc,"TM%.2d_occuring_gaps"%num_TMD]):
                 for n in ast.literal_eval(df.loc[acc,"TM%.2d_occuring_gaps"%num_TMD]):                                
@@ -2392,7 +2392,7 @@ if A08b_calculate_gap_densities:
             
 
         # Does the same for gap positions in TMD 2,4,6,8...                
-        for num_TMD in range(2,int(df.loc[acc,"number_of_TMDs_in_uniprot_feature_list"])+1,2):   
+        for num_TMD in range(2,int(df.loc[acc,"number_of_TMDs"])+1,2):
             if not r_utils.isNaN(df.loc[acc,"TM%.2d_occuring_gaps"%num_TMD]):
                 for n in ast.literal_eval(df.loc[acc,"TM%.2d_occuring_gaps"%num_TMD]):                  
                     if df.loc[acc,"n_term_ec"] == False:                        
@@ -2448,7 +2448,7 @@ if A08b_calculate_gap_densities:
         # Creates an array out of the list
         hist_data_tmds = np.array (tmd_gaps)
         # times 2, because TMDs in gap and in query are considered! --> double amount
-        total_amount_of_TMDs_in_protein = df.loc[df.gaps_analysed==True,"number_of_TMDs_in_uniprot_feature_list"].sum()*2
+        total_amount_of_TMDs_in_protein = df.loc[df.gaps_analysed==True,"number_of_TMDs"].sum()*2
 
      
         # Creating final graph
@@ -2818,7 +2818,7 @@ if A09_save_figures_describing_proteins_in_list:
     utils.savefig_if_necessary(savefig, fig, Plot_Nr, base_filepath = base_filename_summaries)
 
     '''
-    Fig05: Scattergram comparing number_of_TMDs_in_uniprot_feature_list with mean AAIMON
+    Fig05: Scattergram comparing number_of_TMDs with mean AAIMON
     '''
     Plot_Nr = 5
     sys.stdout.write(str(Plot_Nr) + ', ')
@@ -2827,10 +2827,10 @@ if A09_save_figures_describing_proteins_in_list:
     #if a new figure should be created (either because the orig is full, or the last TMD is analysed)
     fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi = 300)
     #for backwards compatibility, check for old name.
-    if 'number_of_TMDs_in_uniprot_feature_list' in df.columns:
-        x = np.array(df['number_of_TMDs_in_uniprot_feature_list'])
+    if 'number_of_TMDs' in df.columns:
+        x = np.array(df['number_of_TMDs'])
     else:
-        x = np.array(df['number_of_TMDs_in_uniprot_feature_list'])
+        x = np.array(df['number_of_TMDs'])
     y = np.array(df['AAIMON_ratio_mean_all_TMDs'])
     scattercontainer_AAIMON_AASMON_std = axarr[row_nr, col_nr].scatter(x=x, y=y, color="#0489B1", alpha=alpha, s=datapointsize)
     #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A 
@@ -3604,7 +3604,7 @@ if A09_save_figures_describing_proteins_in_list:
         xlabel = 'average conservation ratio (membranous over nonmembranous)'
         #legend = 
         
-        max_num_TMDs = df.number_of_TMDs_in_uniprot_feature_list.max()
+        max_num_TMDs = df.number_of_TMDs.max()
         legend = []
         data_to_plot = []
         for i in range(1, max_num_TMDs):
