@@ -4,7 +4,7 @@ import pandas as pd
 from time import strftime
 import korbinian.mtutils as utils
 
-def setup_keyboard_interrupt_and_error_logging(main_folder, list_number, settings_number):
+def setup_keyboard_interrupt_and_error_logging(settingsdict, list_number):
     ''' -------Setup keyboard interrupt----------
     '''
     # import arcgisscripting
@@ -14,16 +14,14 @@ def setup_keyboard_interrupt_and_error_logging(main_folder, list_number, setting
 
     signal.signal(signal.SIGINT, ctrlc)
     '''+++++++++++++++LOGGING++++++++++++++++++'''
-    date_string_with_hour = strftime("%Y-%m-%d-%H-%M")
     date_string = strftime("%Y%m%d")
 
     # designate the output logfile
-    logfile = os.path.join(main_folder, 'logfiles','List%s_Settings%s_%s_logfile.log' % (list_number, settings_number, date_string))
+    logfile = os.path.join(settingsdict["file_locations"]["main_folder"], 'logfiles','List%s_%s_logfile.log' % (list_number, date_string))
     # a file to keep a record of the log settings used for that script
     utils.setup_error_logging(logfile)
     #if settingsdict['logging_settings']['suppress_error_logging_to_console']:
     #    logging.setLevel('WARNING')
-    #'''+++++++++++++++FILENAMES++++++++++++++++++'''
 
 def create_settingsdict(excel_file_with_settings):
     # open the settings file

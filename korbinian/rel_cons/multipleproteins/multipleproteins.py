@@ -8,7 +8,6 @@ import pandas as pd
 import sys
 import tlabtools.tools as tools
 
-
 def save_figures_describing_proteins_in_list(pathdict, settingsdict, logging):
     backgroundcolour = '0.95'
     plt.style.use('ggplot')
