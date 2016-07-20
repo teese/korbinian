@@ -74,13 +74,15 @@ def download_homologues_from_simap(pathdict, settingsdict, logging):
                         #download feature table from SIMAP
                         utils.retrieve_simap_feature_table(input_sequence,
                                                            max_memory_allocation=max_memory_allocation,
-                                                           output_file=df.loc[acc, 'SIMAP_feature_table_XML_file_path'])
+                                                           output_file=df.loc[acc, 'SIMAP_feature_table_XML_file_path'],
+                                                           eaSimap_path=settingsdict["file_locations"]["eaSimap_path"])
                     if not homologues_XML_exists:
                         #download homologue file from SIMAP
                         utils.retrieve_simap_homologues(input_sequence,
                                                         output_file=df.loc[acc, 'SIMAP_homologues_XML_file_path'],
                                                         database=database, max_hits=max_hits,
-                                                        max_memory_allocation=max_memory_allocation, taxid=taxid)
+                                                        max_memory_allocation=max_memory_allocation, taxid=taxid,
+                                                        eaSimap_path=settingsdict["file_locations"]["eaSimap_path"])
                         #now check again if the files exist
                     feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(df, acc)
                     if not homologues_XML_exists:

@@ -5,7 +5,7 @@ import csv
 import os
 import re
 import tarfile
-import korbinian.rimma_utility as r_utils
+import korbinian.mtutils as utils
 
 def calculate_gap_densities(pathdict, settingsdict, logging):
     logging.info('~~~~~~~~~~~~starting calculate_gap_densities~~~~~~~~~~~~')
@@ -153,7 +153,7 @@ def calculate_gap_densities(pathdict, settingsdict, logging):
 
                                 # juxta before_odd_TMDs:
 
-                                if r_utils.isOdd(tmd_int)==True:  # also für 1 , 3 ...
+                                if utils.isOdd(tmd_int)==True:  # also für 1 , 3 ...
 
 
                                     # makes sure that the search is done in a string

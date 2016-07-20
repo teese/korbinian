@@ -2,7 +2,6 @@ import ast
 import csv
 import itertools
 import korbinian.mtutils as utils
-import korbinian.rimma_utility as r_utils
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -32,7 +31,7 @@ def create_graph_of_gap_density(pathdict, settingsdict, logging):
 
         for num_TMD in range(1, int(df.loc[acc, "number_of_TMDs"]) + 1, 2):
 
-            if not r_utils.isNaN(df.loc[acc, "TM%.2d_occuring_gaps" % num_TMD]):
+            if not utils.isNaN(df.loc[acc, "TM%.2d_occuring_gaps" % num_TMD]):
                 for n in ast.literal_eval(df.loc[acc, "TM%.2d_occuring_gaps" % num_TMD]):
                     # print (n)
                     # print ((df.loc[acc,"TM%.2d_len"%num_TMD]-1) )
@@ -46,7 +45,7 @@ def create_graph_of_gap_density(pathdict, settingsdict, logging):
 
         for num_TMD in range(2, int(df.loc[acc, "number_of_TMDs"]) + 1, 2):
             # print(num_TMD)
-            if not r_utils.isNaN(df.loc[acc, "TM%.2d_occuring_gaps" % num_TMD]):
+            if not utils.isNaN(df.loc[acc, "TM%.2d_occuring_gaps" % num_TMD]):
                 for n in ast.literal_eval(df.loc[acc, "TM%.2d_occuring_gaps" % num_TMD]):
                     # print(n)
                     # print(df.loc[acc,"TM%.2d_len"%num_TMD])
@@ -113,7 +112,7 @@ def create_graph_of_gap_density(pathdict, settingsdict, logging):
         # times 2, because TMDs in gap and in query are considered! --> double amount
         total_amount_of_TMDs_in_protein = df.loc[
                                               df.gaps_analysed == True, "number_of_TMDs"].sum() * 2
-        # total_amount_of_TMDs_in_protein = len([TMD for acc in df.index for TMD in ast.literal_eval(df.loc[acc,"list_of_TMDs"])if (df.loc[acc,"gaps_analysed"]==True)and(r_utils.isNaN(df.loc[acc,"list_of_TMDs"]))])*2
+        # total_amount_of_TMDs_in_protein = len([TMD for acc in df.index for TMD in ast.literal_eval(df.loc[acc,"list_of_TMDs"])if (df.loc[acc,"gaps_analysed"]==True)and(utils.isNaN(df.loc[acc,"list_of_TMDs"]))])*2
 
         list_of_positionfrequency_extra = []
         list_of_positionfrequency_intra = []

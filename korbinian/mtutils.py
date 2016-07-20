@@ -759,17 +759,17 @@ def create_dict_of_data_from_uniprot_record(record):
 #    return list_of_files_with_feature_tables, list_of_files_with_homologues, list_of_protein_names, list_of_org_domains
 
 
-def retrieve_simap_feature_table(input_sequence, max_memory_allocation, output_file):
+def retrieve_simap_feature_table(input_sequence, max_memory_allocation, output_file, eaSimap_path):
     '''
     Uses the java program to access the simap database and download the small file containing information on that protein, called a "feature table".
     '''
     #global number_of_files_not_found    
     #jar_file = r'E:\\Stephis\\Projects\\Programming\\Python\\programs\\eaSimap.jar'
     #jar_file = r'/nas/teeselab/programs/eaSimap.jar'
-    jar_file = r"D:\Schweris\Projects\Programming\Python\programs\eaSimap.jar"
+    #jar_file = r"D:\Schweris\Projects\Programming\Python\programs\eaSimap.jar"
     #prepare input sequence and settings as a "java_run_string"
     #run command
-    string_to_run_as_java_command = 'java -Xmx%im -jar %s -s %s -o %s -f' % (max_memory_allocation, jar_file, input_sequence, output_file)
+    string_to_run_as_java_command = 'java -Xmx%im -jar %s -s %s -o %s -f' % (max_memory_allocation, eaSimap_path, input_sequence, output_file)
     logging.info(string_to_run_as_java_command)
 #    for output_line in run_command(string_to_run_as_java_command):
 #        print(output_line)                          #note that nothing is actually printed
@@ -810,7 +810,7 @@ def retrieve_simap_feature_table(input_sequence, max_memory_allocation, output_f
 #        sys.stdout.flush()
 #    print(' .')
 
-def retrieve_simap_homologues(input_sequence, output_file, database, max_hits, max_memory_allocation, taxid):
+def retrieve_simap_homologues(input_sequence, output_file, database, max_hits, max_memory_allocation, taxid, eaSimap_path):
     '''
     Uses the java program to access the simap database and download the large file containing all homologues of that protein.
     '''
@@ -818,7 +818,7 @@ def retrieve_simap_homologues(input_sequence, output_file, database, max_hits, m
     #locate jar executable file
     #jar_file = r'E:\\Stephis\\Projects\\Programming\\Python\\programs\\eaSimap.jar'
     #jar_file = r'/nas/teeselab/programs/eaSimap.jar'
-    jar_file = r"D:\Schweris\Projects\Programming\Python\programs\eaSimap.jar"
+    #jar_file = r"D:\Schweris\Projects\Programming\Python\programs\eaSimap.jar"
     #set parameters
     #database = '' #leave blank('') for SIMAP all database. 'uniprot_swissprot' 'uniprot_trembl' 'refseq' 'Escherichia coli' 'Homo sapiens' 'Hot springs metagenome'
     database_dictionary = {313: 'uniprot_swissprot', 314: 'uniprot_trembl', 595: 'refseq', 721: 'Escherichia coli', 1296: 'Homo sapiens', 4250: 'Hot springs metagenome'}
@@ -831,7 +831,7 @@ def retrieve_simap_homologues(input_sequence, output_file, database, max_hits, m
     #note that windows has a character limit in the command prompt in theory of 8191 characters, but the command line java command seems to cause errors with sequences above 3000 amino acids.
     #the 3000 character limit is currently applied in the main_simap script, rather than here
     #run command
-    string_to_run_as_java_command = 'java -Xmx%im -jar %s -s %s -m %s -o %s -x %s%s' % (max_memory_allocation,jar_file, input_sequence,
+    string_to_run_as_java_command = 'java -Xmx%im -jar %s -s %s -m %s -o %s -x %s%s' % (max_memory_allocation, eaSimap_path, input_sequence,
                                                                                            max_hits, output_file, 
                                                                                           database_search_string, taxid_search_string)
     logging.info(string_to_run_as_java_command)
@@ -1401,3 +1401,185 @@ def print_query_details_from_homologue_XML(root, query_details_dict):
     counter_XML_to_CSV += 1    
     logging.info('%s homologous sequences analysed' % SIMAP_total_hits)
     return query_details_dict
+
+
+import pandas as pd
+import numpy as np
+import re as re
+import os
+
+
+
+# Function to store Dataframes in an Excelfile; Converting lists etc. into strings
+def df_to_excel(dataframe, path):
+    temp_df = pd.DataFrame(dataframe, dtype=str)
+    temp_df.to_excel(path)
+
+
+# Creates subfolders, based on first to letters of files; Distributes files to these subfolders
+def distribute_files_to_subfolders(path):
+    list_of_filenames = os.listdir(path)
+    for n in list(set(n[0:2] for n in list_of_filenames)):
+        os.makedirs(path + "/%s" % n)
+    for n in list_of_filenames:
+        directory = path + "/" + n
+        new_directory = path + "/" + n[0:2] + "/" + n
+        os.replace(directory, new_directory)
+
+
+# Moves files from a subfolder to the root folder;
+# Length of subfoldername = amount of letters; necessary for path-identification
+def move_files_from_subfolder_to_folder(path_of_subfolder, length_of_subfoldername):
+    for n in os.listdir(path_of_subfolder):
+        directory = path_of_subfolder + "/" + n
+        new_directory = str(path_of_subfolder)[:-length_of_subfoldername] + "/" + n
+        os.replace(directory, new_directory)
+
+
+# this functions works exclusivly with dataframes; query, start, stop, and new_name refer to columns
+# and as well, it does not work yet, still working on it
+def slicing(df, columname_of_sequence, start, stop, columnname_for_spliced_sequence):
+    # df was missing from this function!
+    for n in df["%s" % columname_of_sequence]:
+        df["%s" % columnname_for_spliced_sequence] = n[start, stop]
+
+
+def getting_list_of_indices_of_M_in_a_string(string):
+    ind_list = [i for i, element in enumerate(string) if element == "M"]  # find(Topo_data)
+    return ind_list
+
+
+def getting_list_of_gapindices_of_string(string):
+    gap_list = [i for i, element in enumerate(string) if element == "-"]  # find(Topo_data)
+    return gap_list
+
+
+def getting_list_of_gapindices_of_string(string):
+    gap_list = [i for i, element in enumerate(string) if element == "-"]  # find(Topo_data)
+    return gap_list
+
+
+def create_border_list(index_list):
+    m_borders = []
+    m_borders.append(index_list[0])
+    for n in range(0, len(index_list) - 1):
+        if index_list[n] + 1 != index_list[n + 1]:
+            m_borders.append(index_list[n] + 1)
+            m_borders.append(index_list[n + 1])
+    m_borders.append(index_list[-1] + 1)
+    return m_borders
+
+
+def create_list_of_TMDs(amount_of_TMDs):
+    list_of_TMDs = []
+    for n in range(1, int(amount_of_TMDs) + 1):
+        list_of_TMDs.append("TM%.2d" % n)
+    return list_of_TMDs
+
+
+def isEven(number):
+    return number % 2 == 0
+
+
+def isOdd(number):
+    return number % 2 != 0
+
+
+def isNaN(num):
+    return num != num
+
+
+def sum_gaps(df_column):
+    sum = 0
+    for n in df_column:
+        if not isNaN(n):
+            sum = sum + n
+    return sum
+
+
+def frequency_of_tmd(int_of_tmd, column_containing_tmd_amount):
+    frequency = 0
+    for n in column_containing_tmd_amount:
+        if int_of_tmd <= n:
+            frequency = frequency + 1
+    return frequency
+
+
+def create_regex_string_for_juxta(inputseq):
+    ''' adds '-*' between each aa or nt/aa in a DNA or protein sequence, so that a particular
+    aligned sequence can be identified via a regex search, even if it contains gaps
+    inputseq : 'LQQLWNA'
+    output   : 'L-*Q-*Q-*L-*W-*N-*A'
+    '''
+    search_string = ''
+    for letter in inputseq:
+        letter_with_underscore = letter + '-*'
+        search_string += letter_with_underscore
+    return "-*" + search_string
+
+
+# m�sste passen
+def get_end_juxta_before_TMD(x, input_TMD):
+    TM_int = int(input_TMD[2:])
+    if input_TMD == "TM01":
+        x['end_juxta_before_%s_in_query' % input_TMD] = np.where(x['%s_start_in_SW_alignment' % input_TMD] == 0, 0,
+                                                                 x['%s_start_in_SW_alignment' % input_TMD] - 1)
+    else:
+        x["end_juxta_before_%s_in_query" % input_TMD] = x["%s_start_in_SW_alignment" % input_TMD] - 1
+
+
+def get_end_juxta_after_TMD(x, input_TMD, list_of_tmds):
+    # list_of_tmds was missing from this function! added by MT 20.07.2016
+    # this function contained dfs instead of x! added by MT 20.07.2016
+    TM_int = int(input_TMD[2:])
+    last_TMD = list_of_tmds[-1]
+    if input_TMD == last_TMD:
+        x["end_juxta_after_%s" % input_TMD] = np.where(
+            (x["%s_end_in_SW_alignment"] + 30) < x["len_query_aligment_sequence"], x["%s_end_in_SW_alignment"] + 30,
+            x["len_query_aligment_sequence"])
+    else:
+        x["end_juxta_after_%s" % input_TMD] = x["%s_end_in_SW_alignment" % input_TMD] + (
+        (x["TM%.2d_start_in_SW_alignment" % (TM_int + 1)] - x["%s_end_in_SW_alignment" % input_TMD]) / 2).apply(
+            lambda x: int(x) if not np.isnan(x) else np.nan)
+
+        # else:
+        #     x["end_juxta_after_%s" % input_TMD] = dfs["%s_end_in_SW_alignment" % input_TMD] + ((dfs["TM%.2d_start_in_SW_alignment" % (TM_int + 1)] - dfs["%s_end_in_SW_alignment" % input_TMD]) / 2).apply(    lambda x: int(x) if not np.isnan(x) else np.nan)
+
+
+def get_start_and_end_of_TMD_in_query(x, TMD_for_regular_expression_search):
+    '''
+    define function to obtain regex output (start, stop, etc) as a tuple
+    the functions were originally in MAIN, as I am not sure how to apply **args and **kwargs in functions that apply to pandas
+    note that TMD_for_regular_expression_search is therefore a global variable
+    '''
+    # print('x  ', x, 'TMD_for_regular_expression_search     ', TMD_for_regular_expression_search)
+    m = re.search(TMD_for_regular_expression_search, x)
+    if m:
+        # if the tmd is in the query, return True, start, stop
+        return (bool(m), m.start(), m.end())
+    else:
+        # if the tmd is not in the query, return False, NaN, NaN
+        return (bool(m), np.nan, np.nan)
+
+
+def slice_juxta_before_TMD_in_query(x, TMD):
+    return x['query_alignment_sequence'][int(x['start_juxta_before_%s' % TMD]):int(x['end_juxta_before_%s' % TMD])]
+
+
+def slice_juxta_after_TMD_in_query(x, TMD):
+    return x['query_alignment_sequence'][int(x['start_juxta_after_%s' % TMD]):int(x['end_juxta_after_%s' % TMD])]
+
+
+def slice_juxta_before_TMD_in_match(x, TMD):
+    return x['match_alignment_sequence'][int(x['start_juxta_before_%s' % TMD]):int(x['end_juxta_before_%s' % TMD])]
+
+
+def slice_juxta_after_TMD_in_match(x, TMD):
+    return x['match_alignment_sequence'][int(x['start_juxta_after_%s' % TMD]):int(x['end_juxta_after_%s' % TMD])]
+
+
+def find_last_TMD(dfs):
+    # dfs was missing from input, added by MT 20.07.2016
+    for n in range(1, 24):
+        if utils.isNaN(dfs['TM%.2d_start_in_SW_alignment' % n]):
+            last_TMD = n
