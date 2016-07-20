@@ -24,7 +24,7 @@ def calculate_gap_densities(pathdict, settingsdict, logging):
         logging.info('df loaded from %s' % pathdict["dfout10_uniprot_gaps"])
     elif os.path.isfile(pathdict["dfout08_simap_AAIMON"]):
         df = pd.read_csv(pathdict["dfout08_simap_AAIMON"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
-        logging.info('df loaded from %s' % pathdict["dfout08_simap_AAIMON"])
+        logging.info('no gap file found, df loaded from %s' % pathdict["dfout08_simap_AAIMON"])
         # If no previous analysis had been done, uniprot csv is opened and additional columns are created
         df["gaps_analysed"]= np.nan     # Column, containing true or false
         for n in range (1,max_number_of_tmds+1):
@@ -75,9 +75,9 @@ def calculate_gap_densities(pathdict, settingsdict, logging):
                         # for each TMD in the proteins, creates new lists which will contain gappositions, lists are saved in a column and created again for each tmd
                         for tmd in list_of_TMDs:
                             print(tmd)
-                            tmd_int = int(tmd[-2:])
-                            len_of_query = len(analysed_df["%s_SW_query_seq"%tmd][1])
-                            len_of_query_reversed= ((1/len_of_query)+1)
+                            tmd_int = int(tmd[-2:]) # Integer of TMD number
+                            len_of_query = len(analysed_df["%s_SW_query_seq"%tmd][1]) # Length of first query sequence, which does (usually) not contain any gaps
+                            len_of_query_reversed= ((1/len_of_query)+1) # Reversed length, important if TMD needs to be reversed afterwards
                             list_of_gaps_in_tmd = []
                             list_of_gaps_intracellular = []
                             list_of_gaps_extracellular = []
@@ -197,7 +197,7 @@ def calculate_gap_densities(pathdict, settingsdict, logging):
                                             list_of_gaps_in_query_before_odd = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int][::-1])if m.start() < 32]
 
                                             list_of_gaps_in_match_before_odd = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_match"%tmd_int][::-1])if m.start() < 32]
-
+                                            # This step is essential, to control, if there is a gap before, in the query region
                                             for n in list(reversed(list_of_gaps_in_match_before_odd)):
                                                 greater_values = sum(i< n for i in list_of_gaps_in_query_before_odd)
                                                 if reverse_tmd== False:
@@ -379,11 +379,12 @@ def calculate_gap_densities(pathdict, settingsdict, logging):
 
                                                 else:
                                                     list_of_gaps_extracellular.append(n-greater_values)
-
+                                # sets of lists are created, to assure, that each gapposition contributes only once to the possible gap positions
                                 unique_list_of_gaps_in_tmd = list(set(list_of_gaps_in_tmd))
                                 unique_list_of_gaps_intracellular = list(set(list_of_gaps_intracellular))
                                 unique_list_of_gaps_extracellular = list(set(list_of_gaps_extracellular))
 
+                                # Saves the calculated lists into cells in the columns
                                 df.loc[acc,"%s_occuring_gaps"%tmd]=str(unique_list_of_gaps_in_tmd)
                                 df.loc[acc,"%s_amount_possible_gappositions"%tmd]=len(unique_list_of_gaps_in_tmd)
 
@@ -391,7 +392,7 @@ def calculate_gap_densities(pathdict, settingsdict, logging):
                                 df.loc[acc,'juxta_%s_extracellular_possible_gappositions'%tmd] = str(unique_list_of_gaps_extracellular)
                                 df.loc[acc,'juxta_%s_intracellular_num_gaps'%tmd] = len(unique_list_of_gaps_intracellular)
                                 df.loc[acc,'juxta_%s_exracellular_num_gaps'%tmd] = len(unique_list_of_gaps_extracellular)
-
+                        # At the end, sets analysed to true, this is important to not overwrite
                         df.loc[acc,"gaps_analysed"] = "True"
                         logging.info("--Analysed")
                         with open(pathdict["dfout10_uniprot_gaps"], 'w') as csv_out:

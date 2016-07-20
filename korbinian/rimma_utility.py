@@ -2,6 +2,8 @@
 import pandas as pd
 import numpy as np
 import re as re
+import os
+import korbinian.rimma_utility as r_utils
 
 # Function to store Dataframes in an Excelfile; Converting lists etc. into strings
 def df_to_excel (dataframe,path):
@@ -28,7 +30,8 @@ def move_files_from_subfolder_to_folder(path_of_subfolder,length_of_subfoldernam
 
 # this functions works exclusivly with dataframes; query, start, stop, and new_name refer to columns
 # and as well, it does not work yet, still working on it
-def slicing (columname_of_sequence, start, stop, columnname_for_spliced_sequence):
+def slicing (df, columname_of_sequence, start, stop, columnname_for_spliced_sequence):
+    # df was missing from this function!
     for n in df["%s"%columname_of_sequence]:
         df["%s"%columnname_for_spliced_sequence] = n[start,stop]
         
@@ -212,7 +215,7 @@ def create_regex_string_for_juxta(inputseq):
     
 
 
-#müsste passen
+#mï¿½sste passen
 def get_end_juxta_before_TMD (x,input_TMD):
     TM_int = int(input_TMD[2:])
     if input_TMD == "TM01":
@@ -221,16 +224,20 @@ def get_end_juxta_before_TMD (x,input_TMD):
         x["end_juxta_before_%s_in_query"%input_TMD]=x["%s_start_in_SW_alignment"%input_TMD]-1
 
     
-def get_end_juxta_after_TMD (x,input_TMD):
+def get_end_juxta_after_TMD (x,input_TMD, list_of_tmds):
+    # list_of_tmds was missing from this function! added by MT 20.07.2016
+    # this function contained dfs instead of x! added by MT 20.07.2016
     TM_int = int(input_TMD[2:])
     last_TMD = list_of_tmds[-1]
     if input_TMD == last_TMD:
          x["end_juxta_after_%s"%input_TMD] = np.where((x["%s_end_in_SW_alignment"]+30)<x["len_query_aligment_sequence"],x["%s_end_in_SW_alignment"]+30,x["len_query_aligment_sequence"])
     else:    
-        x["end_juxta_after_%s"%input_TMD]= dfs["%s_end_in_SW_alignment"%input_TMD]+((dfs["TM%.2d_start_in_SW_alignment"%(TM_int+1)]-dfs["%s_end_in_SW_alignment"%input_TMD])/2).apply(lambda x :int(x) if not np.isnan(x) else np.nan)
-           
- 
- 
+        x["end_juxta_after_%s"%input_TMD]= x["%s_end_in_SW_alignment"%input_TMD]+((x["TM%.2d_start_in_SW_alignment"%(TM_int+1)]-x["%s_end_in_SW_alignment"%input_TMD])/2).apply(lambda x :int(x) if not np.isnan(x) else np.nan)
+
+    # else:
+    #     x["end_juxta_after_%s" % input_TMD] = dfs["%s_end_in_SW_alignment" % input_TMD] + ((dfs["TM%.2d_start_in_SW_alignment" % (TM_int + 1)] - dfs["%s_end_in_SW_alignment" % input_TMD]) / 2).apply(    lambda x: int(x) if not np.isnan(x) else np.nan)
+
+
 def get_start_and_end_of_TMD_in_query(x, TMD_for_regular_expression_search):
     '''
     define function to obtain regex output (start, stop, etc) as a tuple    
@@ -258,7 +265,8 @@ def slice_juxta_before_TMD_in_match(x,TMD):
 def slice_juxta_after_TMD_in_match(x,TMD):
     return x['match_alignment_sequence'][int(x['start_juxta_after_%s' % TMD]):int(x['end_juxta_after_%s' % TMD])]
     
-def find_last_TMD():
+def find_last_TMD(dfs):
+    # dfs was missing from input, added by MT 20.07.2016
     for n in range (1,24):
         if r_utils.isNaN(dfs['TM%.2d_start_in_SW_alignment'%n]):
             last_TMD = n
