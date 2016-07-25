@@ -214,8 +214,7 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, setti
             # create a boolean series, describing whether the end_surrounding_seq_in_query is longer than the protein seq
             series_indices_longer_than_prot_seq = df.apply(utils.find_indices_longer_than_prot_seq, args=(TMD,), axis=1)
             # obtain the indices of proteins in the series
-            uniprot_acc_indices_longer_than_prot_seq = series_indices_longer_than_prot_seq[
-                series_indices_longer_than_prot_seq].index
+            uniprot_acc_indices_longer_than_prot_seq = series_indices_longer_than_prot_seq[series_indices_longer_than_prot_seq].index
             # use indices to select the main dataframe, and convert these end_surrounding_seq_in_query values to the uniprot_seqlen value
             df.loc[uniprot_acc_indices_longer_than_prot_seq, 'end_surrounding_seq_in_query_%s' % TMD] = df.loc[
                 uniprot_acc_indices_longer_than_prot_seq, 'uniprot_seqlen']

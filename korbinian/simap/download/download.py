@@ -1,6 +1,9 @@
 import csv
 import pandas as pd
 import korbinian.mtutils as utils
+import platform
+import os
+import tarfile
 
 def download_homologues_from_simap(pathdict, settingsdict, logging):
     # logging.info('~~~~~~~~~~~~  starting A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv   ~~~~~~~~~~~~')
@@ -20,10 +23,10 @@ def download_homologues_from_simap(pathdict, settingsdict, logging):
     #global list_of_files_with_feature_tables, list_of_files_with_homologues
     #The SIMAP download settings can be altered as desired, using the json settings file
     max_hits = settingsdict["variables"]["simap.max_hits"]
+    java_exec_str = settingsdict["file_locations"]["java_exec_str"]
     max_memory_allocation = settingsdict["variables"]["simap.java_max_RAM_memory_allocated_to_simap_download"]
     database = settingsdict["variables"]["simap.database"]
     taxid = settingsdict["variables"]["simap.taxid"]  # eg.'7227' for Drosophila melanogaster
-    extra_search_string = ''
 
     enough_hard_drive_space = True
     try:
@@ -34,7 +37,6 @@ def download_homologues_from_simap(pathdict, settingsdict, logging):
         logging.info(size)
         if size[0] < 5:
             raise utils.HardDriveSpaceException("Hard drive space limit reached, there is only %s %s space left." % (size[0], size[1]))
-            enough_hard_drive_space = False
     except utils.HardDriveSpaceException as e:
         logging.warning(e)
     if enough_hard_drive_space:
@@ -73,6 +75,7 @@ def download_homologues_from_simap(pathdict, settingsdict, logging):
                     if not feature_table_XML_exists:
                         #download feature table from SIMAP
                         utils.retrieve_simap_feature_table(input_sequence,
+                                                           java_exec_str=java_exec_str,
                                                            max_memory_allocation=max_memory_allocation,
                                                            output_file=df.loc[acc, 'SIMAP_feature_table_XML_file_path'],
                                                            eaSimap_path=settingsdict["file_locations"]["eaSimap_path"])
@@ -80,7 +83,7 @@ def download_homologues_from_simap(pathdict, settingsdict, logging):
                         #download homologue file from SIMAP
                         utils.retrieve_simap_homologues(input_sequence,
                                                         output_file=df.loc[acc, 'SIMAP_homologues_XML_file_path'],
-                                                        database=database, max_hits=max_hits,
+                                                        database=database, max_hits=max_hits, java_exec_str=java_exec_str,
                                                         max_memory_allocation=max_memory_allocation, taxid=taxid,
                                                         eaSimap_path=settingsdict["file_locations"]["eaSimap_path"])
                         #now check again if the files exist
@@ -109,8 +112,7 @@ def download_homologues_from_simap(pathdict, settingsdict, logging):
                     if feature_table_XML_exists and homologues_XML_exists:
                         with tarfile.open(df.loc[acc, 'SIMAP_tarfile'], mode='w:gz') as tar:
                             #add the files to the compressed tarfile
-                            logging.info(
-                                '%s XML files will be moved into the tarball, original XML files deleted' % protein_name)
+                            logging.info('%s XML files will be moved into the tarball, original XML files deleted' % protein_name)
                             tar.add(df.loc[acc, 'SIMAP_feature_table_XML_file_path'],
                                     arcname=df.loc[acc, 'SIMAP_feature_table_XML_file'])
                             tar.add(df.loc[acc, 'SIMAP_homologues_XML_file_path'],

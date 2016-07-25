@@ -759,7 +759,7 @@ def create_dict_of_data_from_uniprot_record(record):
 #    return list_of_files_with_feature_tables, list_of_files_with_homologues, list_of_protein_names, list_of_org_domains
 
 
-def retrieve_simap_feature_table(input_sequence, max_memory_allocation, output_file, eaSimap_path):
+def retrieve_simap_feature_table(input_sequence, java_exec_str, max_memory_allocation, output_file, eaSimap_path):
     '''
     Uses the java program to access the simap database and download the small file containing information on that protein, called a "feature table".
     '''
@@ -769,37 +769,15 @@ def retrieve_simap_feature_table(input_sequence, max_memory_allocation, output_f
     #jar_file = r"D:\Schweris\Projects\Programming\Python\programs\eaSimap.jar"
     #prepare input sequence and settings as a "java_run_string"
     #run command
-    string_to_run_as_java_command = 'java -Xmx%im -jar %s -s %s -o %s -f' % (max_memory_allocation, eaSimap_path, input_sequence, output_file)
-    logging.info(string_to_run_as_java_command)
-#    for output_line in run_command(string_to_run_as_java_command):
+    command_str = '%s -Xmx%im -jar %s -s %s -o %s -f' % (java_exec_str, max_memory_allocation, eaSimap_path, input_sequence, output_file)
+    logging.info(command_str)
+#    for output_line in run_command(command_str):
 #        print(output_line)                          #note that nothing is actually printed
-    command = Command(string_to_run_as_java_command)
+    command = Command(command_str)
     command.run(timeout=100)
-    logging.info("Output file:     %s\n" % output_file), 
-    
-    #Indent the XML file in a more readable format. Note that this adds empty lines. 
-    #I need to use more complex code, or switch to lxml at some stage    
-#    try:    
-#        xml = minidom.parse(output_file)
-#        xml.normalize()
-#        with open(output_file, 'w') as result:
-#            result.write(xml.toprettyxml(indent = '  '))
-#        #number_of_files_not_found = 0
-#    except FileNotFoundError:
-##        if 'number_of_files_not_found' not in globals():
-##            number_of_files_not_found = 1
-##        else:
-##            number_of_files_not_found += 1        
-#        logging.info('********************FileNotFoundError: for %s***************' % output_file)
-    
-    #If there are more than 10 errors, stop the attempts to download and sleep for 6 hours   
-#    if number_of_files_not_found == 20:
-#        logging.warning('number of files not found = %s, sleeping for 24 hours' % number_of_files_not_found)
-#        sleep_24_hours()
-#    if number_of_files_not_found == 3:       
-#        logging.warning('number of files not found = %s, sleeping for 24 hours' % number_of_files_not_found)
-#        sleep_6_hours()
-    sleep_15_seconds()
+    logging.info("Output file:     %s\n" % output_file),
+
+    sleep_x_seconds(5)
     if not os.path.exists(output_file):
         logging.info('********************SIMAP download failed for : %s***************' % output_file)
 #    #sleep for 30 seconds to not overload the server 
@@ -810,7 +788,7 @@ def retrieve_simap_feature_table(input_sequence, max_memory_allocation, output_f
 #        sys.stdout.flush()
 #    print(' .')
 
-def retrieve_simap_homologues(input_sequence, output_file, database, max_hits, max_memory_allocation, taxid, eaSimap_path):
+def retrieve_simap_homologues(input_sequence, output_file, database, max_hits, java_exec_str, max_memory_allocation, taxid, eaSimap_path):
     '''
     Uses the java program to access the simap database and download the large file containing all homologues of that protein.
     '''
@@ -831,17 +809,17 @@ def retrieve_simap_homologues(input_sequence, output_file, database, max_hits, m
     #note that windows has a character limit in the command prompt in theory of 8191 characters, but the command line java command seems to cause errors with sequences above 3000 amino acids.
     #the 3000 character limit is currently applied in the main_simap script, rather than here
     #run command
-    string_to_run_as_java_command = 'java -Xmx%im -jar %s -s %s -m %s -o %s -x %s%s' % (max_memory_allocation, eaSimap_path, input_sequence,
+    command_str = '%s -Xmx%im -jar %s -s %s -m %s -o %s -x %s%s' % (java_exec_str, max_memory_allocation, eaSimap_path, input_sequence,
                                                                                            max_hits, output_file, 
                                                                                           database_search_string, taxid_search_string)
-    logging.info(string_to_run_as_java_command)
-#    for output_line in run_command(string_to_run_as_java_command):
+    logging.info(command_str)
+#    for output_line in run_command(command_str):
 #        print(output_line)                           #note that nothing is actually printed
-    command = Command(string_to_run_as_java_command)
+    command = Command(command_str)
     timeout = max_hits/5 if max_hits > 500 else 100
     command.run(timeout=timeout) #give 1000 for 5000 hits to download?   
     logging.info("Output file:     %s\n'file saved'" % output_file)
-    sleep_120_seconds()
+    sleep_x_seconds(5)
     if not os.path.exists(output_file):
         logging.info('********************SIMAP download failed for : %s***************' % output_file)
     #print without new line
@@ -947,8 +925,15 @@ def run_command(command):
         stderr=subprocess.STDOUT)
     return iter(p.stdout.readline, b'')
 
-
-
+def sleep_x_seconds(x):
+    # sleep for several seconds to not overload a server, for example
+    sys.stdout.write("sleeping .")
+    sys.stdout.flush()
+    for i in range(x):
+        time.sleep(1)
+        sys.stdout.write(" .")
+        sys.stdout.flush()
+    print(' .')
 
 
 def sleep_15_seconds():
