@@ -209,8 +209,7 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, setti
             # determine the position of the start of the surrounding sequence
             df['start_surrounding_seq_in_query_%s' % TMD] = df['%s_start' % TMD] - aa_before_tmd
             # replace negative values with zero. (slicing method was replaced with lambda function to avoid CopyWithSetting warning)
-            df['start_surrounding_seq_in_query_%s' % TMD] = df['start_surrounding_seq_in_query_%s' % TMD].apply(
-                lambda x: x if x > 0 else 0)
+            df['start_surrounding_seq_in_query_%s' % TMD] = df['start_surrounding_seq_in_query_%s' % TMD].apply(lambda x: x if x > 0 else 0)
             df['end_surrounding_seq_in_query_%s' % TMD] = df['%s_end' % TMD] + aa_after_tmd
             # create a boolean series, describing whether the end_surrounding_seq_in_query is longer than the protein seq
             series_indices_longer_than_prot_seq = df.apply(utils.find_indices_longer_than_prot_seq, args=(TMD,), axis=1)
@@ -229,11 +228,9 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, setti
         for i in range(1, max_num_TMDs + 1):
             TMD = 'TM%02d' % i
             # slice TMD
-            df['%s_seq' % TMD] = df[df['%s_start' % TMD].notnull()].apply(utils.slice_uniprot_TMD_seq, args=(TMD,),
-                                                                          axis=1)
+            df['%s_seq' % TMD] = df[df['%s_start' % TMD].notnull()].apply(utils.slice_uniprot_TMD_seq, args=(TMD,), axis=1)
             # slice TMD plus surrounding seq
-            df['%s_with_surrounding_seq' % TMD] = df[df['%s_start' % TMD].notnull()].apply(
-                utils.slice_uniprot_TMD_plus_surr_seq, args=(TMD,), axis=1)
+            df['%s_with_surrounding_seq' % TMD] = df[df['%s_start' % TMD].notnull()].apply(utils.slice_uniprot_TMD_plus_surr_seq, args=(TMD,), axis=1)
         # extract the organism domain (e.g. Eukaryota)
         df['uniprot_orgclass'] = df['uniprot_orgclass'].astype(str)
         df['organism_domain'] = df.uniprot_orgclass.apply(lambda x: x.strip("'[]").split("', '")[0])
