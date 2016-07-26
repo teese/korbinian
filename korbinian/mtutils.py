@@ -7,15 +7,12 @@ Authors: Mark Teese, Rimma Jenske
 Created on Fri Nov  8 15:45:06 2013
 """
 from Bio import SeqIO
+import ast
 import csv
 import ctypes
 import logging
 import matplotlib.pyplot as plt
-import numpy as np
-import os
-import pandas as pd
 import platform
-import re
 import subprocess, threading, time, sys
 import tarfile
 
@@ -417,7 +414,7 @@ def slice_with_nested_tuple(string, nested_tuple):
     '''A function to slice a sequence multiple times, using the indices from nested tuples
     '''
     #convert nested tuple from string to tuple 
-    nested_tuple = eval(nested_tuple)
+    nested_tuple = ast.literal_eval(nested_tuple)
     #for each tuple, slice the input string. Make a list of all the sliced strings. Join list with no gaps
     return ''.join([slice_with_tuple(string, tup) for tup in nested_tuple])
 

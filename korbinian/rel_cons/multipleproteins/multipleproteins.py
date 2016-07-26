@@ -55,7 +55,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
         dict_AAIMON_ratio_std = {}
         dict_AASMON_ratio_mean = {}
         dict_AASMON_ratio_std = {}
-        for TMD in eval(df.loc[acc, 'list_of_TMDs']):
+        for TMD in ast.literal_eval(df.loc[acc, 'list_of_TMDs']):
             dict_AAIMON_ratio_mean[TMD] = df.loc[acc, '%s_AAIMON_ratio_mean' % TMD]
             dict_AAIMON_ratio_std[TMD] = df.loc[acc, '%s_AAIMON_ratio_std' % TMD]
             dict_AASMON_ratio_mean[TMD] = df.loc[acc, '%s_AASMON_ratio_mean' % TMD]
@@ -1297,7 +1297,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
             sys.stdout.write(str(Fig_Nr) + ', ')
             # if it hasn't been done already, convert the keywords from a stringlist to a python list
             if isinstance(df['uniprot_KW'][0], str):
-                df['uniprot_KW'] = df['uniprot_KW'].apply(lambda x: eval(x))
+                df['uniprot_KW'] = df['uniprot_KW'].apply(lambda x: ast.literal_eval(x))
             # create a new column showing whether the protein is a GPCR
             df['G-protein coupled receptor'] = df['uniprot_KW'].apply(lambda x: 'G-protein coupled receptor' in x)
             df_GPCR = df.loc[df['G-protein coupled receptor'] == True]
@@ -1584,7 +1584,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
                 pass
             # convert the KW stringlist to a python list, if it hasn't been done already
             if isinstance(df['uniprot_KW'][0], str):
-                df['uniprot_KW'] = df['uniprot_KW'].apply(lambda x: eval(x))
+                df['uniprot_KW'] = df['uniprot_KW'].apply(lambda x: ast.literal_eval(x))
             # join all keywords together into a large list
             nested_list_all_KW = list(itertools.chain(*list(df['uniprot_KW'])))
             # convert list to pandas series
@@ -2190,7 +2190,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
                 pass
             # convert the KW stringlist to a python list, if it hasn't been done already
             if isinstance(df['uniprot_KW'][0], str):
-                df_nonenzyme['uniprot_KW'] = df_nonenzyme['uniprot_KW'].apply(lambda x: eval(x))
+                df_nonenzyme['uniprot_KW'] = df_nonenzyme['uniprot_KW'].apply(lambda x: ast.literal_eval(x))
             # join all keywords together into a large list
             nested_list_all_KW = list(itertools.chain(*list(df_nonenzyme['uniprot_KW'])))
             # convert list to pandas series

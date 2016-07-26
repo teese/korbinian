@@ -1,3 +1,4 @@
+import ast
 import csv
 import korbinian.mtutils as utils
 import numpy as np
@@ -211,7 +212,7 @@ def OLD_calculate_TMD_conservation(pathdict, set_, logging):
     
                 # load the amino acid substitution matrices from the settings file
                 list_of_aa_sub_matrices = set_['["mp_matrices']
-                dict_of_aa_matrices = {key: eval(key) for key in list_of_aa_sub_matrices}
+                dict_of_aa_matrices = {key: ast.literal_eval(key) for key in list_of_aa_sub_matrices}
     
                 # for each gap penalty
                 for k in range(set_["gap_open_penalty_min"],

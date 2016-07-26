@@ -30,7 +30,6 @@ PROBLEMS and TASKS
  - Nonredundancy test needs to be tested: sp|Q8N349|OR2LD_HUMAN, sp|Q8NH16|OR2L2 together in list 79
    [could be just slight alignment differences]
  - print out proteins with highest and lowest AAIMON for visual analysis
- - conduct word-cloud analysis of functions for high and low AAIMON
  - check relationship to abundance of each amino acid, and GxxxG motif
  - calculate hydrophobic core / lipid interface conservation as hinted in Mokrab et al.
  - examine beta-barrel proteins and GPI anchors
