@@ -6,7 +6,7 @@ import sys
 import os
 # FOR SOME REASON, SCRIPT HAD BOTH df and df. All df references were then converted to df.
 
-def OLD_calculate_TMD_conservation(pathdict, settingsdict, logging):
+def OLD_calculate_TMD_conservation(pathdict, set_, logging):
     # convert file to dataframe (eg List70_simap.csv)
     df = pd.read_csv(pathdict["dfout05_simapcsv"], sep=",", index_col=0,quoting=csv.QUOTE_NONNUMERIC)  # index_col = 0, only wher reopening a saved pandas file
     # # add desired columns (only necessary if for loop method is kept)
@@ -44,18 +44,17 @@ def OLD_calculate_TMD_conservation(pathdict, settingsdict, logging):
     
     #    list_of_bins_for_histogram2 = np.linspace(0.2,2.5,24)
     #    logging.info(list_of_bins_for_histogram2)
-    list_of_bins_for_histogram = np.linspace(settingsdict["variables"]["hist_settings_single_protein.smallest_bin"],
-                                             settingsdict["variables"]["hist_settings_single_protein.largest_bin"],
-                                             settingsdict["variables"]["hist_settings_single_protein.number_of_bins"])
+    list_of_bins_for_histogram = np.linspace(set_["1p_smallest_bin"],
+                                             set_["1p_largest_bin"],
+                                             set_["1p_number_of_bins"])
     # add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
     list_of_bins_for_histogram = np.append(list_of_bins_for_histogram,
-                                           settingsdict["variables"]["hist_settings_single_protein.final_highest_bin"])
+                                           set_["1p_final_highest_bin"])
     
     list_of_keys_for_hit_identity_analysis = ['match_TMD_added_to_FastA_alignment', 'ratio_ident_mem_to_nonmem',
                                               'match_TMD_kept_for_statistical_analysis']
     
     # minimum_number_hits_for_data_analysis = 20
-    
     number_query_seq_processed = 0
     number_query_seq_added_to_histogram = 0
     list_of_proteins_kept_for_statistical_analysis = []
@@ -144,29 +143,24 @@ def OLD_calculate_TMD_conservation(pathdict, settingsdict, logging):
                 df_SIMAP_hits[col] = df_SIMAP_hits[col].astype(object).fillna("none")
     
             # filter each homologue from SIMAP
-            number_of_gaps_allowed_in_match_TMD = settingsdict["variables"][
-                "analyse.simap_match_filters.number_of_gaps_allowed_in_match_TMD"]
-            number_of_gaps_allowed_in_query_TMD = settingsdict["variables"][
-                "analyse.simap_match_filters.number_of_gaps_allowed_in_query_TMD"]
-            minimum_identity_of_full_protein = settingsdict["variables"][
-                "analyse.simap_match_filters.minimum_identity_of_full_protein"]
-            min_identity_of_TMD_final_filter = settingsdict["variables"][
-                "analyse.simap_match_filters.min_identity_of_TMD_final_filter"]
+            number_of_gaps_allowed_in_match_TMD = set_["number_of_gaps_allowed_in_match_TMD"]
+            number_of_gaps_allowed_in_query_TMD = set_["number_of_gaps_allowed_in_query_TMD"]
+            minimum_identity_of_full_protein = set_["minimum_identity_of_full_protein"]
+            min_identity_of_TMD_final_filter = set_["min_identity_of_TMD_final_filter"]
             for j in range(len(df_SIMAP_hits)):
                 df_SIMAP_hits.loc[j, 'match_TMD_kept_for_statistical_analysis'] = True if all([
-                    df_SIMAP_hits.loc[j, 'FASTA_expectation'] <= settingsdict['variables'][
-                        'analyse.simap_match_filters.e_value_filter'],
+                    df_SIMAP_hits.loc[j, 'FASTA_expectation'] <= set_['e_value_filter'],
                     df_SIMAP_hits.loc[j, 'disallowed_words_in_description'] == 'none',
-                    settingsdict['variables']['analyse.simap_match_filters.database'] == 'all',
+                    set_['database'] == 'all',
                     df_SIMAP_hits.loc[j, 'number_of_gaps_in_match_TMD'] <= number_of_gaps_allowed_in_match_TMD,
                     df_SIMAP_hits.loc[j, 'number_of_gaps_in_query_TMD'] <= number_of_gaps_allowed_in_query_TMD,
                     df_SIMAP_hits.loc[j, 'SW_identity'] >= minimum_identity_of_full_protein,
                     df_SIMAP_hits.loc[j, 'percentage_identity_of_TMD'] >= min_identity_of_TMD_final_filter,
-                    # df_SIMAP_hits.loc[j, 'number_of_X_in_TMD'] <= settingsdict['variables']['analyse.simap_match_filters.number_of_X_allowed_in_TMD'],
+                    # df_SIMAP_hits.loc[j, 'number_of_X_in_TMD'] <= set_['number_of_X_allowed_in_TMD'],
                     df_SIMAP_hits.loc[j, 'SW_match_TMD_seq'] != 'TMD_not_in_SW_alignment'
                 ]) else False
-                # len(df_SIMAP_hits.loc[j,'query_aln_seq_excl_TMD']) >= settingsdict['variables']['analyse.simap_match_filters.min_len_query_aln_seq_excl_TMD']
-                # df_SIMAP_hits.loc[j,'number_of_X_in_match_seq'] <= settingsdict['variables']['analyse.simap_match_filters.number_of_X_allowed_in_seq'],
+                # len(df_SIMAP_hits.loc[j,'query_aln_seq_excl_TMD']) >= set_['min_len_query_aln_seq_excl_TMD']
+                # df_SIMAP_hits.loc[j,'number_of_X_in_match_seq'] <= set_['number_of_X_allowed_in_seq'],
     
             # simply select the true data in a smaller dataframe
             # use the value_counts method to count the number of hits kept for statistical analysis
@@ -195,38 +189,34 @@ def OLD_calculate_TMD_conservation(pathdict, settingsdict, logging):
                 gap_penalties_in_file = list(df_mem_nonmem_ratios.index)
                 matrices_in_file = list(df_mem_nonmem_ratios.columns)
                 if gap_penalties_in_file == list(
-                        range(settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_min"],
-                              settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_max"],
-                              settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_increment"])) and \
-                                matrices_in_file == settingsdict["variables"]["aa_substitution_scoring.matrices"]:
+                        range(set_["gap_open_penalty_min"],
+                              set_["gap_open_penalty_max"],
+                              set_["gap_open_penalty_increment"])) and \
+                                matrices_in_file == set_["matrices"]:
                     csv_mem_nonmem_ratios_is_old = False
                 else:
                     csv_mem_nonmem_ratios_is_old = True
                     logging.info('%s is old, repeating calculation' % df.loc[
                         i, 'csv_file_av_cons_ratios_hits'])
     
-            if settingsdict["variables"][
-                "calculate_TMD_conservation.overwrite_csv_file_av_cons_ratios_hits"] or csv_mem_nonmem_ratios_is_old:
+            if set_["overwrite_csv_file_av_cons_ratios_hits"] or csv_mem_nonmem_ratios_is_old:
                 # if not os.path.isfile(df.loc[i,'csv_file_av_cons_ratios_hits']):
                 # create a new dataframe to hold the array of mem/nonmem ratios for the varying matrices and  gap penalties
                 df_mem_nonmem_ratios = pd.DataFrame(0.0,
                                                     index=range(
-                                                        settingsdict["variables"][
-                                                            "aa_substitution_scoring.gap_open_penalty_min"],
-                                                        settingsdict["variables"][
-                                                            "aa_substitution_scoring.gap_open_penalty_max"],
-                                                        settingsdict["variables"][
-                                                            "aa_substitution_scoring.gap_open_penalty_increment"]),
-                                                    columns=settingsdict['variables']['aa_substitution_scoring.matrices'])
+                                                        set_["gap_open_penalty_min"],
+                                                        set_["gap_open_penalty_max"],
+                                                        set_["gap_open_penalty_increment"]),
+                                                    columns=set_['["mp_matrices'])
     
                 # load the amino acid substitution matrices from the settings file
-                list_of_aa_sub_matrices = settingsdict['variables']['aa_substitution_scoring.matrices']
+                list_of_aa_sub_matrices = set_['["mp_matrices']
                 dict_of_aa_matrices = {key: eval(key) for key in list_of_aa_sub_matrices}
     
                 # for each gap penalty
-                for k in range(settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_min"],
-                               settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_max"],
-                               settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_increment"]):
+                for k in range(set_["gap_open_penalty_min"],
+                               set_["gap_open_penalty_max"],
+                               set_["gap_open_penalty_increment"]):
                     gap_open_penalty = k
                     # for each aa sub matrix, represented as a key in the dictionary
                     for key in dict_of_aa_matrices:
@@ -287,7 +277,7 @@ def OLD_calculate_TMD_conservation(pathdict, settingsdict, logging):
     
             # determine if protein is kept for statistical analysis. Currently the only filter is the number of valid hits.
             if df.loc[i, 'number_of_valid_hits'] >= \
-                    settingsdict["variables"]["hist_settings_single_protein.minimum_number_hits_for_data_analysis"]:
+                    set_["1p_min_n_hits_for_data_analysis"]:
                 df.loc[i, 'protein_kept_for_statistical_analysis'] = True
                 # if there is enough valid hits, add the protein name to the list, so the data can be used later
                 list_of_proteins_kept_for_statistical_analysis.append(protein_name)
@@ -360,7 +350,7 @@ def OLD_calculate_TMD_conservation(pathdict, settingsdict, logging):
         len(list_of_proteins_whose_XML_file_doesnt_exist), list_of_proteins_whose_XML_file_doesnt_exist))
     logging.info('\t%i proteins had less than %s valid homologues and were excluded from analysis:\n\t%s' % (
         len(list_of_proteins_with_not_enough_valid_hits),
-        settingsdict["variables"]["hist_settings_single_protein.minimum_number_hits_for_data_analysis"],
+        set_["1p_min_n_hits_for_data_analysis"],
         list_of_proteins_with_not_enough_valid_hits))
     logging.info('list_of_csv_files_with_homologues_that_are_old: %s' % list_of_csv_files_with_homologues_that_are_old)
     
@@ -459,7 +449,7 @@ def OLD_calculate_TMD_conservation(pathdict, settingsdict, logging):
     logging.info(
         'list_of_proteins_with_damaged_file_0_valid_hits (repeating SIMAP download is necessary) : %s' % list_of_proteins_with_damaged_file_0_valid_hits)
     logging.info('list_of_proteins_with_no_csv_file_with_hit_details (if len>%i, try repeating SIMAP download) : %s' % (
-        settingsdict["variables"]["simap.max_query_sequence_length"],
+        set_["max_query_sequence_length"],
         list_of_proteins_with_no_csv_file_with_hit_details))
     
     # specify data type, repeat of earlier specification for df

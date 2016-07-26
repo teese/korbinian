@@ -2,7 +2,7 @@ import os
 from Bio import SeqIO
 import pandas as pd
 
-def parse_large_flatfile_with_list_uniprot_accessions(uniprot_folder, list_number, logging, uniprot_flatfile_of_selected_records):
+def parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, uniprot_folder, list_number, logging, uniprot_flatfile_of_selected_records):
     """ Retrieves UniProt flatfiles from a large flatfile (e.g. All UniProt), based on a list of accession numbers
 
     """

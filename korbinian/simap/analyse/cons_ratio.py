@@ -7,9 +7,9 @@ import tarfile
 import korbinian.mtutils as utils
 
 
-def calculate_AAIMON_ratios(pathdict, settingsdict, logging):
+def calculate_AAIMON_ratios(pathdict, set_, logging):
     logging.info('~~~~~~~~~~~~starting calculate_AAIMON_ratios~~~~~~~~~~~~')
-    overwrite_prev_calculated_AAIMON_ratios = settingsdict["variables"]["simap.calculate_AAIMON_ratios.overwrite_prev_calculated_AAIMON_ratios"]
+    overwrite_prev_calculated_AAIMON_ratios = set_["overwrite_prev_calculated_AAIMON_ratios"]
     if os.path.isfile(pathdict["dfout08_simap_AAIMON"]):
         #backup_original_file
         pathdict["dfout08_simap_AAIMON_backup_before_adding_data"] = pathdict["dfout08_simap_AAIMON"][:-4] + 'backup.xlsx'
@@ -96,7 +96,7 @@ def calculate_AAIMON_ratios(pathdict, settingsdict, logging):
                         dfs['len_query_alignment_sequence'] = 0
 
                     #add the list of words to the globals, to be accessed by utils.find_disallowed_words
-                    words_not_allowed_in_description = eval(settingsdict["variables"]["analyse.simap_match_filters.words_not_allowed_in_description"])
+                    words_not_allowed_in_description = eval(set_["words_not_allowed_in_description"])
                     #collect disallowed words in hit protein description (patent, synthetic, etc)
                     dfs['list_disallowed_words_in_descr'] = dfs['A4_description'].dropna().apply(
                         utils.find_disallowed_words, args=(words_not_allowed_in_description,))
@@ -189,8 +189,8 @@ def calculate_AAIMON_ratios(pathdict, settingsdict, logging):
                                     dfs.loc[hit,'seq_juxta_after_%s_in_query'%TMD] = dfs.query_alignment_sequence[hit][int(dfs.loc[hit,"start_juxta_after_%s" % TMD]):int(dfs.loc[hit,"end_juxta_after_%s" % TMD])]
 
                         #redefine the number of amino acids before and after the TMD to be inserted into the FastA files
-                        aa_before_tmd = settingsdict["variables"]["analyse.simap_match_filters.aa_before_tmd"]
-                        aa_after_tmd = settingsdict["variables"]["analyse.simap_match_filters.aa_after_tmd"]
+                        aa_before_tmd = set_["aa_before_tmd"]
+                        aa_after_tmd = set_["aa_after_tmd"]
 
                         #define the start of theTMD + surrounding sequence
                         dfs['%s_start_in_SW_alignment_plus_surr' % TMD] = dfs['%s_start_in_SW_alignment' % TMD] - aa_before_tmd
@@ -235,8 +235,8 @@ def calculate_AAIMON_ratios(pathdict, settingsdict, logging):
                             #note that for most calculations this is somewhat redundant, because the max number of acceptable gaps in sequence is probable ~2
                             dfs['%s_SW_align_len' % TMD] = dfs['%s_SW_m_seq_len' % TMD].apply(lambda x: x if x < len_query_TMD else len_query_TMD)
                             #create a boolean column that allows filtering by the accepted number of gaps, according to the settings file
-                            dfs['%s_SW_query_acceptable_num_gaps' % TMD] = dfs['%s_SW_query_num_gaps' % TMD] <= settingsdict["variables"]["analyse.simap_match_filters.number_of_gaps_allowed_in_query_TMD"]
-                            dfs['%s_SW_match_acceptable_num_gaps' % TMD] = dfs['%s_SW_match_num_gaps' % TMD] <= settingsdict["variables"]["analyse.simap_match_filters.number_of_gaps_allowed_in_match_TMD"]
+                            dfs['%s_SW_query_acceptable_num_gaps' % TMD] = dfs['%s_SW_query_num_gaps' % TMD] <= set_["number_of_gaps_allowed_in_query_TMD"]
+                            dfs['%s_SW_match_acceptable_num_gaps' % TMD] = dfs['%s_SW_match_num_gaps' % TMD] <= set_["number_of_gaps_allowed_in_match_TMD"]
                             #count identical residues between query and match TMDs by counting the number of pipes in the markup string
                             dfs['%s_SW_num_ident_res' % TMD] = dfs['%s_SW_markup_seq' % TMD].dropna().apply(lambda x: x.count('|'))
                             dfs['%s_SW_num_sim_res' % TMD] = dfs['%s_SW_markup_seq' % TMD].dropna().apply(lambda x: x.count(':'))
@@ -266,7 +266,7 @@ def calculate_AAIMON_ratios(pathdict, settingsdict, logging):
 
                     if number_of_TMDs_containing_some_homologue_data > 0:
                         #create a boolean column that describel whether the sequence is above the minimum gapped identity
-                        minimum_identity_of_full_protein = settingsdict["variables"]["analyse.simap_match_filters.minimum_identity_of_full_protein"]
+                        minimum_identity_of_full_protein = set_["minimum_identity_of_full_protein"]
                         dfs['gapped_ident_above_cutoff'] = dfs['FASTA_gapped_identity'] > minimum_identity_of_full_protein
 
                         '''¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦             nonTMD calculations                        ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
@@ -480,8 +480,8 @@ def calculate_AAIMON_ratios(pathdict, settingsdict, logging):
                             #                                                     gap_extension_penalty=gap_extension_penalty))
                             #                        return(score)
                             #
-                            #                    for gap_open_penalty in range(settingsdict["aa_substitution_scoring"]["gap_open_penalty_min"],settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_max"],
-                            #                                   settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_increment"]):
+                            #                    for gap_open_penalty in range(set_["aa_substitution_scoring"]["gap_open_penalty_min"],set_["gap_open_penalty_max"],
+                            #                                   set_["gap_open_penalty_increment"]):
                             #                        #print(gap_open_penalty)
                             #                        #for simplicity, give the gap open and gap extend the same value
                             #                        gap_extension_penalty = gap_open_penalty
@@ -567,7 +567,7 @@ def calculate_AAIMON_ratios(pathdict, settingsdict, logging):
                             for TMD in list_of_TMDs:
                                 len_query_TMD = len(df.loc[acc, '%s_seq' % TMD])
                                 #following the general filters, filter to only analyse sequences with TMD identity above cutoff, and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
-                                min_identity_of_TMD_initial_filter = settingsdict['variables']['analyse.simap_match_filters.min_identity_of_TMD_initial_filter']
+                                min_identity_of_TMD_initial_filter = set_['min_identity_of_TMD_initial_filter']
                                 dfs_filt_AAIMON = dfs_filt.loc[dfs['%s_perc_ident' % TMD] >= min_identity_of_TMD_initial_filter]
                                 #avoid a divide by zero error in the unlikely case that there are no_identical_residues_in_alignment
                                 dfs_filt_AAIMON = dfs_filt_AAIMON.loc[dfs_filt_AAIMON['nonTMD_perc_ident'] != 0]
@@ -614,12 +614,12 @@ def calculate_AAIMON_ratios(pathdict, settingsdict, logging):
                             #use linspace to get a fixid number of points between tha min and the max for the histogram
                             #set up evenly distributed bins between the chosen min and max
                             #if possible, 1.0 should be in the centre of a bin, to catch cases where a lot of homologues have a ratio that approximates 1
-                            linspace_binlist = np.linspace(settingsdict["variables"]["hist_settings_single_protein.smallest_bin"],
-                                                           settingsdict["variables"]["hist_settings_single_protein.largest_bin"],
-                                                           settingsdict["variables"]["hist_settings_single_protein.number_of_bins"])
+                            linspace_binlist = np.linspace(set_["1p_smallest_bin"],
+                                                           set_["1p_largest_bin"],
+                                                           set_["1p_number_of_bins"])
                             #add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
                             binlist = np.append(linspace_binlist,
-                                                settingsdict["variables"]["hist_settings_single_protein.final_highest_bin"])
+                                                set_["1p_final_highest_bin"])
 
                             #se default font size for text in the plot
                             fontsize = 4
@@ -637,7 +637,7 @@ def calculate_AAIMON_ratios(pathdict, settingsdict, logging):
                                 for TMD in list_of_TMDs:
                                     len_query_TMD = len(df.loc[acc, '%s_seq' % TMD])
                                     #following the general filters, filter to only analyse sequences with TMD identity above cutoff, and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
-                                    min_identity_of_TMD_initial_filter = settingsdict['variables']['analyse.simap_match_filters.min_identity_of_TMD_initial_filter']
+                                    min_identity_of_TMD_initial_filter = set_['min_identity_of_TMD_initial_filter']
                                     dfs_filt_AAIMON = dfs_filt.loc[dfs['%s_perc_ident' % TMD] >= min_identity_of_TMD_initial_filter]
                                     #avoid a divide by zero error in the unlikely case that there are no_identical_residues_in_alignment
                                     dfs_filt_AAIMON = dfs_filt_AAIMON.loc[dfs_filt_AAIMON['nonTMD_perc_ident'] != 0]
@@ -685,9 +685,9 @@ def calculate_AAIMON_ratios(pathdict, settingsdict, logging):
                                                                      fontsize=fontsize)
                                     if savefig:
                                         #take x-axis min from settings
-                                        xlim_min = settingsdict["variables"]["hist_settings_single_protein.smallest_bin"]
+                                        xlim_min = set_["1p_smallest_bin"]
                                         #take x-axis max from settings
-                                        xlim_max = settingsdict["variables"]["hist_settings_single_protein.largest_bin"]
+                                        xlim_max = set_["1p_largest_bin"]
                                         #apply the following formatting changes to all plots in the figure
                                         for ax in axarr.flat:
                                             #set x-axis min
@@ -762,7 +762,7 @@ def calculate_AAIMON_ratios(pathdict, settingsdict, logging):
                                     os.remove(fasta_file_plus_surr_path)
 
                                 #remove columns to make output csv smaller
-                                if settingsdict['variables']['simap.calculate_AAIMON_ratios.drop_columns_to_reduce_csv_filesize']:
+                                if set_['drop_columns_to_reduce_csv_filesize']:
                                     list_cols_to_drop = ['match_alignment_sequence', 'query_alignment_sequence', 'alignment_markup','nonTMD_seq_query', 'nonTMD_markup']
                                     for col in list_cols_to_drop:
                                         if col in dfs.columns:

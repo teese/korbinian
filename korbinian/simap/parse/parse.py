@@ -5,7 +5,7 @@ import tarfile
 import xml.etree.ElementTree as ET
 import korbinian.mtutils as utils
 
-def parse_SIMAP_to_csv(pathdict, settingsdict, logging):
+def parse_SIMAP_to_csv(pathdict, set_, logging):
     counter_XML_to_CSV = 0
     logging.info('~~~~~~~~~~~~  starting parse_SIMAP_to_csv   ~~~~~~~~~~~~')
     #test if the dataframe has already been created, otherwise reopen from csv file
@@ -81,7 +81,7 @@ def parse_SIMAP_to_csv(pathdict, settingsdict, logging):
             #SIMAP_csv_from_XML_path = r"E:/Databases/simap/%s/%s_homologues.csv" % (organism_domain, protein_name[:30])
 
             #if the setting is "False", and you don't want to overwrite the files, skip this section
-            if settingsdict["variables"]["simap.calculate_AAIMON_ratios.overwrite_homologue_csv_files"]:
+            if set_["overwrite_homologue_csv_files"]:
                 create_homol_csv = True
             else:
                 #check if output file already exists
@@ -107,7 +107,7 @@ def parse_SIMAP_to_csv(pathdict, settingsdict, logging):
                                     #following the general filters, filter to only analyse sequences with TMD identity above cutoff,
                                     #and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
                                     dfs_filt_AAIMON = dfs_filt_AAIMON.loc[
-                                        dfs['%s_perc_ident' % TMD] >= settingsdict['variables']['analyse.simap_match_filters.min_identity_of_TMD_initial_filter']]
+                                        dfs['%s_perc_ident' % TMD] >= set_['min_identity_of_TMD_initial_filter']]
                                     #add to original dataframe with the list of sequences
                                     df.loc[acc, '%s_AAIMON_ratio_mean' % TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio' % TMD].mean()
                                     df.loc[acc, '%s_AAIMON_ratio_std' % TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio' % TMD].std()
@@ -199,17 +199,17 @@ def parse_SIMAP_to_csv(pathdict, settingsdict, logging):
 
                     if xml_contains_simap_homologue_hits:
                         #load the amino acid substitution matrices from the settings file
-                        list_of_aa_sub_matrices = settingsdict['variables']['aa_substitution_scoring.matrices']
+                        list_of_aa_sub_matrices = set_['aa_sub_matrices']
 
                         #import the amino acid substitution matrices
                         utils.import_amino_acid_substitution_matrices()
 
                         #add the similarity ratios to the csv_header_for_SIMAP_homologue_file.
                         # These will depend on the individual settings
-                        #                    if settingsdict['variables']['simap.calculate_AAIMON_ratios.calculate_TMD_conservation_with_aa_matrices']:
-                        #                        for j in range(settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_min"],
-                        #                                       settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_max"],
-                        #                                       settingsdict["variables"]["aa_substitution_scoring.gap_open_penalty_increment"]):
+                        #                    if set_['["mp_calculate_TMD_conservation_with_aa_matrices']:
+                        #                        for j in range(set_["gap_open_penalty_min"],
+                        #                                       set_["gap_open_penalty_max"],
+                        #                                       set_["gap_open_penalty_increment"]):
                         #                            gap_open_penalty = j
                         #                            gap_extension_penalty = j
                         #print('gap_open_penalty:%s' % j)

@@ -763,58 +763,30 @@ def retrieve_simap_feature_table(input_sequence, java_exec_str, max_memory_alloc
     '''
     Uses the java program to access the simap database and download the small file containing information on that protein, called a "feature table".
     '''
-    #global number_of_files_not_found    
-    #jar_file = r'E:\\Stephis\\Projects\\Programming\\Python\\programs\\eaSimap.jar'
-    #jar_file = r'/nas/teeselab/programs/eaSimap.jar'
-    #jar_file = r"D:\Schweris\Projects\Programming\Python\programs\eaSimap.jar"
-    #prepare input sequence and settings as a "java_run_string"
-    #run command
+    #prepare input sequence and settings as a "command_str", and run command
     command_str = '%s -Xmx%im -jar %s -s %s -o %s -f' % (java_exec_str, max_memory_allocation, eaSimap_path, input_sequence, output_file)
     logging.info(command_str)
-#    for output_line in run_command(command_str):
-#        print(output_line)                          #note that nothing is actually printed
     command = Command(command_str)
     command.run(timeout=100)
     logging.info("Output file:     %s\n" % output_file),
-
     sleep_x_seconds(5)
     if not os.path.exists(output_file):
         logging.info('********************SIMAP download failed for : %s***************' % output_file)
-#    #sleep for 30 seconds to not overload the server 
-#    sys.stdout.write("sleeping .")
-#    for i in range(5):
-#        time.sleep(3)
-#        sys.stdout.write(" .")
-#        sys.stdout.flush()
-#    print(' .')
 
-def retrieve_simap_homologues(input_sequence, output_file, database, max_hits, java_exec_str, max_memory_allocation, taxid, eaSimap_path):
+
+def retrieve_simap_homologues(input_sequence, output_file, max_hits, java_exec_str, max_memory_allocation, taxid, eaSimap_path):
     '''
     Uses the java program to access the simap database and download the large file containing all homologues of that protein.
     '''
-    #global number_of_files_not_found    
-    #locate jar executable file
-    #jar_file = r'E:\\Stephis\\Projects\\Programming\\Python\\programs\\eaSimap.jar'
-    #jar_file = r'/nas/teeselab/programs/eaSimap.jar'
-    #jar_file = r"D:\Schweris\Projects\Programming\Python\programs\eaSimap.jar"
-    #set parameters
-    #database = '' #leave blank('') for SIMAP all database. 'uniprot_swissprot' 'uniprot_trembl' 'refseq' 'Escherichia coli' 'Homo sapiens' 'Hot springs metagenome'
-    database_dictionary = {313: 'uniprot_swissprot', 314: 'uniprot_trembl', 595: 'refseq', 721: 'Escherichia coli', 1296: 'Homo sapiens', 4250: 'Hot springs metagenome'}
-    database_dictionary_reversed = {}     
-    for v,k in database_dictionary.items():
-        database_dictionary_reversed[k] = v
-    print("in retr simap, database = %s" % database)
-    database_search_string = '' if database == '""' else '-d %s' % database_dictionary_reversed[database]  # -d in java interface is currently not working, but could be functional at some stage
+    # database selection is currently not working for download. Can be filtered later from all results.
+    #database_dictionary = {313: 'uniprot_swissprot', 314: 'uniprot_trembl', 595: 'refseq', 721: 'Escherichia coli', 1296: 'Homo sapiens', 4250: 'Hot springs metagenome'}
     taxid_search_string = '' if taxid == '""' else '-i %s' % taxid
     #note that windows has a character limit in the command prompt in theory of 8191 characters, but the command line java command seems to cause errors with sequences above 3000 amino acids.
     #the 3000 character limit is currently applied in the main_simap script, rather than here
     #run command
     command_str = '%s -Xmx%im -jar %s -s %s -m %s -o %s -x %s%s' % (java_exec_str, max_memory_allocation, eaSimap_path, input_sequence,
-                                                                                           max_hits, output_file, 
-                                                                                          database_search_string, taxid_search_string)
+                                                                    max_hits, output_file, taxid_search_string)
     logging.info(command_str)
-#    for output_line in run_command(command_str):
-#        print(output_line)                           #note that nothing is actually printed
     command = Command(command_str)
     timeout = max_hits/5 if max_hits > 500 else 100
     command.run(timeout=timeout) #give 1000 for 5000 hits to download?   
@@ -822,47 +794,10 @@ def retrieve_simap_homologues(input_sequence, output_file, database, max_hits, j
     sleep_x_seconds(5)
     if not os.path.exists(output_file):
         logging.info('********************SIMAP download failed for : %s***************' % output_file)
-    #print without new line
-#    sys.stdout.write("sleeping .")
-#    for i in range(5):
-#        time.sleep(3)
-#        sys.stdout.write(" .")
-#        sys.stdout.flush()
-#    print('.')
     '''There are many homologue XML files with nodes missing! Could this be due to the minidom parse?? 
     Maybe it's better to leave this out, and only parse to a readable format for some example proteins???
     '''
-    
-    #Indent the XML file in a more readable format. Note that this adds empty lines. 
-    #I need to use more complex code, or switch to lxml at some stage.
-#    try:    
-#        xml = minidom.parse(output_file)
-#        xml.normalize()
-#        with open(output_file, 'w') as result:
-#            result.write(xml.toprettyxml(indent = '  '))
-#        number_of_files_not_found = 0
-#    except FileNotFoundError:
-#        logging.info('********************FileNotFoundError: for %s********************' % output_file)
-#        if 'number_of_files_not_found' not in globals():
-#            number_of_files_not_found = 1
-#        else:
-#            number_of_files_not_found += 1
-#        print('number_of_files_not_found = %s' % number_of_files_not_found)
-#    number_of_files_not_found = 0
-#    if os.path.exists(output_file):
-#        if 'number_of_files_not_found' not in globals():
-#            pass
-#        else:
-#            number_of_files_not_found += 1        
-        #If there are more than 10 errors, stop the attempts to download and sleep for 6 hours   
-#    if number_of_files_not_found > 30:
-#        sleep_24_hours()
-#    if number_of_files_not_found == 20:
-#        sleep_24_hours()
-#    if number_of_files_not_found == 15:       
-#        sleep_6_hours()
-#    if number_of_files_not_found == 10:       
-#        sleep_6_hours()
+
 #def retrieve_simap_from_multiple_fasta(input_file):
 #    records = SeqIO.parse(input_file, "fasta")
 #    global list_of_files_with_feature_tables, list_of_files_with_homologues
@@ -1566,5 +1501,94 @@ def slice_juxta_after_TMD_in_match(x, TMD):
 def find_last_TMD(dfs):
     # dfs was missing from input, added by MT 20.07.2016
     for n in range(1, 24):
-        if utils.isNaN(dfs['TM%.2d_start_in_SW_alignment' % n]):
+        if isNaN(dfs['TM%.2d_start_in_SW_alignment' % n]):
             last_TMD = n
+
+def convert_truelike_to_bool(input_item, convert_int=False, convert_float=False, convert_nontrue=True):
+    """Converts true-like values ("true", 1, True", "WAHR", etc) to python boolean True.
+
+    Parameters
+    ----------
+    input_item : string or int
+        Item to be converted to bool (e.g. "true", 1, "WAHR" or the equivalent in several languagues)
+    convert_float: bool
+        Convert floats to bool.
+        If True, "1.0" will be converted to True
+    convert_nontrue : bool
+        If True, the output for input_item not recognised as "True" will be False.
+        If True, the output for input_item not recognised as "True" will be the original input_item.
+
+    Returns
+    -------
+    return_value : True, or input_item
+        If input_item is True-like, returns python bool True. Otherwise, returns the input_item.
+
+    Usage
+    -----
+    # convert a single value or string
+    convert_truelike_to_bool("true")
+    # convert a column in a pandas DataFrame
+    df["column_name"] = df["column_name"].apply(convert_truelike_to_bool)
+    """
+    list_True_items = [True, 'True', "true","TRUE","T","t",'wahr', 'WAHR', 'prawdziwy', 'verdadeiro', 'sann', 'istinit',
+                       'veritable', 'Pravda', 'sandt', 'vrai', 'igaz', 'veru', 'verdadero', 'sant', 'gwir', 'PRAWDZIWY',
+                       'VERDADEIRO', 'SANN', 'ISTINIT', 'VERITABLE', 'PRAVDA', 'SANDT', 'VRAI', 'IGAZ', 'VERU',
+                       'VERDADERO', 'SANT', 'GWIR', 'bloody oath', 'BLOODY OATH', 'nu', 'NU','damn right','DAMN RIGHT']
+
+    # if you want to accept 1 or 1.0 as a true value, add it to the list
+    if convert_int:
+        list_True_items += [1, "1"]
+    if convert_float:
+        list_True_items += [1.0, "1.0"]
+    # check if the user input string is in the list_True_items
+    input_item_is_true = input_item in list_True_items
+    # if you want to convert non-True values to "False", then nontrue_return_value = False
+    if convert_nontrue:
+        nontrue_return_value = False
+    else:
+        # otherwise, for strings not in the True list, the original string will be returned
+        nontrue_return_value = input_item
+    # return True if the input item is in the list. If not, return either False, or the original input_item
+    return_value = input_item_is_true if input_item_is_true == True else nontrue_return_value
+
+    return return_value
+
+def convert_falselike_to_bool(input_item, convert_int=False, convert_float=False):
+    """Converts false-like values ("false", 0, FALSE", "FALSCH", etc) to python boolean False.
+
+    Parameters
+    ----------
+    input_item : string or int
+        Item to be converted to bool (e.g. "FALSE", 0, "FALSCH" or the equivalent in several languagues)
+    convert_float: bool
+        Convert floats to bool.
+        If True, "0.0" will be converted to True
+
+    Returns
+    -------
+    return_value : False, or input_item
+        If input_item is False-like, returns python bool False. Otherwise, returns the input_item.
+
+    Usage
+    -----
+    # convert a single value or string
+    convert_falselike_to_bool("false")
+    # convert a column in a pandas DataFrame
+    df["column_name"] = df["column_name"].apply(convert_falselike_to_bool)
+    """
+    list_False_items = [False, "False", "false", "FALSE", "F", "f", "falsch", "FALSCH", "valse", "lažna", "fals",
+                        "NEPRAVDA", "falsk", "vals", "faux", "pa vre", "tsis tseeb", "hamis", "palsu", "uongo", "ngeb",
+                        "viltus", "klaidinga", "falz", "falso", "USANN", "wartosc false", "falošné", "falskt", "yanlis",
+                        "sai", "ffug", "VALSE", "LAŽNA", "FALS", "FALSK", "VALS", "FAUX", "PA VRE", "TSIS TSEEB",
+                        "HAMIS", "PALSU", "UONGO", "NGEB", "VILTUS", "KLAIDINGA", "FALZ", "FALSO", "WARTOSC FALSE",
+                        "FALOŠNÉ", "FALSKT", "YANLIS", "SAI", "FFUG"]
+
+    # if you want to accept 0 or 0.0 as a false value, add it to the list
+    if convert_int:
+        list_False_items += [0, "0"]
+    if convert_float:
+        list_False_items += [0.0,"0.0"]
+    # return boolean False if the input item is in the list. If not, return the original input_item
+    return_value = False if input_item in list_False_items else input_item
+
+    return return_value

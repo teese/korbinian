@@ -8,7 +8,7 @@ import pandas as pd
 import sys
 import tlabtools.tools as tools
 
-def save_figures_describing_proteins_in_list(pathdict, settingsdict, logging):
+def save_figures_describing_proteins_in_list(pathdict, set_, logging):
     backgroundcolour = '0.95'
     plt.style.use('ggplot')
     # add non-functional object to aid document navigation in some IDEs (e.g. Spyder)
@@ -37,12 +37,12 @@ def save_figures_describing_proteins_in_list(pathdict, settingsdict, logging):
     df = df.loc[df['list_of_TMDs'].notnull()]
     df = df.loc[df['list_of_TMDs'] != 'nan']
     # iterate over the dataframe. Note that acc = uniprot accession here.
-    linspace_binlist = np.linspace(settingsdict["variables"]["hist_settings_mult_proteins.smallest_bin"],
-                                   settingsdict["variables"]["hist_settings_mult_proteins.largest_bin"],
-                                   settingsdict["variables"]["hist_settings_mult_proteins.number_of_bins"])
+    linspace_binlist = np.linspace(set_["mp_smallest_bin"],
+                                   set_["mp_largest_bin"],
+                                   set_["mp_number_of_bins"])
 
     # add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
-    binlist = np.append(linspace_binlist, settingsdict["variables"]["hist_settings_mult_proteins.final_highest_bin"])
+    binlist = np.append(linspace_binlist, set_["mp_final_highest_bin"])
 
     '''
     The beta-barrel dataset contained a lot of proteins with an average AAIMON of 1.000000. This can only mean that there are not enough homologues.
@@ -121,9 +121,9 @@ def save_figures_describing_proteins_in_list(pathdict, settingsdict, logging):
     # pylab.rcParams['figure.figsize'] = (50.0, 40.0)
     # pylab.rcParams['figure.figsize'] = (20.0, 16.0)
     # plt.show()
-    xlim_min = settingsdict["variables"]["hist_settings_mult_proteins.xlim_min01"]
+    xlim_min = set_["mp_xlim_min01"]
     # take x-axis max from settings
-    xlim_max = settingsdict["variables"]["hist_settings_mult_proteins.xlim_max01"]
+    xlim_max = set_["mp_xlim_max01"]
     # set x-axis min
     axarr[row_nr, col_nr].set_xlim(xlim_min, xlim_max)
     # set x-axis ticks
@@ -192,9 +192,9 @@ def save_figures_describing_proteins_in_list(pathdict, settingsdict, logging):
     axarr[row_nr, col_nr].set_xlabel('average standard deviation', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
     axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
-    # xlim_min = settingsdict["variables"]["hist_settings_mult_proteins.xlim_min01"]
+    # xlim_min = set_["mp_xlim_min01"]
     # take x-axis max from settings
-    # xlim_max = settingsdict["variables"]["hist_settings_mult_proteins.xlim_max01"]
+    # xlim_max = set_["mp_xlim_max01"]
     # set x-axis min
     # axarr[row_nr,col_nr].set_xlim(xlim_min,xlim_max)
     # set x-axis ticks
@@ -1666,13 +1666,13 @@ def save_figures_describing_proteins_in_list(pathdict, settingsdict, logging):
             colourlist_greys = [(0.6, 0.7764705882352941, 0.9058823529411765), 'None']
 
             # iterate over the dataframe. Note that acc = uniprot accession here.
-            linspace_binlist = np.linspace(settingsdict["variables"]["hist_settings_mult_proteins.smallest_bin"],
-                                           settingsdict["variables"]["hist_settings_mult_proteins.largest_bin"],
-                                           settingsdict["variables"]["hist_settings_mult_proteins.number_of_bins"])
+            linspace_binlist = np.linspace(set_["mp_smallest_bin"],
+                                           set_["mp_largest_bin"],
+                                           set_["mp_number_of_bins"])
 
             # add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
             binlist = np.append(linspace_binlist,
-                                settingsdict["variables"]["hist_settings_mult_proteins.final_highest_bin"])
+                                set_["mp_final_highest_bin"])
 
             dict_ttest_pvalues = {}
 
@@ -1829,12 +1829,12 @@ def save_figures_describing_proteins_in_list(pathdict, settingsdict, logging):
                     KW_counts_major = KW_counts_major.drop('G-protein coupled receptor')
 
                 # #iterate over the dataframe. Note that acc = uniprot accession here.
-                # linspace_binlist = np.linspace(settingsdict["variables"]["hist_settings_mult_proteins.smallest_bin"],
-                #                                settingsdict["variables"]["hist_settings_mult_proteins.largest_bin"],
-                #                                settingsdict["variables"]["hist_settings_mult_proteins.number_of_bins"])
+                # linspace_binlist = np.linspace(set_["mp_smallest_bin"],
+                #                                set_["mp_largest_bin"],
+                #                                set_["mp_number_of_bins"])
                 #
                 # #add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
-                # binlist = np.append(linspace_binlist, settingsdict["variables"]["hist_settings_mult_proteins.final_highest_bin"])
+                # binlist = np.append(linspace_binlist, set_["mp_final_highest_bin"])
 
                 dict_ttest_pvalues = {}
 
@@ -2214,12 +2214,12 @@ def save_figures_describing_proteins_in_list(pathdict, settingsdict, logging):
             colourlist_greys = [(0.6, 0.7764705882352941, 0.9058823529411765), 'None']
 
             # #iterate over the dataframe. Note that acc = uniprot accession here.
-            # linspace_binlist = np.linspace(settingsdict["variables"]["hist_settings_mult_proteins.smallest_bin"],
-            #                                settingsdict["variables"]["hist_settings_mult_proteins.largest_bin"],
-            #                                settingsdict["variables"]["hist_settings_mult_proteins.number_of_bins"])
+            # linspace_binlist = np.linspace(set_["mp_smallest_bin"],
+            #                                set_["mp_largest_bin"],
+            #                                set_["mp_number_of_bins"])
             #
             # #add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
-            # binlist = np.append(linspace_binlist, settingsdict["variables"]["hist_settings_mult_proteins.final_highest_bin"]))
+            # binlist = np.append(linspace_binlist, set_["mp_final_highest_bin"]))
 
             dict_ttest_pvalues = {}
 

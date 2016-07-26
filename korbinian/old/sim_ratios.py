@@ -7,9 +7,9 @@ import xml.etree.ElementTree as ET
 
 
 
-def OLD_conduct_statistical_analysis_of_sim_ratios_saved_in_dfout05_simapcsv(pathdict, settingsdict, logging):
+def old_run_stat_analysis_sim_ratios_in_dfout05(pathdict, set_, logging):
     #load the csv containing only nonredundant sequences as a pandas dataframe
-    if settingsdict["variables"]["conduct_statistical_analysis_of_sim_ratios_saved_in_dfout05_simapcsv.conduct_stat_analysis_with_all_seqs_or_nonredundant_seqs"] == "all":
+    if set_["stat_analysis_all_seqs_or_nonred_seqs"] == "all":
         df_dfout05_simapcsv_stat_analysis = pd.read_csv(pathdict["dfout05_simapcsv"], sep=",", index_col=0,
                                                         quoting=csv.QUOTE_NONNUMERIC)
     else:

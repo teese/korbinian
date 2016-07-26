@@ -5,7 +5,7 @@ import platform
 import os
 import tarfile
 
-def download_homologues_from_simap(pathdict, settingsdict, logging):
+def download_homologues_from_simap(pathdict, set_, logging):
     # logging.info('~~~~~~~~~~~~  starting A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv   ~~~~~~~~~~~~')
     # #test if the dataframe has already been created, otherwise reopen from csv file
     # if 'df' in globals():
@@ -22,16 +22,15 @@ def download_homologues_from_simap(pathdict, settingsdict, logging):
     '''
     #global list_of_files_with_feature_tables, list_of_files_with_homologues
     #The SIMAP download settings can be altered as desired, using the json settings file
-    max_hits = settingsdict["variables"]["simap.max_hits"]
-    java_exec_str = settingsdict["file_locations"]["java_exec_str"]
-    max_memory_allocation = settingsdict["variables"]["simap.java_max_RAM_memory_allocated_to_simap_download"]
-    database = settingsdict["variables"]["simap.database"]
-    taxid = settingsdict["variables"]["simap.taxid"]  # eg.'7227' for Drosophila melanogaster
+    max_hits = set_["max_hits"]
+    java_exec_str = set_["old_run_stat_analysis_sim_ratios_in_dfout05java_exec_str"]
+    max_memory_allocation = set_["java_max_RAM_memory_allocated_to_simap_download"]
+    taxid = set_["taxid"]  # eg.'7227' for Drosophila melanogaster
 
     enough_hard_drive_space = True
     try:
         byteformat = "GB"
-        data_harddrive = settingsdict["file_locations"]["data_harddrive"]
+        data_harddrive = set_["old_run_stat_analysis_sim_ratios_in_dfout05data_harddrive"]
         size = utils.get_free_space(data_harddrive, byteformat)
         logging.info('Hard disk remaining space =')
         logging.info(size)
@@ -53,19 +52,19 @@ def download_homologues_from_simap(pathdict, settingsdict, logging):
             The character limit can be adjusted in the settings file
             '''
             if 'Windows' in str(platform.system()):
-                if query_sequence_length < settingsdict["variables"]["simap.max_query_sequence_length"]:
+                if query_sequence_length < set_["max_query_sequence_length"]:
                     download_homologues = True
                 else:
                     download_homologues = False
                     logging.warning('%s cannot be processed into a java command in windows OS,'
                                     'as the sequence is longer than %i characters (%i). Moving to next sequence' % (
-                                    protein_name, settingsdict["variables"]["simap.max_query_sequence_length"],
+                                    protein_name, set_["max_query_sequence_length"],
                                     query_sequence_length))
             else:
                 download_homologues = True
             if download_homologues == True:
-                simap_data_folder = os.path.join(settingsdict['file_locations']['data_folder'], 'simap')
-                subfolder = simap_data_folder+ "/" + df.loc[acc, 'first_two_letters_of_uniprot_acc']
+                simap_data_folder = os.path.join(set_['data_folder'], 'simap')
+                subfolder = os.path.join(simap_data_folder, df.loc[acc, 'first_two_letters_of_uniprot_acc'])
                 if os.path.isdir(subfolder) == False:
                     os.mkdir(subfolder)
                 #check which files exist. This is useful, because it is not possible to open the tarfile as 'a:gz',
@@ -78,14 +77,14 @@ def download_homologues_from_simap(pathdict, settingsdict, logging):
                                                            java_exec_str=java_exec_str,
                                                            max_memory_allocation=max_memory_allocation,
                                                            output_file=df.loc[acc, 'SIMAP_feature_table_XML_file_path'],
-                                                           eaSimap_path=settingsdict["file_locations"]["eaSimap_path"])
+                                                           eaSimap_path=set_["old_run_stat_analysis_sim_ratios_in_dfout05eaSimap_path"])
                     if not homologues_XML_exists:
                         #download homologue file from SIMAP
                         utils.retrieve_simap_homologues(input_sequence,
                                                         output_file=df.loc[acc, 'SIMAP_homologues_XML_file_path'],
-                                                        database=database, max_hits=max_hits, java_exec_str=java_exec_str,
+                                                        max_hits=max_hits, java_exec_str=java_exec_str,
                                                         max_memory_allocation=max_memory_allocation, taxid=taxid,
-                                                        eaSimap_path=settingsdict["file_locations"]["eaSimap_path"])
+                                                        eaSimap_path=set_["old_run_stat_analysis_sim_ratios_in_dfout05eaSimap_path"])
                         #now check again if the files exist
                     feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(df, acc)
                     if not homologues_XML_exists:

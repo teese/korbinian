@@ -5,7 +5,7 @@ import csv
 import os
 # FOR SOME REASON, SCRIPT HAD BOTH df and df. All df references were then converted to df.
 
-def OLD_calculate_TMD_conservation_by_gappedIdentity(pathdict, settingsdict, logging, list_number):
+def OLD_calculate_TMD_conservation_by_gappedIdentity(pathdict, set_, logging, list_number):
      
     # import matplotlib.pyplot as plt
     # csv_file_with_uniprot_data = r'E:\Stephis\Projects\Programming\Python\files\20131115_bacterial_TMD_conservation\List04-parser-test_uniprot_data.csv'
@@ -30,8 +30,8 @@ def OLD_calculate_TMD_conservation_by_gappedIdentity(pathdict, settingsdict, log
                                       'match_TMD_kept_for_statistical_analysis']
     
     # create new lists for each gapped identity cutoff
-    list_of_gappedIdentity_cutoffs = settingsdict["variables"]["analysis_by_gappedIdentity.gappedIdentity_cutoffs"]
-    
+    list_of_gappedIdentity_cutoffs = set_["gappedIdentity_cutoffs"]
+
     for i in range(len(list_of_gappedIdentity_cutoffs) - 1):
         min_ = list_of_gappedIdentity_cutoffs[i]
         max_ = list_of_gappedIdentity_cutoffs[i + 1]
@@ -85,8 +85,7 @@ def OLD_calculate_TMD_conservation_by_gappedIdentity(pathdict, settingsdict, log
                                 if min_ < FASTA_gapped_identity <= max_:
                                     list_rpitrh_within_cutoffs.append(ratio_ident_mem_to_nonmem)
                 number_of_valid_hits_within_cutoff = len(list_rpitrh_within_cutoffs)
-                if number_of_valid_hits_within_cutoff >= settingsdict["variables"][
-                    "analysis_by_gappedIdentity.minimum_number_hits_within_GI_range"]:
+                if number_of_valid_hits_within_cutoff >= set_["minimum_number_hits_within_GI_range"]:
                     mean_ratio_ident_mem_to_nonmem_within_cutoff = np.mean(list_rpitrh_within_cutoffs)
                     stdev_ratio_ident_mem_to_nonmem_within_cutoff = np.std(list_rpitrh_within_cutoffs)
                 else:

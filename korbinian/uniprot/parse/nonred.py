@@ -2,11 +2,11 @@ import os
 import pandas as pd
 import korbinian.mtutils as utils
 
-def convert_uniprot_list_to_nonred_ff_via_uniref(settingsdict, list_number, uniprot_folder, logging, uniprot_flatfile_of_selected_records):
+def convert_uniprot_list_to_nonred_ff_via_uniref(set_, list_number, uniprot_folder, logging, uniprot_flatfile_of_selected_records):
     """ Convert uniprot accession list to a non-redundant uniprot flatfile using UniRef clusters
     """
     # load uniref cutoff used (typically 50, for UniRef50)
-    uniref_cutoff = settingsdict["variables"]["uniprot.convert_uniprot_list_to_nonred_ff_via_uniref.uniref_cluster_cutoff"]
+    uniref_cutoff = set_["uniref_cluster_cutoff"]
     # define path to csv file containing the list of redundant uniprot accessions
     redundant_list_uniprot_acc_csv = os.path.join(uniprot_folder ,"List%02d_redundant_list_uniprot_acc.tab" % list_number)
     # define path to uniprot flatfile containing the redundant protein records

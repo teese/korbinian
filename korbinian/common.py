@@ -4,7 +4,7 @@ import pandas as pd
 from time import strftime
 import korbinian.mtutils as utils
 
-def setup_keyboard_interrupt_and_error_logging(settingsdict, list_number):
+def setup_keyboard_interrupt_and_error_logging(set_, list_number):
     ''' -------Setup keyboard interrupt----------
     '''
     # import arcgisscripting
@@ -17,39 +17,40 @@ def setup_keyboard_interrupt_and_error_logging(settingsdict, list_number):
     date_string = strftime("%Y%m%d")
 
     # designate the output logfile
-    logfile = os.path.join(settingsdict["file_locations"]["main_folder"], 'logfiles','List%s_%s_logfile.log' % (list_number, date_string))
+    logfile = os.path.join(set_["logfile_folder"],'List%s_%s_logfile.log' % (list_number, date_string))
     # a file to keep a record of the log settings used for that script
     utils.setup_error_logging(logfile)
-    #if settingsdict['logging_settings']['suppress_error_logging_to_console']:
-    #    logging.setLevel('WARNING')
 
 def create_settingsdict(excel_file_with_settings):
-    # open the settings file
     sheetnames = ["run_settings", "file_locations", "variables"]
-    settingsdict = {}
+    set_ = {}
     for sheetname in sheetnames:
         # open excel file as pandas dataframe
         dfset = pd.read_excel(excel_file_with_settings, sheetname=sheetname)
-        # for each row, isolate the columns containing the variable names
-        for row in dfset.index:
-            cells_with_variable_names = dfset.loc[row, "col1":"col3"].dropna()
-            # join hierarchical variable names together, separated by "."
-            dfset.loc[row, 'variable'] = ".".join(cells_with_variable_names)
-        # replace "FALSE" and "TRUE" with python bool values
-        dfset['value'] = dfset['value'].apply(lambda x: True if x == "TRUE" else x)
-        dfset['value'] = dfset['value'].apply(lambda x: False if x == "FALSE" else x)
-        # convert the index to the joined variable names
-        dfset.index = dfset['variable']
-        # convert the variable names and values to a dict, and add to a nested dict
-        settingsdict[sheetname] = dfset['value'].to_dict()
-    return settingsdict
+        # exclude row with notes, set parameter as index
+        dfset = dfset[["parameter", "value"]].dropna()
+        dfset.set_index("parameter", inplace=True)
+        # convert true-like strings to True, and false-like strings to False
+        dfset.value = dfset.value.apply(utils.convert_truelike_to_bool, convert_nontrue=False)
+        dfset.value = dfset.value.apply(utils.convert_falselike_to_bool)
+        # convert to dictionary
+        sheet_as_dict = dfset.to_dict()["value"]
+        # join dictionaries together
+        set_.update(sheet_as_dict)
+
+    list_paths_to_normalise = ["data_folder", "uniprot_folder", "data_harddrive", "eaSimap_path", "logfile_folder",
+                               "summaries_folder", "simap_database_folder", "list_of_uniprot_accessions"]
+    # normalise the paths for selected columns, so that they are appropriate for the operating system
+    for path in list_paths_to_normalise:
+        if path in set_:
+            set_[path] = os.path.normpath(set_[path])
+
+    return set_
 
 
-def create_pathdict(main_folder, base_filename_summaries, list_of_uniprot_accessions, list_number):
+def create_pathdict(base_filename_summaries):
     pathdict = {}
-    pathdict["main_folder"] = main_folder
     pathdict["base_filename_summaries"] = base_filename_summaries
-    pathdict["list_of_uniprot_accessions_path"] = os.path.join(main_folder, 'input_acc_lists', list_of_uniprot_accessions)
     pathdict["dfout01_uniprotcsv"] = '%s_uniprot.csv' % base_filename_summaries
     pathdict["dfout02_uniprotTcsv"] = '%s_uniprotT.csv' % base_filename_summaries
     pathdict["dfout03_uniprotxlsx"] = '%s_uniprot.xlsx' % base_filename_summaries
@@ -63,19 +64,19 @@ def create_pathdict(main_folder, base_filename_summaries, list_of_uniprot_access
     pathdict["dfout11_gap_test_out_png"] = '%s_gap_test_out.png' % base_filename_summaries
     pathdict["dfout12"] = 0
     pathdict["dfout13"] = 0
-    pathdict["csv_file_with_histogram_data"] = os.path.join(main_folder, 'List%02d_histogram.csv' % list_number)
-    pathdict["csv_file_with_histogram_data_normalised"] = os.path.join(main_folder,'List%02d_histogram_normalised.csv' % list_number)
-    pathdict["csv_file_with_histogram_data_normalised_redundant_removed"] = os.path.join(main_folder,'List%02d_histogram_normalised_redundant_removed.csv' % list_number)
-    pathdict["csv_file_with_md5_for_each_query_sequence"] = os.path.join(main_folder,'List%02d_query_md5_checksums.csv' % list_number)
+    pathdict["csv_file_with_histogram_data"] = '%s_histogram.csv' % base_filename_summaries
+    pathdict["csv_file_with_histogram_data_normalised"] = '%s_histogram_normalised.csv' % base_filename_summaries
+    pathdict["csv_file_with_histogram_data_normalised_redundant_removed"] = '%s_histogram_normalised_redundant_removed.csv' % base_filename_summaries
+    pathdict["csv_file_with_md5_for_each_query_sequence"] = '%s_query_md5_checksums.csv' % base_filename_summaries
     pathdict["csv_av_cons_ratio_all_proteins"] = '%s_cons_ratios_nonred_av.csv' % base_filename_summaries
     pathdict["csv_std_cons_ratio_all_proteins"] = '%s_cons_ratios_nonred_std.csv' % base_filename_summaries
     pathdict["create_graph_of_gap_density_png"] = '%s_create_graph_of_gap_density.png' % base_filename_summaries
     return pathdict
 
-def setup_file_locations_in_df(df, settingsdict, pathdict):
+def setup_file_locations_in_df(df, set_, pathdict):
     # set up a folder to hold the SIMAP BLAST-like output
     # note that at the moment, files cannot be compressed
-    simap_data_folder = os.path.join(settingsdict['file_locations']['data_folder'], 'simap')
+    simap_data_folder = os.path.join(set_['data_folder'], 'simap')
     if "uniprot_entry_name" in df.columns:
         # join the accession and entry name to create a "protein name" for naming files
         df['A2_protein_name'] = df.A1_uniprot_accession + '_' + df.uniprot_entry_name
@@ -83,8 +84,7 @@ def setup_file_locations_in_df(df, settingsdict, pathdict):
         # the list of proteins did not come from UniProt. Simply use the accession to name the files.
         df['A2_protein_name'] = df.A1_uniprot_accession
     df['first_two_letters_of_uniprot_acc'] = df['A1_uniprot_accession'].apply(lambda x: x[0:2])
-    df[
-        'simap_filename_base_linuxpath'] = simap_data_folder + '/' + df.first_two_letters_of_uniprot_acc + '/' + df.A2_protein_name
+    df['simap_filename_base_linuxpath'] = simap_data_folder + '/' + df.first_two_letters_of_uniprot_acc + '/' + df.A2_protein_name
     df['simap_filename_base'] = df['simap_filename_base_linuxpath'].apply(lambda x: os.path.normpath(x))
     df.drop('simap_filename_base_linuxpath', axis=1, inplace=True)
 
@@ -138,13 +138,13 @@ def setup_file_locations_in_df(df, settingsdict, pathdict):
     df.T.to_excel(writer, sheet_name='dfout01')
     writer.save()
     writer.close()
-    return df
+    return
 
 ####################################################################
 #               HOPEFULLY NO LONGER NECESSARY
 ####################################################################
 #A## variables are included only to help navigate the document in PyCharm
-# A04_setup_df_dtypes = settingsdict["run_settings"]["uniprot.parse.A04_setup_df_dtypes"]
+# A04_setup_df_dtypes = set_["run_A04_setup_df_dtypes"]
 # if A04_setup_df_dtypes:
 #     logging.info('~~~~~~~~~~~~  starting A04_setup_df_dtypes   ~~~~~~~~~~~~')
 #     #test if the dataframe has already been created, otherwise reopen from csv file

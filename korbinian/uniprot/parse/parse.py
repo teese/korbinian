@@ -5,7 +5,7 @@ import pandas as pd
 import csv
 import korbinian.mtutils as utils
 
-def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, settingsdict, logging, pathdict):
+def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_, logging, pathdict):
     # create_csv_from_uniprot_flatfile(input_file=uniprot_flatfile_of_selected_records, output_file=csv_file_with_uniprot_data)
     ## open uniprot flatfile
     # def create_csv_from_uniprot_flatfile(input_file, output_file):
@@ -192,8 +192,8 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, setti
         df = df.T.copy()
 
         ''' ~~ DETERMINE START AND STOP INDICES FOR TMD PLUS SURROUNDING SEQ ~~ '''
-        aa_before_tmd = settingsdict["variables"]["analyse.simap_match_filters.aa_before_tmd"]
-        aa_after_tmd = settingsdict["variables"]["analyse.simap_match_filters.aa_after_tmd"]
+        aa_before_tmd = set_["aa_before_tmd"]
+        aa_after_tmd = set_["aa_after_tmd"]
         # determine max number of TMD columns that need to be created
         max_num_TMDs = df['number_of_TMDs'].max()
         # currently the loop is run for each TMD, based on the sequence with the most TMDs
