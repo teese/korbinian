@@ -67,7 +67,7 @@ def OLD_calculate_TMD_conservation(pathdict, set_, logging):
     for i in df.index:
         # take the organism domain (Eukaryota, Bacteria, Archaea) from the full organism classification list
         first_two_letters_of_uniprot_acc = df.loc[i, 'first_two_letters_of_uniprot_acc']
-        protein_name = df.loc[i, 'A2_protein_name']
+        protein_name = df.loc[i, 'protein_name']
         organism_domain = df.loc[i, 'organism_domain']
         SIMAP_feature_table_XML_file_path = os.path.join(df.loc[i, 'simap_filename_base'], first_two_letters_of_uniprot_acc,
                                                          '%s_feature_table.xml' % protein_name)
@@ -144,19 +144,15 @@ def OLD_calculate_TMD_conservation(pathdict, set_, logging):
                 df_SIMAP_hits[col] = df_SIMAP_hits[col].astype(object).fillna("none")
     
             # filter each homologue from SIMAP
-            number_of_gaps_allowed_in_match_TMD = set_["number_of_gaps_allowed_in_match_TMD"]
-            number_of_gaps_allowed_in_query_TMD = set_["number_of_gaps_allowed_in_query_TMD"]
-            minimum_identity_of_full_protein = set_["minimum_identity_of_full_protein"]
-            min_identity_of_TMD_final_filter = set_["min_identity_of_TMD_final_filter"]
             for j in range(len(df_SIMAP_hits)):
                 df_SIMAP_hits.loc[j, 'match_TMD_kept_for_statistical_analysis'] = True if all([
                     df_SIMAP_hits.loc[j, 'FASTA_expectation'] <= set_['e_value_filter'],
                     df_SIMAP_hits.loc[j, 'disallowed_words_in_description'] == 'none',
                     set_['database'] == 'all',
-                    df_SIMAP_hits.loc[j, 'number_of_gaps_in_match_TMD'] <= number_of_gaps_allowed_in_match_TMD,
-                    df_SIMAP_hits.loc[j, 'number_of_gaps_in_query_TMD'] <= number_of_gaps_allowed_in_query_TMD,
-                    df_SIMAP_hits.loc[j, 'SW_identity'] >= minimum_identity_of_full_protein,
-                    df_SIMAP_hits.loc[j, 'percentage_identity_of_TMD'] >= min_identity_of_TMD_final_filter,
+                    df_SIMAP_hits.loc[j, 'number_of_gaps_in_match_TMD'] <= set_["cr_max_n_gaps_in_match_TMD"],
+                    df_SIMAP_hits.loc[j, 'number_of_gaps_in_query_TMD'] <= set_["cr_max_n_gaps_in_query_TMD"],
+                    df_SIMAP_hits.loc[j, 'SW_identity'] >= set_["cr_minimum_identity_of_full_protein"],
+                    df_SIMAP_hits.loc[j, 'percentage_identity_of_TMD'] >= set_["cr_min_identity_of_TMD_final_filter"],
                     # df_SIMAP_hits.loc[j, 'number_of_X_in_TMD'] <= set_['number_of_X_allowed_in_TMD'],
                     df_SIMAP_hits.loc[j, 'SW_match_TMD_seq'] != 'TMD_not_in_SW_alignment'
                 ]) else False
@@ -525,7 +521,7 @@ def OLD_calculate_TMD_conservation(pathdict, set_, logging):
                         df.loc[
                             row_in_df, 'number_of_valid_hits']
                     df_redundant_md5.loc[h, 'query_name'] = df.loc[
-                        row_in_df, 'A2_protein_name']
+                        row_in_df, 'protein_name']
                 # find the protein seq with the most hits
                 index_maximum_number_of_valid_hits = df_redundant_md5.loc[:, 'number_of_valid_hits'].argmax()
                 # label them as 'not kept' as default
@@ -590,7 +586,7 @@ def OLD_calculate_TMD_conservation(pathdict, set_, logging):
         # for small lists of protein sequences, there are no redundancies and an error is received as all kept_after_redundancy_check values = True
         df_dfout07_simapnonred = df
     list_of_proteins_kept_after_redundancy_check = list(
-        df_dfout07_simapnonred.loc[:, 'A2_protein_name'])
+        df_dfout07_simapnonred.loc[:, 'protein_name'])
     
     # sort the columns alphabetically (capitals first)
     df = df.sort_index(

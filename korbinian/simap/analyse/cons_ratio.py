@@ -54,7 +54,7 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
             prev_calc_AAIMON_ratio_for_this_protein_exists = False
         if overwrite_prev_calculated_AAIMON_ratios == True or prev_calc_AAIMON_ratio_for_this_protein_exists == False:
             organism_domain = df.loc[acc, 'organism_domain']
-            protein_name = df.loc[acc, 'A2_protein_name']
+            protein_name = df.loc[acc, 'protein_name']
             logging.info('%s' % protein_name)
             SIMAP_csv_from_XML_tarfile = df.loc[acc, 'SIMAP_csv_from_XML_tarfile']
             if os.path.exists(SIMAP_csv_from_XML_tarfile):
@@ -112,14 +112,17 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
         dfs['len_query_alignment_sequence'] = 0
 
     # add the list of words to the globals, to be accessed by utils.find_disallowed_words
-    words_not_allowed_in_description = ast.literal_eval(set_["words_not_allowed_in_description"])
+    words_not_allowed_in_description = ast.literal_eval(set_["cr_words_not_allowed_in_description"])
     # collect disallowed words in hit protein description (patent, synthetic, etc)
-    dfs['list_disallowed_words_in_descr'] = dfs['A4_description'].dropna().apply(
-        utils.find_disallowed_words, args=(words_not_allowed_in_description,))
+    dfs['list_disallowed_words_in_descr'] = dfs['A4_description'].dropna().apply(utils.find_disallowed_words, args=(words_not_allowed_in_description,))
     # create a boolean column to select hits that do not contain these words in the description
     dfs['disallowed_words_not_in_descr'] = dfs['list_disallowed_words_in_descr'] == '[]'
 
+    # check if there are non-IUPAC amino acids in the sequence (frequently large gaps from NG sequencing data)
+    dfs['X_in_match_seq'] = 'X' in dfs['match_alignment_sequence']
+
     list_of_TMDs = ast.literal_eval(df.loc[acc, 'list_of_TMDs'])
+    number_of_TMDs_containing_some_homologue_data = 0
 
     '''slice the TMD regions out of the alignment markup and match sequences
     the method first finds the indices of the TMD region in the query, and uses these indices to slice
@@ -127,10 +130,10 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
     '''
     for TMD in list_of_TMDs:
         # create regex string for each TMD
-        query_TMD_sequence = df.loc[acc, '%s_seq' % TMD]
+        query_TMD_sequence = df.loc[acc, '%s_seq'%TMD]
         TMD_for_regular_expression_search = utils.create_regex_string(query_TMD_sequence)
         # select to only include data where the XML contained a SW node, and then apply function for a regex search
-        dfs['%s_start_end_tuple_in_SW_alignment' % TMD] = dfs.query('hit_contains_SW_node == True')[
+        dfs['%s_start_end_tuple_in_SW_alignment'%TMD] = dfs.query('hit_contains_SW_node == True')[
             'query_alignment_sequence'].apply(utils.get_start_and_end_of_TMD_in_query,
                                               args=(TMD_for_regular_expression_search,)
                                               )
@@ -140,19 +143,19 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
         3) the end of the match (e.g. 144)
         '''
         # for convenience, separate the components into separate columns
-        columns_from_regex_output = ['%s_in_SW_alignment' % TMD, '%s_start_in_SW_alignment' % TMD,
-                                     '%s_end_in_SW_alignment' % TMD]
+        columns_from_regex_output = ['%s_in_SW_alignment'%TMD, '%s_start_in_SW_alignment'%TMD,
+                                     '%s_end_in_SW_alignment'%TMD]
         # n = the index (1,2,3) in the tuple
         # col = column item in the list (e.g. 'TM09_in_SW_alignment')
         for n, col in enumerate(columns_from_regex_output):
             # first filter to analyse only columns that contain a SW node
             df_match = dfs.query('hit_contains_SW_node == True')
             # add a new column which is named TM01_start, etc, and insert the appropriate integer (start or stop) or bool from the tuple
-            dfs[col] = df_match['%s_start_end_tuple_in_SW_alignment' % TMD].apply(lambda x: x[n])
+            dfs[col] = df_match['%s_start_end_tuple_in_SW_alignment'%TMD].apply(lambda x: x[n])
 
     # Defining juxtaregions
 
-    for TMD in list_of_TMDs:
+    #for TMD in list_of_TMDs:
         last_TMD_of_acc = list_of_TMDs[-1]
 
         if TMD == "TM01":
@@ -180,63 +183,48 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
                 # dfs['end_juxta_before_%s'%TMD] = np.where(dfs["%s_start_in_SW_alignment"%TMD]!=0,dfs["%s_start_in_SW_alignment"%TMD],np.nan)
                 # dfs['end_juxta_after_%s'%TMD] = dfs["%s_end_in_SW_alignment"%TMD]+((dfs["TM%.2d_start_in_SW_alignment"%(int(TMD[2:])+1)]-dfs["%s_end_in_SW_alignment"%TMD])/2).apply(lambda x :int(x) if not np.isnan(x) else np.nan)
                 # dfs['start_juxta_before_%s'%TMD] = np.where(dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)] == dfs['end_juxta_before_%s'%TMD] ,dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)],dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)])
-                # dfs['seq_juxta_after_%s_in_query'%TMD] = dfs[dfs['start_juxta_after_%s' % TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
-                # dfs['seq_juxta_after_%s_in_match'%TMD] = dfs[dfs['end_juxta_after_%s' % TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_match, args = (TMD,), axis=1)
+                # dfs['seq_juxta_after_%s_in_query'%TMD] = dfs[dfs['start_juxta_after_%s'%TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
+                # dfs['seq_juxta_after_%s_in_match'%TMD] = dfs[dfs['end_juxta_after_%s'%TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_match, args = (TMD,), axis=1)
 
             if TMD == last_TMD_of_acc:
-                dfs['start_juxta_before_%s' % TMD] = dfs['end_juxta_after_TM%.2d' % (int(TMD[2:]) - 1)]
-                dfs['end_juxta_before_%s' % TMD] = dfs['%s_start_in_SW_alignment' % TMD]
-                dfs['start_juxta_after_%s' % TMD] = np.where(
-                    dfs['%s_end_in_SW_alignment' % TMD] == dfs['len_query_alignment_sequence'], np.nan,
-                    dfs['%s_end_in_SW_alignment' % TMD])
-                dfs['end_juxta_after_%s' % TMD] = np.where(utils.isNaN(dfs['start_juxta_after_%s' % TMD]) == True, np.nan,
+                dfs['start_juxta_before_%s'%TMD] = dfs['end_juxta_after_TM%.2d' % (int(TMD[2:]) - 1)]
+                dfs['end_juxta_before_%s'%TMD] = dfs['%s_start_in_SW_alignment'%TMD]
+                dfs['start_juxta_after_%s'%TMD] = np.where(
+                    dfs['%s_end_in_SW_alignment'%TMD] == dfs['len_query_alignment_sequence'], np.nan,
+                    dfs['%s_end_in_SW_alignment'%TMD])
+                dfs['end_juxta_after_%s'%TMD] = np.where(utils.isNaN(dfs['start_juxta_after_%s'%TMD]) == True, np.nan,
                                                            dfs['len_query_alignment_sequence'])
-                # dfs['seq_juxta_after_%s_in_query'%TMD] = dfs[dfs['start_juxta_after_%s' % TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
+                # dfs['seq_juxta_after_%s_in_query'%TMD] = dfs[dfs['start_juxta_after_%s'%TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
                 # dfs['seq_juxta_after_%s_in_query'%TMD] = dfs.query_alignment_sequence[int(dfs['start_juxta_after_TM10']):int(dfs['end_juxta_after_TM10'])]
                 # dfs['seq_juxta_after_%s_in_match'%TMD] =
 
-    for TMD in list_of_TMDs:
+    #for TMD in list_of_TMDs:
         last_TMD_of_acc = list_of_TMDs[-1]
-        dfs['seq_juxta_before_%s_in_query' % TMD] = dfs[dfs['start_juxta_before_%s' % TMD].notnull()].apply(
+        dfs['seq_juxta_before_%s_in_query'%TMD] = dfs[dfs['start_juxta_before_%s'%TMD].notnull()].apply(
             utils.slice_juxta_before_TMD_in_query, args=(TMD,), axis=1)
-        dfs['seq_juxta_before_%s_in_match' % TMD] = dfs[dfs['start_juxta_before_%s' % TMD].notnull()].apply(
+        dfs['seq_juxta_before_%s_in_match'%TMD] = dfs[dfs['start_juxta_before_%s'%TMD].notnull()].apply(
             utils.slice_juxta_before_TMD_in_match, args=(TMD,), axis=1)
         if not TMD == last_TMD_of_acc:
-            dfs['seq_juxta_after_%s_in_query' % TMD] = dfs[dfs['end_juxta_after_%s' % TMD].notnull()].apply(
+            dfs['seq_juxta_after_%s_in_query'%TMD] = dfs[dfs['end_juxta_after_%s'%TMD].notnull()].apply(
                 utils.slice_juxta_after_TMD_in_query, args=(TMD,), axis=1)
-            dfs['seq_juxta_after_%s_in_match' % TMD] = dfs[dfs['end_juxta_after_%s' % TMD].notnull()].apply(
+            dfs['seq_juxta_after_%s_in_match'%TMD] = dfs[dfs['end_juxta_after_%s'%TMD].notnull()].apply(
                 utils.slice_juxta_after_TMD_in_match, args=(TMD,), axis=1)
         else:
-            dfs['seq_juxta_after_%s_in_query' % TMD] = np.nan
-            dfs['seq_juxta_after_%s_in_match' % TMD] = np.nan
+            dfs['seq_juxta_after_%s_in_query'%TMD] = np.nan
+            dfs['seq_juxta_after_%s_in_match'%TMD] = np.nan
             for hit in dfs.index:
-                if not utils.isNaN(dfs['start_juxta_after_%s' % TMD])[hit]:
+                if not utils.isNaN(dfs['start_juxta_after_%s'%TMD])[hit]:
                     # altered to .loc rather than ['seq_juxta_after_%s_in_match'%TMD][hit] after SettingWithCopyWarning
-                    dfs.loc[hit, 'seq_juxta_after_%s_in_match' % TMD] = dfs.match_alignment_sequence[hit][
-                                                                        int(dfs.loc[hit, "start_juxta_after_%s" % TMD]):int(
-                                                                            dfs.loc[hit, "end_juxta_after_%s" % TMD])]
-                    dfs.loc[hit, 'seq_juxta_after_%s_in_query' % TMD] = dfs.query_alignment_sequence[hit][
-                                                                        int(dfs.loc[hit, "start_juxta_after_%s" % TMD]):int(
-                                                                            dfs.loc[hit, "end_juxta_after_%s" % TMD])]
+                    dfs.loc[hit, 'seq_juxta_after_%s_in_match'%TMD] = dfs.match_alignment_sequence[hit][
+                                                                        int(dfs.loc[hit, "start_juxta_after_%s"%TMD]):int(
+                                                                            dfs.loc[hit, "end_juxta_after_%s"%TMD])]
+                    dfs.loc[hit, 'seq_juxta_after_%s_in_query'%TMD] = dfs.query_alignment_sequence[hit][
+                                                                        int(dfs.loc[hit, "start_juxta_after_%s"%TMD]):int(
+                                                                            dfs.loc[hit, "end_juxta_after_%s"%TMD])]
 
-        # redefine the number of amino acids before and after the TMD to be inserted into the FastA files
-        aa_before_tmd = set_["aa_before_tmd"]
-        aa_after_tmd = set_["aa_after_tmd"]
-
-        # define the start of theTMD + surrounding sequence
-        dfs['%s_start_in_SW_alignment_plus_surr' % TMD] = dfs['%s_start_in_SW_alignment' % TMD] - aa_before_tmd
-        # replace negative values with zero
-        dfs.loc[dfs['%s_start_in_SW_alignment_plus_surr' % TMD] < 0, '%s_start_in_SW_alignment_plus_surr' % TMD] = 0
-        # define the end of the TMD + surrounding sequence
-        dfs['%s_end_in_SW_alignment_plus_surr' % TMD] = dfs['%s_end_in_SW_alignment' % TMD] + aa_after_tmd
-        # replace values longer than the actual sequence with the length of the sequence
-        dfs.loc[dfs['%s_end_in_SW_alignment_plus_surr' % TMD] > dfs['len_query_alignment_sequence'],
-                '%s_end_in_SW_alignment_plus_surr' % TMD] = dfs['len_query_alignment_sequence']
-
-    number_of_TMDs_containing_some_homologue_data = 0
-    for TMD in list_of_TMDs:
+    #for TMD in list_of_TMDs:
         # in some cases, there is no data to obtain as the hit_contains_SW_node = False for too many sequences, giving no start_in_SW_alignment
-        number_of_rows_containing_data = dfs[dfs['%s_start_in_SW_alignment' % TMD].notnull()].shape[0]
+        number_of_rows_containing_data = dfs[dfs['%s_start_in_SW_alignment'%TMD].notnull()].shape[0]
         if number_of_rows_containing_data == 0:
             logging.info('%s does not have any valid homologues for %s. '
                          'Re-downloading simap homologue XML may be necessary.' % (protein_name, TMD))
@@ -254,8 +242,8 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
 
     if number_of_TMDs_containing_some_homologue_data > 0:
         # create a boolean column that describel whether the sequence is above the minimum gapped identity
-        minimum_identity_of_full_protein = set_["minimum_identity_of_full_protein"]
-        dfs['gapped_ident_above_cutoff'] = dfs['FASTA_gapped_identity'] > minimum_identity_of_full_protein
+        cr_minimum_identity_of_full_protein = set_["cr_minimum_identity_of_full_protein"]
+        dfs['cr_gapped_ident_above_cutoff'] = dfs['FASTA_gapped_identity'] > cr_minimum_identity_of_full_protein
 
         '''¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦             nonTMD calculations                        ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
         '''
@@ -263,7 +251,7 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
         # 1) full protein identity above cutoff
         # 2)containing smith waterman alignment in XML file
         # 3) hit description lacks disallowedd words (patent, synthetic, etc)
-        dfs_filt = dfs.query('gapped_ident_above_cutoff == True and '
+        dfs_filt = dfs.query('cr_gapped_ident_above_cutoff == True and '
                              'hit_contains_SW_node == True and '
                              'disallowed_words_not_in_descr == True')
 
@@ -274,9 +262,9 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
             list_columns_TMD_in_SW_alignment = []
             for TMD in list_of_TMDs:
                 # TMD found by regex
-                list_columns_TMD_in_SW_alignment.append('%s_in_SW_alignment' % TMD)
+                list_columns_TMD_in_SW_alignment.append('%s_in_SW_alignment'%TMD)
                 # TMD matching useful sequence
-                list_columns_TMD_in_SW_alignment.append('%s_in_SW_align_match' % TMD)
+                list_columns_TMD_in_SW_alignment.append('%s_in_SW_align_match'%TMD)
 
             # create a slice of the filtered dataframe that only contains the relevant columns (N.B. copy=False, this will provide a view, not a copy)
             df2 = dfs_filt.reindex(index=dfs.index, columns=list_columns_TMD_in_SW_alignment, copy=False)
@@ -312,10 +300,10 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
                 # the next TMD, which contains the end index, is the next item in the list
                 next_TMD = list_of_TMDs[TM_Nr + 1]
                 # select only the columns in the dataframe that are of interest, and change the data type to integer
-                index_columns = ['%s_end_in_SW_alignment' % TMD, '%s_start_in_SW_alignment' % next_TMD]
+                index_columns = ['%s_end_in_SW_alignment'%TMD, '%s_start_in_SW_alignment' % next_TMD]
                 dfs_nonTMD[index_columns] = dfs_nonTMD[index_columns].astype('int64')
                 # create a tuple containing the indices for the nonTMD sequence regions in between each TMD (middle indices)
-                dfs_nonTMD['nonTMD_index_%s' % TMD] = tuple(zip(dfs_nonTMD['%s_end_in_SW_alignment' % TMD],
+                dfs_nonTMD['nonTMD_index_%s'%TMD] = tuple(zip(dfs_nonTMD['%s_end_in_SW_alignment'%TMD],
                                                                 dfs_nonTMD['%s_start_in_SW_alignment' % next_TMD]))
 
             # now join all the indices together to make one tuple of tuples for the non-TMD region
@@ -328,7 +316,7 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
             # start with the first tuple, from 0 to the start of the first TMD
             list_of_nonTMD_index_columns = ['nonTMD_index_tuple_first']
             # create a nonTMD region for each of the TMDs (except the last one)
-            list_from_TMs = ['nonTMD_index_%s' % TMD2 for TMD2 in list_of_TMDs[:-1]]
+            list_from_TMs = ['nonTMD_index_%s'%TMD2 for TMD2 in list_of_TMDs[:-1]]
             # join lists
             list_of_nonTMD_index_columns = list_of_nonTMD_index_columns + list_from_TMs
             list_of_nonTMD_index_columns += ['nonTMD_index_tuple_last']
@@ -381,12 +369,6 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
             dfs['nonTMD_seq_query'] = dfs_nonTMD['nonTMD_seq_query']
             dfs['nonTMD_markup'] = dfs_nonTMD['nonTMD_markup']
             dfs['nonTMD_seq_match'] = dfs_nonTMD['nonTMD_seq_match']
-            '''FILLNA REMOVED TO MAKE SORTING EASIER
-            '''
-            # fill in np.nan with empty strings
-            # dfs['nonTMD_seq_query'] = dfs['nonTMD_seq_query'].fillna(value = '')
-            # dfs['nonTMD_markup'] = dfs['nonTMD_markup'].fillna(value = '')
-            # dfs['nonTMD_seq_match'] = dfs['nonTMD_seq_match'].fillna(value = '')
 
             # calculate identical residues in the nonTMD region (simply count the pipes '|' in the markup sequence)
             dfs['nonTMD_num_ident_res'] = dfs['nonTMD_markup'].dropna().apply(lambda x: x.count('|'))
@@ -435,11 +417,16 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
             if SSR_ratio_calculations:
                 conduct_ssr_ratio_calculations()
 
+            cr_X_allowed_in_full_seq = set_["cr_X_allowed_in_full_seq"]
+            cr_X_filt_str = " and X_in_match_seq == False" if cr_X_allowed_in_full_seq == False else ""
+
             # re-filter the original dataframe to create another copy with the desired sequences
-            dfs_filt = dfs.query('gapped_ident_above_cutoff == True and '
-                                 'hit_contains_SW_node == True and '
-                                 'disallowed_words_not_in_descr == True and '
-                                 'X_in_match_seq == False')
+            cons_ratio_query_str = 'cr_gapped_ident_above_cutoff == True and ' \
+                                   'hit_contains_SW_node == True and ' \
+                                   'disallowed_words_not_in_descr == True' \
+                                   '{}'.format(cr_X_filt_str)
+
+            dfs_filt = dfs.query(cons_ratio_query_str)
 
             '''Calculate average values, add to original dataframe.
                1) values associated with the FASTA output of SIMAP
@@ -456,27 +443,16 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
             df.loc[acc, 'len_nonTMD_seq_match_mean'] = float('%0.2f' % dfs_filt['len_nonTMD_seq_match'].dropna().mean())
             df.loc[acc, 'nonTMD_perc_ident_mean'] = float('%0.3f' % dfs_filt['nonTMD_perc_ident'].dropna().mean())
             df.loc[acc, 'nonTMD_perc_sim_mean'] = float('%0.3f' % dfs_filt['nonTMD_perc_sim'].dropna().mean())
-            df.loc[acc, 'nonTMD_perc_sim_plus_ident_mean'] = float(
-                '%0.3f' % dfs_filt['nonTMD_perc_sim_plus_ident'].dropna().mean())
+            df.loc[acc, 'nonTMD_perc_sim_plus_ident_mean'] = float('%0.3f' % dfs_filt['nonTMD_perc_sim_plus_ident'].dropna().mean())
             df.loc[acc, 'len_nonTMD_align_mean'] = float('%0.2f' % dfs_filt['len_nonTMD_align'].dropna().mean())
-            df.loc[acc, 'nonTMD_qm_gaps_per_q_residue_mean'] = float(
-                '%0.2f' % dfs_filt['nonTMD_qm_gaps_per_q_residue'].dropna().mean())
+            df.loc[acc, 'nonTMD_qm_gaps_per_q_residue_mean'] = float('%0.2f' % dfs_filt['nonTMD_qm_gaps_per_q_residue'].dropna().mean())
             logging.info('nonTMD_qm_gaps_per_q_residue : %0.5f' % df.loc[acc, 'nonTMD_qm_gaps_per_q_residue_mean'])
 
             '''3) values associated each TMD, such as average AAIMON ratio
             '''
             # calculate AAISMON etc for each TMD
             for TMD in list_of_TMDs:
-                df, dfs_filt_AAIMON = calc_AAIMON(acc, TMD, dfs, dfs_filt, set_, df, logging)
-
-            '''re-filter the original dataframe to create another copy with the desired sequences
-            note that some values were added after filtering in the last round,
-            but all were added to the dataframe dfs, not the copy dfs_filt
-            '''
-            dfs_filt = dfs.query('gapped_ident_above_cutoff == True and '
-                                 'hit_contains_SW_node == True and '
-                                 'disallowed_words_not_in_descr == True and '
-                                 'X_in_match_seq == False')
+                df, dfs = calc_AAIMON(acc, TMD, dfs, dfs_filt, set_, df, logging)
 
             save_hist_and_fastA(acc, dfs, dfs_filt, set_, df, list_of_TMDs, logging)
 
@@ -489,101 +465,81 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
 
 
 def slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_):
-    len_query_TMD = len(df.loc[acc, '%s_seq' % TMD])
+    len_query_TMD = len(df.loc[acc, '%s_seq'%TMD])
     # use small throwaway functions to slice each TMD from the query, markup and match sequences
     # notnull() removes missing data
     # explanation: dfs['new_column_with_selected_seq'] = dfs[dfs['only_rows_containing_data]].apply(utils.slice_function_that_specifies_columns_with_start_and_stop)
-    dfs['%s_SW_query_seq' % TMD] = dfs[dfs['%s_start_in_SW_alignment' % TMD].notnull()].apply(utils.slice_SW_query_TMD_seq,
-                                                                                              args=(TMD,), axis=1)
-    dfs['%s_SW_markup_seq' % TMD] = dfs[dfs['%s_start_in_SW_alignment' % TMD].notnull()].apply(utils.slice_SW_markup_TMD,
-                                                                                               args=(TMD,), axis=1)
-    dfs['%s_SW_match_seq' % TMD] = dfs[dfs['%s_start_in_SW_alignment' % TMD].notnull()].apply(utils.slice_SW_match_TMD_seq,
-                                                                                              args=(TMD,), axis=1)
-    # and the same for the TMD + surrounding sequence, useful to examine the TMD interface
-    dfs['%s_SW_query_seq_plus_surr' % TMD] = dfs[dfs['%s_start_in_SW_alignment_plus_surr' % TMD].notnull()].apply(
-        utils.slice_SW_query_TMD_seq_plus_surr, args=(TMD,), axis=1)
-    dfs['%s_SW_markup_seq_plus_surr' % TMD] = dfs[dfs['%s_start_in_SW_alignment_plus_surr' % TMD].notnull()].apply(
-        utils.slice_SW_markup_TMD_plus_surr, args=(TMD,), axis=1)
-    dfs['%s_SW_match_seq_plus_surr' % TMD] = dfs[dfs['%s_start_in_SW_alignment_plus_surr' % TMD].notnull()].apply(
-        utils.slice_SW_match_TMD_seq_plus_surr, args=(TMD,), axis=1)
-    # check if there are non-IUPAC amino acids in the sequence (frequently large gaps from NG sequencing data)
-    dfs['X_in_match_seq'] = 'X' in dfs['match_alignment_sequence']
+    dfs['%s_SW_query_seq'%TMD] = dfs[dfs['%s_start_in_SW_alignment'%TMD].notnull()].apply(utils.slice_SW_query_TMD_seq,args=(TMD,), axis=1)
+    dfs['%s_SW_markup_seq'%TMD] = dfs[dfs['%s_start_in_SW_alignment'%TMD].notnull()].apply(utils.slice_SW_markup_TMD,args=(TMD,), axis=1)
+    dfs['%s_SW_match_seq'%TMD] = dfs[dfs['%s_start_in_SW_alignment'%TMD].notnull()].apply(utils.slice_SW_match_TMD_seq,args=(TMD,), axis=1)
     # count the number of gaps in the query and match sequences
-    dfs['%s_SW_query_num_gaps' % TMD] = dfs['%s_SW_query_seq' % TMD].dropna().apply(lambda x: x.count('-'))
-    dfs['%s_SW_match_num_gaps' % TMD] = dfs['%s_SW_match_seq' % TMD].dropna().apply(lambda x: x.count('-'))
+    dfs['%s_SW_query_num_gaps'%TMD] = dfs['%s_SW_query_seq'%TMD].dropna().apply(lambda x: x.count('-'))
+    dfs['%s_SW_match_num_gaps'%TMD] = dfs['%s_SW_match_seq'%TMD].dropna().apply(lambda x: x.count('-'))
     # calculate the length of the match TMD seq excluding gaps
-    dfs['%s_SW_m_seq_len' % TMD] = dfs['%s_SW_match_seq' % TMD].str.len()
+    dfs['%s_SW_m_seq_len'%TMD] = dfs['%s_SW_match_seq'%TMD].str.len()
     # for the alignment length, take the smallest value from the length of query or match
     # this will exclude gaps from the length in the following calculations, preventing false "low conservation" where the query TMD is much longer than the match TMD)
     # note that for most calculations this is somewhat redundant, because the max number of acceptable gaps in sequence is probable ~2
-    dfs['%s_SW_align_len' % TMD] = dfs['%s_SW_m_seq_len' % TMD].apply(lambda x: x if x < len_query_TMD else len_query_TMD)
+    dfs['%s_SW_align_len'%TMD] = dfs['%s_SW_m_seq_len'%TMD].apply(lambda x: x if x < len_query_TMD else len_query_TMD)
     # create a boolean column that allows filtering by the accepted number of gaps, according to the settings file
-    dfs['%s_SW_query_acceptable_num_gaps' % TMD] = dfs['%s_SW_query_num_gaps' % TMD] <= set_[
-        "number_of_gaps_allowed_in_query_TMD"]
-    dfs['%s_SW_match_acceptable_num_gaps' % TMD] = dfs['%s_SW_match_num_gaps' % TMD] <= set_[
-        "number_of_gaps_allowed_in_match_TMD"]
+    dfs['%s_cr_SW_query_acceptable_n_gaps'%TMD] = dfs['%s_SW_query_num_gaps'%TMD] <= set_["cr_max_n_gaps_in_query_TMD"]
+    dfs['%s_cr_SW_match_acceptable_n_gaps'%TMD] = dfs['%s_SW_match_num_gaps'%TMD] <= set_["cr_max_n_gaps_in_match_TMD"]
     # count identical residues between query and match TMDs by counting the number of pipes in the markup string
-    dfs['%s_SW_num_ident_res' % TMD] = dfs['%s_SW_markup_seq' % TMD].dropna().apply(lambda x: x.count('|'))
-    dfs['%s_SW_num_sim_res' % TMD] = dfs['%s_SW_markup_seq' % TMD].dropna().apply(lambda x: x.count(':'))
+    dfs['%s_SW_num_ident_res'%TMD] = dfs['%s_SW_markup_seq'%TMD].dropna().apply(lambda x: x.count('|'))
+    dfs['%s_SW_num_sim_res'%TMD] = dfs['%s_SW_markup_seq'%TMD].dropna().apply(lambda x: x.count(':'))
     # check that the TMD seq in match is not just 100% gaps!
-    dfs['%s_in_SW_align_match' % TMD] = dfs['%s_SW_num_ident_res' % TMD].dropna() != 0
-    dfs['%s_in_SW_align_match' % TMD].fillna(value=False)
+    dfs['%s_in_SW_align_match'%TMD] = dfs['%s_SW_num_ident_res'%TMD].dropna() != 0
+    dfs['%s_in_SW_align_match'%TMD].fillna(value=False)
 
     # the percentage identity of that TMD is defined as the number of identical residues (pipes in markup) divided by the length of the the aligned residues (excluding gaps, based on the length of the shortest TMD, either match or query)
     # note that the nonTMD percentage identity is calculated the same way
-    dfs['%s_perc_ident' % TMD] = dfs['%s_SW_num_ident_res' % TMD] / dfs['%s_SW_align_len' % TMD]
+    dfs['%s_perc_ident'%TMD] = dfs['%s_SW_num_ident_res'%TMD] / dfs['%s_SW_align_len'%TMD]
     # calculate percentage similar residues
-    dfs['%s_perc_sim' % TMD] = dfs['%s_SW_num_sim_res' % TMD] / dfs['%s_SW_align_len' % TMD]
+    dfs['%s_perc_sim'%TMD] = dfs['%s_SW_num_sim_res'%TMD] / dfs['%s_SW_align_len'%TMD]
     # add together to obtain the percentage similar + identical residues
-    dfs['%s_perc_sim_plus_ident' % TMD] = dfs['%s_perc_ident' % TMD] + dfs['%s_perc_sim' % TMD]
+    dfs['%s_perc_sim_plus_ident'%TMD] = dfs['%s_perc_ident'%TMD] + dfs['%s_perc_sim'%TMD]
     # add to main dataframe
-    dfs['%s_perc_ident' % TMD] = dfs['%s_perc_ident' % TMD]
+    dfs['%s_perc_ident'%TMD] = dfs['%s_perc_ident'%TMD]
     # calculate the average number of gaps per residue in the TMD alignment
     # (number of gaps)/(length of sequence excluding gaps)
-    dfs['%s_SW_q_gaps_per_q_residue' % TMD] = dfs['%s_SW_query_num_gaps' % TMD].dropna() / len_query_TMD
+    dfs['%s_SW_q_gaps_per_q_residue'%TMD] = dfs['%s_SW_query_num_gaps'%TMD].dropna() / len_query_TMD
     return dfs
 
 def calc_AAIMON(acc, TMD, dfs, dfs_filt, set_, df, logging):
-    len_query_TMD = len(df.loc[acc, '%s_seq' % TMD])
     # following the general filters, filter to only analyse sequences with TMD identity above cutoff, and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
-    min_identity_of_TMD_initial_filter = set_['min_identity_of_TMD_initial_filter']
-    dfs_filt_AAIMON = dfs_filt.loc[dfs['%s_perc_ident' % TMD] >= min_identity_of_TMD_initial_filter]
+    min_identity_of_TMD_initial_filter = set_['cr_min_identity_of_TMD_initial_filter']
+    dfs_filt_AAIMON = dfs_filt.loc[dfs['%s_perc_ident'%TMD] >= min_identity_of_TMD_initial_filter]
     # avoid a divide by zero error in the unlikely case that there are no_identical_residues_in_alignment
     dfs_filt_AAIMON = dfs_filt_AAIMON.loc[dfs_filt_AAIMON['nonTMD_perc_ident'] != 0]
     # calculate the Amino Acid Identity : Membranous Over Nonmembranous
-    dfs_filt_AAIMON['%s_AAIMON_ratio' % TMD] = dfs_filt_AAIMON['%s_perc_ident' % TMD] / dfs_filt_AAIMON['nonTMD_perc_ident']
+    dfs_filt_AAIMON['%s_AAIMON_ratio'%TMD] = dfs_filt_AAIMON['%s_perc_ident'%TMD] / dfs_filt_AAIMON['nonTMD_perc_ident']
     # calculate the Amino Acid Similarity : Membranous Over Nonmembranous (AASMON) (includes similarity + identity based on the matrix used in the SW alignment of SIMAP)
-    dfs_filt_AAIMON['%s_AASMON_ratio' % TMD] = dfs_filt_AAIMON['%s_perc_sim_plus_ident' % TMD] / dfs_filt_AAIMON[
-        'nonTMD_perc_sim_plus_ident']
-    df.loc[acc, '%s_SW_q_gaps_per_q_residue_mean' % TMD] = dfs_filt_AAIMON[
-        '%s_SW_q_gaps_per_q_residue' % TMD].dropna().mean()
-    logging.info('%s_SW_q_gaps_per_q_residue Average: %0.3e' %
-                 (TMD, df.loc[acc, '%s_SW_q_gaps_per_q_residue_mean' % TMD]))
+    dfs_filt_AAIMON['%s_AASMON_ratio'%TMD] = dfs_filt_AAIMON['%s_perc_sim_plus_ident'%TMD] / dfs_filt_AAIMON[ 'nonTMD_perc_sim_plus_ident']
+    df.loc[acc, '%s_SW_q_gaps_per_q_residue_mean'%TMD] = dfs_filt_AAIMON['%s_SW_q_gaps_per_q_residue'%TMD].dropna().mean()
+    logging.info('%s_SW_q_gaps_per_q_residue Average: %0.3e' %(TMD, df.loc[acc, '%s_SW_q_gaps_per_q_residue_mean'%TMD]))
 
     # add to original dataframe with the list of uniprot sequences
-    df.loc[acc, '%s_perc_ident_mean' % TMD] = dfs_filt_AAIMON['%s_perc_ident' % TMD].mean()
-    df.loc[acc, '%s_perc_sim_mean' % TMD] = dfs_filt_AAIMON['%s_perc_sim' % TMD].mean()
-    df.loc[acc, '%s_perc_sim_plus_ident_mean' % TMD] = dfs_filt_AAIMON['%s_perc_sim_plus_ident' % TMD].mean()
-    df.loc[acc, '%s_AAIMON_ratio_mean' % TMD] = float(dfs_filt_AAIMON['%s_AAIMON_ratio' % TMD].mean())
-    df.loc[acc, '%s_AAIMON_ratio_std' % TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio' % TMD].std()
-    df.loc[acc, '%s_AASMON_ratio_mean' % TMD] = dfs_filt_AAIMON['%s_AASMON_ratio' % TMD].mean()
-    df.loc[acc, '%s_AASMON_ratio_std' % TMD] = dfs_filt_AAIMON['%s_AASMON_ratio' % TMD].std()
-    logging.info('AAIMON MEAN %s: %0.2f' % (TMD, df.loc[acc, '%s_AAIMON_ratio_mean' % TMD]))
-    logging.info('AAISON MEAN %s: %0.2f' % (TMD, df.loc[acc, '%s_AASMON_ratio_mean' % TMD]))
+    df.loc[acc, '%s_perc_ident_mean'%TMD] = dfs_filt_AAIMON['%s_perc_ident'%TMD].mean()
+    df.loc[acc, '%s_perc_sim_mean'%TMD] = dfs_filt_AAIMON['%s_perc_sim'%TMD].mean()
+    df.loc[acc, '%s_perc_sim_plus_ident_mean'%TMD] = dfs_filt_AAIMON['%s_perc_sim_plus_ident'%TMD].mean()
+    df.loc[acc, '%s_AAIMON_ratio_mean'%TMD] = float(dfs_filt_AAIMON['%s_AAIMON_ratio'%TMD].mean())
+    df.loc[acc, '%s_AAIMON_ratio_std'%TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio'%TMD].std()
+    df.loc[acc, '%s_AASMON_ratio_mean'%TMD] = dfs_filt_AAIMON['%s_AASMON_ratio'%TMD].mean()
+    df.loc[acc, '%s_AASMON_ratio_std'%TMD] = dfs_filt_AAIMON['%s_AASMON_ratio'%TMD].std()
+    logging.info('AAIMON MEAN %s: %0.2f' % (TMD, df.loc[acc, '%s_AAIMON_ratio_mean'%TMD]))
+    logging.info('AAISON MEAN %s: %0.2f' % (TMD, df.loc[acc, '%s_AASMON_ratio_mean'%TMD]))
 
     # add to the dataframe with the SIMAP data for that particular protein
-    dfs['%s_AAIMON_ratio' % TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio' % TMD]
-    dfs['%s_AASMON_ratio' % TMD] = dfs_filt_AAIMON['%s_AASMON_ratio' % TMD]
+    dfs['%s_AAIMON_ratio'%TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio'%TMD]
+    dfs['%s_AASMON_ratio'%TMD] = dfs_filt_AAIMON['%s_AASMON_ratio'%TMD]
 
-    dfs['%s_ratio_length_of_TMD_to_rest_of_alignment' % TMD] = dfs['%s_SW_query_seq' % TMD].str.len() / dfs['FASTA_overlap']
-    dfs['%s_ratio_length_of_query_TMD_to_rest_of_match_protein' % TMD] = dfs['%s_SW_query_seq' % TMD].str.len() / dfs[
-        'len_full_match_seq']
+    dfs['%s_ratio_length_of_TMD_to_rest_of_alignment'%TMD] = dfs['%s_SW_query_seq'%TMD].str.len() / dfs['FASTA_overlap']
+    dfs['%s_ratio_length_of_query_TMD_to_rest_of_match_protein'%TMD] = dfs['%s_SW_query_seq'%TMD].str.len() / dfs[ 'len_full_match_seq']
 
-    df.loc[acc, '%s_ratio_length_of_TMD_to_rest_of_alignment_mean' % TMD] = float(
-        '%0.2f' % dfs['%s_ratio_length_of_TMD_to_rest_of_alignment' % TMD].dropna().mean())
-    df.loc[acc, '%s_ratio_length_of_query_TMD_to_rest_of_match_protein_mean' % TMD] = float(
-        '%0.2f' % dfs['%s_ratio_length_of_query_TMD_to_rest_of_match_protein' % TMD].dropna().mean())
-    return df, dfs_filt_AAIMON
+    df.loc[acc, '%s_ratio_length_of_TMD_to_rest_of_alignment_mean'%TMD] = float('%0.2f' % dfs['%s_ratio_length_of_TMD_to_rest_of_alignment'%TMD].dropna().mean())
+    df.loc[acc, '%s_ratio_length_of_query_TMD_to_rest_of_match_protein_mean'%TMD] = float('%0.2f' % dfs['%s_ratio_length_of_query_TMD_to_rest_of_match_protein'%TMD].dropna().mean())
+
+    return df, dfs
 
 def save_hist_and_fastA(acc, dfs, dfs_filt, set_, df, list_of_TMDs, logging):
     # use linspace to get a fixid number of points between tha min and the max for the histogram
@@ -610,12 +566,12 @@ def save_hist_and_fastA(acc, dfs, dfs_filt, set_, df, list_of_TMDs, logging):
     with tarfile.open(df.loc[acc, 'output_tarfile_path'], mode='w:gz') as tar_out:
         # calculate ratio of Amino acid Identity Membranous Over Nonmembranous  (AAIMON ratio)
         for TMD in list_of_TMDs:
-            len_query_TMD = len(df.loc[acc, '%s_seq' % TMD])
+            len_query_TMD = len(df.loc[acc, '%s_seq'%TMD])
             # following the general filters, filter to only analyse sequences with TMD identity above cutoff, and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
-            min_identity_of_TMD_initial_filter = set_['min_identity_of_TMD_initial_filter']
-            dfs_filt_AAIMON = dfs_filt.loc[dfs['%s_perc_ident' % TMD] >= min_identity_of_TMD_initial_filter]
-            # avoid a divide by zero error in the unlikely case that there are no_identical_residues_in_alignment
-            dfs_filt_AAIMON = dfs_filt_AAIMON.loc[dfs_filt_AAIMON['nonTMD_perc_ident'] != 0]
+            min_identity_of_TMD_initial_filter = set_['cr_min_identity_of_TMD_initial_filter']
+            #print(dfs_filt['%s_AAIMON_ratio'%TMD])
+            #RESET SO THAT IT TAKES IT FROM DFS AGAIN
+            #dfs_filt_AAIMON = dfs_filt.loc[dfs['%s_perc_ident'%TMD] >= min_identity_of_TMD_initial_filter]
             # find the TMD number (starting from 1)
             TMD_Nr = list_of_TMDs.index(TMD) + 1
             # use the dictionary to obtain the figure number, plot number in figure, plot indices, etc
@@ -629,7 +585,7 @@ def save_hist_and_fastA(acc, dfs, dfs_filt, set_, df, list_of_TMDs, logging):
                 fig, axarr = plt.subplots(nrows=nrows_in_each_fig,
                                           ncols=ncols_in_each_fig)  # sharex=True
             # create numpy array of membranous over nonmembranous conservation ratios (identity)
-            hist_data_I = np.array(dfs_filt_AAIMON['%s_AAIMON_ratio' % TMD].dropna())
+            hist_data_I = np.array(dfs['%s_AAIMON_ratio'%TMD].dropna())
             # use numpy to create a histogram
             freq_counts, bin_array = np.histogram(hist_data_I, bins=binlist)
             # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
@@ -645,7 +601,7 @@ def save_hist_and_fastA(acc, dfs, dfs_filt, set_, df, list_of_TMDs, logging):
                                                        width=col_width, color="#0489B1",
                                                        alpha=0.5)  # edgecolor='black',
             # create numpy array of membranous over nonmembranous conservation ratios (identity + similarity)
-            hist_data_S = np.array(dfs_filt_AAIMON['%s_AASMON_ratio' % TMD].dropna())
+            hist_data_S = np.array(dfs['%s_AASMON_ratio'%TMD].dropna())
             # use numpy to create a histogram
             freq_counts, bin_array = np.histogram(hist_data_S, bins=binlist)
             # create a line graph rather than a bar graph for the AAISON (ident + similarity)
@@ -654,7 +610,7 @@ def save_hist_and_fastA(acc, dfs, dfs_filt, set_, df, list_of_TMDs, logging):
             # other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
             # http://html-color-codes.info/
             # label the x-axis for each plot, based on the TMD
-            axarr[row_nr, col_nr].set_xlabel('%s conservation ratio (membranous over nonmembranous)' % TMD,
+            axarr[row_nr, col_nr].set_xlabel('%s conservation ratio (membranous over nonmembranous)'%TMD,
                                              fontsize=fontsize)
             if savefig:
                 # take x-axis min from settings
@@ -694,7 +650,7 @@ def save_hist_and_fastA(acc, dfs, dfs_filt, set_, df, list_of_TMDs, logging):
                 # os.remove(df.loc[acc,'AAIMON_hist_BASENAMEPATH'] + '_%01d.png' % fig_nr, format='png', dpi=200)
                 os.remove(df.loc[acc, 'AAIMON_hist_BASENAMEPATH'] + '_%01d.pdf' % fig_nr)
 
-            dfs_filt_FastA = korbinian.simap.filter_and_save_fastA(df, dfs, dfs_filt, acc, TMD, tar_out)
+            dfs = korbinian.simap.filter_and_save_fastA(df, dfs, acc, TMD, set_, tar_out, logging)
 
         # remove columns to make output csv smaller
         if set_['drop_columns_to_reduce_csv_filesize']:
@@ -708,33 +664,28 @@ def save_hist_and_fastA(acc, dfs, dfs_filt, set_, df, list_of_TMDs, logging):
         # delete original uncompressed file
         os.remove(df.loc[acc, 'SIMAP_csv_analysed_path'])
         df.loc[acc, 'num_hits_with_SW_align_node'] = dfs['hit_contains_SW_node'].value_counts()[True]
-        logging.info('num_hits_with_SW_align_node: \n%s' % df.loc[acc, 'num_hits_with_SW_align_node'])
-        df.loc[acc, 'num_FastA_seqs_saved'] = int(dfs_filt_FastA.shape[0])
-        logging.info('num_FastA_seqs_saved; %i\n' % df.loc[acc, 'num_FastA_seqs_saved'])
-
-
-
+        logging.info('num_hits_with_SW_align_node: %s' % df.loc[acc, 'num_hits_with_SW_align_node'])
 
 def conduct_ssr_ratio_calculations():
     '''  _________________________________________SSR ratio calculations____________________________________________________
     '''
 
     #                    def calc_score_ss_qTMD(dfs):
-    #                        score = sum(utils.score_pairwise(seq1=dfs['%s_SW_query_seq' % TMD], seq2=dfs['%s_SW_query_seq' % TMD],
+    #                        score = sum(utils.score_pairwise(seq1=dfs['%s_SW_query_seq'%TMD], seq2=dfs['%s_SW_query_seq'%TMD],
     #                                                     matrix=aa_sub_matrix,
     #                                                     gap_open_penalty=gap_open_penalty,
     #                                                     gap_extension_penalty=gap_extension_penalty))
     #                        return(score)
     #
     #                    def calc_score_ss_mTMD(dfs):
-    #                        score = sum(utils.score_pairwise(seq1=dfs['%s_SW_match_seq' % TMD], seq2=dfs['%s_SW_match_seq' % TMD],
+    #                        score = sum(utils.score_pairwise(seq1=dfs['%s_SW_match_seq'%TMD], seq2=dfs['%s_SW_match_seq'%TMD],
     #                                                     matrix=aa_sub_matrix,
     #                                                     gap_open_penalty=gap_open_penalty,
     #                                                     gap_extension_penalty=gap_extension_penalty))
     #                        return(score)
     #
     #                    def calc_score_qTMD_mTMD(dfs):
-    #                        score = sum(utils.score_pairwise(seq1=dfs['%s_SW_query_seq' % TMD], seq2=dfs['%s_SW_match_seq' % TMD],
+    #                        score = sum(utils.score_pairwise(seq1=dfs['%s_SW_query_seq'%TMD], seq2=dfs['%s_SW_match_seq'%TMD],
     #                                                     matrix=aa_sub_matrix,
     #                                                     gap_open_penalty=gap_open_penalty,
     #                                                     gap_extension_penalty=gap_extension_penalty))
@@ -761,8 +712,7 @@ def conduct_ssr_ratio_calculations():
     #                                                     gap_extension_penalty=gap_extension_penalty))
     #                        return(score)
     #
-    #                    for gap_open_penalty in range(set_["aa_substitution_scoring"]["gap_open_penalty_min"],set_["gap_open_penalty_max"],
-    #                                   set_["gap_open_penalty_increment"]):
+    #                    for gap_open_penalty in range(set_["gap_open_penalty_max"], set_["gap_open_penalty_increment"]):
     #                        #print(gap_open_penalty)
     #                        #for simplicity, give the gap open and gap extend the same value
     #                        gap_extension_penalty = gap_open_penalty
@@ -797,7 +747,7 @@ def conduct_ssr_ratio_calculations():
     #
     #                            for TMD in list_of_TMDs:
     #                                column_name = TMD + '_' + column_basename
-    #                                dfs_nonTMD = dfs_nonTMD.loc[dfs['%s_SW_query_seq' % TMD].notnull()]
+    #                                dfs_nonTMD = dfs_nonTMD.loc[dfs['%s_SW_query_seq'%TMD].notnull()]
     #                                #dfs_nonTMD = dfs_nonTMD.loc[dfs['X_in_match_seq'] == False]
     #                                #score/self-score ratio of query
     #                                dfs[column_name + '_ss_qTMD'] = dfs_nonTMD.apply(calc_score_ss_qTMD, axis = 1)

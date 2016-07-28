@@ -131,9 +131,9 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
                     TMD = 'TM%02d' % (location_of_tmds_in_feature_list.index(TMD_location) + 1)
                     list_of_TMDs.append(TMD)
                     # add the start and stop of each TMD, and the comments
-                    output_dict['%s_start' % TMD] = record.features[TMD_location][1]
-                    output_dict['%s_end' % TMD] = record.features[TMD_location][2]
-                    output_dict['%s_description' % TMD] = record.features[TMD_location][3]
+                    output_dict['%s_start'%TMD] = record.features[TMD_location][1]
+                    output_dict['%s_end'%TMD] = record.features[TMD_location][2]
+                    output_dict['%s_description'%TMD] = record.features[TMD_location][3]
 
                 # add the list of TMD names to the dictionary and dataframe
                 output_dict['list_of_TMDs'] = list_of_TMDs
@@ -158,9 +158,9 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
                                 variant_feature_identifier = record.features[list_of_variant_locations[v]][4]
                                 # check if the variant is in the tmd
                                 start_of_variant_is_after_start_of_tmd = True if start_of_variant_in_seq > output_dict[
-                                    '%s_start' % TMD] else False
+                                    '%s_start'%TMD] else False
                                 end_of_variant_is_before_end_of_tmd = True if end_of_variant_in_seq < output_dict[
-                                    '%s_end' % TMD] else False
+                                    '%s_end'%TMD] else False
                                 variant_is_in_tmd = True if all([start_of_variant_is_after_start_of_tmd,
                                                                  end_of_variant_is_before_end_of_tmd]) else False
                                 # if the variants are the tmd region, add to numpy array
@@ -178,7 +178,7 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
                                         array_of_all_variants_in_tmd = variant_array
                     # if there were variants added (array is not empty), convert to string and add them to the output dictionary
                     if array_of_all_variants_in_tmd.size:
-                        output_dict['%s_seq_variants' % TMD] = str(array_of_all_variants_in_tmd)
+                        output_dict['%s_seq_variants'%TMD] = str(array_of_all_variants_in_tmd)
 
             count_of_uniprot_records_processed += 1
             # nest each dictionary containing the data for each protein into a large dictionary that contains all data from all proteins
@@ -192,34 +192,34 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
         df = df.T.copy()
 
         ''' ~~ DETERMINE START AND STOP INDICES FOR TMD PLUS SURROUNDING SEQ ~~ '''
-        aa_before_tmd = set_["aa_before_tmd"]
-        aa_after_tmd = set_["aa_after_tmd"]
+        fa_aa_before_tmd = set_["fa_aa_before_tmd"]
+        fa_aa_after_tmd = set_["fa_aa_after_tmd"]
         # determine max number of TMD columns that need to be created
         max_num_TMDs = df['number_of_TMDs'].max()
         # currently the loop is run for each TMD, based on the sequence with the most TMDs
         for i in range(1, max_num_TMDs + 1):
             TMD = 'TM%02d' % i
-            TMD_seq_name = '%s_seq' % TMD
+            TMD_seq_name = '%s_seq'%TMD
             # instead of integers showing the start or end of the TMD, some people write strings into the
             # UniProt database, such as "<5" or "?"
             # to avoid the bugs that this introduces, it is necessary to convert all strings to np.nan (as floats),
             # using the convert objects function. The numbers can then be converted back from floats to integers.
-            df['%s_start' % TMD] = pd.to_numeric(df['%s_start' % TMD]).dropna().astype('int64')
-            df['%s_end' % TMD] = pd.to_numeric(df['%s_end' % TMD]).dropna().astype('int64')
+            df['%s_start'%TMD] = pd.to_numeric(df['%s_start'%TMD]).dropna().astype('int64')
+            df['%s_end'%TMD] = pd.to_numeric(df['%s_end'%TMD]).dropna().astype('int64')
             # determine the position of the start of the surrounding sequence
-            df['start_surrounding_seq_in_query_%s' % TMD] = df['%s_start' % TMD] - aa_before_tmd
+            df['%s_start_plus_surr'%TMD] = df['%s_start'%TMD] - fa_aa_before_tmd
             # replace negative values with zero. (slicing method was replaced with lambda function to avoid CopyWithSetting warning)
-            df['start_surrounding_seq_in_query_%s' % TMD] = df['start_surrounding_seq_in_query_%s' % TMD].apply(lambda x: x if x > 0 else 0)
-            df['end_surrounding_seq_in_query_%s' % TMD] = df['%s_end' % TMD] + aa_after_tmd
+            df['%s_start_plus_surr'%TMD] = df['%s_start_plus_surr'%TMD].apply(lambda x: x if x > 0 else 0)
+            df['%s_end_plus_surr'%TMD] = df['%s_end'%TMD] + fa_aa_after_tmd
             # create a boolean series, describing whether the end_surrounding_seq_in_query is longer than the protein seq
             series_indices_longer_than_prot_seq = df.apply(utils.find_indices_longer_than_prot_seq, args=(TMD,), axis=1)
             # obtain the indices of proteins in the series
             uniprot_acc_indices_longer_than_prot_seq = series_indices_longer_than_prot_seq[series_indices_longer_than_prot_seq].index
             # use indices to select the main dataframe, and convert these end_surrounding_seq_in_query values to the uniprot_seqlen value
-            df.loc[uniprot_acc_indices_longer_than_prot_seq, 'end_surrounding_seq_in_query_%s' % TMD] = df.loc[
+            df.loc[uniprot_acc_indices_longer_than_prot_seq, '%s_end_plus_surr'%TMD] = df.loc[
                 uniprot_acc_indices_longer_than_prot_seq, 'uniprot_seqlen']
-            # df = df['end_surrounding_seq_in_query_%s' % TMD].apply(lambda x: x['end_surrounding_seq_in_query_%s' % TMD] if x < df['uniprot_seqlen'] else df['uniprot_seqlen'])
-            # df['end_surrounding_seq_in_query_%s' % TMD][df['end_surrounding_seq_in_query_%s' % TMD] > df['uniprot_seqlen']] = df['uniprot_seqlen']
+            # df = df['%s_end_plus_surr'%TMD].apply(lambda x: x['%s_end_plus_surr'%TMD] if x < df['uniprot_seqlen'] else df['uniprot_seqlen'])
+            # df['%s_end_plus_surr'%TMD][df['%s_end_plus_surr'%TMD] > df['uniprot_seqlen']] = df['uniprot_seqlen']
 
         ''' ~~   SLICE TMDS FROM UNIPROT SEQ    ~~ '''
         # iterate through each TMD, slicing out the relevant sequence.
@@ -227,9 +227,9 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
         for i in range(1, max_num_TMDs + 1):
             TMD = 'TM%02d' % i
             # slice TMD
-            df['%s_seq' % TMD] = df[df['%s_start' % TMD].notnull()].apply(utils.slice_uniprot_TMD_seq, args=(TMD,), axis=1)
+            df['%s_seq'%TMD] = df[df['%s_start'%TMD].notnull()].apply(utils.slice_uniprot_TMD_seq, args=(TMD,), axis=1)
             # slice TMD plus surrounding seq
-            df['%s_with_surrounding_seq' % TMD] = df[df['%s_start' % TMD].notnull()].apply(utils.slice_uniprot_TMD_plus_surr_seq, args=(TMD,), axis=1)
+            df['%s_seq_plus_surr'%TMD] = df[df['%s_start'%TMD].notnull()].apply(utils.slice_uniprot_TMD_plus_surr_seq, args=(TMD,), axis=1)
         # extract the organism domain (e.g. Eukaryota)
         df['uniprot_orgclass'] = df['uniprot_orgclass'].astype(str)
         df['organism_domain'] = df.uniprot_orgclass.apply(lambda x: x.strip("'[]").split("', '")[0])
@@ -247,5 +247,4 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
         writer.close()
 
     logging.info('A03_create_csv_from_uniprot_flatfile was successful:'
-                 '\n\t%i uniprot records processed\n\t%i uniprot records parsed to csv' % (
-                     count_of_uniprot_records_processed, count_of_uniprot_records_added_to_csv))
+                 '\n\%i uniprot records parsed to csv' % (count_of_uniprot_records_added_to_csv))

@@ -645,10 +645,10 @@ def compare_rel_con_lists(pathdict, set_, logging):
         for acc in df.index:
             dict_len_TMD = {}
             for TMD in ast.literal_eval(df.loc[acc, 'list_of_TMDs']):
-                if '%s_len' % TMD in df.columns:
-                    dict_len_TMD[TMD] = df.loc[acc, '%s_len' % TMD]
-                elif '%s_start' % TMD in df.columns:
-                    dict_len_TMD[TMD] = df.loc[acc, '%s_end' % TMD] - df.loc[acc, '%s_start' % TMD]
+                if '%s_len'%TMD in df.columns:
+                    dict_len_TMD[TMD] = df.loc[acc, '%s_len'%TMD]
+                elif '%s_start'%TMD in df.columns:
+                    dict_len_TMD[TMD] = df.loc[acc, '%s_end'%TMD] - df.loc[acc, '%s_start'%TMD]
                 else:
                     raise IndexError('neither TM01_len nor TM01_start are in df.columns')
             df.loc[acc, 'len_all_TMD_region'] = np.sum(list(dict_len_TMD.values()))

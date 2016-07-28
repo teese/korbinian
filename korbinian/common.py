@@ -79,55 +79,54 @@ def setup_file_locations_in_df(df, set_, pathdict):
     simap_data_folder = os.path.join(set_['data_folder'], 'simap')
     if "uniprot_entry_name" in df.columns:
         # join the accession and entry name to create a "protein name" for naming files
-        df['A2_protein_name'] = df.A1_uniprot_accession + '_' + df.uniprot_entry_name
+        df['protein_name'] = df.A1_uniprot_accession + '_' + df.uniprot_entry_name
     else:
         # the list of proteins did not come from UniProt. Simply use the accession to name the files.
-        df['A2_protein_name'] = df.A1_uniprot_accession
+        df['protein_name'] = df.A1_uniprot_accession
     df['first_two_letters_of_uniprot_acc'] = df['A1_uniprot_accession'].apply(lambda x: x[0:2])
-    df['simap_filename_base_linuxpath'] = simap_data_folder + '/' + df.first_two_letters_of_uniprot_acc + '/' + df.A2_protein_name
+    df['simap_filename_base_linuxpath'] = simap_data_folder + '/' + df.first_two_letters_of_uniprot_acc + '/' + df.protein_name
     df['simap_filename_base'] = df['simap_filename_base_linuxpath'].apply(lambda x: os.path.normpath(x))
     df.drop('simap_filename_base_linuxpath', axis=1, inplace=True)
 
     # create filenames for simap output
     df['SIMAP_tarfile'] = df.simap_filename_base + '_SIMAP.tar.gz'
-    df['SIMAP_feature_table_XML_file'] = df.A2_protein_name + '_feature_table.xml'
+    df['SIMAP_feature_table_XML_file'] = df.protein_name + '_feature_table.xml'
     df['SIMAP_feature_table_XML_file_path'] = df.simap_filename_base + '_feature_table.xml'
-    df['SIMAP_homologues_XML_file'] = df.A2_protein_name + '_homologues.xml'
+    df['SIMAP_homologues_XML_file'] = df.protein_name + '_homologues.xml'
     df['SIMAP_homologues_XML_file_path'] = df.simap_filename_base + '_homologues.xml'
-    df['SIMAP_csv_from_XML'] = df.A2_protein_name + '.csv'
+    df['SIMAP_csv_from_XML'] = df.protein_name + '.csv'
     df['SIMAP_csv_from_XML_path'] = df.simap_filename_base + '.csv'
     df['SIMAP_csv_from_XML_tarfile'] = df.simap_filename_base + '.csv.tar.gz'
-    df['SIMAP_csv_analysed'] = df.A2_protein_name + '_analysed.csv'
+    df['SIMAP_csv_analysed'] = df.protein_name + '_analysed.csv'
     df['SIMAP_csv_analysed_path'] = df.simap_filename_base + '_analysed.csv'
-    df['output_tarfile'] = df.A2_protein_name + '_outputfiles.tar.gz'
+    df['output_tarfile'] = df.protein_name + '_outputfiles.tar.gz'
     df['output_tarfile_path'] = df.simap_filename_base + '_outputfiles.tar.gz'
     df['csv_SIMAP_homologues_kept_for_statistical_analysis'] = df.simap_filename_base + '_homologues_for_stat.csv'
 
     # name the fasta file with the TMD seqs (eg A0A1F4_EYS_DROME_TMD_sequences_of_homologues.fas)
-    df['fasta_file_path'] = df.simap_filename_base + '_simap_TMD_seq_homologues.fas'
+    df['fasta_file_path'] = df.simap_filename_base + '_simap_TMD_seq_homol.fas'
 
     # name the second fasta file (eg. A0T0U2_PSBE_THAPS_simap_TMD_seq_homol_&_surrounding.fas)
-    df['fasta_file_plus_surr_path'] = df.simap_filename_base + '_simap_TMD_seq_homol_&_surrounding.fas'
-    df[
-        'fasta_file_with_homologues_kept_for_statistical_analysis'] = df.simap_filename_base + '_simap_TMD_seq_kept_stat_analysis.fas'
+    df['fasta_file_plus_surr_path'] = df.simap_filename_base + '_simap_TMD_seq_homol_plus_surr.fas'
+    df['fast_homol_kept_stat_analysis'] = df.simap_filename_base + '_simap_TMD_seq_kept_stat_analysis.fas'
     df['csv_file_av_cons_ratios_hits'] = df.simap_filename_base + '_cons_ratios.csv'
     '''
     FOR multiple TMDs, create a BASE from which the TMDs can be numbered
     '''
-    df['fasta_file_BASENAME'] = df.A2_protein_name + '_simap_seq_homologues_'
-    df['fasta_file_BASENAMEPATH'] = df.simap_filename_base + '_simap_seq_homologues_'
+    df['fasta_file_BASENAME'] = df.protein_name + '_simap_seq_homol_'
+    df['fasta_file_BASENAMEPATH'] = df.simap_filename_base + '_simap_seq_homol_'
 
     # name the second fasta file (eg. A0T0U2_PSBE_THAPS_simap_TMD_seq_homol_&_surrounding.fas)
-    df['fasta_file_plus_surr_path_BASENAME'] = df.A2_protein_name + '_simap_seq_homol_&_surrounding_'
-    df['fasta_file_plus_surr_path_BASENAMEPATH'] = df.simap_filename_base + '_simap_seq_homol_&_surrounding_'
+    df['fasta_file_plus_surr_BASENAME'] = df.protein_name + '_simap_seq_homol_plus_surr_'
+    df['fasta_file_plus_surr_BASENAMEPATH'] = df.simap_filename_base + '_simap_seq_homol_plus_surr_'
 
     # create a basename for the output histograms
-    df['AAIMON_hist_BASENAME'] = df.A2_protein_name + '_AAIMON_hist'
+    df['AAIMON_hist_BASENAME'] = df.protein_name + '_AAIMON_hist'
     df['AAIMON_hist_BASENAMEPATH'] = df.simap_filename_base + '_AAIMON_hist'
-    df['AASMON_hist_BASENAME'] = df.A2_protein_name + '_AASMON_hist'
+    df['AASMON_hist_BASENAME'] = df.protein_name + '_AASMON_hist'
     df['AASMON_hist_BASENAMEPATH'] = df.simap_filename_base + '_AASMON_hist'
 
-    df['csv_file_av_cons_ratios_hits_BASENAME'] = df.A2_protein_name + '_cons_ratios_'
+    df['csv_file_av_cons_ratios_hits_BASENAME'] = df.protein_name + '_cons_ratios_'
     df['csv_file_av_cons_ratios_hits_BASENAMEPATH'] = df.simap_filename_base + '_cons_ratios_'
 
     # save to a csv
@@ -173,7 +172,7 @@ def setup_file_locations_in_df(df, set_, pathdict):
 #                                           'mean_ratio_ident_mem_to_nonmem',
 #                                           'stdev_ratio_ident_mem_to_nonmem',
 #                                           'protein_kept_for_statistical_analysis',
-#                                           'fasta_file_with_homologues_kept_for_statistical_analysis',
+#                                           'fast_homol_kept_stat_analysis',
 #                                           'csv_file_av_cons_ratios_hits',
 #                                           'csv_SIMAP_homologues_kept_for_statistical_analysis'
 #                                           ]

@@ -42,7 +42,7 @@ def calculate_gap_densities(pathdict, set_, logging):
 
     for acc in df.index:
 
-        protein_name = df.loc[acc,'A2_protein_name']
+        protein_name = df.loc[acc,'protein_name']
         # The next steps (the main analysis) is only executed, if previous analysis can be overwritten or no analysis has yet been done
         if (overwrite_previous_gap_analysis == True) or (df.loc[acc,"gaps_analysed"] != True):
             logging.info("%s"%acc)

@@ -308,11 +308,8 @@ def create_hist_from_df_col_with_auto_binlist(df,title,axarr,num_bins,row_nr,col
     data_max = percentile_95 + extra_xaxis_range#hist_data.max()
     #create bins using the min and max
     binlist = np.linspace(data_min,data_max,num_bins)
-    #print(binlist)
     #use numpy to create a histogram
     freq_counts_I, bin_array_I = np.histogram(hist_data, bins = binlist)
-    #print(freq_counts_I)
-    #print(bin_array_I)
     #assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
     col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
     #when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
@@ -370,34 +367,34 @@ For an unknown reason, this is only necessary when the .apply is used in a funct
 
 '''
 def slice_uniprot_TMD_seq(x, TMD):
-   return x['uniprot_seq'][int(x['%s_start' % TMD] - 1):int(x['%s_end' % TMD])]
+   return x['uniprot_seq'][int(x['%s_start'%TMD] - 1):int(x['%s_end'%TMD])]
 
 def slice_uniprot_TMD_plus_surr_seq(x, TMD):
-    return x['uniprot_seq'][int(x['start_surrounding_seq_in_query_%s' % TMD] - 1):int(x['end_surrounding_seq_in_query_%s' % TMD])]
+    return x['uniprot_seq'][int(x['%s_start_plus_surr'%TMD] - 1):int(x['%s_end_plus_surr'%TMD])]
 
 #create small throwaway functions to slice all sequences in dataframe simultaneously
-#slice_SW_query_TMD_seq = lambda x: x['query_alignment_sequence'][int(x['%s_start_in_SW_alignment' % TMD]):int(x['%s_end_in_SW_alignment' % TMD])]
-#slice_SW_markup_TMD = lambda x: x['alignment_markup'][int(x['%s_start_in_SW_alignment' % TMD]):int(x['%s_end_in_SW_alignment' % TMD])]
-#slice_SW_match_TMD_seq = lambda x: x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment' % TMD]):int(x['%s_end_in_SW_alignment' % TMD])]
-#slice_SW_query_TMD_seq_plus_surr = lambda x: x['query_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr' % TMD]):int(x['%s_end_in_SW_alignment_plus_surr' % TMD])]
-#slice_SW_markup_TMD_plus_surr = lambda x: x['alignment_markup'][int(x['%s_start_in_SW_alignment_plus_surr' % TMD]):int(x['%s_end_in_SW_alignment_plus_surr' % TMD])]
-#slice_SW_match_TMD_seq_plus_surr = lambda x: x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr' % TMD]):int(x['%s_end_in_SW_alignment_plus_surr' % TMD])]
+#slice_SW_query_TMD_seq = lambda x: x['query_alignment_sequence'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
+#slice_SW_markup_TMD = lambda x: x['alignment_markup'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
+#slice_SW_match_TMD_seq = lambda x: x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
+#slice_SW_query_TMD_seq_plus_surr = lambda x: x['query_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
+#slice_SW_markup_TMD_plus_surr = lambda x: x['alignment_markup'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
+#slice_SW_match_TMD_seq_plus_surr = lambda x: x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
 
 #create small throwaway functions to slice all sequences in dataframe simultaneously
 def slice_SW_query_TMD_seq(x, TMD):
-    return x['query_alignment_sequence'][int(x['%s_start_in_SW_alignment' % TMD]):int(x['%s_end_in_SW_alignment' % TMD])]
+    return x['query_alignment_sequence'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
 def slice_SW_markup_TMD(x, TMD):
-    return x['alignment_markup'][int(x['%s_start_in_SW_alignment' % TMD]):int(x['%s_end_in_SW_alignment' % TMD])]
+    return x['alignment_markup'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
 def slice_SW_match_TMD_seq(x, TMD):
-    return x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment' % TMD]):int(x['%s_end_in_SW_alignment' % TMD])]
+    return x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
 def slice_SW_query_TMD_seq_plus_surr(x, TMD):
-    return x['query_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr' % TMD]):int(x['%s_end_in_SW_alignment_plus_surr' % TMD])]
+    return x['query_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
 def slice_SW_markup_TMD_plus_surr(x, TMD):
-    return x['alignment_markup'][int(x['%s_start_in_SW_alignment_plus_surr' % TMD]):int(x['%s_end_in_SW_alignment_plus_surr' % TMD])]
+    return x['alignment_markup'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
 def slice_SW_match_TMD_seq_plus_surr(x, TMD):
-    return x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr' % TMD]):int(x['%s_end_in_SW_alignment_plus_surr' % TMD])]
+    return x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
 def find_indices_longer_than_prot_seq(df, TMD):
-    return df['end_surrounding_seq_in_query_%s' % TMD] > df['uniprot_seqlen']
+    return df['%s_end_plus_surr'%TMD] > df['uniprot_seqlen']
 
 def create_indextuple_nonTMD_last(x):
     ''' Joins two columns into a tuple. Used to create the last tuple of the nonTMD region in the sequence.
@@ -817,8 +814,8 @@ def retrieve_simap_homologues(input_sequence, output_file, max_hits, java_exec_s
 #input_seqs_mult_fasta = r'E:\Stephis\Projects\Programming\Python\files\learning\simap\multiple_protein_seqs_in_fasta_format.txt'
 #retrieve_simap_from_multiple_fasta(input_seqs_mult_fasta)
 #throwaway functions, currently kept in main
-#slice_TMD_seq = lambda x: x['uniprot_seq'][int(x['%s_start' % TMD_name]-1):int(x['%s_end' % TMD_name])]
-#slice_TMD_plus_surrounding_seq = lambda x: x['uniprot_seq'][int(x['start_surrounding_seq_in_query_%s' % TMD_name]-1):int(x['end_surrounding_seq_in_query_%s' % TMD_name])]
+#slice_TMD_seq = lambda x: x['uniprot_seq'][int(x['%s_start'%TMD_name]-1):int(x['%s_end'%TMD_name])]
+#slice_TMD_plus_surrounding_seq = lambda x: x['uniprot_seq'][int(x['%s_start_plus_surr'%TMD_name]-1):int(x['%s_end_plus_surr'%TMD_name])]
 
 class Command(object):
     '''
@@ -1480,19 +1477,19 @@ def get_start_and_end_of_TMD_in_query(x, TMD_for_regular_expression_search):
 
 
 def slice_juxta_before_TMD_in_query(x, TMD):
-    return x['query_alignment_sequence'][int(x['start_juxta_before_%s' % TMD]):int(x['end_juxta_before_%s' % TMD])]
+    return x['query_alignment_sequence'][int(x['start_juxta_before_%s'%TMD]):int(x['end_juxta_before_%s'%TMD])]
 
 
 def slice_juxta_after_TMD_in_query(x, TMD):
-    return x['query_alignment_sequence'][int(x['start_juxta_after_%s' % TMD]):int(x['end_juxta_after_%s' % TMD])]
+    return x['query_alignment_sequence'][int(x['start_juxta_after_%s'%TMD]):int(x['end_juxta_after_%s'%TMD])]
 
 
 def slice_juxta_before_TMD_in_match(x, TMD):
-    return x['match_alignment_sequence'][int(x['start_juxta_before_%s' % TMD]):int(x['end_juxta_before_%s' % TMD])]
+    return x['match_alignment_sequence'][int(x['start_juxta_before_%s'%TMD]):int(x['end_juxta_before_%s'%TMD])]
 
 
 def slice_juxta_after_TMD_in_match(x, TMD):
-    return x['match_alignment_sequence'][int(x['start_juxta_after_%s' % TMD]):int(x['end_juxta_after_%s' % TMD])]
+    return x['match_alignment_sequence'][int(x['start_juxta_after_%s'%TMD]):int(x['end_juxta_after_%s'%TMD])]
 
 
 def find_last_TMD(dfs):

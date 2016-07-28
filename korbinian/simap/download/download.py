@@ -42,7 +42,7 @@ def download_homologues_from_simap(pathdict, set_, logging):
         #iterate over each uniprot record contained in the dataframe. note that acc = uniprot accession number
         number_of_files_not_found = 0
         for acc in df.index:
-            protein_name = df.loc[acc, 'A2_protein_name']
+            protein_name = df.loc[acc, 'protein_name']
             query_sequence_length = df.loc[acc, 'uniprot_seqlen']
             input_sequence = df.loc[acc, 'uniprot_seq']
             ''' windows has a character limit in the command prompt in theory of 8191 characters,
@@ -142,10 +142,10 @@ def download_homologues_from_simap(pathdict, set_, logging):
                         #                    print(tarinfo.size)
                         #
                         #            df['SIMAP_tarfile'] = df.simap_filename_base + '_SIMAP.tar.gz'
-                        #            df['SIMAP_feature_table_XML_file'] = df.A2_protein_name + '_feature_table.xml'
+                        #            df['SIMAP_feature_table_XML_file'] = df.protein_name + '_feature_table.xml'
                         #            df['SIMAP_feature_table_XML_file_path'] = df.simap_filename_base + '_feature_table.xml'
-                        #            df['SIMAP_homologues_XML_file'] = df.A2_protein_name + '_homologues.xml'
-                        #            df['SIMAP_homologues_XML_file_path'] = df.A2_protein_name + '_homologues.xml'
+                        #            df['SIMAP_homologues_XML_file'] = df.protein_name + '_homologues.xml'
+                        #            df['SIMAP_homologues_XML_file_path'] = df.protein_name + '_homologues.xml'
                         #            df['SIMAP_csv_from_XML'] = df.simap_filename_base + '_homologues.csv'
                         #            df['SIMAP_csv_from_XML_path'] = df.simap_filename_base + '_homologues.csv'
                         #            df['csv_SIMAP_homologues_kept_for_statistical_analysis'] = df.simap_filename_base + '_homologues_for_stat.csv'

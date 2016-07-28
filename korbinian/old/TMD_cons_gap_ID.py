@@ -11,11 +11,11 @@ def OLD_calculate_TMD_conservation_by_gappedIdentity(pathdict, set_, logging, li
     # csv_file_with_uniprot_data = r'E:\Stephis\Projects\Programming\Python\files\20131115_bacterial_TMD_conservation\List04-parser-test_uniprot_data.csv'
     df = pd.read_csv(pathdict["dfout07_simapnonred"], sep=",", index_col=0, quoting=csv.QUOTE_NONNUMERIC)
     pathdict[ "csv_file_with_histogram_data_normalised_redundant_removed"] = r'E:\Stephis\Projects\Programming\Python\files\20131115_bacterial_TMD_conservation\List%02d_histogram_normalised_redundant_removed.csv' % list_number
-    fieldnames_list_nonredundant_protein_names = ['A2_protein_name']
+    fieldnames_list_nonredundant_protein_names = ['protein_name']
     nested_list_from_csv_nonred = utils.create_nested_dict_from_csv(pathdict["csv_file_with_histogram_data_normalised_redundant_removed"], fieldnames_list_nonredundant_protein_names)
     list_nonredundant_protein_names = []
     for i in range(1, len(nested_list_from_csv_nonred)):
-        list_nonredundant_protein_names.append(nested_list_from_csv_nonred[i]['A2_protein_name'])
+        list_nonredundant_protein_names.append(nested_list_from_csv_nonred[i]['protein_name'])
     # csv_file_TMD_cons_ratio_by_identity = r'E:\Stephis\Projects\Programming\Python\files\20131115_bacterial_TMD_conservation\List%s_TMD_cons_ratio_by_identitym.csv' % list_number
     
     # create a list of the files to ba analysed from the original csv file

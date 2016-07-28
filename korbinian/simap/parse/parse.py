@@ -30,7 +30,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
         number_of_hits_missing_smithWatermanAlignment_node = 0
         #number_of_hits_kept_for_statistical_analysis = 0  # number_of_hits
         organism_domain = df.loc[acc, 'organism_domain']
-        protein_name = df.loc[acc, 'A2_protein_name']
+        protein_name = df.loc[acc, 'protein_name']
         #try:
         logging.info('%s' % protein_name)
         #check which files exist
@@ -108,11 +108,11 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                     #following the general filters, filter to only analyse sequences with TMD identity above cutoff,
                                     #and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
                                     dfs_filt_AAIMON = dfs_filt_AAIMON.loc[
-                                        dfs['%s_perc_ident' % TMD] >= set_['min_identity_of_TMD_initial_filter']]
+                                        dfs['%s_perc_ident'%TMD] >= set_['min_identity_of_TMD_initial_filter']]
                                     #add to original dataframe with the list of sequences
-                                    df.loc[acc, '%s_AAIMON_ratio_mean' % TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio' % TMD].mean()
-                                    df.loc[acc, '%s_AAIMON_ratio_std' % TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio' % TMD].std()
-                                    logging.info('AIMON MEAN %s: %0.2f' % (TMD, df.loc[acc, '%s_AAIMON_ratio_mean' % TMD]))
+                                    df.loc[acc, '%s_AAIMON_ratio_mean'%TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio'%TMD].mean()
+                                    df.loc[acc, '%s_AAIMON_ratio_std'%TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio'%TMD].std()
+                                    logging.info('AIMON MEAN %s: %0.2f' % (TMD, df.loc[acc, '%s_AAIMON_ratio_mean'%TMD]))
                                 '''
                             else:
                                 logging.info('%s not in output file tarball, tarball will be deleted' % df.loc[acc, 'SIMAP_csv_from_XML'])
@@ -356,7 +356,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                         #run the search using the regular expression that will find the TMD even if it contains gaps
                                         for TMD in list_of_TMDs:
                                             #if is_TMD_in_FASTA_alignment:
-                                            query_TMD_sequence = df.loc[acc, '%s_seq' % TMD]
+                                            query_TMD_sequence = df.loc[acc, '%s_seq'%TMD]
                                             query_TMD_length = len(query_TMD_sequence)
                                     else:
                                         number_of_hits_missing_smithWatermanAlignment_node += 1

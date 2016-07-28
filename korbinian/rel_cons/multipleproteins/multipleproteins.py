@@ -56,10 +56,10 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
         dict_AASMON_ratio_mean = {}
         dict_AASMON_ratio_std = {}
         for TMD in ast.literal_eval(df.loc[acc, 'list_of_TMDs']):
-            dict_AAIMON_ratio_mean[TMD] = df.loc[acc, '%s_AAIMON_ratio_mean' % TMD]
-            dict_AAIMON_ratio_std[TMD] = df.loc[acc, '%s_AAIMON_ratio_std' % TMD]
-            dict_AASMON_ratio_mean[TMD] = df.loc[acc, '%s_AASMON_ratio_mean' % TMD]
-            dict_AASMON_ratio_std[TMD] = df.loc[acc, '%s_AASMON_ratio_std' % TMD]
+            dict_AAIMON_ratio_mean[TMD] = df.loc[acc, '%s_AAIMON_ratio_mean'%TMD]
+            dict_AAIMON_ratio_std[TMD] = df.loc[acc, '%s_AAIMON_ratio_std'%TMD]
+            dict_AASMON_ratio_mean[TMD] = df.loc[acc, '%s_AASMON_ratio_mean'%TMD]
+            dict_AASMON_ratio_std[TMD] = df.loc[acc, '%s_AASMON_ratio_std'%TMD]
         df.loc[acc, 'AAIMON_ratio_mean_all_TMDs'] = np.mean(list(dict_AAIMON_ratio_mean.values()))
         df.loc[acc, 'AAIMON_ratio_std_all_TMDs'] = np.mean(list(dict_AAIMON_ratio_std.values()))
         df.loc[acc, 'AASMON_ratio_mean_all_TMDs'] = np.mean(list(dict_AASMON_ratio_mean.values()))

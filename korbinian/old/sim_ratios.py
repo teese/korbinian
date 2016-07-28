@@ -19,7 +19,7 @@ def old_run_stat_analysis_sim_ratios_in_dfout05(pathdict, set_, logging):
     #create a dictionary that contains the average conservation ratios for each protein, for each gap penalty and matrix
     dict_of_all_df_csv_file_av_cons_ratios_hits = {}
     for row in list(df_dfout05_simapcsv_stat_analysis.index):
-        protein_name = df_dfout05_simapcsv_stat_analysis.loc[row, 'A2_protein_name']
+        protein_name = df_dfout05_simapcsv_stat_analysis.loc[row, 'protein_name']
         csv_file_av_cons_ratios_hits = df_dfout05_simapcsv_stat_analysis.loc[row, 'csv_file_av_cons_ratios_hits']
         if os.path.isfile(csv_file_av_cons_ratios_hits):
             df_csv_file_av_cons_ratios_hits = pd.read_csv(csv_file_av_cons_ratios_hits, sep=",", index_col=0,
@@ -89,7 +89,7 @@ def OLD_fix_dfout05_simapcsv_by_adding_query_md5(pathdict, logging):
 
     for i in range(len(df_dfout05_simapcsv)):
         organism_domain = df_dfout05_simapcsv.loc[i, 'organism_domain']
-        protein_name = df_dfout05_simapcsv.loc[i, 'A2_protein_name']
+        protein_name = df_dfout05_simapcsv.loc[i, 'protein_name']
         #try:
         logging.info('%s %s' % (i, protein_name))
         if os.path.isfile(df_dfout05_simapcsv.loc[i, 'SIMAP_feature_table_XML_file_path']):
