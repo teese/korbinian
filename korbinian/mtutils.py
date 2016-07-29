@@ -7,11 +7,13 @@ Authors: Mark Teese, Rimma Jenske
 Created on Fri Nov  8 15:45:06 2013
 """
 from Bio import SeqIO
+from Bio.SeqUtils.ProtParam import ProteinAnalysis
 import ast
 import csv
 import ctypes
 import logging
 import matplotlib.pyplot as plt
+import numpy as np
 import platform
 import subprocess, threading, time, sys
 import tarfile
@@ -1586,3 +1588,60 @@ def convert_falselike_to_bool(input_item, convert_int=False, convert_float=False
     return_value = False if input_item in list_False_items else input_item
 
     return return_value
+
+
+def calc_hydrophob(seq):
+    """ Calculates the average hydrophobicity of a sequence according to the Hessa biological scale.
+
+    Hessa T, Kim H, Bihlmaier K, Lundin C, Boekel J, Andersson H, Nilsson I, White SH, von Heijne G. Nature. 2005 Jan 27;433(7024):377-81
+
+    The Hessa scale has been calculated empirically, using the glycosylation assay of TMD insertion.
+    Negative values indicate hydrophobic amino acids with favourable membrane insertion.
+
+    Other hydrophobicity scales are in the settings folder. They can be generated as follows.
+    hydrophob_scale_path = r"D:\korbinian\korbinian\settings\hydrophobicity_scales.xlsx"
+    df_hs = pd.read_excel(hydrophob_scale_path, skiprows=2)
+    df_hs.set_index("1aa", inplace=True)
+    dict_hs = df_hs.Hessa.to_dict()
+    hessa_scale = np.array([value for (key, value) in sorted(dict_hs.items())])
+    ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K',
+     'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V',
+     'W', 'Y']
+
+    Parameters:
+    -----------
+    seq : string
+        Sequence to be analysed. Gaps (-) and unknown amino acids (x) should be ignored.
+
+    Returns:
+    --------
+    mean hydrophobicity value for the sequence entered
+
+    Usage:
+    ------
+    from korbinian.mtutils import calc_hydrophob
+    # for a single sequence
+    s = "SAESVGEVYIKSTETGQYLAG"
+    calc_hydrophob(s)
+    # for a series of sequences
+    TMD_ser = df2.TM01_SW_match_seq.dropna()
+    hydro = TMD_ser.apply(lambda x : calc_hydrophob(x))
+
+    Notes:
+    ------
+    %timeit results:
+    for a 20aa seq: 136 µs per loop
+    for a pandas series with 852 tmds: 118 ms per loop
+    """
+    # hydrophobicity scale
+    hessa_scale = np.array([0.11, -0.13, 3.49, 2.68, -0.32, 0.74, 2.06, -0.6, 2.71,
+                            -0.55, -0.1, 2.05, 2.23, 2.36, 2.58, 0.84, 0.52, -0.31,
+                            0.3, 0.68])
+    # convert to biopython analysis object
+    analysed_seq = ProteinAnalysis(seq)
+    # biopython count_amino_acids returns a dictionary.
+    aa_counts_dict = analysed_seq.count_amino_acids()
+    # convert dictionary to array, sorted by aa
+    aa_counts_arr = np.array([value for (key, value) in sorted(aa_counts_dict.items())])
+    multiplied = aa_counts_arr * hessa_scale
+    return multiplied.sum()
