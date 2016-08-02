@@ -169,7 +169,7 @@ def get_signif_symbol(number):
 
 ##define function to obtain regex output (start, stop, etc) as a tuple
 #def get_start_and_end_of_TMD_in_query(x):
-#    m = re.search(TMD_for_regular_expression_search, x)
+#    m = re.search(TMD_regex_ss, x)
 #    if m:
 #        #if the tmd is in the query, return True, start, stop
 #        return (bool(m), m.start(), m.end())
@@ -446,7 +446,7 @@ def get_start_and_end_of_TMD_in_query(x, regex_string):
     search only once to obtain both the start and stop indices.
     Variables:
     x = target sequence (e.g. unicode string, DNA, Protein Seq)
-    TMD_for_regular_expression_search = regex search string
+    TMD_regex_ss = regex search string
     '''
     m = re.search(regex_string, x)
     if m:
@@ -1462,14 +1462,14 @@ def get_end_juxta_after_TMD(x, input_TMD, list_of_tmds):
         #     x["end_juxta_after_%s" % input_TMD] = dfs["%s_end_in_SW_alignment" % input_TMD] + ((dfs["TM%.2d_start_in_SW_alignment" % (TM_int + 1)] - dfs["%s_end_in_SW_alignment" % input_TMD]) / 2).apply(    lambda x: int(x) if not np.isnan(x) else np.nan)
 
 
-def get_start_and_end_of_TMD_in_query(x, TMD_for_regular_expression_search):
+def get_start_and_end_of_TMD_in_query(x, TMD_regex_ss):
     '''
     define function to obtain regex output (start, stop, etc) as a tuple
     the functions were originally in MAIN, as I am not sure how to apply **args and **kwargs in functions that apply to pandas
-    note that TMD_for_regular_expression_search is therefore a global variable
+    note that TMD_regex_ss is therefore a global variable
     '''
-    # print('x  ', x, 'TMD_for_regular_expression_search     ', TMD_for_regular_expression_search)
-    m = re.search(TMD_for_regular_expression_search, x)
+    # print('x  ', x, 'TMD_regex_ss     ', TMD_regex_ss)
+    m = re.search(TMD_regex_ss, x)
     if m:
         # if the tmd is in the query, return True, start, stop
         return (bool(m), m.start(), m.end())

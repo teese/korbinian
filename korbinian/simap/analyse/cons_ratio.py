@@ -111,12 +111,17 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
         dfs['query_alignment_sequence'] = ''
         dfs['len_query_alignment_sequence'] = 0
 
+    ########################################################################################
+    #                                                                                      #
+    #             Find disallowed words (e.g. synthetic, patent)                           #
+    #                                                                                      #
+    ########################################################################################
     # add the list of words to the globals, to be accessed by utils.find_disallowed_words
-    words_not_allowed_in_description = ast.literal_eval(set_["cr_words_not_allowed_in_description"])
+    cr_words_not_allowed_in_description = ast.literal_eval(set_["cr_words_not_allowed_in_description"])
     # collect disallowed words in hit protein description (patent, synthetic, etc)
-    dfs['list_disallowed_words_in_descr'] = dfs['A4_description'].dropna().apply(utils.find_disallowed_words, args=(words_not_allowed_in_description,))
+    dfs['cr_list_disallowed_words_in_descr'] = dfs['A4_description'].dropna().apply(utils.find_disallowed_words, args=(cr_words_not_allowed_in_description,))
     # create a boolean column to select hits that do not contain these words in the description
-    dfs['disallowed_words_not_in_descr'] = dfs['list_disallowed_words_in_descr'] == '[]'
+    dfs['cr_disallowed_words_not_in_descr'] = dfs['cr_list_disallowed_words_in_descr'] == '[]'
 
     # check if there are non-IUPAC amino acids in the sequence (frequently large gaps from NG sequencing data)
     dfs['X_in_match_seq'] = 'X' in dfs['match_alignment_sequence']
@@ -124,27 +129,32 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
     list_of_TMDs = ast.literal_eval(df.loc[acc, 'list_of_TMDs'])
     number_of_TMDs_containing_some_homologue_data = 0
 
-    '''slice the TMD regions out of the alignment markup and match sequences
-    the method first finds the indices of the TMD region in the query, and uses these indices to slice
-    the filters are not applied yet, so the sequences can be viewed in the csv file for analysis
-    '''
     for TMD in list_of_TMDs:
+        ########################################################################################
+        #                                                                                      #
+        #                                Slice out TMD regions                                 #
+        #                                                                                      #
+        ########################################################################################
+        '''slice the TMD regions out of the alignment markup and match sequences
+        the method first finds the indices of the TMD region in the query, and uses these indices to slice
+        the filters are not applied yet, so the sequences can be viewed in the csv file for analysis
+        '''
         # create regex string for each TMD
         query_TMD_sequence = df.loc[acc, '%s_seq'%TMD]
-        TMD_for_regular_expression_search = utils.create_regex_string(query_TMD_sequence)
+        # create TMD regex search string (e.g. L.*L.*M.*L.*L.*M.*L.*L.*M.*L.*L.*M.*L.*L.*M.*)
+        TMD_regex_ss = utils.create_regex_string(query_TMD_sequence)
         # select to only include data where the XML contained a SW node, and then apply function for a regex search
-        dfs['%s_start_end_tuple_in_SW_alignment'%TMD] = dfs.query('hit_contains_SW_node == True')[
-            'query_alignment_sequence'].apply(utils.get_start_and_end_of_TMD_in_query,
-                                              args=(TMD_for_regular_expression_search,)
-                                              )
+        query_seqs_ser = dfs.query('hit_contains_SW_node == True')['query_alignment_sequence']
+
+        dfs['%s_start_end_tuple_in_SW_alignment'%TMD] = query_seqs_ser.apply(utils.get_start_and_end_of_TMD_in_query,
+                                                        args=(TMD_regex_ss,))
         '''the output of the regex search is a tuple with three components.
         1) a match (e.g. True),
         2) the start of the match (e.g. 124),
         3) the end of the match (e.g. 144)
         '''
         # for convenience, separate the components into separate columns
-        columns_from_regex_output = ['%s_in_SW_alignment'%TMD, '%s_start_in_SW_alignment'%TMD,
-                                     '%s_end_in_SW_alignment'%TMD]
+        columns_from_regex_output = ['%s_in_SW_alignment'%TMD, '%s_start_in_SW_alignment'%TMD,'%s_end_in_SW_alignment'%TMD]
         # n = the index (1,2,3) in the tuple
         # col = column item in the list (e.g. 'TM09_in_SW_alignment')
         for n, col in enumerate(columns_from_regex_output):
@@ -153,9 +163,12 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
             # add a new column which is named TM01_start, etc, and insert the appropriate integer (start or stop) or bool from the tuple
             dfs[col] = df_match['%s_start_end_tuple_in_SW_alignment'%TMD].apply(lambda x: x[n])
 
-    # Defining juxtaregions
+        ########################################################################################
+        #                                                                                      #
+        #           Define juxtamembrane regions associated with each TMD                      #
+        #                                                                                      #
+        ########################################################################################
 
-    #for TMD in list_of_TMDs:
         last_TMD_of_acc = list_of_TMDs[-1]
 
         if TMD == "TM01":
@@ -171,7 +184,6 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
                 dfs['end_juxta_after_TM01'] = dfs["TM01_end_in_SW_alignment"] + (
                 (dfs["TM02_start_in_SW_alignment"] - dfs["TM01_end_in_SW_alignment"]) / 2).apply(
                     lambda x: int(x) if not np.isnan(x) else np.nan)
-
                 # dfs['seq_juxta_after_TM01_in_query'] = dfs[dfs['start_juxta_after_TM01'].notnull()].apply(utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
                 # dfs['seq_juxta_after_TM01_in_match'] = dfs[dfs['end_juxta_after_TM01'].notnull()].apply(utils.slice_juxta_after_TMD_in_match, args = (TMD,), axis=1)
 
@@ -198,7 +210,7 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
                 # dfs['seq_juxta_after_%s_in_query'%TMD] = dfs.query_alignment_sequence[int(dfs['start_juxta_after_TM10']):int(dfs['end_juxta_after_TM10'])]
                 # dfs['seq_juxta_after_%s_in_match'%TMD] =
 
-    #for TMD in list_of_TMDs:
+
         last_TMD_of_acc = list_of_TMDs[-1]
         dfs['seq_juxta_before_%s_in_query'%TMD] = dfs[dfs['start_juxta_before_%s'%TMD].notnull()].apply(
             utils.slice_juxta_before_TMD_in_query, args=(TMD,), axis=1)
@@ -222,7 +234,13 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
                                                                         int(dfs.loc[hit, "start_juxta_after_%s"%TMD]):int(
                                                                             dfs.loc[hit, "end_juxta_after_%s"%TMD])]
 
-    #for TMD in list_of_TMDs:
+
+        ########################################################################################
+        #                                                                                      #
+        #                Apply function to slice homologues and count gaps                     #
+        #                                                                                      #
+        ########################################################################################
+
         # in some cases, there is no data to obtain as the hit_contains_SW_node = False for too many sequences, giving no start_in_SW_alignment
         number_of_rows_containing_data = dfs[dfs['%s_start_in_SW_alignment'%TMD].notnull()].shape[0]
         if number_of_rows_containing_data == 0:
@@ -245,15 +263,18 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
         cr_minimum_identity_of_full_protein = set_["cr_minimum_identity_of_full_protein"]
         dfs['cr_gapped_ident_above_cutoff'] = dfs['FASTA_gapped_identity'] > cr_minimum_identity_of_full_protein
 
-        '''¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦             nonTMD calculations                        ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
-        '''
+        ########################################################################################
+        #                                                                                      #
+        #                                 nonTMD calculations                                  #
+        #                                                                                      #
+        ########################################################################################
         # filter to only analyse sequences with tho following:
         # 1) full protein identity above cutoff
         # 2)containing smith waterman alignment in XML file
         # 3) hit description lacks disallowedd words (patent, synthetic, etc)
         dfs_filt = dfs.query('cr_gapped_ident_above_cutoff == True and '
                              'hit_contains_SW_node == True and '
-                             'disallowed_words_not_in_descr == True')
+                             'cr_disallowed_words_not_in_descr == True')
 
         if dfs_filt.shape[0] > 0:
 
@@ -274,7 +295,7 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
             # create a copy of the original dfs dataframe containing only hits where all tmds are found in the match
             dfs_nonTMD = dfs.loc[dfs['all_tmds_in_SW_alignment'].notnull()].query('all_tmds_in_SW_alignment == True')
             # filter to contain only hits that do not include disallowed words
-            dfs_nonTMD = dfs_nonTMD.query('disallowed_words_not_in_descr == True')
+            dfs_nonTMD = dfs_nonTMD.query('cr_disallowed_words_not_in_descr == True')
             # filter to contain only hits where the index for the TMD is present
             first_TMD_start_index = '%s_start_in_SW_alignment' % list_of_TMDs[0]
 
@@ -293,6 +314,12 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
             # create the index tuple
             dfs_nonTMD['nonTMD_index_tuple_last'] = dfs_nonTMD.apply(utils.create_indextuple_nonTMD_last, axis=1)
 
+            ########################################################################################
+            #                                                                                      #
+            #                    create the indices for the nonTMD region                          #
+            #                                                                                      #
+            ########################################################################################
+
             # for each TMD EXCEPT the last, which ends at the sequence end, create the indices for the nonTMD region (after the TMD)
             for TM_Nr in range(len(list_of_TMDs) - 1):
                 # the TMD is the equivalent item in the list
@@ -308,8 +335,7 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
 
             # now join all the indices together to make one tuple of tuples for the non-TMD region
             # dfs_nonTMD = dfs.query('all_tmds_in_SW_alignment == True')
-            dfs_nonTMD['nested_tuple_indices_all_nonTMD_regions'] = dfs_nonTMD[['nonTMD_index_tuple_last']].apply(tuple,
-                                                                                                                  axis=1)
+            dfs_nonTMD['nested_tuple_indices_all_nonTMD_regions'] = dfs_nonTMD[['nonTMD_index_tuple_last']].apply(tuple,axis=1)
 
             # create a view of the dataframe that contains only the desired columns
             # first create a list of the desired columns
@@ -322,8 +348,7 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
             list_of_nonTMD_index_columns += ['nonTMD_index_tuple_last']
 
             # create the new view by reindexing the dataframe with the list of desired columns
-            dfs_tuples = dfs_nonTMD.reindex(index=dfs_nonTMD.index, columns=list_of_nonTMD_index_columns,
-                                            copy=False)  # .astype('int32')
+            dfs_tuples = dfs_nonTMD.reindex(index=dfs_nonTMD.index, columns=list_of_nonTMD_index_columns, copy=False)
             # now for convenience, these tuples can be combined together to form one column, with a tuple of tuples
             # first convert all values in each row to a list, excluding the index column
             list_tuple_indices_all_nonTMD_regions = list(dfs_tuples.itertuples(index=False))
@@ -335,8 +360,7 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
 
             dfs_nonTMD['nested_tuple_indices_all_nonTMD_regions'] = tuples_series
             # change to a string, in case this solves the weird effect with only the last tuple shown
-            dfs_nonTMD['nested_tuple_indices_all_nonTMD_regions'] = dfs_nonTMD[
-                'nested_tuple_indices_all_nonTMD_regions'].astype(str)
+            dfs_nonTMD['nested_tuple_indices_all_nonTMD_regions'] = dfs_nonTMD['nested_tuple_indices_all_nonTMD_regions'].astype(str)
             # you can test that the original index is maintained as follows:
             # add the series as a new column in the original dataframe. Missing data (when not all TMDs found) will be filled using np.nan
             dfs['nested_tuple_indices_all_nonTMD_regions'] = dfs_nonTMD['nested_tuple_indices_all_nonTMD_regions']
@@ -349,11 +373,12 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
             # dfs_nonTMD['nonTMD_markup'] = np.vectorize(utils.slice_with_nested_tuple)(np.array(dfs_nonTMD['alignment_markup']),np.array(dfs_nonTMD['nested_tuple_indices_all_nonTMD_regions']))
             # dfs_nonTMD['nonTMD_seq_match'] = np.vectorize(utils.slice_with_nested_tuple)(np.array(dfs_nonTMD['match_alignment_sequence']),np.array(dfs_nonTMD['nested_tuple_indices_all_nonTMD_regions']))
 
+            ########################################################################################
+            #                                                                                      #
+            #                  slice out the nonTMD region for each homologue                      #
+            #                                                                                      #
+            ########################################################################################
             # due to problems with np.vectorize and the pandas methods, slice the sequences one at a time with a simple 'for loop'
-            # create empty columns
-            dfs['nonTMD_seq_query'] = ''
-            dfs['nonTMD_markup'] = ''
-            dfs['nonTMD_seq_match'] = ''
             # for each hit, perform the slice
             for hit in dfs_nonTMD.index:
                 dfs_nonTMD.loc[hit, 'nonTMD_seq_query'] = utils.slice_with_nested_tuple(
@@ -370,6 +395,11 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
             dfs['nonTMD_markup'] = dfs_nonTMD['nonTMD_markup']
             dfs['nonTMD_seq_match'] = dfs_nonTMD['nonTMD_seq_match']
 
+            ########################################################################################
+            #                                                                                      #
+            #                calculate nonTMD len, percent identity, gaps, etc                     #
+            #                                                                                      #
+            ########################################################################################
             # calculate identical residues in the nonTMD region (simply count the pipes '|' in the markup sequence)
             dfs['nonTMD_num_ident_res'] = dfs['nonTMD_markup'].dropna().apply(lambda x: x.count('|'))
             # calculate similar residues in the nonTMD region (simply count the colons ':' in the markup sequence)
@@ -385,8 +415,7 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
             dfs['len_nonTMD_seq_query'] = dfs['nonTMD_seq_query'].dropna().str.len()
             dfs['len_nonTMD_seq_match'] = dfs['nonTMD_seq_match'].dropna().str.len()
             # calculate the number aligned sequences, excluding gaps (length of query, or length of match, whichever is shorter)
-            dfs['len_nonTMD_align'] = dfs[['len_nonTMD_seq_query', 'len_nonTMD_seq_match']].dropna(
-                how='all').min(axis=1)
+            dfs['len_nonTMD_align'] = dfs[['len_nonTMD_seq_query', 'len_nonTMD_seq_match']].dropna(how='all').min(axis=1)
 
             # calculate the length of the nonTMD sequence excluding gaps
             dfs['len_nonTMD_q_excl_gaps'] = dfs['len_nonTMD_seq_query'] - dfs['nonTMD_q_num_gaps']
@@ -399,8 +428,7 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
             # note that the length = length of the aligned residues excluding gaps
             dfs['nonTMD_perc_ident'] = dfs['nonTMD_num_ident_res'] / dfs['len_nonTMD_align']
             dfs['nonTMD_perc_sim'] = dfs['nonTMD_num_sim_res'] / dfs['len_nonTMD_align']
-            dfs['nonTMD_perc_sim_plus_ident'] = dfs['nonTMD_num_sim_plus_ident_res'] / dfs[
-                'len_nonTMD_align']
+            dfs['nonTMD_perc_sim_plus_ident'] = dfs['nonTMD_num_sim_plus_ident_res'] / dfs['len_nonTMD_align']
             # calculate the average number of gaps per residue in the nonTMD alignment
             # filter to analyse only sequences that are valid (length > 0)
             dfs_filt_gaps = dfs.loc[dfs['len_nonTMD_q_excl_gaps'] != 0]
@@ -409,24 +437,28 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
             # add to simap dataframe
             dfs['nonTMD_qm_num_gaps'] = dfs_filt_gaps['nonTMD_qm_num_gaps']
             # gaps per query residue for both query and match = ((gaps in query + gaps in match)/2))/length of query excluding gaps
-            dfs['nonTMD_qm_gaps_per_q_residue'] = dfs_filt_gaps['nonTMD_qm_num_gaps'] / 2 / dfs_filt_gaps[
-                'len_nonTMD_q_excl_gaps']
+            dfs['nonTMD_qm_gaps_per_q_residue'] = dfs_filt_gaps['nonTMD_qm_num_gaps'] / 2 / dfs_filt_gaps['len_nonTMD_q_excl_gaps']
 
             # SSR ratio calculations take a long time and show no difference to AAIMON
             SSR_ratio_calculations = False
             if SSR_ratio_calculations:
                 conduct_ssr_ratio_calculations()
 
-            cr_X_allowed_in_full_seq = set_["cr_X_allowed_in_full_seq"]
-            cr_X_filt_str = " and X_in_match_seq == False" if cr_X_allowed_in_full_seq == False else ""
+            # create optional filter string, related to X in the full sequence
+            cr_X_filt_str = " and X_in_match_seq == False" if set_["cr_X_allowed_in_full_seq"] == False else ""
 
             # re-filter the original dataframe to create another copy with the desired sequences
             cons_ratio_query_str = 'cr_gapped_ident_above_cutoff == True and ' \
                                    'hit_contains_SW_node == True and ' \
-                                   'disallowed_words_not_in_descr == True' \
+                                   'cr_disallowed_words_not_in_descr == True' \
                                    '{}'.format(cr_X_filt_str)
 
             dfs_filt = dfs.query(cons_ratio_query_str)
+            ########################################################################################
+            #                                                                                      #
+            #     calculate average nonTMD len, perc ident, etc and add to list of proteins        #
+            #                                                                                      #
+            ########################################################################################
 
             '''Calculate average values, add to original dataframe.
                1) values associated with the FASTA output of SIMAP
@@ -459,10 +491,6 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
     # save to csv after each protein is analysed, incrementally adding the extra data
     with open(pathdict["dfout08_simap_AAIMON"], 'w') as csv_out:
         df.to_csv(csv_out, sep=",", quoting=csv.QUOTE_NONNUMERIC)
-
-
-
-
 
 def slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_):
     len_query_TMD = len(df.loc[acc, '%s_seq'%TMD])

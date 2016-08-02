@@ -100,7 +100,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                 #filter to include only desired hits
                                 '''OLD STUFF, from when XML to CSV was not saved separately
                                 dfs_filt = dfs.query(
-                                    'gapped_ident_above_cutoff == True and hit_contains_SW_node == True and disallowed_words_not_in_descr == True')
+                                    'gapped_ident_above_cutoff == True and hit_contains_SW_node == True and cr_disallowed_words_not_in_descr == True')
                                 #avoid a divide by zero error in the unlikely case that there are no_identical_residues_in_alignment
                                 dfs_filt_AAIMON = dfs_filt.loc[dfs_filt['nonTMD_perc_ident'] != 0]
                                 list_of_TMDs = ast.literal_eval(df.loc[acc, 'list_of_TMDs'])

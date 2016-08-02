@@ -1,3 +1,4 @@
+import ast
 import os
 import korbinian.mtutils as utils
 
@@ -37,8 +38,27 @@ def filter_and_save_fastA(df, dfs, acc, TMD, set_, tar_out, logging):
     # create a boolean column that allows filtering by the accepted number of gaps, according to the settings file
     dfs['%s_fa_SW_query_acceptable_n_gaps'%TMD] = dfs['%s_SW_query_num_gaps'%TMD] <= set_["fa_max_n_gaps_in_query_TMD"]
     dfs['%s_fa_SW_match_acceptable_n_gaps'%TMD] = dfs['%s_SW_match_num_gaps'%TMD] <= set_["fa_max_n_gaps_in_match_TMD"]
-
+    # measure the hydrophobicity of each TMD
     dfs['%s_SW_match_seq_hydro' % TMD] = dfs['%s_SW_match_seq'%TMD].dropna().apply(lambda x: utils.calc_hydrophob(x))
+
+    # check if the list of disallowed proteins is the same.
+    fa_search_disallowed_words = False
+    if set_["fa_words_not_allowed_in_description"] == set_["cr_words_not_allowed_in_description"]:
+        # if the word searching has already been done, simply copy the results across
+        if "cr_disallowed_words_not_in_descr" in dfs.columns:
+            dfs["fa_disallowed_words_not_in_descr"] = dfs["cr_disallowed_words_not_in_descr"]
+        else:
+            fa_search_disallowed_words = True
+    else:
+        fa_search_disallowed_words = True
+
+    # conduct the text searching for disallowed words
+    if fa_search_disallowed_words == True:
+        fa_words_not_allowed_in_description = ast.literal_eval(set_["fa_words_not_allowed_in_description"])
+        # collect disallowed words in hit protein description (patent, synthetic, etc)
+        dfs['fa_list_disallowed_words_in_descr'] = dfs['A4_description'].dropna().apply(utils.find_disallowed_words, args=(fa_words_not_allowed_in_description,))
+        # create a boolean column to select hits that do not contain these words in the description
+        dfs['fa_disallowed_words_not_in_descr'] = dfs['fa_list_disallowed_words_in_descr'] == '[]'
 
     '''re-filter the original dataframe to create another copy with the desired sequences
     note that some values were added after filtering in the last round,
@@ -47,7 +67,7 @@ def filter_and_save_fastA(df, dfs, acc, TMD, set_, tar_out, logging):
     fa_query_filt_str = 'fa_ident_above_cutoff == True and ' \ # aa identity above cutoff
                         'fa_ident_below_cutoff == True and '\ # aa identity below cutoff
                          'hit_contains_SW_node == True and '\ # homologue file is not missing data
-                         'disallowed_words_not_in_descr == True'\ # not a patent
+                         'fa_disallowed_words_not_in_descr == True'\ # not a patent
                          '{TMD}_fa_SW_query_acceptable_n_gaps == True' \ # not too many gaps in query
                          '{TMD}_fa_SW_match_acceptable_n_gaps == True' \ # not too many gaps in match
                          '{TMD}_SW_m_seq_len > 1' \ # smith waterman match sequence length longer than 1
@@ -58,7 +78,7 @@ def filter_and_save_fastA(df, dfs, acc, TMD, set_, tar_out, logging):
     fa_query_filt_str = 'fa_ident_above_cutoff == True and ' \
                         'fa_ident_below_cutoff == True and '\
                          'hit_contains_SW_node == True and '\
-                         'disallowed_words_not_in_descr == True and '\
+                         'fa_disallowed_words_not_in_descr == True and '\
                          '{TMD}_fa_SW_query_acceptable_n_gaps == True and ' \
                          '{TMD}_fa_SW_match_acceptable_n_gaps == True and ' \
                          '{TMD}_SW_m_seq_len > 1 and ' \
