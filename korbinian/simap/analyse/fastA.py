@@ -40,8 +40,6 @@ def filter_and_save_fastA(df, dfs, acc, TMD, set_, tar_out, logging):
 
     dfs['%s_SW_match_seq_hydro' % TMD] = dfs['%s_SW_match_seq'%TMD].dropna().apply(lambda x: utils.calc_hydrophob(x))
 
-    utils.aaa(dfs)
-
     '''re-filter the original dataframe to create another copy with the desired sequences
     note that some values were added after filtering in the last round,
     but all were added to the dataframe dfs, not the copy dfs_filt
@@ -69,8 +67,6 @@ def filter_and_save_fastA(df, dfs, acc, TMD, set_, tar_out, logging):
                          '{Xsel}'.format(TMD=TMD, Xfull=fa_X_filt_full_str, Xsel=fa_X_filt_sel_str)
 
     dfs_fa = dfs.query(fa_query_filt_str)
-    if df.loc[acc,"protein_name"] == "Q08345_DDR1_HUMAN":
-        utils.aaa(dfs)
 
     dfs['%s_SW_match_seq_plus_surr'%TMD] = dfs_fa.apply(utils.slice_SW_match_TMD_seq_plus_surr, args=(TMD,), axis=1)
 
@@ -110,6 +106,10 @@ def filter_and_save_fastA(df, dfs, acc, TMD, set_, tar_out, logging):
                 nr_dfs_fa = dfs_fa.loc[~dfs_fa['%s_SW_match_seq%s'%(TMD,s)].duplicated()]
             else:
                 nr_dfs_fa = dfs_fa
+
+            # if gaps are not allowed in the selected sequence, filter to remove before saving
+            if set_["fa_X_allowed_in_sel_seq"] == False:
+                nr_dfs_fa = nr_dfs_fa.dropna().loc[~nr_dfs_fa['%s_SW_match_seq%s'%(TMD,s)].dropna().str.contains("X")]
 
             if s == "_plus_surr":
                 if set_["fa_X_allowed_in_full_seq"] == True:
