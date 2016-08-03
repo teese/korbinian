@@ -3,15 +3,16 @@ import os
 import pandas as pd
 from time import strftime
 import korbinian.mtutils as utils
+import signal
+import unicodedata
 
 def setup_keyboard_interrupt_and_error_logging(set_, list_number):
     ''' -------Setup keyboard interrupt----------
     '''
     # import arcgisscripting
-    import signal
+
     def ctrlc(sig, frame):
         raise KeyboardInterrupt("CTRL-C!")
-
     signal.signal(signal.SIGINT, ctrlc)
     '''+++++++++++++++LOGGING++++++++++++++++++'''
     date_string = strftime("%Y%m%d")
@@ -94,6 +95,9 @@ def setup_file_locations_in_df(df, set_, pathdict):
     df['SIMAP_feature_table_XML_file_path'] = df.simap_filename_base + '_feature_table.xml'
     df['SIMAP_homologues_XML_file'] = df.protein_name + '_homologues.xml'
     df['SIMAP_homologues_XML_file_path'] = df.simap_filename_base + '_homologues.xml'
+    your_name = unicodedata.normalize('NFKD', set_["your_name"][:20]).encode('ascii', 'ignore').decode("utf-8")
+    df['SIMAP_download_date_file'] = df.protein_name + '.{}.{}.txt'.format(strftime("%Y%m%d"), your_name)
+    df['SIMAP_download_date_file_path'] = df.simap_filename_base + '.{}.{}.txt'.format(strftime("%Y%m%d"), your_name)
     df['SIMAP_csv_from_XML'] = df.protein_name + '.csv'
     df['SIMAP_csv_from_XML_path'] = df.simap_filename_base + '.csv'
     df['SIMAP_csv_from_XML_tarfile'] = df.simap_filename_base + '.csv.tar.gz'

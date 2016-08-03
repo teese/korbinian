@@ -146,8 +146,7 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
         # select to only include data where the XML contained a SW node, and then apply function for a regex search
         query_seqs_ser = dfs.query('hit_contains_SW_node == True')['query_alignment_sequence']
 
-        dfs['%s_start_end_tuple_in_SW_alignment'%TMD] = query_seqs_ser.apply(utils.get_start_and_end_of_TMD_in_query,
-                                                        args=(TMD_regex_ss,))
+        dfs['%s_start_end_tuple_in_SW_alignment'%TMD] = query_seqs_ser.apply(utils.get_start_and_end_of_TMD_in_query,args=(TMD_regex_ss,))
         '''the output of the regex search is a tuple with three components.
         1) a match (e.g. True),
         2) the start of the match (e.g. 124),
@@ -168,6 +167,11 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
         #           Define juxtamembrane regions associated with each TMD                      #
         #                                                                                      #
         ########################################################################################
+        # convert the tuple of (True, 32, 53) into separate dataframes.
+        # http://stackoverflow.com/questions/29550414/how-to-split-column-of-tuples-in-pandas-dataframe
+        df_match = pd.DataFrame(dfs['%s_start_end_tuple_in_SW_alignment' % TMD].values.tolist())
+        dfs["%s_start_in_SW_alignment" % TMD] = df_match[1]
+        dfs["%s_end_in_SW_alignment" % TMD] = df_match[2]
 
         last_TMD_of_acc = list_of_TMDs[-1]
 
@@ -181,9 +185,9 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
                 dfs['end_juxta_after_TM01'] = np.where(utils.isNaN(dfs['start_juxta_after_TM01']) == True, np.nan,
                                                        dfs['len_query_alignment_sequence'])
             elif len(list_of_TMDs) > 1:
+                problem('dfs["TM02_start_in_SW_alignment"] cannot exist yet, because the script iterates through the TMDs one at a time')
                 dfs['end_juxta_after_TM01'] = dfs["TM01_end_in_SW_alignment"] + (
-                (dfs["TM02_start_in_SW_alignment"] - dfs["TM01_end_in_SW_alignment"]) / 2).apply(
-                    lambda x: int(x) if not np.isnan(x) else np.nan)
+                (dfs["TM02_start_in_SW_alignment"] - dfs["TM01_end_in_SW_alignment"]) / 2).apply(lambda x: int(x) if not np.isnan(x) else np.nan)
                 # dfs['seq_juxta_after_TM01_in_query'] = dfs[dfs['start_juxta_after_TM01'].notnull()].apply(utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
                 # dfs['seq_juxta_after_TM01_in_match'] = dfs[dfs['end_juxta_after_TM01'].notnull()].apply(utils.slice_juxta_after_TMD_in_match, args = (TMD,), axis=1)
 

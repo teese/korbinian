@@ -760,7 +760,9 @@ def retrieve_simap_feature_table(input_sequence, java_exec_str, max_memory_alloc
     Uses the java program to access the simap database and download the small file containing information on that protein, called a "feature table".
     '''
     #prepare input sequence and settings as a "command_str", and run command
-    command_str = '%s -Xmx%im -jar %s -s %s -o %s -f' % (java_exec_str, max_memory_allocation, eaSimap_path, input_sequence, output_file)
+    # command_str = '%s -Xmx%im -jar %s -s %s -o %s -f' % (java_exec_str, max_memory_allocation, eaSimap_path, input_sequence, output_file)
+    command_str = '{jes} -Xmx{mma:d}m -jar {esp} -s {s} -o {o} -f'.format(jes=java_exec_str,
+                                      mma=max_memory_allocation, esp=eaSimap_path, s=input_sequence,o=output_file)
     logging.info(command_str)
     command = Command(command_str)
     command.run(timeout=100)
@@ -780,8 +782,10 @@ def retrieve_simap_homologues(input_sequence, output_file, max_hits, java_exec_s
     #note that windows has a character limit in the command prompt in theory of 8191 characters, but the command line java command seems to cause errors with sequences above 3000 amino acids.
     #the 3000 character limit is currently applied in the main_simap script, rather than here
     #run command
-    command_str = '%s -Xmx%im -jar %s -s %s -m %s -o %s -x %s%s' % (java_exec_str, max_memory_allocation, eaSimap_path, input_sequence,
-                                                                    max_hits, output_file, taxid_search_string)
+    # command_str = '%s -Xmx%im -jar %s -s %s -m %s -o %s -x %s%s' % (java_exec_str, max_memory_allocation, eaSimap_path, input_sequence,
+    #                                                                 max_hits, output_file, taxid_search_string)
+    command_str = '{jes} -Xmx{mma:d}m -jar {esp} -s {s} -m {m} -o {o} -x{tss}'.format(jes=java_exec_str, mma=max_memory_allocation, esp=eaSimap_path, s=input_sequence,
+                                                                    m=max_hits, o=output_file, tss=taxid_search_string)
     logging.info(command_str)
     command = Command(command_str)
     timeout = max_hits/5 if max_hits > 500 else 100

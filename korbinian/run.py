@@ -65,6 +65,7 @@ else:
                                    |||||||| |||||||||:||| : |||||||| ||
 64390643         188 --------------AFDQIGGYEQLEAAYAQAVPSRIVPNTTCHLPRADA    223
  - in rare cases the only alignable sequence is the TMD!! The sequence excluding TMD is therefore '', too small for an analysis, but as long as the program runs successfully this can be filtered out later, at the "calculate conservation" step using pandas dataframes
+TM01_perc_sim starts with 0 instead of 1.0. Simply remove column?
 """
 import csv
 import logging

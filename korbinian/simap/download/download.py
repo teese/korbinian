@@ -23,14 +23,14 @@ def download_homologues_from_simap(pathdict, set_, logging):
     #global list_of_files_with_feature_tables, list_of_files_with_homologues
     #The SIMAP download settings can be altered as desired, using the json settings file
     max_hits = set_["max_hits"]
-    java_exec_str = set_["old_run_stat_analysis_sim_ratios_in_dfout05java_exec_str"]
+    java_exec_str = set_["java_exec_str"]
     max_memory_allocation = set_["java_max_RAM_memory_allocated_to_simap_download"]
     taxid = set_["taxid"]  # eg.'7227' for Drosophila melanogaster
 
     enough_hard_drive_space = True
     try:
         byteformat = "GB"
-        data_harddrive = set_["old_run_stat_analysis_sim_ratios_in_dfout05data_harddrive"]
+        data_harddrive = set_["data_harddrive"]
         size = utils.get_free_space(data_harddrive, byteformat)
         logging.info('Hard disk remaining space =')
         logging.info(size)
@@ -77,14 +77,14 @@ def download_homologues_from_simap(pathdict, set_, logging):
                                                            java_exec_str=java_exec_str,
                                                            max_memory_allocation=max_memory_allocation,
                                                            output_file=df.loc[acc, 'SIMAP_feature_table_XML_file_path'],
-                                                           eaSimap_path=set_["old_run_stat_analysis_sim_ratios_in_dfout05eaSimap_path"])
+                                                           eaSimap_path=set_["eaSimap_path"])
                     if not homologues_XML_exists:
                         #download homologue file from SIMAP
                         utils.retrieve_simap_homologues(input_sequence,
                                                         output_file=df.loc[acc, 'SIMAP_homologues_XML_file_path'],
                                                         max_hits=max_hits, java_exec_str=java_exec_str,
                                                         max_memory_allocation=max_memory_allocation, taxid=taxid,
-                                                        eaSimap_path=set_["old_run_stat_analysis_sim_ratios_in_dfout05eaSimap_path"])
+                                                        eaSimap_path=set_["eaSimap_path"])
                         #now check again if the files exist
                     feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(df, acc)
                     if not homologues_XML_exists:
@@ -106,7 +106,10 @@ def download_homologues_from_simap(pathdict, set_, logging):
                     #therefore reset the number_of_files_not_found
                         number_of_files_not_found = 0
 
-                    #since we can't add files to the compressed tarfile, only when both the feature table
+                    # create an empty text file with the download date
+                    with open(df.loc[acc,'SIMAP_download_date_file_path'], "w") as f:
+                        f.write("empty datefile. have a nice day!")
+                    # since we can't add files to the compressed tarfile, only when both the feature table
                     #and xml file are downloaded should we pack and compress them
                     if feature_table_XML_exists and homologues_XML_exists:
                         with tarfile.open(df.loc[acc, 'SIMAP_tarfile'], mode='w:gz') as tar:
@@ -116,10 +119,13 @@ def download_homologues_from_simap(pathdict, set_, logging):
                                     arcname=df.loc[acc, 'SIMAP_feature_table_XML_file'])
                             tar.add(df.loc[acc, 'SIMAP_homologues_XML_file_path'],
                                     arcname=df.loc[acc, 'SIMAP_homologues_XML_file'])
+                            tar.add(df.loc[acc, 'SIMAP_download_date_file_path'], arcname=df.loc[acc, 'SIMAP_download_date_file'])
+
                         #delete the original files
                         try:
                             os.remove(df.loc[acc, 'SIMAP_feature_table_XML_file_path'])
                             os.remove(df.loc[acc, 'SIMAP_homologues_XML_file_path'])
+                            os.remove(df.loc[acc, 'SIMAP_download_date_file_path'])
                         except FileNotFoundError:
                             pass
 

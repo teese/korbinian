@@ -30,7 +30,7 @@ def filter_and_save_fastA(df, dfs, acc, TMD, set_, tar_out, logging):
     # if "X" is allowed in the full sequence, check if X is in the selected sequence
     if set_["fa_X_allowed_in_full_seq"] == True:
         dfs['X_in_%s'%TMD] = 'X' in dfs['match_alignment_sequence']
-        fa_X_allowed_in_sel_seq = set_["cr_X_allowed_in_sel_seq"]
+        fa_X_allowed_in_sel_seq = set_["fa_X_allowed_in_sel_seq"]
         fa_X_filt_sel_str = " and X_in_%s == False"%TMD if fa_X_allowed_in_sel_seq == False else ""
     else:
         fa_X_filt_sel_str = ""
@@ -158,24 +158,24 @@ def filter_and_save_fastA(df, dfs, acc, TMD, set_, tar_out, logging):
         n_fa_saved = int(nr_dfs_fa.shape[0])
         logging.info("TMD{} saved to fasta, {} sequences.".format(s, n_fa_saved))
 
-        if s == "":
-            fasta_file_path = r"D:\Schweris\Projects\Xiao\20160728 SIMAP vs HHBLITS fasta" + "\\" + '%s_10gap.fas' % df.loc[acc, 'protein_name']
-            with open(fasta_file_path, 'w') as f:
-                # add the query sequence, if desired
-                if set_["add_query_seq"]:
-                    # add original query seq to fasta file. Note that the first SIMAP hit is excluded below.
-                    f.write('>00_%s_%s_uniprot_query%s\n%s\n' % (df.loc[acc, 'protein_name'], TMD, s, df.loc[acc, '%s_seq%s' % (TMD, s)]))
-                if set_["remove_redundant_seqs"]:
-                    # select the non-redundant sequences by using the pandas duplicated function
-                    nr_dfs_fa = dfs_fa.loc[~dfs_fa['%s_SW_match_seq%s' % (TMD, s)].duplicated()]
-                else:
-                    nr_dfs_fa = dfs_fa
-
-                for row in nr_dfs_fa.index:  # formerly excluding the first hit
-                    # add the original query seq
-                    f.write('>%04d_%s_%s\n%s\n' % (row, str(dfs.loc[row, 'A2_organism'])[:30],
-                                                   str(dfs.loc[row, 'A4_description'])[:30],
-                                                   dfs.loc[row, '%s_SW_match_seq%s' % (TMD, s)]))
+        # if s == "":
+        #     fasta_file_path = r"D:\Schweris\Projects\Xiao\20160728 SIMAP vs HHBLITS fasta" + "\\" + '%s_10gap.fas' % df.loc[acc, 'protein_name']
+        #     with open(fasta_file_path, 'w') as f:
+        #         # add the query sequence, if desired
+        #         if set_["add_query_seq"]:
+        #             # add original query seq to fasta file. Note that the first SIMAP hit is excluded below.
+        #             f.write('>00_%s_%s_uniprot_query%s\n%s\n' % (df.loc[acc, 'protein_name'], TMD, s, df.loc[acc, '%s_seq%s' % (TMD, s)]))
+        #         if set_["remove_redundant_seqs"]:
+        #             # select the non-redundant sequences by using the pandas duplicated function
+        #             nr_dfs_fa = dfs_fa.loc[~dfs_fa['%s_SW_match_seq%s' % (TMD, s)].duplicated()]
+        #         else:
+        #             nr_dfs_fa = dfs_fa
+        #
+        #         for row in nr_dfs_fa.index:  # formerly excluding the first hit
+        #             # add the original query seq
+        #             f.write('>%04d_%s_%s\n%s\n' % (row, str(dfs.loc[row, 'A2_organism'])[:30],
+        #                                            str(dfs.loc[row, 'A4_description'])[:30],
+        #                                            dfs.loc[row, '%s_SW_match_seq%s' % (TMD, s)]))
 
 
     return dfs
