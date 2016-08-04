@@ -2,7 +2,7 @@ import os
 from Bio import SeqIO
 import pandas as pd
 
-def parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, uniprot_folder, list_number, logging, uniprot_flatfile_of_selected_records):
+def parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, uniprot_dir, list_number, logging, uniprot_flatfile_of_selected_records):
     """ Retrieves UniProt flatfiles from a large flatfile (e.g. All UniProt), based on a list of accession numbers
 
     """
@@ -11,7 +11,7 @@ def parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, unip
     # parse_large_flatfile_with_list_uniprot_accessions(list_of_uniprot_accessions, uniprot_flatfile_all_single_pass, uniprot_flatfile_of_selected_records)
     # def parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, input_uniprot_flatfile, output_uniprot_flatfile):
     # define path to large uniprot flatfile containing the protein records to be extracted
-    input_uniprot_flatfile = os.path.join(uniprot_folder, "List%02d_large_uniprot_flatfile.txt" % list_number)
+    input_uniprot_flatfile = os.path.join(uniprot_dir, "List%02d_large_uniprot_flatfile.txt" % list_number)
     output_uniprot_flatfile = uniprot_flatfile_of_selected_records
     # from Bio import SeqIO
     # create a list of all the uniprot accessions of the proteins to be selected from the larger uniprot file
@@ -36,7 +36,7 @@ def retrieve_uniprot_data_for_acc_list_in_xlsx_file(excelfile_with_uniprot_acces
     # accession_list = [line.strip() for line in open(input_accession_list, "r")]
     uniprot_index_handle = SeqIO.index(input_uniprot_flatfile, "swiss")
     with open(uniprot_flatfile_of_selected_records, "wb") as output:
-        for uniprot_accession in df_uniprot_accessions['A1_uniprot_accession']:
+        for uniprot_accession in df_uniprot_accessions['uniprot_acc']:
             try:
                 # this adds the selected records to the file, but adds a new line after each line!
                 # Doesn't affect conversion to SeqRecord object)

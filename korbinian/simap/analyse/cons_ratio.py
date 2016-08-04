@@ -11,30 +11,32 @@ import korbinian.mtutils as utils
 def calculate_AAIMON_ratios(pathdict, set_, logging):
     logging.info('~~~~~~~~~~~~starting calculate_AAIMON_ratios~~~~~~~~~~~~')
     overwrite_prev_calculated_AAIMON_ratios = set_["overwrite_prev_calculated_AAIMON_ratios"]
-    if os.path.isfile(pathdict["dfout08_simap_AAIMON"]):
-        #backup_original_file
-        pathdict["dfout08_simap_AAIMON_backup_before_adding_data"] = pathdict["dfout08_simap_AAIMON"][:-4] + 'backup.xlsx'
-        #open file as dataframe
-        df = pd.read_csv(pathdict["dfout08_simap_AAIMON"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-        writer = pd.ExcelWriter(pathdict["dfout08_simap_AAIMON_backup_before_adding_data"])
-        df.to_excel(writer)
-        writer.save()
-        writer.close()
-        logging.info('df loaded from %s. backup of original csv was created' % pathdict["dfout08_simap_AAIMON"])
-    else:
-        df = pd.read_csv(pathdict["dfout05_simapcsv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-        logging.info('pathdict["dfout08_simap_AAIMON"] not found, df loaded from %s. ' % pathdict["dfout05_simapcsv"])
+    # if os.path.isfile(pathdict["list_summary_xlsx"]):
+    #     #backup_original_file
+    #     pathdict["dfout08_simap_AAIMON_backup_before_adding_data"] = pathdict["dfout08_simap_AAIMON"][:-4] + 'backup.xlsx'
+    #     #open file as dataframe
+    #     df = pd.read_csv(pathdict["dfout08_simap_AAIMON"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    #     writer = pd.ExcelWriter(pathdict["dfout08_simap_AAIMON_backup_before_adding_data"])
+    #     df.to_excel(writer)
+    #     writer.save()
+    #     writer.close()
+    #     logging.info('df loaded from %s. backup of original csv was created' % pathdict["dfout08_simap_AAIMON"])
+    # else:
+    #     df = pd.read_csv(pathdict["dfout05_simapcsv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    #     logging.info('pathdict["dfout08_simap_AAIMON"] not found, df loaded from %s. ' % pathdict["dfout05_simapcsv"])
+    df = pd.read_excel(pathdict["list_summary_xlsx"])
+
     #filter to remove sequences where no TMDs are found,
     df = df.loc[df['list_of_TMDs'].notnull()]
-    #filter to remove sequences where no TMDs are found (if string)
-    df.loc[df['list_of_TMDs'] != 'nan']
-    #filter to remove sequences where no TMDs are found (if string)
-    df = df.loc[df['list_of_TMDs'] != 'nan']
+    # #filter to remove sequences where no TMDs are found (if string)
+    # df.loc[df['list_of_TMDs'] != 'nan']
+    # #filter to remove sequences where no TMDs are found (if string)
+    # df = df.loc[df['list_of_TMDs'] != 'nan']
     #determine if the dataframe already contains some previously analysed data
     dataframe_contains_prev_calc_AAIMON_ratios = True if 'TM01_AAIMON_ratio_mean' in df.columns else False
     logging.info('dataframe_contains_prev_calc_AAIMON_ratios = %s' % dataframe_contains_prev_calc_AAIMON_ratios)
-    #iterate over the dataframe. Note that acc = uniprot accession here.
-    for acc in df.index:
+    #iterate over the dataframe for proteins with an existing list_of_TMDs. Note that acc = uniprot accession here.
+    for acc in df.loc[df['list_of_TMDs'] != 'nan'].index:
         #assume af first that there is no previous data, and that the calculations can be re-run
         prev_calc_AAIMON_ratio_for_this_protein_exists = False
         if overwrite_prev_calculated_AAIMON_ratios == False:
@@ -48,7 +50,7 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
                     prev_calc_AAIMON_ratio_for_this_protein_exists = True
                     logging.info(
                         'calculate_AAIMON_ratios skipped, prev_calc_AAIMON_ratio_for_this_protein_exists = True for %s' %
-                        df.loc[acc, 'A1_uniprot_accession'])
+                        df.loc[acc, 'uniprot_acc'])
         else:
             #if the settings says to overwrite the data, ignore its existence
             prev_calc_AAIMON_ratio_for_this_protein_exists = False
@@ -86,7 +88,6 @@ def juxta_function_1(dfs, TMD):
     dfs['end_juxta_after_%s'%TMD] = dfs["%s_end_in_SW_alignment"%TMD]+((dfs["TM%.2d_start_in_SW_alignment"%(int(TMD[2:])+1)]-dfs["%s_end_in_SW_alignment"%TMD])/2).apply(lambda x :int(x) if not np.isnan(x) else np.nan)
     dfs['start_juxta_before_%s'%TMD] = np.where(dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)] == dfs['end_juxta_before_%s'%TMD] ,dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)],dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)])
     return dfs
-
 
 def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathdict, logging):
 
@@ -492,9 +493,14 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
 
             save_hist_and_fastA(acc, dfs, dfs_filt, set_, df, list_of_TMDs, logging)
 
-    # save to csv after each protein is analysed, incrementally adding the extra data
-    with open(pathdict["dfout08_simap_AAIMON"], 'w') as csv_out:
-        df.to_csv(csv_out, sep=",", quoting=csv.QUOTE_NONNUMERIC)
+    # # save to csv after each protein is analysed, incrementally adding the extra data
+    # with open(pathdict["dfout08_simap_AAIMON"], 'w') as csv_out:
+    #     df.to_csv(csv_out, sep=",", quoting=csv.QUOTE_NONNUMERIC)
+    # save to Excel after each protein is analysed, incrementally adding the extra data
+    writer = pd.ExcelWriter(pathdict["list_summary_xlsx"])
+    df.to_excel(writer, sheet_name='protein_list')
+    writer.save()
+    writer.close()
 
 def slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_):
     len_query_TMD = len(df.loc[acc, '%s_seq'%TMD])

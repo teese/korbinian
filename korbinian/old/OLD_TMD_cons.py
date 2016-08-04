@@ -115,7 +115,7 @@ def OLD_calculate_TMD_conservation(pathdict, set_, logging):
             # nested_dict_with_uniprot_seq = create_nested_dict_from_csv(csv_file_with_uniprot_data, list_of_keys_to_keep)
             #                #since this is a nested dictionary, I have to scroll through it until I obtain the correct protein:
             #                for i in range(1,len(nested_dict_with_uniprot_seq)+1):
-            #                    protein_in_csv_cell = df.loc[i,'A1_uniprot_accession']
+            #                    protein_in_csv_cell = df.loc[i,'uniprot_acc']
             #                    print(protein_in_csv_cell)
             #                    print(protein_name[:6])
             #
@@ -281,7 +281,7 @@ def OLD_calculate_TMD_conservation(pathdict, set_, logging):
             else:
                 df.loc[i, 'protein_kept_for_statistical_analysis'] = False
                 list_of_proteins_with_not_enough_valid_hits.append(
-                    df.loc[i, 'A1_uniprot_accession'])
+                    df.loc[i, 'uniprot_acc'])
     
             logging.info('%s\tnumber_of_valid_hits: %i, protein_kept_for_statistical_analysis: %s' % (
                 protein_name, df.loc[i, 'number_of_valid_hits'],
@@ -435,13 +435,13 @@ def OLD_calculate_TMD_conservation(pathdict, set_, logging):
                 df.loc[
                     i, 'md5_checksums_in_homologue_list_that_are_also_in_query_list'] = ''
                 list_of_proteins_with_damaged_file_0_valid_hits.append(
-                    df.loc[i, 'A1_uniprot_accession'])
+                    df.loc[i, 'uniprot_acc'])
                 logging.info('file damaged or no hits (len(df_SIMAP_hits) = 0 : %s)' % csv_file_with_hit_details)
         else:
             # the file is not there, replace the np.nan with an empty field
             df.loc[i, 'query_md5'] = ''
             list_of_proteins_with_no_csv_file_with_hit_details.append(
-                df.loc[i, 'A1_uniprot_accession'])
+                df.loc[i, 'uniprot_acc'])
             logging.info('file does not exist: %s' % csv_file_with_hit_details)
     logging.info(
         'list_of_proteins_with_damaged_file_0_valid_hits (repeating SIMAP download is necessary) : %s' % list_of_proteins_with_damaged_file_0_valid_hits)

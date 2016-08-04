@@ -2,17 +2,17 @@ import os
 import pandas as pd
 import korbinian.mtutils as utils
 
-def convert_uniprot_list_to_nonred_ff_via_uniref(set_, list_number, uniprot_folder, logging, uniprot_flatfile_of_selected_records):
+def convert_uniprot_list_to_nonred_ff_via_uniref(set_, list_number, uniprot_dir, logging, uniprot_flatfile_of_selected_records):
     """ Convert uniprot accession list to a non-redundant uniprot flatfile using UniRef clusters
     """
     # load uniref cutoff used (typically 50, for UniRef50)
     uniref_cutoff = set_["uniref_cluster_cutoff"]
     # define path to csv file containing the list of redundant uniprot accessions
-    redundant_list_uniprot_acc_csv = os.path.join(uniprot_folder ,"List%02d_redundant_list_uniprot_acc.tab" % list_number)
+    redundant_list_uniprot_acc_csv = os.path.join(uniprot_dir ,"List%02d_redundant_list_uniprot_acc.tab" % list_number)
     # define path to uniprot flatfile containing the redundant protein records
-    redundant_uniprot_flatfile = os.path.join(uniprot_folder ,"List%02d_redundant_uniprot_flatfile.txt" % list_number)
+    redundant_uniprot_flatfile = os.path.join(uniprot_dir ,"List%02d_redundant_uniprot_flatfile.txt" % list_number)
     # define path to the csv file containing the relevant uniref clusters applicable to this list of proteins
-    uniref_clusters_csv = os.path.join(uniprot_folder ,"List%02d_UniRef%02d_clusters.tab" % (list_number ,uniref_cutoff))
+    uniref_clusters_csv = os.path.join(uniprot_dir ,"List%02d_UniRef%02d_clusters.tab" % (list_number ,uniref_cutoff))
     # create a new dataframe with the uniref csv file, containing the accessions of the reference sequences
     df_uniref = pd.read_table(uniref_clusters_csv)
     # to simplify, keep only the columns with the uniprot accessions

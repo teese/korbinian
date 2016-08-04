@@ -9,15 +9,15 @@ import pandas as pd
 
 def create_graph_of_gap_density(pathdict, set_, logging):
     logging.info('~~~~~~~~~~~~starting creating graphs of gap density~~~~~~~~~~~~')
-
-    # test if the dataframe has already been created, otherwise re-open from uniprot csv file
-    if os.path.isfile(pathdict["dfout10_uniprot_gaps"]):
-        df = pd.read_csv(pathdict["dfout10_uniprot_gaps"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
-        logging.info('df loaded from %s' % pathdict["dfout10_uniprot_gaps"])
-    else:
-        raise FileNotFoundError(
-            'No gap analysis has been done yet. %s is not found. Please run calculate calculate_gap_densities' % pathdict[
-                "dfout10_uniprot_gaps"])
+    # # test if the dataframe has already been created, otherwise re-open from uniprot csv file
+    # if os.path.isfile(pathdict["dfout10_uniprot_gaps"]):
+    #     df = pd.read_csv(pathdict["dfout10_uniprot_gaps"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
+    #     logging.info('df loaded from %s' % pathdict["dfout10_uniprot_gaps"])
+    # else:
+    #     raise FileNotFoundError(
+    #         'No gap analysis has been done yet. %s is not found. Please run calculate calculate_gap_densities' % pathdict[
+    #             "dfout10_uniprot_gaps"])
+    df = pd.read_excel(pathdict["list_summary_xlsx"])
 
     num_of_bins_in_tmd_region = set_["variables"]["plot.create_graph_of_gap_density.num_of_bins_in_tmd_region"]
     # find the maximum number of TMDs amongst the proteins
@@ -128,7 +128,6 @@ def create_graph_of_gap_density(pathdict, set_, logging):
                         list_of_positionfrequency_extra.append(df.loc[acc, 'len_juxta_after_TM%.2d' % n].tolist())
                         list_of_positionfrequency_intra.append(df.loc[acc, 'len_juxta_before_TM%.2d' % n].tolist())
 
-                utils.aaa(df)
                 if df.loc[acc, "n_term_ec"] == False:
                     for n in TMD_range_plus_1:
                         list_of_positionfrequency_extra.append(df.loc[acc, 'len_juxta_after_TM%.2d' % n].tolist())

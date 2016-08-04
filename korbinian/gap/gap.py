@@ -19,26 +19,27 @@ def calculate_gap_densities(pathdict, set_, logging):
     # 24 for beta barrel proteins, can be altered if only several TMDs to consider
     max_number_of_tmds = set_["max_number_of_tmds"]
 
-    if os.path.isfile(pathdict["dfout10_uniprot_gaps"]):
-        df = pd.read_csv(pathdict["dfout10_uniprot_gaps"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
-        logging.info('df loaded from %s' % pathdict["dfout10_uniprot_gaps"])
-    elif os.path.isfile(pathdict["dfout08_simap_AAIMON"]):
-        df = pd.read_csv(pathdict["dfout08_simap_AAIMON"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
-        logging.info('no gap file found, df loaded from %s' % pathdict["dfout08_simap_AAIMON"])
-        # If no previous analysis had been done, uniprot csv is opened and additional columns are created
-        df["gaps_analysed"]= np.nan     # Column, containing true or false
-        for n in range (1,max_number_of_tmds+1):
-            df["TM%.2d_occuring_gaps"%n]=np.nan     # List of unique gappositions, which occur in the tmd
-            df["TM%.2d_amount_possible_gappositions"%n]=np.nan
-            df['total_amount_of_TM%.2d'%n] = np.nan     # How often TMD is considered
-            df['juxta_TM%.2d_intracellular_possible_gappositions'%n] = np.nan   # List of unique gappositions, which occur in the intracellular loop-part/end
-            df['juxta_TM%.2d_extracellular_possible_gappositions'%n] = np.nan   # List of unique gappositions, which occur in the intracellular loop-part/end
-            df['juxta_TM%.2d_intracellular_num_gaps'%n] = np.nan
-            df['juxta_TM%.2d_exracellular_num_gaps'%n] = np.nan
-            df['len_juxta_TM%.2d_intracellular'%n] = np.nan
-            df['len_juxta_TM%.2d_extracellular'%n] = np.nan
-    else:
-        raise IOError("df is not in memory, and neither %s nor %s are found" % (pathdict["dfout10_uniprot_gaps"],pathdict["dfout08_simap_AAIMON"]))
+    # if os.path.isfile(pathdict["dfout10_uniprot_gaps"]):
+    #     df = pd.read_csv(pathdict["dfout10_uniprot_gaps"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
+    #     logging.info('df loaded from %s' % pathdict["dfout10_uniprot_gaps"])
+    # elif os.path.isfile(pathdict["dfout08_simap_AAIMON"]):
+    #     df = pd.read_csv(pathdict["dfout08_simap_AAIMON"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
+    #     logging.info('no gap file found, df loaded from %s' % pathdict["dfout08_simap_AAIMON"])
+    #     # If no previous analysis had been done, uniprot csv is opened and additional columns are created
+    #     df["gaps_analysed"]= np.nan     # Column, containing true or false
+    #     for n in range (1,max_number_of_tmds+1):
+    #         df["TM%.2d_occuring_gaps"%n]=np.nan     # List of unique gappositions, which occur in the tmd
+    #         df["TM%.2d_amount_possible_gappositions"%n]=np.nan
+    #         df['total_amount_of_TM%.2d'%n] = np.nan     # How often TMD is considered
+    #         df['juxta_TM%.2d_intracellular_possible_gappositions'%n] = np.nan   # List of unique gappositions, which occur in the intracellular loop-part/end
+    #         df['juxta_TM%.2d_extracellular_possible_gappositions'%n] = np.nan   # List of unique gappositions, which occur in the intracellular loop-part/end
+    #         df['juxta_TM%.2d_intracellular_num_gaps'%n] = np.nan
+    #         df['juxta_TM%.2d_exracellular_num_gaps'%n] = np.nan
+    #         df['len_juxta_TM%.2d_intracellular'%n] = np.nan
+    #         df['len_juxta_TM%.2d_extracellular'%n] = np.nan
+    # else:
+    #     raise IOError("df is not in memory, and neither %s nor %s are found" % (pathdict["dfout10_uniprot_gaps"],pathdict["dfout08_simap_AAIMON"]))
+    df = pd.read_excel(pathdict["list_summary_xlsx"])
 
     for acc in df.index:
 
@@ -71,7 +72,6 @@ def calculate_gap_densities(pathdict, set_, logging):
                             reverse_tmd = True
                         print (reverse_tmd)
 
-
                         # for each TMD in the proteins, creates new lists which will contain gappositions, lists are saved in a column and created again for each tmd
                         for tmd in list_of_TMDs:
                             print(tmd)
@@ -82,14 +82,12 @@ def calculate_gap_densities(pathdict, set_, logging):
                             list_of_gaps_intracellular = []
                             list_of_gaps_extracellular = []
 
-
                             for hit in analysed_df.index:
 
                             #'''
                             #Start of the main gap analysis
                             #Code searches for "-" in the TMD sequence and returns the index!! (not the position)
                             #'''
-
                                 # Following if conditions only refer to gaps in the query!
                                 # Query gaps are counted as "in between positions", for example: 4,5 refers to a gap between position 4 and 5;
                                 # if two gaps occur one after another: only one position (between two amino acids is considered)
@@ -390,8 +388,13 @@ def calculate_gap_densities(pathdict, set_, logging):
                         # At the end, sets analysed to true, this is important to not overwrite
                         df.loc[acc,"gaps_analysed"] = "True"
                         logging.info("--Analysed")
-                        with open(pathdict["dfout10_uniprot_gaps"], 'w') as csv_out:
-                            df.to_csv(csv_out, sep=",", quoting=csv.QUOTE_NONNUMERIC)
+                        # with open(pathdict["dfout10_uniprot_gaps"], 'w') as csv_out:
+                        #     df.to_csv(csv_out, sep=",", quoting=csv.QUOTE_NONNUMERIC)
+
+                        writer = pd.ExcelWriter(pathdict["list_summary_xlsx"])
+                        df.to_excel(writer, sheet_name='protein_list')
+                        writer.save()
+                        writer.close()
 
 
                     else:

@@ -1,39 +1,25 @@
-from scipy.stats import ttest_ind
+import ast
 import csv
-import itertools
 import korbinian.mtutils as utils
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import sys
 import os
 import tlabtools.tools as tools
 
-
 def compare_rel_con_lists(pathdict, set_, logging):
-    settings = "need to convert Rimma's settings file to excel"
-    #    if 'df1' in globals():
-    #        if isinstance(df1, pd.DataFrame):
-    #            reload_data_from_summary_files = False
-    #        else:
-    #            reload_data_from_summary_files = True
-    #    else:
-    #        reload_data_from_summary_files = True
-
-
-    # if reload_data_from_summary_files == True:
     protein_lists = set_["protein_lists"]
     protein_list_names = set_["protein_list_names"]
 
     protein_lists_joined = '_'.join(['%02d' % n for n in protein_lists])
-    base_path_summ_two_lists = os.path.join(pathdict["summaries_folder"], 'compare_lists')
+    base_path_summ_two_lists = os.path.join(pathdict["summaries_dir"], 'compare_lists')
     if os.path.isdir(base_path_summ_two_lists) == False:
         os.mkdir(base_path_summ_two_lists)
     base_filename_summ_two_lists = os.path.join(base_path_summ_two_lists, 'Lists_%s' % protein_lists_joined)
 
     df_list = []
     for index, list_num in enumerate(protein_lists):
-        base_filename_summ = os.path.join(pathdict["summaries_folder"], 'List%02d' % list_num)
+        base_filename_summ = os.path.join(pathdict["summaries_dir"], 'List%02d' % list_num)
         pathdict["dfout09_simap_AAIMON_02"] = '%s_simap_AAIMON_02.csv' % base_filename_summ
         if index == 0:
             df1 = pd.read_csv(pathdict["dfout09_simap_AAIMON_02"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
@@ -117,7 +103,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         xlabel = 'average conservation ratio (membranous over nonmembranous)'
         utils.create_hist_from_df_col(df=df,
                                       title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr,
-                                      settings=settings,
+                                      settings=set_,
                                       data_column=data_column,
                                       color=color,
                                       alpha=alpha,
@@ -147,7 +133,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         xlabel = 'average conservation ratio (membranous over nonmembranous)'
         utils.create_hist_from_df_col(df=df,
                                       title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr,
-                                      settings=settings,
+                                      settings=set_,
                                       data_column=data_column,
                                       color=color,
                                       alpha=alpha,
@@ -177,7 +163,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
 
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
-                                                        settings=settings,
+                                                        settings=set_,
                                                         data_column=data_column,
                                                         color=color,
                                                         alpha=alpha,
@@ -208,7 +194,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr,
                                                         num_bins=100,
-                                                        settings=settings,
+                                                        settings=set_,
                                                         data_column=data_column,
                                                         color=color,
                                                         alpha=alpha,
@@ -243,7 +229,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
 
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
-                                                        settings=settings,
+                                                        settings=set_,
                                                         data_column=data_column,
                                                         color=color,
                                                         alpha=alpha,
@@ -274,7 +260,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
 
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
-                                                        settings=settings,
+                                                        settings=set_,
                                                         data_column=data_column,
                                                         color=color,
                                                         alpha=alpha,
@@ -304,7 +290,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
 
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
-                                                        settings=settings,
+                                                        settings=set_,
                                                         data_column=data_column,
                                                         color=color,
                                                         alpha=alpha,
@@ -335,7 +321,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
 
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
-                                                        settings=settings,
+                                                        settings=set_,
                                                         data_column=data_column,
                                                         color=color,
                                                         alpha=alpha,
@@ -366,7 +352,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
 
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
-                                                        settings=settings,
+                                                        settings=set_,
                                                         data_column=data_column,
                                                         color=color,
                                                         alpha=alpha,
@@ -402,7 +388,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
 
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
-                                                        settings=settings,
+                                                        settings=set_,
                                                         data_column=data_column,
                                                         color=color,
                                                         alpha=alpha,
@@ -435,7 +421,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
             utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                             title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr,
                                                             num_bins=60,
-                                                            settings=settings,
+                                                            settings=set_,
                                                             data_column=data_column,
                                                             color=color,
                                                             alpha=alpha,
@@ -471,7 +457,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
 
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
-                                                        settings=settings,
+                                                        settings=set_,
                                                         data_column=data_column,
                                                         color=color,
                                                         alpha=alpha,
@@ -504,7 +490,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
 
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
-                                                        settings=settings,
+                                                        settings=set_,
                                                         data_column=data_column,
                                                         color=color,
                                                         alpha=alpha,
@@ -535,7 +521,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
 
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
-                                                        settings=settings,
+                                                        settings=set_,
                                                         data_column=data_column,
                                                         color=color,
                                                         alpha=alpha,
@@ -569,7 +555,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
 
         utils.create_hist_from_df_col_with_auto_binlist(df=df,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
-                                                        settings=settings,
+                                                        settings=set_,
                                                         data_column=data_column,
                                                         color=color,
                                                         alpha=alpha,
@@ -601,7 +587,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
     #
     #        utils.create_hist_from_df_col_with_auto_binlist(df=df,
     #                                                title=title,row_nr=row_nr,col_nr=col_nr,axarr=axarr,num_bins=60,
-    #                                                settings=settings,
+    #                                                settings=set_,
     #                                                data_column = data_column,
     #                                                color=color,
     #                                                alpha=alpha,

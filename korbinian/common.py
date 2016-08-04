@@ -18,7 +18,7 @@ def setup_keyboard_interrupt_and_error_logging(set_, list_number):
     date_string = strftime("%Y%m%d")
 
     # designate the output logfile
-    logfile = os.path.join(set_["logfile_folder"],'List%s_%s_logfile.log' % (list_number, date_string))
+    logfile = os.path.join(set_["logfile_dir"],'List%s_%s_logfile.log' % (list_number, date_string))
     # a file to keep a record of the log settings used for that script
     utils.setup_error_logging(logfile)
 
@@ -39,8 +39,8 @@ def create_settingsdict(excel_file_with_settings):
         # join dictionaries together
         set_.update(sheet_as_dict)
 
-    list_paths_to_normalise = ["data_folder", "uniprot_folder", "data_harddrive", "eaSimap_path", "logfile_folder",
-                               "summaries_folder", "simap_database_folder", "list_of_uniprot_accessions"]
+    list_paths_to_normalise = ["data_folder", "uniprot_folder", "data_harddrive", "eaSimap_path", "logfile_dir",
+                               "summaries_dir", "simap_database_dir", "list_of_uniprot_accessions"]
     # normalise the paths for selected columns, so that they are appropriate for the operating system
     for path in list_paths_to_normalise:
         if path in set_:
@@ -52,6 +52,7 @@ def create_settingsdict(excel_file_with_settings):
 def create_pathdict(base_filename_summaries):
     pathdict = {}
     pathdict["base_filename_summaries"] = base_filename_summaries
+    pathdict["list_summary_xlsx"] = '%s_summary.xlsx' % base_filename_summaries
     pathdict["dfout01_uniprotcsv"] = '%s_uniprot.csv' % base_filename_summaries
     pathdict["dfout02_uniprotTcsv"] = '%s_uniprotT.csv' % base_filename_summaries
     pathdict["dfout03_uniprotxlsx"] = '%s_uniprot.xlsx' % base_filename_summaries
@@ -74,124 +75,82 @@ def create_pathdict(base_filename_summaries):
     pathdict["create_graph_of_gap_density_png"] = '%s_create_graph_of_gap_density.png' % base_filename_summaries
     return pathdict
 
-def setup_file_locations_in_df(df, set_, pathdict):
+def setup_file_locations_in_df(set_, pathdict):
+    df = pd.read_excel(pathdict["list_summary_xlsx"])
     # set up a folder to hold the SIMAP BLAST-like output
     # note that at the moment, files cannot be compressed
-    simap_data_folder = os.path.join(set_['data_folder'], 'simap')
+    simap_database_dir = set_['simap_database_dir']
+    homol_dir = set_["homol_dir"]
+
     if "uniprot_entry_name" in df.columns:
         # join the accession and entry name to create a "protein name" for naming files
-        df['protein_name'] = df.A1_uniprot_accession + '_' + df.uniprot_entry_name
+        df['protein_name'] = df.uniprot_acc + '_' + df.uniprot_entry_name
     else:
         # the list of proteins did not come from UniProt. Simply use the accession to name the files.
-        df['protein_name'] = df.A1_uniprot_accession
-    df['first_two_letters_of_uniprot_acc'] = df['A1_uniprot_accession'].apply(lambda x: x[0:2])
-    df['simap_filename_base_linuxpath'] = simap_data_folder + '/' + df.first_two_letters_of_uniprot_acc + '/' + df.protein_name
-    df['simap_filename_base'] = df['simap_filename_base_linuxpath'].apply(lambda x: os.path.normpath(x))
-    df.drop('simap_filename_base_linuxpath', axis=1, inplace=True)
+        df['protein_name'] = df.uniprot_acc
+    df['first_two_letters_of_uniprot_acc'] = df['uniprot_acc'].apply(lambda x: x[0:2])
+    df['simap_filename_base'] = simap_database_dir + '/' + df.first_two_letters_of_uniprot_acc + '/' + df.protein_name
+    # normalise path to suit operating system
+    df['simap_filename_base'] = df['simap_filename_base'].apply(lambda x: os.path.normpath(x))
+
+    df['homol_base'] = homol_dir + '/' + df.first_two_letters_of_uniprot_acc + '/' + df.protein_name
+    # normalise path to suit operating system
+    df['homol_base'] = df['homol_base'].apply(lambda x : os.path.normpath(x))
 
     # create filenames for simap output
-    df['SIMAP_tarfile'] = df.simap_filename_base + '_SIMAP.tar.gz'
-    df['SIMAP_feature_table_XML_file'] = df.protein_name + '_feature_table.xml'
+    df['SIMAP_tar'] = df.simap_filename_base + '_SIMAP.tar.gz'
     df['SIMAP_feature_table_XML_file_path'] = df.simap_filename_base + '_feature_table.xml'
-    df['SIMAP_homologues_XML_file'] = df.protein_name + '_homologues.xml'
     df['SIMAP_homologues_XML_file_path'] = df.simap_filename_base + '_homologues.xml'
     your_name = unicodedata.normalize('NFKD', set_["your_name"][:20]).encode('ascii', 'ignore').decode("utf-8")
-    df['SIMAP_download_date_file'] = df.protein_name + '.{}.{}.txt'.format(strftime("%Y%m%d"), your_name)
     df['SIMAP_download_date_file_path'] = df.simap_filename_base + '.{}.{}.txt'.format(strftime("%Y%m%d"), your_name)
-    df['SIMAP_csv_from_XML'] = df.protein_name + '.csv'
-    df['SIMAP_csv_from_XML_path'] = df.simap_filename_base + '.csv'
-    df['SIMAP_csv_from_XML_tarfile'] = df.simap_filename_base + '.csv.tar.gz'
-    df['SIMAP_csv_analysed'] = df.protein_name + '_analysed.csv'
-    df['SIMAP_csv_analysed_path'] = df.simap_filename_base + '_analysed.csv'
-    df['output_tarfile'] = df.protein_name + '_outputfiles.tar.gz'
-    df['output_tarfile_path'] = df.simap_filename_base + '_outputfiles.tar.gz'
-    df['csv_SIMAP_homologues_kept_for_statistical_analysis'] = df.simap_filename_base + '_homologues_for_stat.csv'
+
+    df['homol_xlsx'] = df['homol_base'] + '.xlsx'
+    df['homol_fasta_zip'] = df['homol_base'] + '_fasta.zip'
+    df['homol_cons_ratio_zip'] = df['homol_base'] + '_cons_ratio.zip'
+    df['homol_gaps_zip'] = df['homol_base'] + '_gaps.zip'
+    df['SIMAP_temp_csv_from_XML_path'] = df.simap_filename_base + '.csv'
 
     # name the fasta file with the TMD seqs (eg A0A1F4_EYS_DROME_TMD_sequences_of_homologues.fas)
-    df['fasta_file_path'] = df.simap_filename_base + '_simap_TMD_seq_homol.fas'
-
-    # name the second fasta file (eg. A0T0U2_PSBE_THAPS_simap_TMD_seq_homol_&_surrounding.fas)
-    df['fasta_file_plus_surr_path'] = df.simap_filename_base + '_simap_TMD_seq_homol_plus_surr.fas'
-    df['fast_homol_kept_stat_analysis'] = df.simap_filename_base + '_simap_TMD_seq_kept_stat_analysis.fas'
-    df['csv_file_av_cons_ratios_hits'] = df.simap_filename_base + '_cons_ratios.csv'
     '''
     FOR multiple TMDs, create a BASE from which the TMDs can be numbered
     '''
-    df['fasta_file_BASENAME'] = df.protein_name + '_simap_seq_homol_'
-    df['fasta_file_BASENAMEPATH'] = df.simap_filename_base + '_simap_seq_homol_'
+    df['fasta_file_BASENAME'] = df.protein_name + '_homol_seq_'
+    df['fasta_file_BASENAMEPATH'] = df.homol_base + '_homol_seq_'
 
     # name the second fasta file (eg. A0T0U2_PSBE_THAPS_simap_TMD_seq_homol_&_surrounding.fas)
-    df['fasta_file_plus_surr_BASENAME'] = df.protein_name + '_simap_seq_homol_plus_surr_'
-    df['fasta_file_plus_surr_BASENAMEPATH'] = df.simap_filename_base + '_simap_seq_homol_plus_surr_'
+    df['fasta_file_plus_surr_BASENAME'] = df.protein_name + '_homol_seq_plus_surr_'
+    df['fasta_file_plus_surr_BASENAMEPATH'] = df.homol_base + '_homol_seq_plus_surr_'
 
     # create a basename for the output histograms
     df['AAIMON_hist_BASENAME'] = df.protein_name + '_AAIMON_hist'
-    df['AAIMON_hist_BASENAMEPATH'] = df.simap_filename_base + '_AAIMON_hist'
+    df['AAIMON_hist_BASENAMEPATH'] = df.homol_base + '_AAIMON_hist'
     df['AASMON_hist_BASENAME'] = df.protein_name + '_AASMON_hist'
-    df['AASMON_hist_BASENAMEPATH'] = df.simap_filename_base + '_AASMON_hist'
+    df['AASMON_hist_BASENAMEPATH'] = df.homol_base + '_AASMON_hist'
 
+    ########################################################################################
+    #                                                                                      #
+    #           Old stuff, with one singe outputfile for different funt                     #
+    #                                                                                      #
+    ########################################################################################
+    # df['SIMAP_csv_from_XML'] = df.protein_name + '.csv'
+    # df['SIMAP_temp_csv_from_XML_path'] = df.simap_filename_base + '.csv'
+    # df['SIMAP_csv_from_XML_tarfile'] = df.simap_filename_base + '.csv.tar.gz'
+    # df['SIMAP_csv_analysed'] = df.protein_name + '_analysed.csv'
+    # df['SIMAP_csv_analysed_path'] = df.simap_filename_base + '_analysed.csv'
+    # df['output_tarfile'] = df.protein_name + '_outputfiles.tar.gz'
+    # df['output_tarfile_path'] = df.simap_filename_base + '_outputfiles.tar.gz'
+    df['csv_SIMAP_homologues_kept_for_statistical_analysis'] = df.simap_filename_base + '_homologues_for_stat.csv'
+    # name the second fasta file (eg. A0T0U2_PSBE_THAPS_simap_TMD_seq_homol_&_surrounding.fas)
+    df['fast_homol_kept_stat_analysis'] = df.simap_filename_base + '_simap_TMD_seq_kept_stat_analysis.fas'
+    df['csv_file_av_cons_ratios_hits'] = df.simap_filename_base + '_cons_ratios.csv'
     df['csv_file_av_cons_ratios_hits_BASENAME'] = df.protein_name + '_cons_ratios_'
     df['csv_file_av_cons_ratios_hits_BASENAMEPATH'] = df.simap_filename_base + '_cons_ratios_'
 
     # save to a csv
-    df.to_csv(pathdict["dfout04_uniprotcsv_incl_paths"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+    #df.to_csv(pathdict["dfout04_uniprotcsv_incl_paths"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
     # save to Excel
-    writer = pd.ExcelWriter(pathdict["dfout03_uniprotxlsx"])  # engine='xlsxwriter'
-    df.to_excel(writer, sheet_name='dfout02')
-    df.T.to_excel(writer, sheet_name='dfout01')
+    writer = pd.ExcelWriter(pathdict["list_summary_xlsx"])  # engine='xlsxwriter'
+    df.to_excel(writer, sheet_name='protein_list')
     writer.save()
     writer.close()
     return
-
-####################################################################
-#               HOPEFULLY NO LONGER NECESSARY
-####################################################################
-#A## variables are included only to help navigate the document in PyCharm
-# A04_setup_df_dtypes = set_["run_A04_setup_df_dtypes"]
-# if A04_setup_df_dtypes:
-#     logging.info('~~~~~~~~~~~~  starting A04_setup_df_dtypes   ~~~~~~~~~~~~')
-#     #test if the dataframe has already been created, otherwise reopen from csv file
-#     # if 'df' in globals():
-#     #     if isinstance(df, pd.DataFrame):
-#     #         logging.info('first protein acc = %s, df already exists, continuing with A04_setup_df_dtypes' % df.iloc[0][0])
-#     # else:
-#     #     logging.info('df loaded from %s' % pathdict["dfout01_uniprotcsv"])
-#     df = pd.read_csv(pathdict["dfout01_uniprotcsv"], sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
-#     '''Create Pandas Dataframe with the protein name and file locations, etc'''
-#     original_columns = list(df.columns)
-#     columns_added_after_SIMAP_analysis = ['organism_domain', 'protein_name', 'SIMAP_feature_table_XML_file_path',
-#                                           'SIMAP_homologues_XML_file_path', 'SIMAP_csv_analysed_path',
-#                                           'SIMAP_input_seq_details_dict', 'SIMAP_filter_string',
-#                                           'SIMAP_resultSpecification_dict', 'database_details_dict',
-#                                           'simap_version', 'SIMAP_total_hits',
-#                                           'fasta_file_path',
-#                                           'fasta_file_plus_surr_path',
-#                                           'query_md5', 'query_length', 'query_selfscore', 'query_sequenceid',
-#                                           'total_number_of_simap_hits',
-#                                           'query_sequence_from_homologue_XML_file',
-#                                           'number_of_hits_in_homologue_XML_file',
-#                                           'kept_after_redundancy_check',
-#                                           'number_of_valid_hits',
-#                                           'df_mem_nonmem_ratios',
-#                                           'mean_ratio_ident_mem_to_nonmem',
-#                                           'stdev_ratio_ident_mem_to_nonmem',
-#                                           'protein_kept_for_statistical_analysis',
-#                                           'fast_homol_kept_stat_analysis',
-#                                           'csv_file_av_cons_ratios_hits',
-#                                           'csv_SIMAP_homologues_kept_for_statistical_analysis'
-#                                           ]
-#     new_unique_column_list = set(original_columns + columns_added_after_SIMAP_analysis)
-#     #add extra columns
-#     df = df.reindex(index=df.index, columns=new_unique_column_list)
-#     #sort columns
-#     df = df.sort_index(axis=1)
-#
-#     #to avoid trouble with dtypes, change all the new columns to dtype=object
-#     for column in columns_added_after_SIMAP_analysis:
-#         df[column] = df[column].astype(object)
-#
-#     '''Useful debugging tool: check for duplicates'''
-#     import collections
-#     list01 = original_columns + columns_added_after_SIMAP_analysis
-#     duplicate_columns = [x for x, y in collections.Counter(list01).items() if y > 1]
-#     logging.info('%d duplicate_columns found %s' % (len(duplicate_columns), duplicate_columns))

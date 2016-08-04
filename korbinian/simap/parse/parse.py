@@ -9,34 +9,31 @@ import korbinian.mtutils as utils
 def parse_SIMAP_to_csv(pathdict, set_, logging):
     counter_XML_to_CSV = 0
     logging.info('~~~~~~~~~~~~  starting parse_SIMAP_to_csv   ~~~~~~~~~~~~')
-    #test if the dataframe has already been created, otherwise reopen from csv file
-    # if 'df' in globals():
-    #     if isinstance(df, pd.DataFrame):
-    #         logging.info('first protein acc = %s, df already exists' % df.iloc[0][0])
-    # else:
-    #     logging.info('df loaded from %s' % pathdict["dfout04_uniprotcsv_incl_paths"])
-    df = pd.read_csv(pathdict["dfout04_uniprotcsv_incl_paths"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
 
-    #filter to remove sequences where no TMDs are found
-    df = df.loc[df['list_of_TMDs'].notnull()]
-    #filter to remove sequences where no TMDs are found (if string)
-    df = df.loc[df['list_of_TMDs'] != 'nan']
+    df = pd.read_excel(pathdict["list_summary_xlsx"])
 
-    #iterate over the dataframe.
-    for acc in df.index:
+    # #filter to remove sequences where no TMDs are found
+    # df = df.loc[df['list_of_TMDs'].notnull()]
+    # #filter to remove sequences where no TMDs are found (if string)
+    # df = df.loc[df['list_of_TMDs'] != 'nan']
+    #iterate over the dataframe, excluding any proteins that do not have a list of TMDs
+    for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
         #set up counters
         number_of_hits_missing_protein_node = 0
         num_hits_with_SW_align_node = 0
         number_of_hits_missing_smithWatermanAlignment_node = 0
         #number_of_hits_kept_for_statistical_analysis = 0  # number_of_hits
-        organism_domain = df.loc[acc, 'organism_domain']
         protein_name = df.loc[acc, 'protein_name']
-        #try:
+        ft_xml_path = df.loc[acc, 'SIMAP_feature_table_XML_file_path']
+        homol_xml_path = df.loc[acc, 'SIMAP_homologues_XML_file_path']
+        SIMAP_tar = df.loc[acc, 'SIMAP_tar']
+        ft_xml_filename = os.path.basename(ft_xml_path)
+        homol_xml_filename = os.path.basename(homol_xml_path)
         logging.info('%s' % protein_name)
         #check which files exist
-        feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(df, acc)
+        feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path)
         #check if the feature table and homologue files actually exist
-        if os.path.isfile(df.loc[acc, 'SIMAP_tarfile']):
+        if os.path.isfile(df.loc[acc, 'SIMAP_tar']):
             SIMAP_tarfile_exists = True
         else:
             SIMAP_tarfile_exists = False
@@ -44,12 +41,12 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
         #homologue XML files downloaded successfully, but this might change depending on preference
         if SIMAP_tarfile_exists:
             try:
-                with tarfile.open(df.loc[acc, 'SIMAP_tarfile'], mode='r:gz') as tar:
-                    if df.loc[acc, 'SIMAP_feature_table_XML_file'] in [tarinfo.name for tarinfo in tar]:
+                with tarfile.open(SIMAP_tar, mode='r:gz') as tar:
+                    if ft_xml_filename in [tarinfo.name for tarinfo in tar]:
                         feature_table_in_tarfile = True
                     #else:
                     #    feature_table_in_tarfile = False
-                    if df.loc[acc, 'SIMAP_homologues_XML_file'] in [tarinfo.name for tarinfo in tar]:
+                    if homol_xml_filename in [tarinfo.name for tarinfo in tar]:
                         homologues_XML_in_tarfile = True
                         #else:
                         #    homologues_XML_in_tarfile = False
@@ -57,11 +54,11 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                 #file may be corrupted, if script stopped unexpectedly before compression was finished
                 logging.info('%s seems to be corrupted.'
                              'File will be deleted, and will need to be re-downloaded next time program is run' %
-                             df.loc[acc, 'SIMAP_tarfile'])
+                             df.loc[acc, 'SIMAP_tar'])
                 SIMAP_tarfile_exists = False
                 feature_table_in_tarfile = False
                 homologues_XML_in_tarfile = False
-                os.remove(df.loc[acc, 'SIMAP_tarfile'])
+                os.remove(df.loc[acc, 'SIMAP_tar'])
         if not SIMAP_tarfile_exists:
             feature_table_in_tarfile = False
             homologues_XML_in_tarfile = False
@@ -79,7 +76,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
             #df.loc[acc,'TMHMM_TMD_end'] = TMHMM_TMD_end
 
             #create a new file to store all of the simap data, and write the csv header
-            #SIMAP_csv_from_XML_path = r"E:/Databases/simap/%s/%s_homologues.csv" % (organism_domain, protein_name[:30])
+            #SIMAP_temp_csv_from_XML_path = r"E:/Databases/simap/%s/%s_homologues.csv" % (organism_domain, protein_name[:30])
 
             #if the setting is "False", and you don't want to overwrite the files, skip this section
             if set_["overwrite_homologue_csv_files"]:
@@ -133,8 +130,8 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
             #if the files don't exist, or you want to overwrite them
             if create_homol_csv:
                 #extract the tarfile so that it can be read as xml
-                with tarfile.open(df.loc[acc, 'SIMAP_tarfile'], 'r:gz') as tar:
-                    SIMAP_homologues_XML_file_extracted = tar.extractfile(df.loc[acc, 'SIMAP_homologues_XML_file'])
+                with tarfile.open(df.loc[acc, 'SIMAP_tar'], 'r:gz') as tar:
+                    SIMAP_homologues_XML_file_extracted = tar.extractfile(homol_xml_filename)
 
                     #parse the XML file with elementtree, define the 'root' of the XML file
                     simap_homologue_tree = ET.parse(SIMAP_homologues_XML_file_extracted)
@@ -160,8 +157,6 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                         'however this SIMAP parser was developed for SIMAP version 4.0.' %
                                          df.loc[acc, 'simap_version'])
                     counter_XML_to_CSV += 1
-                    logging.info('%s homologous sequences parsed from SIMAP XML to csv' %
-                                 int(df.loc[acc, 'SIMAP_total_hits']))
 
                     query_sequence_node = simap_homologue_root[0][0][0][0][2][0][0]
                     ''' xxxx CURRENTLY THE df is filled with nan values,
@@ -224,16 +219,16 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                         #print (matrix)
                         #from Bio.SubsMat.MatrixInfo import matrix as matrix_name
 
-                        #print('SIMAP_csv_from_XML_path %s' % df.loc[acc, 'SIMAP_csv_from_XML_path'])
+                        #print('SIMAP_temp_csv_from_XML_path %s' % df.loc[acc, 'SIMAP_temp_csv_from_XML_path'])
 
-                        SIMAP_csv_from_XML_path = df.loc[acc, 'SIMAP_csv_from_XML_path']
+                        SIMAP_temp_csv_from_XML_path = df.loc[acc, 'SIMAP_temp_csv_from_XML_path']
                         #fasta_file_path = df.loc[acc, 'fasta_file_path']
 
                         #create an empty file
-                        open(SIMAP_csv_from_XML_path, 'w').close()
+                        open(SIMAP_temp_csv_from_XML_path, 'w').close()
 
                         #reopen to add match details iteratively from dictionary
-                        with open(SIMAP_csv_from_XML_path, 'a') as csvfile:
+                        with open(SIMAP_temp_csv_from_XML_path, 'a') as csvfile:
 
                             #set up a bool to catch those files where not a single hit actually gives data
                             at_least_one_hit_contains_SW_node = False
@@ -374,9 +369,24 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                                             doublequote=True)
                                     writer.writerow(match_details_dict)
 
-                        with tarfile.open(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'], 'w:gz') as tar_SIMAP_out:
-                            tar_SIMAP_out.add(SIMAP_csv_from_XML_path, arcname=df.loc[acc, 'SIMAP_csv_from_XML'])
-                        os.remove(SIMAP_csv_from_XML_path)
+                        # with tarfile.open(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'], 'w:gz') as tar_SIMAP_out:
+                        #     tar_SIMAP_out.add(SIMAP_temp_csv_from_XML_path, arcname=df.loc[acc, 'SIMAP_csv_from_XML'])
+                        print("SIMAP_temp_csv_from_XML_path", SIMAP_temp_csv_from_XML_path)
+                        dfs = pd.read_csv(SIMAP_temp_csv_from_XML_path)
+
+                        # create subfolders, if they don't exist
+                        subfolder = os.path.dirname(df.loc[acc, 'homol_xlsx'])
+                        if not os.path.isdir(subfolder):
+                            os.mkdir(subfolder)
+                        # save to excel
+                        writer = pd.ExcelWriter(df.loc[acc, 'homol_xlsx'])
+                        dfs.to_excel(writer, sheet_name='homol')
+                        writer.save()
+                        writer.close()
+                        print("df.loc[acc, 'homol_xlsx']", df.loc[acc, 'homol_xlsx'])
+                        utils.aaa(dfs)
+                        os.remove(SIMAP_temp_csv_from_XML_path)
+                        logging.info('%s homologous sequences parsed from SIMAP XML to csv' % int(df.loc[acc, 'SIMAP_total_hits']))
     logging.info(
         'number_of_hits_missing_smithWatermanAlignment_node: %i' % number_of_hits_missing_smithWatermanAlignment_node)
     logging.info('number_of_hits_missing_protein_node: %i' % number_of_hits_missing_protein_node)

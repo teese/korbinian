@@ -6,25 +6,16 @@ import csv
 import korbinian.mtutils as utils
 
 def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_, logging, pathdict):
-    # create_csv_from_uniprot_flatfile(input_file=uniprot_flatfile_of_selected_records, output_file=csv_file_with_uniprot_data)
-    ## open uniprot flatfile
-    # def create_csv_from_uniprot_flatfile(input_file, output_file):
-    # global uniprot_record, uni_dict, record
-    # input_file=uniprot_flatfile_of_selected_records
-    # output_file=csv_file_with_uniprot_data
     logging.info('~~~~~~~~~~~~  starting A03_create_csv_from_uniprot_flatfile   ~~~~~~~~~~~~')
     uniprot_dict_all_proteins = {}
     with open(uniprot_flatfile_of_selected_records, "r")as f:
         records = SwissProt.parse(f)
         count_of_uniprot_records_processed = 0
-        count_of_uniprot_records_added_to_csv = 0
         for record in records:
-            # uni_dict = utils.create_dict_of_data_from_uniprot_record(record)
             # create an empty output dictionary to hold the uniprot data for each record
             output_dict = {}
             # extract the subcellular location detail from the (poorly organized and unsorted) uniprot comments section
             comments_dict = {}
-            # utils.create_dictionary_of_comments(record, comments_dict)
             try:
                 for comment in record.comments:
                     # splits comments based on first ":" symbol, creates a list called split_comment
@@ -57,12 +48,9 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
                     # search for the regex string, ignoring any mismatches in upper or lower case
                     comment_match = re.search(regex_search_string,
                                               output_dict['comments_subcellular_location_uniprot'],
-                                              re.IGNORECASE
-                                              )
+                                              re.IGNORECASE)
                     if comment_match:
                         regex_subcell_loc_dict[search_word] = True
-            # the dictionary could also be nested within one column
-            # output_dict['regex_subcell_loc_dict'] = regex_subcell_loc_dict
             # add all of the fields to the dictionary
             output_dict.update(regex_subcell_loc_dict)
 
@@ -70,7 +58,7 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
             logging.info(record.accessions[0])
 
             # add data to dictionary
-            output_dict['A1_uniprot_accession'] = record.accessions[0]
+            output_dict['uniprot_acc'] = record.accessions[0]
             output_dict['organism'] = record.organism
             output_dict['uniprot_entry_name'] = record.entry_name
             output_dict['uniprot_gene_name'] = record.gene_name
@@ -86,7 +74,6 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
             list_of_feature_types_in_uniprot_record = []
             for sublist in record.features:
                 list_of_feature_types_in_uniprot_record.append(sublist[0])
-                # logging.info(sublist)
 
             # list of the features that we want in the final csv
             desired_features_in_uniprot = ['TRANSMEM', 'VARIANT', 'CONFLICT', 'VAR_SEQ', 'VARSPLIC', 'TOPO_DOM']
@@ -169,7 +156,7 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
                                     variant_array = np.array(
                                         [variant_type, start_of_variant_in_seq, end_of_variant_in_seq,
                                          variant_description, variant_feature_identifier])
-                                    if array_of_all_variants_in_tmd != ([]):
+                                    if array_of_all_variants_in_tmd.size != 0:
                                         # add array with the data for this variant to the array/list for all variants
                                         array_of_all_variants_in_tmd = np.row_stack(
                                             (array_of_all_variants_in_tmd, variant_array))
@@ -182,14 +169,12 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
 
             count_of_uniprot_records_processed += 1
             # nest each dictionary containing the data for each protein into a large dictionary that contains all data from all proteins
-            uniprot_dict_all_proteins[output_dict['A1_uniprot_accession']] = output_dict
+            uniprot_dict_all_proteins[output_dict['uniprot_acc']] = output_dict
 
-        # convert that nested dict into a pandas dataframe
-        df = pd.DataFrame(uniprot_dict_all_proteins).sort_index()
+        # convert that nested dict into a pandas dataframe, transverse
+        df = pd.DataFrame(uniprot_dict_all_proteins).sort_index().T
         # count records in dataframe
-        count_of_uniprot_records_added_to_csv = len(df.columns)
-        # flip rows and columns (transverse)
-        df = df.T.copy()
+        count_of_uniprot_records_added_to_csv = df.shape[0]
 
         ''' ~~ DETERMINE START AND STOP INDICES FOR TMD PLUS SURROUNDING SEQ ~~ '''
         fa_aa_before_tmd = set_["fa_aa_before_tmd"]
@@ -199,7 +184,6 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
         # currently the loop is run for each TMD, based on the sequence with the most TMDs
         for i in range(1, max_num_TMDs + 1):
             TMD = 'TM%02d' % i
-            TMD_seq_name = '%s_seq'%TMD
             # instead of integers showing the start or end of the TMD, some people write strings into the
             # UniProt database, such as "<5" or "?"
             # to avoid the bugs that this introduces, it is necessary to convert all strings to np.nan (as floats),
@@ -216,10 +200,7 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
             # obtain the indices of proteins in the series
             uniprot_acc_indices_longer_than_prot_seq = series_indices_longer_than_prot_seq[series_indices_longer_than_prot_seq].index
             # use indices to select the main dataframe, and convert these end_surrounding_seq_in_query values to the uniprot_seqlen value
-            df.loc[uniprot_acc_indices_longer_than_prot_seq, '%s_end_plus_surr'%TMD] = df.loc[
-                uniprot_acc_indices_longer_than_prot_seq, 'uniprot_seqlen']
-            # df = df['%s_end_plus_surr'%TMD].apply(lambda x: x['%s_end_plus_surr'%TMD] if x < df['uniprot_seqlen'] else df['uniprot_seqlen'])
-            # df['%s_end_plus_surr'%TMD][df['%s_end_plus_surr'%TMD] > df['uniprot_seqlen']] = df['uniprot_seqlen']
+            df.loc[uniprot_acc_indices_longer_than_prot_seq, '%s_end_plus_surr'%TMD] = df.loc[uniprot_acc_indices_longer_than_prot_seq, 'uniprot_seqlen']
 
         ''' ~~   SLICE TMDS FROM UNIPROT SEQ    ~~ '''
         # iterate through each TMD, slicing out the relevant sequence.
@@ -239,12 +220,13 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
         df['uniprot_features'] = df['uniprot_features'].astype(str)
         df['list_of_TMDs'] = df['list_of_TMDs'].astype(str)
         # save to a csv
-        df.to_csv(pathdict["dfout01_uniprotcsv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+        #df.to_csv(pathdict["dfout01_uniprotcsv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
         # save to Excel
-        writer = pd.ExcelWriter(pathdict["dfout03_uniprotxlsx"])
-        df.to_excel(writer, sheet_name='dfout03')
+        writer = pd.ExcelWriter(pathdict["list_summary_xlsx"])
+        df.to_excel(writer, sheet_name='protein_list')
         writer.save()
         writer.close()
+        print()
 
-    logging.info('A03_create_csv_from_uniprot_flatfile was successful:'
+    logging.info('create_csv_from_uniprot_flatfile was successful:'
                  '\n\%i uniprot records parsed to csv' % (count_of_uniprot_records_added_to_csv))

@@ -13,7 +13,6 @@ import csv
 import ctypes
 import logging
 import matplotlib.pyplot as plt
-import numpy as np
 import platform
 import subprocess, threading, time, sys
 import tarfile
@@ -192,8 +191,6 @@ def round_sig(x, sig=1):
 def create_hist_from_df_col(df,title,axarr,row_nr,col_nr,settings,data_column,color,alpha,col_width_value,fontsize,xlabel,ylabel,legend):
     #filter to remove sequences where no TMDs are found, 
     df = df.loc[df['list_of_TMDs'].notnull()]
-    #filter to remove sequences where no TMDs are found (if string)
-    df.loc[df['list_of_TMDs'] != 'nan']
     #filter to remove sequences where no TMDs are found (if string)
     df = df.loc[df['list_of_TMDs'] != 'nan']
     #iterate over the dataframe. Note that acc = uniprot accession here.    
@@ -533,20 +530,24 @@ def create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_
         return fig, axarr
 
 
-def check_tarfile(df,i):
+def check_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path):
     '''
     Checks the tarball that contains the SIMAP output. 
     Looks to see if the tarball exists, if it is corrupted, if it contains the feature table and homologues from simap.
     '''
-    if os.path.isfile(df.loc[i,'SIMAP_feature_table_XML_file_path']):
+
+    ft_xml_filename = os.path.basename(ft_xml_path)
+    homol_xml_filename = os.path.basename(homol_xml_path)
+
+    if os.path.isfile(ft_xml_path):
         feature_table_XML_exists = True
     else:
         feature_table_XML_exists = False
-    if os.path.isfile(df.loc[i, 'SIMAP_homologues_XML_file_path']):
+    if os.path.isfile(homol_xml_path):
         homologues_XML_exists = True
     else:
         homologues_XML_exists = False
-    if os.path.isfile(df.loc[i, 'SIMAP_tarfile']):
+    if os.path.isfile(SIMAP_tar):
         SIMAP_tarfile_exists = True
     else:
         SIMAP_tarfile_exists = False                
@@ -555,12 +556,12 @@ def check_tarfile(df,i):
     #homologues_XML_in_tarfile = False
     if SIMAP_tarfile_exists:
         try:
-            with tarfile.open(df.loc[i, 'SIMAP_tarfile'], mode = 'r:gz') as tar:
-                if df.loc[i,'SIMAP_feature_table_XML_file'] in [tarinfo.name for tarinfo in tar]:
+            with tarfile.open(SIMAP_tar, mode = 'r:gz') as tar:
+                if ft_xml_filename in [tarinfo.name for tarinfo in tar]:
                     feature_table_in_tarfile = True
                 #else:
                 #    feature_table_in_tarfile = False
-                if df.loc[i,'SIMAP_homologues_XML_file'] in [tarinfo.name for tarinfo in tar]:
+                if homol_xml_filename in [tarinfo.name for tarinfo in tar]:
                     homologues_XML_in_tarfile = True
                 #else:
                 #    homologues_XML_in_tarfile = False 
@@ -685,7 +686,7 @@ def create_dict_of_data_from_uniprot_record(record):
             #create a numpy array of any sequence variants are in the TMD region
             list_of_variant_types_in_uniprot = ['VARIANT', 'CONFLICT','VARSPLIC', 'VAR_SEQ']
             #array_of_all_variants_in_tmd = np.zeros(4)
-            array_of_all_variants_in_tmd = ([])
+            array_of_all_variants_in_tmd = np.array([])
             for variant_type in list_of_variant_types_in_uniprot:
                 if variant_type in desired_features_in_uniprot_dict.keys():
                     list_of_variant_locations = list(desired_features_in_uniprot_dict[variant_type])       
@@ -702,7 +703,7 @@ def create_dict_of_data_from_uniprot_record(record):
                         #add to numpy array that contains all the variants in the tmd region
                         if variant_is_in_tmd:
                             variant_array = np.array([variant_type, start_of_variant_in_seq, end_of_variant_in_seq, variant_description,variant_feature_identifier])
-                            if array_of_all_variants_in_tmd != ([]):
+                            if array_of_all_variants_in_tmd.size == 0:
                                 array_of_all_variants_in_tmd = np.row_stack((array_of_all_variants_in_tmd, variant_array))
                             else:
                                 array_of_all_variants_in_tmd = variant_array

@@ -49,7 +49,7 @@ def OLD_calculate_TMD_conservation_by_gappedIdentity(pathdict, set_, logging, li
             # take the organism domain (Eukaryota, Bacteria, Archaea) from the full organism classification list
             organism_domain = utils.convert_stringlist_to_list(
                 df.loc[i, 'uniprot_orgclass'])[0]
-            protein_name = '%s_%s' % (df.loc[i, 'A1_uniprot_accession'],
+            protein_name = '%s_%s' % (df.loc[i, 'uniprot_acc'],
                                       df.loc[
                                           i, 'uniprot_entry_name'])
             # open the csv file that contains a summary of all 'hits' for that protein

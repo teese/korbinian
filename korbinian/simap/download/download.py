@@ -6,15 +6,8 @@ import os
 import tarfile
 
 def download_homologues_from_simap(pathdict, set_, logging):
-    # logging.info('~~~~~~~~~~~~  starting A06_retrieve_simap_feature_table_and_homologues_from_list_in_csv   ~~~~~~~~~~~~')
-    # #test if the dataframe has already been created, otherwise reopen from csv file
-    # if 'df' in globals():
-    #     if isinstance(df, pd.DataFrame):
-    #         logging.info('first protein acc = %s, df already exists' % df.iloc[0][0])
-    # else:
-    #     logging.info('df loaded from %s' % pathdict["dfout04_uniprotcsv_incl_paths"])
-    df = pd.read_csv(pathdict["dfout04_uniprotcsv_incl_paths"], sep=",", quoting=csv.QUOTE_NONNUMERIC,index_col=0)
 
+    df = pd.read_excel(pathdict["list_summary_xlsx"])
     #def retrieve_simap_feature_table_and_homologues_from_list_in_csv(input_file, list_of_keys, settings):
     '''
     First prepare the csv file from the uniprot record.
@@ -26,7 +19,6 @@ def download_homologues_from_simap(pathdict, set_, logging):
     java_exec_str = set_["java_exec_str"]
     max_memory_allocation = set_["java_max_RAM_memory_allocated_to_simap_download"]
     taxid = set_["taxid"]  # eg.'7227' for Drosophila melanogaster
-
     enough_hard_drive_space = True
     try:
         byteformat = "GB"
@@ -45,6 +37,13 @@ def download_homologues_from_simap(pathdict, set_, logging):
             protein_name = df.loc[acc, 'protein_name']
             query_sequence_length = df.loc[acc, 'uniprot_seqlen']
             input_sequence = df.loc[acc, 'uniprot_seq']
+            SIMAP_tar = df.loc[acc, 'SIMAP_tar']
+            ft_xml_path = df.loc[acc, 'SIMAP_feature_table_XML_file_path']
+            homol_xml_path = df.loc[acc, 'SIMAP_feature_table_XML_file_path']
+            date_file_path = df.loc[acc, 'SIMAP_download_date_file_path']
+            ft_xml_filename = os.path.basename(df.loc[acc, 'SIMAP_feature_table_XML_file_path'])
+            homol_xml_filename = os.path.basename(df.loc[acc, 'SIMAP_homologues_XML_file_path'])
+            date_file = os.path.basename(df.loc[acc, 'SIMAP_download_date_file_path'])
             ''' windows has a character limit in the command prompt in theory of 8191 characters,
             but the command line java command seems to cause errors with sequences above 3000 amino acids.
             Assume that this problem only applies to Windows,
@@ -63,25 +62,25 @@ def download_homologues_from_simap(pathdict, set_, logging):
             else:
                 download_homologues = True
             if download_homologues == True:
-                simap_data_folder = os.path.join(set_['data_folder'], 'simap')
-                subfolder = os.path.join(simap_data_folder, df.loc[acc, 'first_two_letters_of_uniprot_acc'])
+                simap_database_dir = os.path.join(set_['data_folder'], 'simap')
+                subfolder = os.path.join(simap_database_dir, df.loc[acc, 'first_two_letters_of_uniprot_acc'])
                 if os.path.isdir(subfolder) == False:
                     os.mkdir(subfolder)
                 #check which files exist. This is useful, because it is not possible to open the tarfile as 'a:gz',
                 #therefore you cannot add files to an existing tarfile)
-                feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(df, acc)
+                feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path)
                 if not SIMAP_tarfile_exists:
                     if not feature_table_XML_exists:
                         #download feature table from SIMAP
                         utils.retrieve_simap_feature_table(input_sequence,
                                                            java_exec_str=java_exec_str,
                                                            max_memory_allocation=max_memory_allocation,
-                                                           output_file=df.loc[acc, 'SIMAP_feature_table_XML_file_path'],
+                                                           output_file=ft_xml_path,
                                                            eaSimap_path=set_["eaSimap_path"])
                     if not homologues_XML_exists:
                         #download homologue file from SIMAP
                         utils.retrieve_simap_homologues(input_sequence,
-                                                        output_file=df.loc[acc, 'SIMAP_homologues_XML_file_path'],
+                                                        output_file=homol_xml_path,
                                                         max_hits=max_hits, java_exec_str=java_exec_str,
                                                         max_memory_allocation=max_memory_allocation, taxid=taxid,
                                                         eaSimap_path=set_["eaSimap_path"])
@@ -112,48 +111,19 @@ def download_homologues_from_simap(pathdict, set_, logging):
                     # since we can't add files to the compressed tarfile, only when both the feature table
                     #and xml file are downloaded should we pack and compress them
                     if feature_table_XML_exists and homologues_XML_exists:
-                        with tarfile.open(df.loc[acc, 'SIMAP_tarfile'], mode='w:gz') as tar:
+                        with tarfile.open(SIMAP_tar, mode='w:gz') as tar:
                             #add the files to the compressed tarfile
                             logging.info('%s XML files will be moved into the tarball, original XML files deleted' % protein_name)
-                            tar.add(df.loc[acc, 'SIMAP_feature_table_XML_file_path'],
-                                    arcname=df.loc[acc, 'SIMAP_feature_table_XML_file'])
-                            tar.add(df.loc[acc, 'SIMAP_homologues_XML_file_path'],
-                                    arcname=df.loc[acc, 'SIMAP_homologues_XML_file'])
-                            tar.add(df.loc[acc, 'SIMAP_download_date_file_path'], arcname=df.loc[acc, 'SIMAP_download_date_file'])
+                            tar.add(ft_xml_path,arcname=ft_xml_filename)
+                            tar.add(homol_xml_path,arcname=homol_xml_filename)
+                            tar.add(date_file_path, arcname=date_file)
 
                         #delete the original files
                         try:
-                            os.remove(df.loc[acc, 'SIMAP_feature_table_XML_file_path'])
-                            os.remove(df.loc[acc, 'SIMAP_homologues_XML_file_path'])
-                            os.remove(df.loc[acc, 'SIMAP_download_date_file_path'])
+                            os.remove(ft_xml_path)
+                            os.remove(homol_xml_path)
+                            os.remove(date_file_path)
                         except FileNotFoundError:
                             pass
 
-                            #now add the downloaded files to the tarball, and delete the original XML files
-
-                        #            directory = r'E:/Stephis/Projects/Programming/Python/files/learning/tarfile'
-                        #            newtar = directory + r'/newtar.tar.gz'
-                        #            SIMAP_feature_table_XML_file_basename = 'P29274_AA2AR_HUMAN_feature_table.xml'
-                        #            SIMAP_feature_table_XML_file = '%s/%s' % (directory, SIMAP_feature_table_XML_file_basename)
-                        #            SIMAP_homologues_XML_file_basename = 'P29274_AA2AR_HUMAN_homologues.xml'
-                        #            SIMAP_homologues_XML_file = '%s/%s' % (directory, SIMAP_homologues_XML_file_basename)
-                        #
-                        #            with tarfile.open(df.loc[acc, 'SIMAP_tarfile'], 'w:gz') as tar:
-                        #                tar.add(SIMAP_feature_table_XML_file, arcname = SIMAP_feature_table_XML_file_basename)
-                        #                tar.add(SIMAP_homologues_XML_file, arcname = SIMAP_homologues_XML_file_basename)
-                        #            with tarfile.open(newtar, 'r:gz') as tar:
-                        #                for tarinfo in tar:
-                        #                    print(tarinfo.isreg())
-                        #                    print(tarinfo.name)
-                        #                    print(tarinfo.size)
-                        #
-                        #            df['SIMAP_tarfile'] = df.simap_filename_base + '_SIMAP.tar.gz'
-                        #            df['SIMAP_feature_table_XML_file'] = df.protein_name + '_feature_table.xml'
-                        #            df['SIMAP_feature_table_XML_file_path'] = df.simap_filename_base + '_feature_table.xml'
-                        #            df['SIMAP_homologues_XML_file'] = df.protein_name + '_homologues.xml'
-                        #            df['SIMAP_homologues_XML_file_path'] = df.protein_name + '_homologues.xml'
-                        #            df['SIMAP_csv_from_XML'] = df.simap_filename_base + '_homologues.csv'
-                        #            df['SIMAP_csv_from_XML_path'] = df.simap_filename_base + '_homologues.csv'
-                        #            df['csv_SIMAP_homologues_kept_for_statistical_analysis'] = df.simap_filename_base + '_homologues_for_stat.csv'
-            #print("download homologues = %s" % download_homologues)
     logging.info('retrieve_simap_feature_table_and_homologues_from_list_in_csv is finished')

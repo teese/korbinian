@@ -1,4 +1,5 @@
 from scipy.stats import ttest_ind
+import ast
 import csv
 import itertools
 import korbinian.mtutils as utils
@@ -28,15 +29,15 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
     dict_organising_subplots = utils.create_dict_organising_subplots(n_plots_per_fig=n_plots_per_fig,
                                                                      n_rows=nrows_in_each_fig,
                                                                      n_cols=ncols_in_each_fig)
-
     '''
     Prepare data for following figures
     '''
-    df = pd.read_csv(pathdict["dfout08_simap_AAIMON"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-    # filter to remove sequences where no TMDs are found (will contain either np.nan, or 'nan')
-    df = df.loc[df['list_of_TMDs'].notnull()]
-    df = df.loc[df['list_of_TMDs'] != 'nan']
-    # iterate over the dataframe. Note that acc = uniprot accession here.
+    #df = pd.read_csv(pathdict["dfout08_simap_AAIMON"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    df = pd.read_excel(pathdict["list_summary_xlsx"])
+
+    # iterate over the datafra    # filter to remove sequences where no TMDs are found (will contain either np.nan, or 'nan')
+    # df = df.loc[df['list_of_TMDs'].notnull()]
+    # df = df.loc[df['list_of_TMDs'] != 'nan']me. Note that acc = uniprot accession here.
     linspace_binlist = np.linspace(set_["mp_smallest_bin"],
                                    set_["mp_largest_bin"],
                                    set_["mp_number_of_bins"])
@@ -49,8 +50,8 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
     The singlepass dataset contained only 2 proteins, the alpha-helicas multipass only 8 with 1.000000.
     All these are excluded from the dataset (and all following graphs). Note that it would be better to exactly count the valid homologues, rather than exclude them afterwards like this.
     '''
-
-    for acc in df.index:
+    # iterate through the proteins that have a list of TMDs
+    for acc in df.loc[df['list_of_TMDs'].notnull()].df.loc[df['list_of_TMDs'] != 'nan'].index:
         dict_AAIMON_ratio_mean = {}
         dict_AAIMON_ratio_std = {}
         dict_AASMON_ratio_mean = {}
@@ -597,7 +598,6 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
     utils.improve_ggplot_for_4_plots(axarr, row_nr, col_nr, backgroundcolour, legend_obj)
 
     # these graphs are only applicable for multi-pass proteins. Use where at least 2 proteins have a 7th TMD
-    utils.aaa(df_mean_AAIMON_each_TM)
     if "TM07" in df_mean_AAIMON_each_TM.columns:
         if df_mean_AAIMON_each_TM['TM07'].dropna().shape[0] >= 2:
             dataset_contains_multipass_prots = True
@@ -2512,6 +2512,10 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
     '''
     save the updated dataframe, containing the various extra columns used for the figure
     '''
-    with open(pathdict["dfout09_simap_AAIMON_02"], 'w') as csv_out:
-        df.to_csv(csv_out, sep=",", quoting=csv.QUOTE_NONNUMERIC)
-    logging.info('A07b_save_figures_describing_proteins_in_list is finished')
+    # with open(pathdict["dfout09_simap_AAIMON_02"], 'w') as csv_out:
+    #     df.to_csv(csv_out, sep=",", quoting=csv.QUOTE_NONNUMERIC)
+    writer = pd.ExcelWriter(pathdict["list_summary_xlsx"])
+    df.to_excel(writer, sheet_name='protein_list')
+    writer.save()
+    writer.close()
+    logging.info('run_save_figures_describing_proteins_in_list is finished')

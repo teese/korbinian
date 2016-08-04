@@ -67,9 +67,7 @@ else:
  - in rare cases the only alignable sequence is the TMD!! The sequence excluding TMD is therefore '', too small for an analysis, but as long as the program runs successfully this can be filtered out later, at the "calculate conservation" step using pandas dataframes
 TM01_perc_sim starts with 0 instead of 1.0. Simply remove column?
 """
-import csv
 import logging
-import pandas as pd
 import os
 import korbinian
 
@@ -80,17 +78,17 @@ def run_korbinian(excel_file_with_settings):
 
     korbinian.common.setup_keyboard_interrupt_and_error_logging(set_, list_number)
 
-    uniprot_folder_sel = os.path.join(set_["uniprot_folder"], 'selected')
+    uniprot_folder_sel = os.path.join(set_["uniprot_dir"], 'selected')
     uniprot_flatfile_of_selected_records = os.path.join(uniprot_folder_sel,'List%s_selected_uniprot_records_flatfile.txt' % list_number)
 
-    base_filename_summaries = os.path.join(set_["summaries_folder"], 'List%02d' % list_number)
+    base_filename_summaries = os.path.join(set_["summaries_dir"], 'List%02d' % list_number)
     excelfile_with_uniprot_accessions = os.path.join(base_filename_summaries, '.xlsx')
 
     # create dictionary of paths for output files
     pathdict = korbinian.common.create_pathdict(base_filename_summaries)
 
     if set_["run_convert_uniprot_list_to_nonred_ff_via_uniref"] == True:
-        logging.info('~~~~~~~~~~~~  starting A00_convert_redundant_uniprot_list_to_nonred_ff_via_uniref   ~~~~~~~~~~~~')
+        logging.info('~~~~~~~~~~~~  starting run_convert_redundant_uniprot_list_to_nonred_ff_via_uniref   ~~~~~~~~~~~~')
         if os.path.isfile(uniprot_flatfile_of_selected_records) == False or set_["overwrite_selected_ff"] == True:
             korbinian.uniprot.convert_uniprot_list_to_nonred_ff_via_uniref(set_, list_number, uniprot_folder_sel,
                                                                            logging, uniprot_flatfile_of_selected_records)
@@ -105,9 +103,8 @@ def run_korbinian(excel_file_with_settings):
     if set_["run_create_csv_from_uniprot_flatfile"]:
         korbinian.uniprot.create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_, logging, pathdict)
 
-    if set_["run_A05_setup_df_file_locations"]:
-        df1 = pd.read_csv(pathdict["dfout01_uniprotcsv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-        korbinian.common.setup_file_locations_in_df(df1, set_, pathdict)
+    if set_["run_setup_df_file_locations"]:
+        korbinian.common.setup_file_locations_in_df(set_, pathdict)
 
     if set_["run_retrieve_simap_feature_table_and_homologues_from_list_in_csv"]:
         korbinian.simap.download_homologues_from_simap(pathdict, set_, logging)
@@ -130,7 +127,7 @@ def run_korbinian(excel_file_with_settings):
 
     '''+++++++++++++++ Summary figures describing the conservation ratios of proteins in the list ++++++++++++++++++'''
     if set_["run_compare_lists"]:
-        korbinian.rel_con.compare_rel_con_lists(pathdict, set_, logging)
+        korbinian.rel_cons.compare_rel_con_lists(pathdict, set_, logging)
 
     '''+++++++++++++++TMD CONSERVATION (OLD)++++++++++++++++++'''
     if set_["old_calculate_TMD_conservation"]:
