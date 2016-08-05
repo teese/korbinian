@@ -78,12 +78,17 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
             #create a new file to store all of the simap data, and write the csv header
             #SIMAP_temp_csv_from_XML_path = r"E:/Databases/simap/%s/%s_homologues.csv" % (organism_domain, protein_name[:30])
 
+            # create subfolders, if they don't exist
+            subfolder = os.path.dirname(df.loc[acc, 'homol_csv_zip'])
+            utils.make_sure_path_exists(subfolder)
+
             #if the setting is "False", and you don't want to overwrite the files, skip this section
             if set_["overwrite_homologue_csv_files"]:
                 create_homol_csv = True
             else:
                 #check if output file already exists
-                if os.path.isfile(df.loc[acc, 'SIMAP_csv_from_XML_tarfile']):
+                if os.path.isfile(df.loc[acc, 'homol_csv_zip']):
+                    dfs = pd.read_excel()
                     try:
                         with tarfile.open(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'], 'r:gz') as tar:
                             #create a list of files
@@ -372,20 +377,11 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                         # with tarfile.open(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'], 'w:gz') as tar_SIMAP_out:
                         #     tar_SIMAP_out.add(SIMAP_temp_csv_from_XML_path, arcname=df.loc[acc, 'SIMAP_csv_from_XML'])
                         print("SIMAP_temp_csv_from_XML_path", SIMAP_temp_csv_from_XML_path)
-                        dfs = pd.read_csv(SIMAP_temp_csv_from_XML_path)
 
-                        # create subfolders, if they don't exist
-                        subfolder = os.path.dirname(df.loc[acc, 'homol_xlsx'])
-                        if not os.path.isdir(subfolder):
-                            os.mkdir(subfolder)
-                        # save to excel
-                        writer = pd.ExcelWriter(df.loc[acc, 'homol_xlsx'])
-                        dfs.to_excel(writer, sheet_name='homol')
-                        writer.save()
-                        writer.close()
-                        print("df.loc[acc, 'homol_xlsx']", df.loc[acc, 'homol_xlsx'])
-                        utils.aaa(dfs)
-                        os.remove(SIMAP_temp_csv_from_XML_path)
+
+
+
+                        # os.remove(SIMAP_temp_csv_from_XML_path)
                         logging.info('%s homologous sequences parsed from SIMAP XML to csv' % int(df.loc[acc, 'SIMAP_total_hits']))
     logging.info(
         'number_of_hits_missing_smithWatermanAlignment_node: %i' % number_of_hits_missing_smithWatermanAlignment_node)

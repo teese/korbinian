@@ -11,11 +11,13 @@ from Bio.SeqUtils.ProtParam import ProteinAnalysis
 import ast
 import csv
 import ctypes
+import errno
 import logging
 import matplotlib.pyplot as plt
 import platform
 import subprocess, threading, time, sys
 import tarfile
+import zipfile
 
 '''
 ************************************************************The uniprot functions start here.***************************************************************
@@ -1650,3 +1652,71 @@ def calc_hydrophob(seq):
     aa_counts_arr = np.array([value for (key, value) in sorted(aa_counts_dict.items())])
     multiplied = aa_counts_arr * hessa_scale
     return multiplied.sum()
+
+def make_sure_path_exists(path):
+    try:
+        os.makedirs(path)
+    except OSError as exception:
+        if exception.errno != errno.EEXIST:
+            raise
+
+def save_df_to_csv_zip(df,out_zipfile,open_method="w"):
+    """ Save a pandas dataframe to a zipped csv (.csv.zip)
+
+    Parameters
+    ----------
+    df : DataFrame
+        pandas dataframe to be saved
+    out_zipfile : filepath
+        Path of zipfile to be created or added to.
+    open_method : str
+        Method to open file, e.g. "w" for write mode
+
+    Saved Files and Figures
+    -----------------------
+    out_zipfile : zipfile
+
+    Note
+    -------
+    Much faster than saving to excel.
+    """
+    # create a temporary csv file path
+    temp_csv = out_zipfile[:-4] + "_temp.csv"
+    # extract filename
+    filename = os.path.basename(temp_csv)
+    #save
+    df.to_csv(temp_csv, quoting=csv.QUOTE_NONNUMERIC)
+    # either create new zip and add ("w"), or open existing zip and add "a"
+    with zipfile.ZipFile(out_zipfile,open_method, zipfile.ZIP_DEFLATED) as zipout:
+        zipout.write(temp_csv, arcname=filename)
+    # delete temporary csv file
+    os.remove(temp_csv)
+
+def open_df_from_csv_zip(in_zipfile, filename=None):
+    """ Opens a pandas dataframe that is saved as a zipped csv (.csv.zip)
+
+    Parameters
+    ----------
+    in_zipfile : str
+        Path to zip file
+    filename : str
+        Filename. Default is "None", which will result in the opening of the first file in the zipfile.
+
+    Returns
+    -------
+    df : DataFrame
+        pandas Dataframe
+
+    Note
+    -------
+    Much faster than reading from excel.
+    """
+    with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
+        if filename == None:
+            # if a filename is not given, open the first file in the list
+            filename = openzip.namelist()[0]
+        # open the file
+        csv_file_handle = openzip.open(filename)
+        # read as pandas dataframe
+        df = pd.read_csv(csv_file_handle)
+    return df

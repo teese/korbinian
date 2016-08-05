@@ -104,11 +104,11 @@ def setup_file_locations_in_df(set_, pathdict):
     your_name = unicodedata.normalize('NFKD', set_["your_name"][:20]).encode('ascii', 'ignore').decode("utf-8")
     df['SIMAP_download_date_file_path'] = df.simap_filename_base + '.{}.{}.txt'.format(strftime("%Y%m%d"), your_name)
 
-    df['homol_xlsx'] = df['homol_base'] + '.xlsx'
+    df['homol_csv_zip'] = df['homol_base'] + '.xlsx'
     df['homol_fasta_zip'] = df['homol_base'] + '_fasta.zip'
     df['homol_cons_ratio_zip'] = df['homol_base'] + '_cons_ratio.zip'
     df['homol_gaps_zip'] = df['homol_base'] + '_gaps.zip'
-    df['SIMAP_temp_csv_from_XML_path'] = df.simap_filename_base + '.csv'
+    df['SIMAP_temp_csv_from_XML_path'] = df['homol_base'] + '.csv'
 
     # name the fasta file with the TMD seqs (eg A0A1F4_EYS_DROME_TMD_sequences_of_homologues.fas)
     '''
