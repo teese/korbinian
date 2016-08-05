@@ -52,7 +52,7 @@ def create_settingsdict(excel_file_with_settings):
 def create_pathdict(base_filename_summaries):
     pathdict = {}
     pathdict["base_filename_summaries"] = base_filename_summaries
-    pathdict["list_summary_xlsx"] = '%s_summary.xlsx' % base_filename_summaries
+    pathdict["list_summary_csv"] = '%s_summary.xlsx' % base_filename_summaries
     pathdict["dfout01_uniprotcsv"] = '%s_uniprot.csv' % base_filename_summaries
     pathdict["dfout02_uniprotTcsv"] = '%s_uniprotT.csv' % base_filename_summaries
     pathdict["dfout03_uniprotxlsx"] = '%s_uniprot.xlsx' % base_filename_summaries
@@ -76,7 +76,7 @@ def create_pathdict(base_filename_summaries):
     return pathdict
 
 def setup_file_locations_in_df(set_, pathdict):
-    df = pd.read_excel(pathdict["list_summary_xlsx"])
+    df = pd.read_csv(pathdict["list_summary_csv"])
     # set up a folder to hold the SIMAP BLAST-like output
     # note that at the moment, files cannot be compressed
     simap_database_dir = set_['simap_database_dir']
@@ -104,7 +104,7 @@ def setup_file_locations_in_df(set_, pathdict):
     your_name = unicodedata.normalize('NFKD', set_["your_name"][:20]).encode('ascii', 'ignore').decode("utf-8")
     df['SIMAP_download_date_file_path'] = df.simap_filename_base + '.{}.{}.txt'.format(strftime("%Y%m%d"), your_name)
 
-    df['homol_csv_zip'] = df['homol_base'] + '.xlsx'
+    df['homol_csv_zip'] = df['homol_base'] + '.csv.zip'
     df['homol_fasta_zip'] = df['homol_base'] + '_fasta.zip'
     df['homol_cons_ratio_zip'] = df['homol_base'] + '_cons_ratio.zip'
     df['homol_gaps_zip'] = df['homol_base'] + '_gaps.zip'
@@ -129,7 +129,7 @@ def setup_file_locations_in_df(set_, pathdict):
 
     ########################################################################################
     #                                                                                      #
-    #           Old stuff, with one singe outputfile for different funt                     #
+    #           Old stuff, with one single outputfile for different functions              #
     #                                                                                      #
     ########################################################################################
     # df['SIMAP_csv_from_XML'] = df.protein_name + '.csv'
@@ -145,12 +145,7 @@ def setup_file_locations_in_df(set_, pathdict):
     df['csv_file_av_cons_ratios_hits'] = df.simap_filename_base + '_cons_ratios.csv'
     df['csv_file_av_cons_ratios_hits_BASENAME'] = df.protein_name + '_cons_ratios_'
     df['csv_file_av_cons_ratios_hits_BASENAMEPATH'] = df.simap_filename_base + '_cons_ratios_'
-
+    # indicate that the setup_file_locations_in_df function has been run
+    df['setup_file_locations_in_df'] = True
     # save to a csv
-    #df.to_csv(pathdict["dfout04_uniprotcsv_incl_paths"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
-    # save to Excel
-    writer = pd.ExcelWriter(pathdict["list_summary_xlsx"])  # engine='xlsxwriter'
-    df.to_excel(writer, sheet_name='protein_list')
-    writer.save()
-    writer.close()
-    return
+    df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)

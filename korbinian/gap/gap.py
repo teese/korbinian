@@ -39,7 +39,7 @@ def calculate_gap_densities(pathdict, set_, logging):
     #         df['len_juxta_TM%.2d_extracellular'%n] = np.nan
     # else:
     #     raise IOError("df is not in memory, and neither %s nor %s are found" % (pathdict["dfout10_uniprot_gaps"],pathdict["dfout08_simap_AAIMON"]))
-    df = pd.read_excel(pathdict["list_summary_xlsx"])
+    df = pd.read_csv(pathdict["list_summary_csv"])
 
     for acc in df.index:
 
@@ -388,13 +388,8 @@ def calculate_gap_densities(pathdict, set_, logging):
                         # At the end, sets analysed to true, this is important to not overwrite
                         df.loc[acc,"gaps_analysed"] = "True"
                         logging.info("--Analysed")
-                        # with open(pathdict["dfout10_uniprot_gaps"], 'w') as csv_out:
-                        #     df.to_csv(csv_out, sep=",", quoting=csv.QUOTE_NONNUMERIC)
-
-                        writer = pd.ExcelWriter(pathdict["list_summary_xlsx"])
-                        df.to_excel(writer, sheet_name='protein_list')
-                        writer.save()
-                        writer.close()
+                        # save to csv
+                        df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
 
                     else:

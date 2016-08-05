@@ -33,7 +33,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
     Prepare data for following figures
     '''
     #df = pd.read_csv(pathdict["dfout08_simap_AAIMON"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-    df = pd.read_excel(pathdict["list_summary_xlsx"])
+    df = pd.read_csv(pathdict["list_summary_csv"])
 
     # iterate over the datafra    # filter to remove sequences where no TMDs are found (will contain either np.nan, or 'nan')
     # df = df.loc[df['list_of_TMDs'].notnull()]
@@ -2509,13 +2509,11 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
     # save the figure as it is
     savefig = True
     # save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
+
+    # add a column indicating that save_figures_describing_proteins_in_list has been run
+    df["save_figures_describing_proteins_in_list"] = True
     '''
     save the updated dataframe, containing the various extra columns used for the figure
     '''
-    # with open(pathdict["dfout09_simap_AAIMON_02"], 'w') as csv_out:
-    #     df.to_csv(csv_out, sep=",", quoting=csv.QUOTE_NONNUMERIC)
-    writer = pd.ExcelWriter(pathdict["list_summary_xlsx"])
-    df.to_excel(writer, sheet_name='protein_list')
-    writer.save()
-    writer.close()
+    df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
     logging.info('run_save_figures_describing_proteins_in_list is finished')

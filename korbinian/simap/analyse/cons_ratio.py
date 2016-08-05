@@ -7,24 +7,12 @@ import os
 import tarfile
 import korbinian
 import korbinian.mtutils as utils
+import zipfile
 
 def calculate_AAIMON_ratios(pathdict, set_, logging):
     logging.info('~~~~~~~~~~~~starting calculate_AAIMON_ratios~~~~~~~~~~~~')
     overwrite_prev_calculated_AAIMON_ratios = set_["overwrite_prev_calculated_AAIMON_ratios"]
-    # if os.path.isfile(pathdict["list_summary_xlsx"]):
-    #     #backup_original_file
-    #     pathdict["dfout08_simap_AAIMON_backup_before_adding_data"] = pathdict["dfout08_simap_AAIMON"][:-4] + 'backup.xlsx'
-    #     #open file as dataframe
-    #     df = pd.read_csv(pathdict["dfout08_simap_AAIMON"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-    #     writer = pd.ExcelWriter(pathdict["dfout08_simap_AAIMON_backup_before_adding_data"])
-    #     df.to_excel(writer)
-    #     writer.save()
-    #     writer.close()
-    #     logging.info('df loaded from %s. backup of original csv was created' % pathdict["dfout08_simap_AAIMON"])
-    # else:
-    #     df = pd.read_csv(pathdict["dfout05_simapcsv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-    #     logging.info('pathdict["dfout08_simap_AAIMON"] not found, df loaded from %s. ' % pathdict["dfout05_simapcsv"])
-    df = pd.read_excel(pathdict["list_summary_xlsx"])
+    df = pd.read_csv(pathdict["list_summary_csv"])
 
     #filter to remove sequences where no TMDs are found,
     df = df.loc[df['list_of_TMDs'].notnull()]
@@ -48,37 +36,44 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
                 else:
                     #if the data is there, it should be a float and not a np.nan, therefore there is no need to repeat all the calculations
                     prev_calc_AAIMON_ratio_for_this_protein_exists = True
-                    logging.info(
-                        'calculate_AAIMON_ratios skipped, prev_calc_AAIMON_ratio_for_this_protein_exists = True for %s' %
-                        df.loc[acc, 'uniprot_acc'])
+                    logging.info('calculate_AAIMON_ratios skipped, prev_calc_AAIMON_ratio_for_this_protein_exists = True for %s' % df.loc[acc, 'uniprot_acc'])
         else:
             #if the settings says to overwrite the data, ignore its existence
             prev_calc_AAIMON_ratio_for_this_protein_exists = False
         if overwrite_prev_calculated_AAIMON_ratios == True or prev_calc_AAIMON_ratio_for_this_protein_exists == False:
-            organism_domain = df.loc[acc, 'organism_domain']
             protein_name = df.loc[acc, 'protein_name']
             logging.info('%s' % protein_name)
-            SIMAP_csv_from_XML_tarfile = df.loc[acc, 'SIMAP_csv_from_XML_tarfile']
-            if os.path.exists(SIMAP_csv_from_XML_tarfile):
+            # SIMAP_csv_from_XML_tarfile = df.loc[acc, 'SIMAP_csv_from_XML_tarfile']
+            # if os.path.exists(SIMAP_csv_from_XML_tarfile):
+            #     try:
+            #         with tarfile.open(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'], mode='r:gz') as tar:
+            #             if df.loc[acc, 'SIMAP_csv_from_XML'] in [tarinfo.name for tarinfo in tar]:
+            #                 SIMAP_csv_from_XML_exists = True
+            #             else:
+            #                 SIMAP_csv_from_XML_exists = False
+            #     except (EOFError, tarfile.ReadError, OSError):
+            #         #file may be corrupted, if script stopped unexpectedly before compression was finished
+            #         logging.info('%s seems to be corrupted. File will be deleted.'
+            #                      'Will need to be parsed again next time program is run' %
+            #                       df.loc[acc, 'SIMAP_csv_from_XML_tarfile'])
+            #         SIMAP_csv_from_XML_exists = False
+            #         os.remove(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'])
+            # else:
+            #     SIMAP_csv_from_XML_exists = False
+
+            SIMAP_csv_from_XML_exists = False
+            if os.path.exists(df.loc[acc, 'homol_csv_zip']):
                 try:
-                    with tarfile.open(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'], mode='r:gz') as tar:
-                        if df.loc[acc, 'SIMAP_csv_from_XML'] in [tarinfo.name for tarinfo in tar]:
+                    with zipfile.ZipFile(df.loc[acc, 'homol_csv_zip'], "r", zipfile.ZIP_DEFLATED) as openzip:
+                        if openzip.namelist()[0][:-4] == ".csv":
                             SIMAP_csv_from_XML_exists = True
-                        else:
-                            SIMAP_csv_from_XML_exists = False
-                except (EOFError, tarfile.ReadError, OSError):
+                except:
                     #file may be corrupted, if script stopped unexpectedly before compression was finished
                     logging.info('%s seems to be corrupted. File will be deleted.'
-                                 'Will need to be parsed again next time program is run' %
-                                  df.loc[acc, 'SIMAP_csv_from_XML_tarfile'])
-                    SIMAP_csv_from_XML_exists = False
-                    os.remove(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'])
-            else:
-                SIMAP_csv_from_XML_exists = False
+                                 'Will need to be parsed again next time program is run' % df.loc[acc, 'homol_csv_zip'])
             if SIMAP_csv_from_XML_exists:
-                with tarfile.open(SIMAP_csv_from_XML_tarfile, 'r:gz') as tar_in:
-                    # run the analysis function, which slices homologues, calculates identity, and saves output files
-                    analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathdict, logging)
+                # run the analysis function, which slices homologues, calculates identity, and saves output files
+                analyse_homologues_single_protein(df.loc[acc, 'homol_csv_zip'], acc, protein_name, set_, df, pathdict, logging)
 
     logging.info('calculate_AAIMON_ratios is finished.')
 
@@ -89,11 +84,12 @@ def juxta_function_1(dfs, TMD):
     dfs['start_juxta_before_%s'%TMD] = np.where(dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)] == dfs['end_juxta_before_%s'%TMD] ,dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)],dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)])
     return dfs
 
-def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathdict, logging):
-
-    SIMAP_csv_from_XML_extracted = tar_in.extractfile(df.loc[acc, 'SIMAP_csv_from_XML'])
+def analyse_homologues_single_protein(homol_csv_zip, acc, protein_name, set_, df, pathdict, logging):
+    # with tarfile.open(SIMAP_csv_from_XML_tarfile, 'r:gz') as tar_in:
+    #SIMAP_csv_from_XML_extracted = tar_in.extractfile(df.loc[acc, 'SIMAP_csv_from_XML'])
+    dfs = utils.open_df_from_csv_zip(homol_csv_zip)
     # reopen the csv file containing all the homologue data for that particular protein as a pandas dataframe (labelled Data Frame SIMAP, or dfs)
-    dfs = pd.read_csv(SIMAP_csv_from_XML_extracted, sep=",", index_col=0, quoting=csv.QUOTE_NONNUMERIC)
+    #dfs = pd.read_csv(SIMAP_csv_from_XML_extracted, sep=",", index_col=0, quoting=csv.QUOTE_NONNUMERIC)
     # create a column with the length of the Smith Waterman alignment (same length for query, markup and match)
     if True in dfs['hit_contains_SW_node']:
         at_least_one_hit_contains_SW_node = True
@@ -120,7 +116,7 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
     # add the list of words to the globals, to be accessed by utils.find_disallowed_words
     cr_words_not_allowed_in_description = ast.literal_eval(set_["cr_words_not_allowed_in_description"])
     # collect disallowed words in hit protein description (patent, synthetic, etc)
-    dfs['cr_list_disallowed_words_in_descr'] = dfs['A4_description'].dropna().apply(utils.find_disallowed_words, args=(cr_words_not_allowed_in_description,))
+    dfs['cr_list_disallowed_words_in_descr'] = dfs['uniprot_description'].dropna().apply(utils.find_disallowed_words, args=(cr_words_not_allowed_in_description,))
     # create a boolean column to select hits that do not contain these words in the description
     dfs['cr_disallowed_words_not_in_descr'] = dfs['cr_list_disallowed_words_in_descr'] == '[]'
 
@@ -493,14 +489,9 @@ def analyse_homologues_single_protein(tar_in, acc, protein_name, set_, df, pathd
 
             save_hist_and_fastA(acc, dfs, dfs_filt, set_, df, list_of_TMDs, logging)
 
-    # # save to csv after each protein is analysed, incrementally adding the extra data
-    # with open(pathdict["dfout08_simap_AAIMON"], 'w') as csv_out:
-    #     df.to_csv(csv_out, sep=",", quoting=csv.QUOTE_NONNUMERIC)
-    # save to Excel after each protein is analysed, incrementally adding the extra data
-    writer = pd.ExcelWriter(pathdict["list_summary_xlsx"])
-    df.to_excel(writer, sheet_name='protein_list')
-    writer.save()
-    writer.close()
+    df.loc[acc, "analyse_homologues_single_protein"] = True
+    # save to csv after each protein is analysed, incrementally adding the extra data
+    df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
 def slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_):
     len_query_TMD = len(df.loc[acc, '%s_seq'%TMD])

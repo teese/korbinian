@@ -17,7 +17,7 @@ def create_graph_of_gap_density(pathdict, set_, logging):
     #     raise FileNotFoundError(
     #         'No gap analysis has been done yet. %s is not found. Please run calculate calculate_gap_densities' % pathdict[
     #             "dfout10_uniprot_gaps"])
-    df = pd.read_excel(pathdict["list_summary_xlsx"])
+    df = pd.read_csv(pathdict["list_summary_csv"])
 
     num_of_bins_in_tmd_region = set_["variables"]["plot.create_graph_of_gap_density.num_of_bins_in_tmd_region"]
     # find the maximum number of TMDs amongst the proteins

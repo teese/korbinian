@@ -5,12 +5,13 @@ import pandas as pd
 import tarfile
 import xml.etree.ElementTree as ET
 import korbinian.mtutils as utils
+import zipfile
 
 def parse_SIMAP_to_csv(pathdict, set_, logging):
     counter_XML_to_CSV = 0
     logging.info('~~~~~~~~~~~~  starting parse_SIMAP_to_csv   ~~~~~~~~~~~~')
 
-    df = pd.read_excel(pathdict["list_summary_xlsx"])
+    df = pd.read_csv(pathdict["list_summary_csv"])
 
     # #filter to remove sequences where no TMDs are found
     # df = df.loc[df['list_of_TMDs'].notnull()]
@@ -88,49 +89,51 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
             else:
                 #check if output file already exists
                 if os.path.isfile(df.loc[acc, 'homol_csv_zip']):
-                    dfs = pd.read_excel()
                     try:
-                        with tarfile.open(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'], 'r:gz') as tar:
-                            #create a list of files
-                            files_in_output_tarball = [t.name for t in tar]
-                            #check that the analysed files are actually there
-                            if df.loc[acc, 'SIMAP_csv_from_XML'] in files_in_output_tarball:
-                                #read output csv in tarfile
-                                dfs = pd.read_csv(tar.extractfile(df.loc[acc, 'SIMAP_csv_from_XML']), index_col = 0)
-                                description_of_first_hit = dfs.loc[1, 'A4_description']
-                                logging.info('%s homologues already converted to csv. (%s)' % (acc, description_of_first_hit))
-                                #filter to include only desired hits
-                                '''OLD STUFF, from when XML to CSV was not saved separately
-                                dfs_filt = dfs.query(
-                                    'gapped_ident_above_cutoff == True and hit_contains_SW_node == True and cr_disallowed_words_not_in_descr == True')
-                                #avoid a divide by zero error in the unlikely case that there are no_identical_residues_in_alignment
-                                dfs_filt_AAIMON = dfs_filt.loc[dfs_filt['nonTMD_perc_ident'] != 0]
-                                list_of_TMDs = ast.literal_eval(df.loc[acc, 'list_of_TMDs'])
-                                for TMD in list_of_TMDs:
-                                    #following the general filters, filter to only analyse sequences with TMD identity above cutoff,
-                                    #and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
-                                    dfs_filt_AAIMON = dfs_filt_AAIMON.loc[
-                                        dfs['%s_perc_ident'%TMD] >= set_['min_identity_of_TMD_initial_filter']]
-                                    #add to original dataframe with the list of sequences
-                                    df.loc[acc, '%s_AAIMON_ratio_mean'%TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio'%TMD].mean()
-                                    df.loc[acc, '%s_AAIMON_ratio_std'%TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio'%TMD].std()
-                                    logging.info('AIMON MEAN %s: %0.2f' % (TMD, df.loc[acc, '%s_AAIMON_ratio_mean'%TMD]))
-                                '''
-                            else:
-                                logging.info('%s not in output file tarball, tarball will be deleted' % df.loc[acc, 'SIMAP_csv_from_XML'])
-                                os.remove(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'])
-                                create_homol_csv = True
-                        logging.info('%s already converted to csv, moving to next sequence' %
-                                    df.loc[acc, 'SIMAP_csv_from_XML'])
+                        dfs_test = utils.open_df_from_csv_zip(df.loc[acc, 'homol_csv_zip'])
+                        description_of_first_hit = dfs_test.loc[1, 'uniprot_description']
+                        logging.info('%s homologues already converted to csv. (%s)' % (acc, description_of_first_hit))
                         create_homol_csv = False
-                    except (EOFError, KeyError, tarfile.ReadError):
+                        # with tarfile.open(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'], 'r:gz') as tar:
+                        #     #create a list of files
+                        #     files_in_output_tarball = [t.name for t in tar]
+                        #     #check that the analysed files are actually there
+                        #     if df.loc[acc, 'SIMAP_csv_from_XML'] in files_in_output_tarball:
+                        #         #read output csv in tarfile
+                        #         dfs = pd.read_csv(tar.extractfile(df.loc[acc, 'SIMAP_csv_from_XML']), index_col = 0)
+                        #         description_of_first_hit = dfs.loc[1, 'uniprot_description']
+                        #         logging.info('%s homologues already converted to csv. (%s)' % (acc, description_of_first_hit))
+                        #         #filter to include only desired hits
+                        #         '''OLD STUFF, from when XML to CSV was not saved separately
+                        #         dfs_filt = dfs.query(
+                        #             'gapped_ident_above_cutoff == True and hit_contains_SW_node == True and cr_disallowed_words_not_in_descr == True')
+                        #         #avoid a divide by zero error in the unlikely case that there are no_identical_residues_in_alignment
+                        #         dfs_filt_AAIMON = dfs_filt.loc[dfs_filt['nonTMD_perc_ident'] != 0]
+                        #         list_of_TMDs = ast.literal_eval(df.loc[acc, 'list_of_TMDs'])
+                        #         for TMD in list_of_TMDs:
+                        #             #following the general filters, filter to only analyse sequences with TMD identity above cutoff,
+                        #             #and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
+                        #             dfs_filt_AAIMON = dfs_filt_AAIMON.loc[
+                        #                 dfs['%s_perc_ident'%TMD] >= set_['min_identity_of_TMD_initial_filter']]
+                        #             #add to original dataframe with the list of sequences
+                        #             df.loc[acc, '%s_AAIMON_ratio_mean'%TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio'%TMD].mean()
+                        #             df.loc[acc, '%s_AAIMON_ratio_std'%TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio'%TMD].std()
+                        #             logging.info('AIMON MEAN %s: %0.2f' % (TMD, df.loc[acc, '%s_AAIMON_ratio_mean'%TMD]))
+                        #         '''
+                        #     else:
+                        #         logging.info('%s not in output file tarball, tarball will be deleted' % df.loc[acc, 'SIMAP_csv_from_XML'])
+                        #         os.remove(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'])
+                        #         create_homol_csv = True
+                        # logging.info('%s already converted to csv, moving to next sequence' %
+                        #             df.loc[acc, 'SIMAP_csv_from_XML'])
+                        # create_homol_csv = False
+                    except (EOFError, KeyError):
                         #file may be corrupted, if script stopped unexpectedly before compression was finished
-                        logging.info(
-                            '%s seems to be corrupted. File will be deleted.' % df.loc[acc, 'SIMAP_csv_from_XML_tarfile'])
-                        os.remove(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'])
+                        logging.info('%s seems to be corrupted. File will be deleted.' % df.loc[acc, 'homol_csv_zip'])
+                        os.remove(df.loc[acc, 'homol_csv_zip'])
                         create_homol_csv = True
                 else:
-                    logging.info('%s not found, create_homol_csv = True' % df.loc[acc, 'SIMAP_csv_from_XML_tarfile'])
+                    logging.info('%s not found, create_homol_csv = True' % df.loc[acc, 'homol_csv_zip'])
                     create_homol_csv = True
             #if the files don't exist, or you want to overwrite them
             if create_homol_csv:
@@ -226,7 +229,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
 
                         #print('SIMAP_temp_csv_from_XML_path %s' % df.loc[acc, 'SIMAP_temp_csv_from_XML_path'])
 
-                        SIMAP_temp_csv_from_XML_path = df.loc[acc, 'SIMAP_temp_csv_from_XML_path']
+                        SIMAP_temp_csv_from_XML_path = df['homol_csv_zip'][:-4]
                         #fasta_file_path = df.loc[acc, 'fasta_file_path']
 
                         #create an empty file
@@ -266,10 +269,10 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                     match_details_dict['hit_contains_SW_node'] = hit_contains_SW_node
                                     #add the description. Make an empty string if it is the first (query) hit, preventing the presence of np.nan in the later dataframe
                                     if A1_hit_number == 1:
-                                        A4_description = '%s_SIMAP_query_sequence' % protein_name
+                                        uniprot_description = '%s_SIMAP_query_sequence' % protein_name
                                     else:
-                                        A4_description = protein_node.attrib['description']
-                                    match_details_dict['A4_description'] = A4_description
+                                        uniprot_description = protein_node.attrib['description']
+                                    match_details_dict['uniprot_description'] = uniprot_description
                                     try:
                                         databaseId = int(protein_node[1].attrib['databaseId'])
                                         match_details_dict['databaseId'] = int(protein_node[1].attrib['databaseId'])
@@ -281,13 +284,13 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                     match_details_dict['database'] = databasenode.attrib['name']
                                     try:
                                         taxonomyNode = protein_node[2]
-                                        match_details_dict['A2_organism'] = taxonomyNode.attrib['name']
+                                        match_details_dict['organism'] = taxonomyNode.attrib['name']
                                         match_details_dict['taxonomy_node_id'] = taxonomyNode.attrib['node_id']
                                         match_details_dict['taxonomy_rank'] = taxonomyNode.attrib['rank']
                                     except IndexError:
                                         #sequence is probably synthetic, as it has no database node
-                                        match_details_dict['A4_description'] += ', synthetic'
-                                        match_details_dict['A2_organism'] = 'synthetic'
+                                        match_details_dict['uniprot_description'] += ', synthetic'
+                                        match_details_dict['organism'] = 'synthetic'
                                         match_details_dict['taxonomy_node_id'] = 'synthetic'
                                         match_details_dict['taxonomy_rank'] = 'synthetic'
                                     match_details_dict['len_full_match_seq'] = len(hit[1][0][0].text)
@@ -364,8 +367,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                         #sort
                                         csv_header_for_SIMAP_homologue_file = sorted(list(match_details_dict.keys()))
                                         #save the csv header to the csv file
-                                        writer = csv.writer(csvfile, delimiter=',', quotechar='"', lineterminator='\n',
-                                                            quoting=csv.QUOTE_NONNUMERIC, doublequote=True)
+                                        writer = csv.writer(csvfile, delimiter=',', quotechar='"', lineterminator='\n',quoting=csv.QUOTE_NONNUMERIC, doublequote=True)
                                         writer.writerow(csv_header_for_SIMAP_homologue_file)
                                     #save the match_details_dict as a line in the csv file
                                     writer = csv.DictWriter(csvfile, fieldnames=csv_header_for_SIMAP_homologue_file,
@@ -373,17 +375,15 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                                             lineterminator='\n', quoting=csv.QUOTE_NONNUMERIC,
                                                             doublequote=True)
                                     writer.writerow(match_details_dict)
-
+                        # either create new zip and add ("w"), or open existing zip and add "a"
+                        with zipfile.ZipFile(df['homol_csv_zip'], zipfile.ZIP_DEFLATED) as zipout:
+                            zipout.write(SIMAP_temp_csv_from_XML_path, arcname=os.path.basename(df['homol_csv_zip'])[:-4])
+                        # delete temporary csv file
+                        os.remove(df['homol_csv_zip'][:-4])
                         # with tarfile.open(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'], 'w:gz') as tar_SIMAP_out:
                         #     tar_SIMAP_out.add(SIMAP_temp_csv_from_XML_path, arcname=df.loc[acc, 'SIMAP_csv_from_XML'])
-                        print("SIMAP_temp_csv_from_XML_path", SIMAP_temp_csv_from_XML_path)
-
-
-
-
                         # os.remove(SIMAP_temp_csv_from_XML_path)
                         logging.info('%s homologous sequences parsed from SIMAP XML to csv' % int(df.loc[acc, 'SIMAP_total_hits']))
-    logging.info(
-        'number_of_hits_missing_smithWatermanAlignment_node: %i' % number_of_hits_missing_smithWatermanAlignment_node)
+    logging.info('number_of_hits_missing_smithWatermanAlignment_node: %i' % number_of_hits_missing_smithWatermanAlignment_node)
     logging.info('number_of_hits_missing_protein_node: %i' % number_of_hits_missing_protein_node)
     logging.info('****parse_SIMAP_to_csv finished!!****\n%g files parsed from SIMAP XML to csv' % counter_XML_to_CSV)

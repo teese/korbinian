@@ -219,14 +219,10 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
         df['uniprot_KW'] = df['uniprot_KW'].astype(str)
         df['uniprot_features'] = df['uniprot_features'].astype(str)
         df['list_of_TMDs'] = df['list_of_TMDs'].astype(str)
+        # indicate that the create_csv_from_uniprot_flatfile function has been run
+        df['create_csv_from_uniprot_flatfile'] = True
         # save to a csv
-        #df.to_csv(pathdict["dfout01_uniprotcsv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
-        # save to Excel
-        writer = pd.ExcelWriter(pathdict["list_summary_xlsx"])
-        df.to_excel(writer, sheet_name='protein_list')
-        writer.save()
-        writer.close()
-        print()
+        df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     logging.info('create_csv_from_uniprot_flatfile was successful:'
                  '\n\%i uniprot records parsed to csv' % (count_of_uniprot_records_added_to_csv))
