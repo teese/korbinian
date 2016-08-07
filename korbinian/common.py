@@ -123,10 +123,7 @@ def setup_file_locations_in_df(set_, pathdict):
     df['fasta_file_plus_surr_BASENAMEPATH'] = df.homol_base + '_homol_seq_plus_surr_'
 
     # create a basename for the output histograms
-    df['AAIMON_hist_BASENAME'] = df.protein_name + '_AAIMON_hist'
-    df['AAIMON_hist_BASENAMEPATH'] = df.homol_base + '_AAIMON_hist'
-    df['AASMON_hist_BASENAME'] = df.protein_name + '_AASMON_hist'
-    df['AASMON_hist_BASENAMEPATH'] = df.homol_base + '_AASMON_hist'
+    df['AAIMON_hist_path_prefix'] = df.homol_base + '_AAIMON_hist'
 
     ########################################################################################
     #                                                                                      #

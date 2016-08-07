@@ -1,3 +1,0 @@
-from korbinian.rel_cons.multiplelists.multiplelists import compare_rel_con_lists
-from korbinian.rel_cons.multipleproteins.multipleproteins import save_figures_describing_proteins_in_list
-from korbinian.rel_cons.singleprotein.singleprotein import *

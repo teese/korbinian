@@ -112,7 +112,7 @@ def run_korbinian(excel_file_with_settings):
     if set_["run_parse_simap_to_csv"]:
         korbinian.simap.parse_SIMAP_to_csv(pathdict, set_, logging)
 
-    if any([set_["create_fasta"], set_["calculate_AAIMON_ratios"]]):
+    if any([set_["run_create_fasta"], set_["run_calculate_AAIMON_ratios"]]):
         korbinian.simap.create_fasta_or_calculate_AAIMON_ratios(pathdict, set_, logging)
 
     if set_["run_calculate_gap_densities"]:
@@ -123,11 +123,11 @@ def run_korbinian(excel_file_with_settings):
 
     '''+++++++++++++++ Summary figures describing the conservation ratios of proteins in the list ++++++++++++++++++'''
     if set_["run_save_figures_describing_proteins_in_list"]:
-        korbinian.rel_cons.save_figures_describing_proteins_in_list(pathdict, set_, logging)
+        korbinian.cons_ratio.save_figures_describing_proteins_in_list(pathdict, set_, logging)
 
     '''+++++++++++++++ Summary figures describing the conservation ratios of proteins in the list ++++++++++++++++++'''
     if set_["run_compare_lists"]:
-        korbinian.rel_cons.compare_rel_con_lists(pathdict, set_, logging)
+        korbinian.cons_ratio.compare_rel_con_lists(pathdict, set_, logging)
 
     '''+++++++++++++++TMD CONSERVATION (OLD)++++++++++++++++++'''
     if set_["old_calculate_TMD_conservation"]:
