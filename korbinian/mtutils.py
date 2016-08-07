@@ -1506,18 +1506,14 @@ def get_start_and_end_of_TMD_in_query(x, TMD_regex_ss):
 def slice_juxta_before_TMD_in_query(x, TMD):
     return x['query_alignment_sequence'][int(x['start_juxta_before_%s'%TMD]):int(x['end_juxta_before_%s'%TMD])]
 
-
 def slice_juxta_after_TMD_in_query(x, TMD):
     return x['query_alignment_sequence'][int(x['start_juxta_after_%s'%TMD]):int(x['end_juxta_after_%s'%TMD])]
-
 
 def slice_juxta_before_TMD_in_match(x, TMD):
     return x['match_alignment_sequence'][int(x['start_juxta_before_%s'%TMD]):int(x['end_juxta_before_%s'%TMD])]
 
-
 def slice_juxta_after_TMD_in_match(x, TMD):
     return x['match_alignment_sequence'][int(x['start_juxta_after_%s'%TMD]):int(x['end_juxta_after_%s'%TMD])]
-
 
 def find_last_TMD(dfs):
     # dfs was missing from input, added by MT 20.07.2016

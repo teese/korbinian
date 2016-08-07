@@ -10,7 +10,6 @@ import zipfile
 def parse_SIMAP_to_csv(pathdict, set_, logging):
     counter_XML_to_CSV = 0
     logging.info('~~~~~~~~~~~~  starting parse_SIMAP_to_csv   ~~~~~~~~~~~~')
-
     df = pd.read_csv(pathdict["list_summary_csv"])
     # #filter to remove sequences where no TMDs are found
     # df = df.loc[df['list_of_TMDs'].notnull()]
@@ -181,7 +180,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                     Create an updated csv_file_with_uniprot_data to include the data from SIMAP regarding the query
                     '''
                     #save current df to csv
-                    with open(pathdict["dfout05_simapcsv"], 'w') as f:
+                    with open(pathdict["list_summary_csv"], 'w') as f:
                         df.to_csv(f, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
                     #create new files to store the fasta sequences, and save the query sequence (the row here is the uniprot number in th df index)

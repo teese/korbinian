@@ -10,8 +10,7 @@ import zipfile
 def create_fasta_or_calculate_AAIMON_ratios(pathdict, set_, logging):
     logging.info('~~~~~~~~~~~~starting create_fasta_or_calculate_AAIMON_ratios~~~~~~~~~~~~')
     overwrite_prev_calculated_AAIMON_ratios = set_["overwrite_prev_calculated_AAIMON_ratios"]
-    df = pd.read_csv(pathdict["list_summary_csv"])
-
+    df = pd.read_csv(pathdict["list_summary_csv"], dtype={'TM01_SW_q_gaps_per_q_residue_mean':'float'})
     #filter to remove sequences where no TMDs are found,
     df = df.loc[df['list_of_TMDs'].notnull()]
     # #filter to remove sequences where no TMDs are found (if string)
@@ -86,6 +85,8 @@ def analyse_homologues_single_protein(homol_csv_zip, acc, protein_name, set_, df
     # with tarfile.open(SIMAP_csv_from_XML_tarfile, 'r:gz') as tar_in:
     #SIMAP_csv_from_XML_extracted = tar_in.extractfile(df.loc[acc, 'SIMAP_csv_from_XML'])
     dfs = utils.open_df_from_csv_zip(homol_csv_zip)
+    # print("DFS 112\n", dfs.columns[112])
+    # print("DFS 110-14\n", dfs.columns[110:114])
     # reopen the csv file containing all the homologue data for that particular protein as a pandas dataframe (labelled Data Frame SIMAP, or dfs)
     #dfs = pd.read_csv(SIMAP_csv_from_XML_extracted, sep=",", index_col=0, quoting=csv.QUOTE_NONNUMERIC)
     # create a column with the length of the Smith Waterman alignment (same length for query, markup and match)
@@ -158,14 +159,21 @@ def analyse_homologues_single_protein(homol_csv_zip, acc, protein_name, set_, df
             # apply the slicing function to the homologues
             dfs = korbinian.cons_ratio.slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_)
 
-
     if set_["run_create_fasta"]:
         ########################################################################################
         #                                                                                      #
         #           Filter and create FastA files with TMDs from homologues                    #
         #                                                                                      #
         ########################################################################################
-        dfs = korbinian.fasta.filter_and_save_fasta(df, dfs, acc, TMD, set_, logging)
+        # define zip file that contains all the fasta files for the TMDs of that protein
+        homol_fasta_zip = df.loc[acc, "homol_fasta_zip"]
+        # delete any previous zip file with fasta sequences
+        if os.path.isfile(homol_fasta_zip):
+            os.remove(homol_fasta_zip)
+        with zipfile.ZipFile(homol_fasta_zip, mode="a", compression=zipfile.ZIP_DEFLATED) as zipout_fasta:
+            for TMD in list_of_TMDs:
+                dfs = korbinian.fasta.filter_and_save_fasta(df, dfs, acc, TMD, set_, logging, zipout_fasta)
+        logging.info("~~~~~run_create_fasta is finished ~~~~~")
 
     if set_["run_calculate_AAIMON_ratios"]:
         ########################################################################################
@@ -196,76 +204,75 @@ def analyse_homologues_single_protein(homol_csv_zip, acc, protein_name, set_, df
             # http://stackoverflow.com/questions/29550414/how-to-split-column-of-tuples-in-pandas-dataframe
 
             dfs_with_match = dfs['%s_start_end_tuple_in_SW_alignment' % TMD].dropna()
-            utils.aaa(dfs_with_match)
-            df_match_start_end = pd.DataFrame(dfs_with_match.values.tolist(), low_memory=False)
+            df_match_start_end = pd.DataFrame(dfs_with_match.values.tolist())
             df_match_start_end.index = dfs_with_match.index
             dfs["%s_start_in_SW_alignment" % TMD] = df_match_start_end[1]
             dfs["%s_end_in_SW_alignment" % TMD] = df_match_start_end[2]
 
             last_TMD_of_acc = list_of_TMDs[-1]
 
-            if TMD == "TM01":
-                dfs['start_juxta_before_TM01'] = np.where(dfs['TM01_start_in_SW_alignment'] > 0, 0, np.nan)
-                dfs['end_juxta_before_TM01'] = np.where(dfs['TM01_start_in_SW_alignment'] == 0, np.nan,
-                                                        dfs['TM01_start_in_SW_alignment'])
-                dfs['start_juxta_after_TM01'] = dfs['TM01_end_in_SW_alignment']
-                if len(list_of_TMDs) == 1:
-                    # if there is only one TMD, TM01 == last_TMD_of_acc
-                    dfs['end_juxta_after_TM01'] = np.where(utils.isNaN(dfs['start_juxta_after_TM01']) == True, np.nan,
-                                                           dfs['len_query_alignment_sequence'])
-                elif len(list_of_TMDs) > 1:
-                    #problem('dfs["TM02_start_in_SW_alignment"] cannot exist yet, because the script iterates through the TMDs one at a time')
-                    dfs['end_juxta_after_TM01'] = dfs["TM01_end_in_SW_alignment"] + (
-                    (dfs["TM02_start_in_SW_alignment"] - dfs["TM01_end_in_SW_alignment"]) / 2).apply(lambda x: int(x) if not np.isnan(x) else np.nan)
-                    # dfs['seq_juxta_after_TM01_in_query'] = dfs[dfs['start_juxta_after_TM01'].notnull()].apply(utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
-                    # dfs['seq_juxta_after_TM01_in_match'] = dfs[dfs['end_juxta_after_TM01'].notnull()].apply(utils.slice_juxta_after_TMD_in_match, args = (TMD,), axis=1)
-
-            # the analysis is slow, so don't repeat TM01 if there is only one TM helix in the protein
-            if len(list_of_TMDs) > 1:
-                if not TMD == "TM01" and not TMD == last_TMD_of_acc:
-                    dfs = juxta_function_1(dfs, TMD)
-                    # dfs['start_juxta_after_%s'%TMD] = np.where(utils.isNaN(dfs['TM%.2d_start_in_SW_alignment'%(int(TMD[2:])+1)])==True,np.nan,dfs['%s_end_in_SW_alignment'%TMD])
-                    # dfs['end_juxta_before_%s'%TMD] = np.where(dfs["%s_start_in_SW_alignment"%TMD]!=0,dfs["%s_start_in_SW_alignment"%TMD],np.nan)
-                    # dfs['end_juxta_after_%s'%TMD] = dfs["%s_end_in_SW_alignment"%TMD]+((dfs["TM%.2d_start_in_SW_alignment"%(int(TMD[2:])+1)]-dfs["%s_end_in_SW_alignment"%TMD])/2).apply(lambda x :int(x) if not np.isnan(x) else np.nan)
-                    # dfs['start_juxta_before_%s'%TMD] = np.where(dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)] == dfs['end_juxta_before_%s'%TMD] ,dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)],dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)])
-                    # dfs['seq_juxta_after_%s_in_query'%TMD] = dfs[dfs['start_juxta_after_%s'%TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
-                    # dfs['seq_juxta_after_%s_in_match'%TMD] = dfs[dfs['end_juxta_after_%s'%TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_match, args = (TMD,), axis=1)
-
-                if TMD == last_TMD_of_acc:
-                    dfs['start_juxta_before_%s'%TMD] = dfs['end_juxta_after_TM%.2d' % (int(TMD[2:]) - 1)]
-                    dfs['end_juxta_before_%s'%TMD] = dfs['%s_start_in_SW_alignment'%TMD]
-                    dfs['start_juxta_after_%s'%TMD] = np.where(
-                        dfs['%s_end_in_SW_alignment'%TMD] == dfs['len_query_alignment_sequence'], np.nan,
-                        dfs['%s_end_in_SW_alignment'%TMD])
-                    dfs['end_juxta_after_%s'%TMD] = np.where(utils.isNaN(dfs['start_juxta_after_%s'%TMD]) == True, np.nan,
+            if set_["slice_juxtamembrane_regions"] == True:
+                if TMD == "TM01":
+                    dfs['start_juxta_before_TM01'] = np.where(dfs['TM01_start_in_SW_alignment'] > 0, 0, np.nan)
+                    dfs['end_juxta_before_TM01'] = np.where(dfs['TM01_start_in_SW_alignment'] == 0, np.nan,
+                                                            dfs['TM01_start_in_SW_alignment'])
+                    dfs['start_juxta_after_TM01'] = dfs['TM01_end_in_SW_alignment']
+                    if len(list_of_TMDs) == 1:
+                        # if there is only one TMD, TM01 == last_TMD_of_acc
+                        dfs['end_juxta_after_TM01'] = np.where(utils.isNaN(dfs['start_juxta_after_TM01']) == True, np.nan,
                                                                dfs['len_query_alignment_sequence'])
-                    # dfs['seq_juxta_after_%s_in_query'%TMD] = dfs[dfs['start_juxta_after_%s'%TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
-                    # dfs['seq_juxta_after_%s_in_query'%TMD] = dfs.query_alignment_sequence[int(dfs['start_juxta_after_TM10']):int(dfs['end_juxta_after_TM10'])]
-                    # dfs['seq_juxta_after_%s_in_match'%TMD] =
+                    elif len(list_of_TMDs) > 1:
+                        #problem('dfs["TM02_start_in_SW_alignment"] cannot exist yet, because the script iterates through the TMDs one at a time')
+                        dfs['end_juxta_after_TM01'] = dfs["TM01_end_in_SW_alignment"] + (
+                        (dfs["TM02_start_in_SW_alignment"] - dfs["TM01_end_in_SW_alignment"]) / 2).apply(lambda x: int(x) if not np.isnan(x) else np.nan)
+                        # dfs['seq_juxta_after_TM01_in_query'] = dfs[dfs['start_juxta_after_TM01'].notnull()].apply(utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
+                        # dfs['seq_juxta_after_TM01_in_match'] = dfs[dfs['end_juxta_after_TM01'].notnull()].apply(utils.slice_juxta_after_TMD_in_match, args = (TMD,), axis=1)
 
+                # the analysis is slow, so don't repeat TM01 if there is only one TM helix in the protein
+                if len(list_of_TMDs) > 1:
+                    if not TMD == "TM01" and not TMD == last_TMD_of_acc:
+                        dfs = juxta_function_1(dfs, TMD)
+                        # dfs['start_juxta_after_%s'%TMD] = np.where(utils.isNaN(dfs['TM%.2d_start_in_SW_alignment'%(int(TMD[2:])+1)])==True,np.nan,dfs['%s_end_in_SW_alignment'%TMD])
+                        # dfs['end_juxta_before_%s'%TMD] = np.where(dfs["%s_start_in_SW_alignment"%TMD]!=0,dfs["%s_start_in_SW_alignment"%TMD],np.nan)
+                        # dfs['end_juxta_after_%s'%TMD] = dfs["%s_end_in_SW_alignment"%TMD]+((dfs["TM%.2d_start_in_SW_alignment"%(int(TMD[2:])+1)]-dfs["%s_end_in_SW_alignment"%TMD])/2).apply(lambda x :int(x) if not np.isnan(x) else np.nan)
+                        # dfs['start_juxta_before_%s'%TMD] = np.where(dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)] == dfs['end_juxta_before_%s'%TMD] ,dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)],dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)])
+                        # dfs['seq_juxta_after_%s_in_query'%TMD] = dfs[dfs['start_juxta_after_%s'%TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
+                        # dfs['seq_juxta_after_%s_in_match'%TMD] = dfs[dfs['end_juxta_after_%s'%TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_match, args = (TMD,), axis=1)
 
-            last_TMD_of_acc = list_of_TMDs[-1]
-            dfs['seq_juxta_before_%s_in_query'%TMD] = dfs[dfs['start_juxta_before_%s'%TMD].notnull()].apply(
-                utils.slice_juxta_before_TMD_in_query, args=(TMD,), axis=1)
-            dfs['seq_juxta_before_%s_in_match'%TMD] = dfs[dfs['start_juxta_before_%s'%TMD].notnull()].apply(
-                utils.slice_juxta_before_TMD_in_match, args=(TMD,), axis=1)
-            if not TMD == last_TMD_of_acc:
-                dfs['seq_juxta_after_%s_in_query'%TMD] = dfs[dfs['end_juxta_after_%s'%TMD].notnull()].apply(
-                    utils.slice_juxta_after_TMD_in_query, args=(TMD,), axis=1)
-                dfs['seq_juxta_after_%s_in_match'%TMD] = dfs[dfs['end_juxta_after_%s'%TMD].notnull()].apply(
-                    utils.slice_juxta_after_TMD_in_match, args=(TMD,), axis=1)
-            else:
-                dfs['seq_juxta_after_%s_in_query'%TMD] = np.nan
-                dfs['seq_juxta_after_%s_in_match'%TMD] = np.nan
-                for hit in dfs.index:
-                    if not utils.isNaN(dfs['start_juxta_after_%s'%TMD])[hit]:
-                        # altered to .loc rather than ['seq_juxta_after_%s_in_match'%TMD][hit] after SettingWithCopyWarning
-                        dfs.loc[hit, 'seq_juxta_after_%s_in_match'%TMD] = dfs.match_alignment_sequence[hit][
-                                                                            int(dfs.loc[hit, "start_juxta_after_%s"%TMD]):int(
-                                                                                dfs.loc[hit, "end_juxta_after_%s"%TMD])]
-                        dfs.loc[hit, 'seq_juxta_after_%s_in_query'%TMD] = dfs.query_alignment_sequence[hit][
-                                                                            int(dfs.loc[hit, "start_juxta_after_%s"%TMD]):int(
-                                                                                dfs.loc[hit, "end_juxta_after_%s"%TMD])]
+                    if TMD == last_TMD_of_acc:
+                        dfs['start_juxta_before_%s'%TMD] = dfs['end_juxta_after_TM%.2d' % (int(TMD[2:]) - 1)]
+                        dfs['end_juxta_before_%s'%TMD] = dfs['%s_start_in_SW_alignment'%TMD]
+                        dfs['start_juxta_after_%s'%TMD] = np.where(
+                            dfs['%s_end_in_SW_alignment'%TMD] == dfs['len_query_alignment_sequence'], np.nan,
+                            dfs['%s_end_in_SW_alignment'%TMD])
+                        dfs['end_juxta_after_%s'%TMD] = np.where(utils.isNaN(dfs['start_juxta_after_%s'%TMD]) == True, np.nan,
+                                                                   dfs['len_query_alignment_sequence'])
+                        # dfs['seq_juxta_after_%s_in_query'%TMD] = dfs[dfs['start_juxta_after_%s'%TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
+                        # dfs['seq_juxta_after_%s_in_query'%TMD] = dfs.query_alignment_sequence[int(dfs['start_juxta_after_TM10']):int(dfs['end_juxta_after_TM10'])]
+                        # dfs['seq_juxta_after_%s_in_match'%TMD] =
+
+                last_TMD_of_acc = list_of_TMDs[-1]
+                dfs['seq_juxta_before_%s_in_query'%TMD] = dfs[dfs['start_juxta_before_%s'%TMD].notnull()].apply(
+                    utils.slice_juxta_before_TMD_in_query, args=(TMD,), axis=1)
+                dfs['seq_juxta_before_%s_in_match'%TMD] = dfs[dfs['start_juxta_before_%s'%TMD].notnull()].apply(
+                    utils.slice_juxta_before_TMD_in_match, args=(TMD,), axis=1)
+                if not TMD == last_TMD_of_acc:
+                    dfs['seq_juxta_after_%s_in_query'%TMD] = dfs[dfs['end_juxta_after_%s'%TMD].notnull()].apply(
+                        utils.slice_juxta_after_TMD_in_query, args=(TMD,), axis=1)
+                    dfs['seq_juxta_after_%s_in_match'%TMD] = dfs[dfs['end_juxta_after_%s'%TMD].notnull()].apply(
+                        utils.slice_juxta_after_TMD_in_match, args=(TMD,), axis=1)
+                else:
+                    dfs['seq_juxta_after_%s_in_query'%TMD] = np.nan
+                    dfs['seq_juxta_after_%s_in_match'%TMD] = np.nan
+                    for hit in dfs.index:
+                        if not utils.isNaN(dfs['start_juxta_after_%s'%TMD])[hit]:
+                            # altered to .loc rather than ['seq_juxta_after_%s_in_match'%TMD][hit] after SettingWithCopyWarning
+                            dfs.loc[hit, 'seq_juxta_after_%s_in_match'%TMD] = dfs.match_alignment_sequence[hit][
+                                                                                int(dfs.loc[hit, "start_juxta_after_%s"%TMD]):int(
+                                                                                    dfs.loc[hit, "end_juxta_after_%s"%TMD])]
+                            dfs.loc[hit, 'seq_juxta_after_%s_in_query'%TMD] = dfs.query_alignment_sequence[hit][
+                                                                                int(dfs.loc[hit, "start_juxta_after_%s"%TMD]):int(
+                                                                                    dfs.loc[hit, "end_juxta_after_%s"%TMD])]
 
         if number_of_TMDs_containing_some_homologue_data == 0:
             # there was no data obtained from the csv file, which probably means the original XML file was not properly downloaded
@@ -311,4 +318,6 @@ def analyse_homologues_single_protein(homol_csv_zip, acc, protein_name, set_, df
     df.loc[acc, "analyse_homologues_single_protein"] = True
     # save to csv after each protein is analysed, incrementally adding the extra data
     df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+
+    logging.info("~~~~~run_calculate_AAIMON_ratios is finished ~~~~~")
 

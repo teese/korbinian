@@ -58,7 +58,7 @@ def create_pathdict(base_filename_summaries):
     pathdict["dfout02_uniprotTcsv"] = '%s_uniprotT.csv' % base_filename_summaries
     pathdict["dfout03_uniprotxlsx"] = '%s_uniprot.xlsx' % base_filename_summaries
     pathdict["dfout04_uniprotcsv_incl_paths"] = '%s_uniprot_incl_paths.csv' % base_filename_summaries
-    pathdict["dfout05_simapcsv"] = '%s_simap.csv' % base_filename_summaries
+    #pathdict["dfout05_simapcsv"] = '%s_simap.csv' % base_filename_summaries
     pathdict["dfout06_simapxlsx"] = '%s_simap.xlsx' % base_filename_summaries
     pathdict["dfout07_simapnonred"] = '%s_simapnonred.csv' % base_filename_summaries
     pathdict["dfout08_simap_AAIMON"] = '%s_simap_AAIMON.csv' % base_filename_summaries
