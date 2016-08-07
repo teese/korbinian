@@ -12,7 +12,6 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
     logging.info('~~~~~~~~~~~~  starting parse_SIMAP_to_csv   ~~~~~~~~~~~~')
 
     df = pd.read_csv(pathdict["list_summary_csv"])
-
     # #filter to remove sequences where no TMDs are found
     # df = df.loc[df['list_of_TMDs'].notnull()]
     # #filter to remove sequences where no TMDs are found (if string)
@@ -216,7 +215,6 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                         #                                       set_["gap_open_penalty_increment"]):
                         #                            gap_open_penalty = j
                         #                            gap_extension_penalty = j
-                        #print('gap_open_penalty:%s' % j)
                         #                            for matrix_name in list_of_aa_sub_matrices:
                         #                                column_name = 'sim_ratio_%s_gapo%i' % (matrix_name.replace("'", "")[0:-7], j)
                         #                                csv_header_for_SIMAP_homologue_file.append(column_name)
@@ -227,9 +225,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                         #print (matrix)
                         #from Bio.SubsMat.MatrixInfo import matrix as matrix_name
 
-                        #print('SIMAP_temp_csv_from_XML_path %s' % df.loc[acc, 'SIMAP_temp_csv_from_XML_path'])
-
-                        SIMAP_temp_csv_from_XML_path = df['homol_csv_zip'][:-4]
+                        SIMAP_temp_csv_from_XML_path = df.loc[acc,'homol_csv_zip'][:-4]
                         #fasta_file_path = df.loc[acc, 'fasta_file_path']
 
                         #create an empty file
@@ -376,10 +372,10 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                                             doublequote=True)
                                     writer.writerow(match_details_dict)
                         # either create new zip and add ("w"), or open existing zip and add "a"
-                        with zipfile.ZipFile(df['homol_csv_zip'], zipfile.ZIP_DEFLATED) as zipout:
-                            zipout.write(SIMAP_temp_csv_from_XML_path, arcname=os.path.basename(df['homol_csv_zip'])[:-4])
+                        with zipfile.ZipFile(df.loc[acc,'homol_csv_zip'], mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
+                            zipout.write(SIMAP_temp_csv_from_XML_path, arcname=os.path.basename(df.loc[acc,'homol_csv_zip'])[:-4])
                         # delete temporary csv file
-                        os.remove(df['homol_csv_zip'][:-4])
+                        os.remove(df.loc[acc,'homol_csv_zip'][:-4])
                         # with tarfile.open(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'], 'w:gz') as tar_SIMAP_out:
                         #     tar_SIMAP_out.add(SIMAP_temp_csv_from_XML_path, arcname=df.loc[acc, 'SIMAP_csv_from_XML'])
                         # os.remove(SIMAP_temp_csv_from_XML_path)

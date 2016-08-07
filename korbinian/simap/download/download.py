@@ -1,3 +1,4 @@
+from time import strftime
 import csv
 import pandas as pd
 import korbinian.mtutils as utils
@@ -41,9 +42,6 @@ def download_homologues_from_simap(pathdict, set_, logging):
             ft_xml_path = df.loc[acc, 'SIMAP_feature_table_XML_file_path']
             homol_xml_path = df.loc[acc, 'SIMAP_feature_table_XML_file_path']
             date_file_path = df.loc[acc, 'SIMAP_download_date_file_path']
-            ft_xml_filename = os.path.basename(df.loc[acc, 'SIMAP_feature_table_XML_file_path'])
-            homol_xml_filename = os.path.basename(df.loc[acc, 'SIMAP_homologues_XML_file_path'])
-            date_file = os.path.basename(df.loc[acc, 'SIMAP_download_date_file_path'])
             ''' windows has a character limit in the command prompt in theory of 8191 characters,
             but the command line java command seems to cause errors with sequences above 3000 amino acids.
             Assume that this problem only applies to Windows,
@@ -62,10 +60,9 @@ def download_homologues_from_simap(pathdict, set_, logging):
             else:
                 download_homologues = True
             if download_homologues == True:
-                simap_database_dir = os.path.join(set_['data_folder'], 'simap')
-                subfolder = os.path.join(simap_database_dir, df.loc[acc, 'first_two_letters_of_uniprot_acc'])
-                if os.path.isdir(subfolder) == False:
-                    os.mkdir(subfolder)
+                # create directories to hold file, if necessary
+                utils.make_sure_path_exists(homol_xml_path, isfile=True)
+
                 #check which files exist. This is useful, because it is not possible to open the tarfile as 'a:gz',
                 #therefore you cannot add files to an existing tarfile)
                 feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path)
@@ -85,39 +82,38 @@ def download_homologues_from_simap(pathdict, set_, logging):
                                                         max_memory_allocation=max_memory_allocation, taxid=taxid,
                                                         eaSimap_path=set_["eaSimap_path"])
                         #now check again if the files exist
-                    feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(df, acc)
+                    feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path)
                     if not homologues_XML_exists:
                         #add one to the list of consecutive failed downloads.
                         number_of_files_not_found += 1
                         #if a large number of downloads failed, then the SIMAP server is probably not working.
                         #Wait some time and try again later.
                         if number_of_files_not_found > 30:
-                            utils.sleep_24_hours()
+                            utils.sleep_x_hours(24)
                         if number_of_files_not_found == 20:
-                            utils.sleep_24_hours()
+                            utils.sleep_x_hours(24)
                         if number_of_files_not_found == 15:
-                            utils.sleep_6_hours()
+                            utils.sleep_x_hours(6)
                         if number_of_files_not_found == 10:
-                            utils.sleep_6_hours()
-                        #utils.sleep_120_seconds()
+                            utils.sleep_x_hours(6)
                     else:
                         #if download is successful or file exists, the SIMAP server must be working,
                     #therefore reset the number_of_files_not_found
                         number_of_files_not_found = 0
 
                     # create an empty text file with the download date
-                    with open(df.loc[acc,'SIMAP_download_date_file_path'], "w") as f:
-                        f.write("empty datefile. have a nice day!")
+                    date = strftime("%Y%m%d")
+                    with open(date_file_path, "w") as f:
+                        f.write("{}\nEmpty file with the date.\nHave a nice day!".format(date))
                     # since we can't add files to the compressed tarfile, only when both the feature table
                     #and xml file are downloaded should we pack and compress them
                     if feature_table_XML_exists and homologues_XML_exists:
                         with tarfile.open(SIMAP_tar, mode='w:gz') as tar:
                             #add the files to the compressed tarfile
                             logging.info('%s XML files will be moved into the tarball, original XML files deleted' % protein_name)
-                            tar.add(ft_xml_path,arcname=ft_xml_filename)
-                            tar.add(homol_xml_path,arcname=homol_xml_filename)
-                            tar.add(date_file_path, arcname=date_file)
-
+                            tar.add(ft_xml_path,arcname=os.path.basename(ft_xml_path))
+                            tar.add(homol_xml_path,arcname=os.path.basename(homol_xml_path))
+                            tar.add(date_file_path, arcname=os.path.basename(date_file_path))
                         #delete the original files
                         try:
                             os.remove(ft_xml_path)

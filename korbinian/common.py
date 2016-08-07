@@ -52,7 +52,8 @@ def create_settingsdict(excel_file_with_settings):
 def create_pathdict(base_filename_summaries):
     pathdict = {}
     pathdict["base_filename_summaries"] = base_filename_summaries
-    pathdict["list_summary_csv"] = '%s_summary.xlsx' % base_filename_summaries
+    # currently the protein list summary (each row is a protein, from uniprot etc) is a csv file
+    pathdict["list_summary_csv"] = '%s_summary.csv' % base_filename_summaries
     pathdict["dfout01_uniprotcsv"] = '%s_uniprot.csv' % base_filename_summaries
     pathdict["dfout02_uniprotTcsv"] = '%s_uniprotT.csv' % base_filename_summaries
     pathdict["dfout03_uniprotxlsx"] = '%s_uniprot.xlsx' % base_filename_summaries

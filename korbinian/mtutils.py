@@ -914,6 +914,24 @@ def sleep_24_hours():
         sys.stdout.flush()
     print(' .\n')
 
+def sleep_x_hours(x):
+    """Sleeps for a certain number of hours. Prints a dot each hour.
+
+    Parameters
+    ----------
+    x : int
+        Number of hours to sleep
+
+    """
+    #sleep for 30 seconds to not overload the server
+    sys.stdout.write("sleeping .")
+    sys.stdout.flush()
+    for i in range(x):
+        time.sleep(3600)
+        sys.stdout.write(" .")
+        sys.stdout.flush()
+    print(' .\n')
+
 def create_dictionary_of_comments(uniprot_record_handle, output_dictionary):
     try:
         for comment in uniprot_record_handle.comments:
@@ -1653,7 +1671,18 @@ def calc_hydrophob(seq):
     multiplied = aa_counts_arr * hessa_scale
     return multiplied.sum()
 
-def make_sure_path_exists(path):
+def make_sure_path_exists(path, isfile=False):
+    """ If path to directory or folder doesn't exist, creates the necessary folders.
+
+    Parameters
+    ----------
+    path : str
+        Path to desired directory or file.
+    isfile :
+        If True, the path is to a file, and the subfolder will be created if necessary
+    """
+    if isfile:
+        path = os.path.dirname(path)
     try:
         os.makedirs(path)
     except OSError as exception:
@@ -1711,12 +1740,15 @@ def open_df_from_csv_zip(in_zipfile, filename=None):
     -------
     Much faster than reading from excel.
     """
-    with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
-        if filename == None:
-            # if a filename is not given, open the first file in the list
-            filename = openzip.namelist()[0]
-        # open the file
-        csv_file_handle = openzip.open(filename)
-        # read as pandas dataframe
-        df = pd.read_csv(csv_file_handle)
+    if os.path.isfile(in_zipfile):
+        with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
+            if filename == None:
+                # if a filename is not given, open the first file in the list
+                filename = openzip.namelist()[0]
+            # open the file
+            csv_file_handle = openzip.open(filename)
+            # read as pandas dataframe
+            df = pd.read_csv(csv_file_handle)
+    else:
+        raise FileNotFoundError("{} not found".format(in_zipfile))
     return df
