@@ -5,14 +5,14 @@ from time import strftime, gmtime
 #get the time, including seconds
 the_time = strftime("%Y-%m-%d_%H_%M_%S")
 #logfile = r"D:\Databases\simap\test_distribute\move_simap_logfile.txt"
-logfile = "r/nas/teeselab/mark/files/main/logfiles/{}_move_simap_rimma_to_db_logfile.txt".format(the_time)
+logfile = "/nas/teeselab/mark/files/main/logfiles/{}_move_simap_rimma_to_db_logfile.txt".format(the_time)
 logging = korbinian.mtutils.setup_error_logging(logfile)
 
 # source_dir = r"D:\Databases\simap\test_distribute"
 # source_dir = r"D:\Databases\simap\Archaea"
 # source_dir = r"D:\Databases\simap\Bacteria"
-source_dir = r"/nas/teeselab/students/rimma/databases/simap/00_test"
-target_dir = r"/nas/teeselab/db/simap"
+source_dir = "/nas/teeselab/students/rimma/databases/simap/00_test"
+target_dir = "/nas/teeselab/db/simap"
 
 def absoluteFilePaths(directory):
     # http://stackoverflow.com/questions/9816816/relative-and-absolute-paths-of-all-files
