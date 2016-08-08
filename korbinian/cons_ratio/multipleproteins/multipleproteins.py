@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import sys
-import tlabtools.tools as tools
 
 def save_figures_describing_proteins_in_list(pathdict, set_, logging):
     backgroundcolour = '0.95'
@@ -427,7 +426,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
     SHOW THE DATA FOR EACH TMD IN THE DATASET
     '''
     # create list of colours to use in figures
-    colour_lists = tools.create_colour_lists()
+    colour_lists = utils.create_colour_lists()
     tableau20 = colour_lists['tableau20']
 
     '''
@@ -1661,7 +1660,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
             25 and onwards: Colour lists and Histograms
             '''
             # prepare colour lists
-            colour_lists = tools.create_colour_lists()
+            colour_lists = utils.create_colour_lists()
             TUM_colours_list_with_greys = colour_lists['TUM_colours_list_with_greys']
             colourlist_greys = [(0.6, 0.7764705882352941, 0.9058823529411765), 'None']
 
@@ -2209,7 +2208,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
                     KW_counts_major = KW_counts_major.drop(KW)
 
             # prepare colour lists
-            colour_lists = tools.create_colour_lists()
+            colour_lists = utils.create_colour_lists()
             TUM_colours_list_with_greys = colour_lists['TUM_colours_list_with_greys']
             colourlist_greys = [(0.6, 0.7764705882352941, 0.9058823529411765), 'None']
 

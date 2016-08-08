@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import os
-import tlabtools.tools as tools
 
 def compare_rel_con_lists(pathdict, set_, logging):
     protein_lists = set_["protein_lists"]
@@ -77,7 +76,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
                                                                      n_rows=nrows_in_each_fig,
                                                                      n_cols=ncols_in_each_fig)
 
-    colour_lists = tools.create_colour_lists()
+    colour_lists = utils.create_colour_lists()
     TUM_colours_list_with_greys = colour_lists['TUM_colours_list_with_greys']
 
     '''
