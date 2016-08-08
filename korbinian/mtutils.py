@@ -798,7 +798,7 @@ def retrieve_simap_homologues(input_sequence, output_file, max_hits, java_exec_s
     timeout = max_hits/5 if max_hits > 500 else 100
     command.run(timeout=timeout) #give 1000 for 5000 hits to download?   
     logging.info("Output file:     %s\n'file saved'" % output_file)
-    sleep_x_seconds(5)
+    sleep_x_seconds(30)
     if not os.path.exists(output_file):
         logging.info('********************SIMAP download failed for : %s***************' % output_file)
     '''There are many homologue XML files with nodes missing! Could this be due to the minidom parse?? 
