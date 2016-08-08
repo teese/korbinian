@@ -104,7 +104,7 @@ def setup_file_locations_in_df(set_, pathdict):
     df['SIMAP_feature_table_XML_file_path'] = df.simap_filename_base + '_feature_table.xml'
     df['SIMAP_homologues_XML_file_path'] = df.simap_filename_base + '_homologues.xml'
     your_name = unicodedata.normalize('NFKD', set_["your_name"][:20]).encode('ascii', 'ignore').decode("utf-8")
-    df['SIMAP_download_date_file_path'] = df.simap_filename_base + '.{}.{}.txt'.format(strftime("%Y%m%d"), your_name)
+    df['SIMAP_download_date_file_path'] = df.simap_filename_base + '--{}--{}.txt'.format(strftime("%Y%m%d"), your_name)
 
     df['homol_csv_zip'] = df['homol_base'] + '.csv.zip'
     df['homol_fasta_zip'] = df['homol_base'] + '_fasta.zip'

@@ -40,7 +40,7 @@ def download_homologues_from_simap(pathdict, set_, logging):
             input_sequence = df.loc[acc, 'uniprot_seq']
             SIMAP_tar = df.loc[acc, 'SIMAP_tar']
             ft_xml_path = df.loc[acc, 'SIMAP_feature_table_XML_file_path']
-            homol_xml_path = df.loc[acc, 'SIMAP_feature_table_XML_file_path']
+            homol_xml_path = df.loc[acc, 'SIMAP_homologues_XML_file_path']
             date_file_path = df.loc[acc, 'SIMAP_download_date_file_path']
             ''' windows has a character limit in the command prompt in theory of 8191 characters,
             but the command line java command seems to cause errors with sequences above 3000 amino acids.
@@ -81,7 +81,7 @@ def download_homologues_from_simap(pathdict, set_, logging):
                                                         max_hits=max_hits, java_exec_str=java_exec_str,
                                                         max_memory_allocation=max_memory_allocation, taxid=taxid,
                                                         eaSimap_path=set_["eaSimap_path"])
-                        #now check again if the files exist
+                    #now check again if the files exist
                     feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path)
                     if not homologues_XML_exists:
                         #add one to the list of consecutive failed downloads.
