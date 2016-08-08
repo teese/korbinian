@@ -20,7 +20,8 @@ def setup_keyboard_interrupt_and_error_logging(set_, list_number):
     # designate the output logfile
     logfile = os.path.join(set_["logfile_dir"],'List%s_%s_logfile.log' % (list_number, date_string))
     # a file to keep a record of the log settings used for that script
-    utils.setup_error_logging(logfile)
+    logging = utils.setup_error_logging(logfile)
+    return logging
 
 def create_settingsdict(excel_file_with_settings):
     sheetnames = ["run_settings", "file_locations", "variables"]
