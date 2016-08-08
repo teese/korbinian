@@ -13,11 +13,15 @@ import csv
 import ctypes
 import errno
 import logging
+import logging.config
 import matplotlib.pyplot as plt
 import platform
+import psutil
 import subprocess, threading, time, sys
 import tarfile
 import zipfile
+import sys
+import json
 
 '''
 ************************************************************The uniprot functions start here.***************************************************************
@@ -1108,13 +1112,7 @@ def convert_string_to_boolean_value(boolean_string):
 
 
 def setup_error_logging(logfile):
-    import os
-    import logging
-    import logging.config
-    import sys
-    import json
-    #import platform
-    
+
     #you can either adjust the log settings from an external file, or paste them in teh script 
     #external_log_settings_file = r'E:\Stephis\Projects\Programming\Python\files\learning\json\logging_settings.json'
     
@@ -1205,6 +1203,9 @@ def setup_error_logging(logfile):
     system_settings_dict["argv"] = sys.argv
     system_settings_dict["dirname(argv[0])"] = os.path.abspath(os.path.expanduser(os.path.dirname(sys.argv[0])))
     system_settings_dict["pwd"] = os.path.abspath(os.path.expanduser(os.path.curdir))
+    system_settings_dict["total_ram"] = "{:0.2f} GB".format(psutil.virtual_memory()[0] / 1000000000)
+    system_settings_dict["available_ram"] = "{:0.2f} GB ({}% used)".format(psutil.virtual_memory()[1] / 1000000000, psutil.virtual_memory()[2])
+
     logging.warning(system_settings_dict)
     #save the logging settings in the logfile    
     #logging.info('LOGGING SETTINGS FOR THIS RUN IN JSON FORMAT')
@@ -1219,6 +1220,7 @@ def setup_error_logging(logfile):
     #except Exception:
     #    logging.error('Failed to open file', exc_info=True)
     logging.warning('LOGGING SETUP IS SUCCESSFUL\n\nLOG INFORMATION STARTS HERE:\n')
+    return logging
 
 
 def save_structured_array_to_csv(array1, file1):

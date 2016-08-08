@@ -76,7 +76,7 @@ def run_korbinian(excel_file_with_settings):
     set_ = korbinian.common.create_settingsdict(excel_file_with_settings)
     list_number = set_["uniprot_list"]
 
-    korbinian.common.setup_keyboard_interrupt_and_error_logging(set_, list_number)
+    logging = korbinian.common.setup_keyboard_interrupt_and_error_logging(set_, list_number)
 
     uniprot_folder_sel = os.path.join(set_["uniprot_dir"], 'selected')
     uniprot_flatfile_of_selected_records = os.path.join(uniprot_folder_sel,'List%s_selected_uniprot_records_flatfile.txt' % list_number)
