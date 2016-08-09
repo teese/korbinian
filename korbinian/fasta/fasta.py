@@ -4,6 +4,10 @@ import korbinian.mtutils as utils
 import zipfile
 
 def filter_and_save_fasta(df, dfs, acc, TMD, set_, logging, zipout_fasta):
+    list_fasta_cols = ['fa_ident_above_cutoff', 'FASTA_gapped_identity', "fa_min_identity_of_full_protein", "X_in_match_seq",
+                       "match_alignment_sequence", "cr_disallowed_words_not_in_descr", "hit_contains_SW_node"]
+    list_fasta_cols_TMD = ['%s_SW_match_seq'%TMD, '%s_start_in_SW_alignment_plus_surr'%TMD, '%s_end_in_SW_alignment_plus_surr'%TMD, '%s_SW_query_num_gaps'%TMD]
+
     # redefine the number of amino acids before and after the TMD to be inserted into the FastA files
     fa_aa_before_tmd = set_["fa_aa_before_tmd"]
     fa_aa_after_tmd = set_["fa_aa_after_tmd"]
@@ -39,6 +43,7 @@ def filter_and_save_fasta(df, dfs, acc, TMD, set_, logging, zipout_fasta):
     dfs['%s_fa_SW_query_acceptable_n_gaps'%TMD] = dfs['%s_SW_query_num_gaps'%TMD] <= set_["fa_max_n_gaps_in_query_TMD"]
     dfs['%s_fa_SW_match_acceptable_n_gaps'%TMD] = dfs['%s_SW_match_num_gaps'%TMD] <= set_["fa_max_n_gaps_in_match_TMD"]
     # measure the hydrophobicity of each TMD
+    # %timeit 46.6 ms per loop for 325 homologues
     dfs['%s_SW_match_seq_hydro' % TMD] = dfs['%s_SW_match_seq'%TMD].dropna().apply(lambda x: utils.calc_hydrophob(x))
 
     # check if the list of disallowed proteins is the same.
@@ -59,6 +64,10 @@ def filter_and_save_fasta(df, dfs, acc, TMD, set_, logging, zipout_fasta):
         dfs['fa_list_disallowed_words_in_descr'] = dfs['uniprot_description'].dropna().apply(utils.find_disallowed_words, args=(fa_words_not_allowed_in_description,))
         # create a boolean column to select hits that do not contain these words in the description
         dfs['fa_disallowed_words_not_in_descr'] = dfs['fa_list_disallowed_words_in_descr'] == '[]'
+
+    # select sequences that seem to have a start
+    dfs_sel2 = dfs.loc[dfs['%s_start_in_SW_alignment_plus_surr'%TMD].notnull()]
+    dfs['%s_SW_match_seq_plus_surr'%TMD] = dfs_sel2.apply(utils.slice_SW_match_TMD_seq_plus_surr, args=(TMD,), axis=1)
 
     '''re-filter the original dataframe to create another copy with the desired sequences
     note that some values were added after filtering in the last round,
@@ -88,10 +97,9 @@ def filter_and_save_fasta(df, dfs, acc, TMD, set_, logging, zipout_fasta):
 
     dfs_fa = dfs.query(fa_query_filt_str)
 
-    dfs['%s_SW_match_seq_plus_surr'%TMD] = dfs_fa.apply(utils.slice_SW_match_TMD_seq_plus_surr, args=(TMD,), axis=1)
-
     # refilter to obtain dfs_fa with the sliced sequences
     # timeit result: filtering of 5000 homologues took ~8 ms, deemed worth it as you need to filter before slicing anyway
+
     dfs_fa = dfs.query(fa_query_filt_str)
 
     # # and the same for the TMD + surrounding sequence, useful to examine the TMD interface
@@ -130,11 +138,12 @@ def filter_and_save_fasta(df, dfs, acc, TMD, set_, logging, zipout_fasta):
 
             # if gaps are not allowed in the selected sequence, filter to remove before saving
             if set_["fa_X_allowed_in_sel_seq"] == False:
-                nr_dfs_fa = nr_dfs_fa.dropna().loc[~nr_dfs_fa['%s_SW_match_seq%s'%(TMD,s)].dropna().str.contains("X")]
+                nr_dfs_fa = nr_dfs_fa.dropna().loc[~nr_dfs_fa['%s_SW_match_seq%s'%(TMD,s)].str.contains("X")]
 
             if s == "_plus_surr":
                 if set_["fa_X_allowed_in_full_seq"] == True:
                     if set_["fa_X_allowed_in_sel_seq"] == False:
+                        # note this is actually faster than tha str.contains("X") function
                         X_not_in_seq_ser = nr_dfs_fa['%s_SW_match_seq%s'%(TMD,s)].apply(lambda x : "X" not in x)
                         n_before = nr_dfs_fa.shape[0]
                         nr_dfs_fa = nr_dfs_fa.loc[X_not_in_seq_ser]

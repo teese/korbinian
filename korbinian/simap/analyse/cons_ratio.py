@@ -127,7 +127,7 @@ def analyse_homologues_single_protein(homol_csv_zip, acc, protein_name, set_, df
         # select to only include data where the XML contained a SW node, and then apply function for a regex search
         query_seqs_ser = dfs.query('hit_contains_SW_node == True')['query_alignment_sequence']
 
-        dfs['%s_start_end_tuple_in_SW_alignment'%TMD] = query_seqs_ser.apply(utils.get_start_and_end_of_TMD_in_query,args=(TMD_regex_ss,))
+        dfs['%s_start_end_list_in_SW_alignment'%TMD] = query_seqs_ser.apply(utils.get_start_and_end_of_TMD_in_query,args=(TMD_regex_ss,))
         '''the output of the regex search is a tuple with three components.
         1) a match (e.g. True),
         2) the start of the match (e.g. 124),
@@ -137,11 +137,12 @@ def analyse_homologues_single_protein(homol_csv_zip, acc, protein_name, set_, df
         columns_from_regex_output = ['%s_in_SW_alignment'%TMD, '%s_start_in_SW_alignment'%TMD,'%s_end_in_SW_alignment'%TMD]
         # n = the index (1,2,3) in the tuple
         # col = column item in the list (e.g. 'TM09_in_SW_alignment')
+        # first filter to analyse only columns that contain a SW node
+        df_match = dfs.query('hit_contains_SW_node == True')
         for n, col in enumerate(columns_from_regex_output):
-            # first filter to analyse only columns that contain a SW node
-            df_match = dfs.query('hit_contains_SW_node == True')
             # add a new column which is named TM01_start, etc, and insert the appropriate integer (start or stop) or bool from the tuple
-            dfs[col] = df_match['%s_start_end_tuple_in_SW_alignment'%TMD].apply(lambda x: x[n])
+            dfs[col] = df_match['%s_start_end_list_in_SW_alignment'%TMD].dropna().apply(lambda x: x[n])
+        utils.aaa(dfs)
 
         ########################################################################################
         #                                                                                      #
@@ -150,7 +151,7 @@ def analyse_homologues_single_protein(homol_csv_zip, acc, protein_name, set_, df
         ########################################################################################
 
         # in some cases, there is no data to obtain as the hit_contains_SW_node = False for too many sequences, giving no start_in_SW_alignment
-        number_of_rows_containing_data = dfs[dfs['%s_start_in_SW_alignment' % TMD].notnull()].shape[0]
+        number_of_rows_containing_data = dfs[dfs['%s_start_end_list_in_SW_alignment' % TMD].notnull()].shape[0]
         if number_of_rows_containing_data == 0:
             logging.info('%s does not have any valid homologues for %s. '
                          'Re-downloading simap homologue XML may be necessary.' % (protein_name, TMD))
@@ -203,11 +204,11 @@ def analyse_homologues_single_protein(homol_csv_zip, acc, protein_name, set_, df
             # convert the tuple of (True, 32, 53) into separate dataframes.
             # http://stackoverflow.com/questions/29550414/how-to-split-column-of-tuples-in-pandas-dataframe
 
-            dfs_with_match = dfs['%s_start_end_tuple_in_SW_alignment' % TMD].dropna()
-            df_match_start_end = pd.DataFrame(dfs_with_match.values.tolist())
-            df_match_start_end.index = dfs_with_match.index
-            dfs["%s_start_in_SW_alignment" % TMD] = df_match_start_end[1]
-            dfs["%s_end_in_SW_alignment" % TMD] = df_match_start_end[2]
+            # dfs_with_match = dfs['%s_start_end_list_in_SW_alignment' % TMD].dropna()
+            # df_match_start_end = pd.DataFrame(dfs_with_match.values.tolist())
+            # df_match_start_end.index = dfs_with_match.index
+            # dfs["%s_start_in_SW_alignment" % TMD] = df_match_start_end[1]
+            # dfs["%s_end_in_SW_alignment" % TMD] = df_match_start_end[2]
 
             last_TMD_of_acc = list_of_TMDs[-1]
 

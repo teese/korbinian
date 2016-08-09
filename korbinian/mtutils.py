@@ -386,6 +386,22 @@ def slice_uniprot_TMD_plus_surr_seq(x, TMD):
 #slice_SW_match_TMD_seq_plus_surr = lambda x: x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
 
 #create small throwaway functions to slice all sequences in dataframe simultaneously
+# def slice_SW_query_TMD_seq(x, TMD):
+#     return x['query_alignment_sequence'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
+# def slice_SW_markup_TMD(x, TMD):
+#     return x['alignment_markup'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
+# def slice_SW_match_TMD_seq(x, TMD):
+#     return x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
+# def slice_SW_query_TMD_seq_plus_surr(x, TMD):
+#     return x['query_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
+# def slice_SW_markup_TMD_plus_surr(x, TMD):
+#     return x['alignment_markup'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
+# def slice_SW_match_TMD_seq_plus_surr(x, TMD):
+#     return x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
+# def find_indices_longer_than_prot_seq(df, TMD):
+#     return df['%s_end_plus_surr'%TMD] > df['uniprot_seqlen']
+
+
 def slice_SW_query_TMD_seq(x, TMD):
     return x['query_alignment_sequence'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
 def slice_SW_markup_TMD(x, TMD):
@@ -406,11 +422,11 @@ def create_indextuple_nonTMD_last(x):
     '''
     return (int(x['nonTMD_index_tuple_last0']), int(x['nonTMD_index_tuple_last1']))
 
-def slice_with_tuple(string, tup):
+def slice_with_listlike(string, tup, start=0, end=1):
     '''A function to slice a single string, taking the start and stop indices from a tuple
     '''
     #print(tup[0])
-    return string[int(tup[0]):int(tup[1])]
+    return string[int(tup[start]):int(tup[end])]
 
 def slice_with_nested_tuple(string, nested_tuple):
     '''A function to slice a sequence multiple times, using the indices from nested tuples
@@ -418,7 +434,7 @@ def slice_with_nested_tuple(string, nested_tuple):
     #convert nested tuple from string to tuple 
     nested_tuple = ast.literal_eval(nested_tuple)
     #for each tuple, slice the input string. Make a list of all the sliced strings. Join list with no gaps
-    return ''.join([slice_with_tuple(string, tup) for tup in nested_tuple])
+    return ''.join([slice_with_listlike(string, tup) for tup in nested_tuple])
 
 def retrieve_selected_uniprot_records_from_flatfile(input_accession_list, large_input_uniprot_flatfile, output_flatfile):
     '''
@@ -1499,10 +1515,10 @@ def get_start_and_end_of_TMD_in_query(x, TMD_regex_ss):
     m = re.search(TMD_regex_ss, x)
     if m:
         # if the tmd is in the query, return True, start, stop
-        return (bool(m), m.start(), m.end())
+        return [bool(m), m.start(), m.end()]
     else:
-        # if the tmd is not in the query, return False, NaN, NaN
-        return (bool(m), np.nan, np.nan)
+        # if the tmd is not in the query, return False, 0, 0
+        return np.nan
 
 
 def slice_juxta_before_TMD_in_query(x, TMD):

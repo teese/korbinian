@@ -5,24 +5,30 @@ def slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_):
     # use small throwaway functions to slice each TMD from the query, markup and match sequences
     # notnull() removes missing data
     # explanation: dfs['new_column_with_selected_seq'] = dfs[dfs['only_rows_containing_data]].apply(utils.slice_function_that_specifies_columns_with_start_and_stop)
-    dfs['%s_SW_query_seq'%TMD] = dfs[dfs['%s_start_in_SW_alignment'%TMD].notnull()].apply(utils.slice_SW_query_TMD_seq,args=(TMD,), axis=1)
-    dfs['%s_SW_markup_seq'%TMD] = dfs[dfs['%s_start_in_SW_alignment'%TMD].notnull()].apply(utils.slice_SW_markup_TMD,args=(TMD,), axis=1)
-    dfs['%s_SW_match_seq'%TMD] = dfs[dfs['%s_start_in_SW_alignment'%TMD].notnull()].apply(utils.slice_SW_match_TMD_seq,args=(TMD,), axis=1)
+    dfs_sel = dfs[dfs['%s_start_in_SW_alignment'%TMD].notnull()]
+    # dfs['%s_SW_query_seq'%TMD] = dfs_sel.apply(utils.slice_SW_query_TMD_seq,args=(TMD,), axis=1)
+    # dfs['%s_SW_markup_seq'%TMD] = dfs_sel.apply(utils.slice_SW_markup_TMD,args=(TMD,), axis=1)
+    # dfs['%s_SW_match_seq'%TMD] = dfs_sel.apply(utils.slice_SW_match_TMD_seq,args=(TMD,), axis=1)
+    dfs['%s_SW_query_seq' % TMD] = dfs_sel.apply(utils.slice_SW_query_TMD_seq, args=(TMD,), axis=1)
+    dfs['%s_SW_markup_seq' % TMD] = dfs_sel.apply(utils.slice_SW_markup_TMD, args=(TMD,), axis=1)
+    dfs['%s_SW_match_seq' % TMD] = dfs_sel.apply(utils.slice_SW_match_TMD_seq, args=(TMD,), axis=1)
+
     # count the number of gaps in the query and match sequences
-    dfs['%s_SW_query_num_gaps'%TMD] = dfs['%s_SW_query_seq'%TMD].dropna().apply(lambda x: x.count('-'))
-    dfs['%s_SW_match_num_gaps'%TMD] = dfs['%s_SW_match_seq'%TMD].dropna().apply(lambda x: x.count('-'))
+    dfs['%s_SW_query_num_gaps'%TMD] = dfs['%s_SW_query_seq'%TMD].str.count("-")
+    dfs['%s_SW_match_num_gaps'%TMD] = dfs['%s_SW_match_seq'%TMD].str.count("-")
     # calculate the length of the match TMD seq excluding gaps
     dfs['%s_SW_m_seq_len'%TMD] = dfs['%s_SW_match_seq'%TMD].str.len()
     # for the alignment length, take the smallest value from the length of query or match
     # this will exclude gaps from the length in the following calculations, preventing false "low conservation" where the query TMD is much longer than the match TMD)
     # note that for most calculations this is somewhat redundant, because the max number of acceptable gaps in sequence is probable ~2
-    dfs['%s_SW_align_len'%TMD] = dfs['%s_SW_m_seq_len'%TMD].apply(lambda x: x if x < len_query_TMD else len_query_TMD)
+    # use the mask function (faster than a lambda function) to replace any lengths larger than the query, with the query
+    dfs['%s_SW_align_len' % TMD] = dfs['%s_SW_m_seq_len' % TMD].mask(dfs['%s_SW_m_seq_len' % TMD] > len_query_TMD, len_query_TMD)
     # create a boolean column that allows filtering by the accepted number of gaps, according to the settings file
     dfs['%s_cr_SW_query_acceptable_n_gaps'%TMD] = dfs['%s_SW_query_num_gaps'%TMD] <= set_["cr_max_n_gaps_in_query_TMD"]
     dfs['%s_cr_SW_match_acceptable_n_gaps'%TMD] = dfs['%s_SW_match_num_gaps'%TMD] <= set_["cr_max_n_gaps_in_match_TMD"]
     # count identical residues between query and match TMDs by counting the number of pipes in the markup string
-    dfs['%s_SW_num_ident_res'%TMD] = dfs['%s_SW_markup_seq'%TMD].dropna().apply(lambda x: x.count('|'))
-    dfs['%s_SW_num_sim_res'%TMD] = dfs['%s_SW_markup_seq'%TMD].dropna().apply(lambda x: x.count(':'))
+    dfs['%s_SW_num_ident_res'%TMD] = dfs['%s_SW_markup_seq'%TMD].str.count('|')
+    dfs['%s_SW_num_sim_res'%TMD] = dfs['%s_SW_markup_seq'%TMD].str.count(':')
     # check that the TMD seq in match is not just 100% gaps!
     dfs['%s_in_SW_align_match'%TMD] = dfs['%s_SW_num_ident_res'%TMD].dropna() != 0
     dfs['%s_in_SW_align_match'%TMD].fillna(value=False)

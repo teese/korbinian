@@ -51,8 +51,7 @@ def calc_nonTMD_perc_ident_and_gaps(acc, dfs, set_, df, list_of_TMDs, logging):
 
         # create start and stop indices for all sections between tmds
         # the start of the last nonTMD section will be the end of the last TMD
-        dfs_nonTMD['nonTMD_index_tuple_last0'] = dfs_nonTMD[
-            '%s_end_in_SW_alignment' % list_of_TMDs[-1]].dropna().astype('int32')
+        dfs_nonTMD['nonTMD_index_tuple_last0'] = dfs_nonTMD['%s_end_in_SW_alignment' % list_of_TMDs[-1]].dropna().astype('int32')
         # the end of the last nonTMD section will be the end of the full alignment sequence
         dfs_nonTMD['nonTMD_index_tuple_last1'] = dfs_nonTMD['len_query_alignment_sequence'].dropna().astype('int32')
         # join to make a tuple
@@ -77,8 +76,7 @@ def calc_nonTMD_perc_ident_and_gaps(acc, dfs, set_, df, list_of_TMDs, logging):
             index_columns = ['%s_end_in_SW_alignment' % TMD, '%s_start_in_SW_alignment' % next_TMD]
             dfs_nonTMD[index_columns] = dfs_nonTMD[index_columns].astype('int64')
             # create a tuple containing the indices for the nonTMD sequence regions in between each TMD (middle indices)
-            dfs_nonTMD['nonTMD_index_%s' % TMD] = tuple(zip(dfs_nonTMD['%s_end_in_SW_alignment' % TMD],
-                                                            dfs_nonTMD['%s_start_in_SW_alignment' % next_TMD]))
+            dfs_nonTMD['nonTMD_index_%s' % TMD] = tuple(zip(dfs_nonTMD['%s_end_in_SW_alignment' % TMD],dfs_nonTMD['%s_start_in_SW_alignment' % next_TMD]))
 
         # now join all the indices together to make one tuple of tuples for the non-TMD region
         # dfs_nonTMD = dfs.query('all_tmds_in_SW_alignment == True')
@@ -149,19 +147,19 @@ def calc_nonTMD_perc_ident_and_gaps(acc, dfs, set_, df, list_of_TMDs, logging):
         #                                                                                      #
         ########################################################################################
         # calculate identical residues in the nonTMD region (simply count the pipes '|' in the markup sequence)
-        dfs['nonTMD_num_ident_res'] = dfs['nonTMD_markup'].dropna().apply(lambda x: x.count('|'))
+        dfs['nonTMD_num_ident_res'] = dfs['nonTMD_markup'].str.count('|')
         # calculate similar residues in the nonTMD region (simply count the colons ':' in the markup sequence)
-        dfs['nonTMD_num_sim_res'] = dfs['nonTMD_markup'].dropna().apply(lambda x: x.count(':'))
+        dfs['nonTMD_num_sim_res'] = dfs['nonTMD_markup'].str.count(':')
         # add the identical and similar residues together to get the total number of similar + identical residues
         dfs['nonTMD_num_sim_plus_ident_res'] = dfs['nonTMD_num_ident_res'] + dfs['nonTMD_num_sim_res']
 
         # count the gaps in the nonTMD sequence of the query
-        dfs['nonTMD_q_num_gaps'] = dfs['nonTMD_seq_query'].dropna().apply(lambda x: x.count('-'))
+        dfs['nonTMD_q_num_gaps'] = dfs['nonTMD_seq_query'].str.count('-')
         # count the gaps in the nonTMD sequence of the match
-        dfs['nonTMD_m_num_gaps'] = dfs['nonTMD_seq_match'].dropna().apply(lambda x: x.count('-'))
+        dfs['nonTMD_m_num_gaps'] = dfs['nonTMD_seq_match'].str.count('-')
         # calculate the length of the nonTMD sequences, which may include gaps
-        dfs['len_nonTMD_seq_query'] = dfs['nonTMD_seq_query'].dropna().str.len()
-        dfs['len_nonTMD_seq_match'] = dfs['nonTMD_seq_match'].dropna().str.len()
+        dfs['len_nonTMD_seq_query'] = dfs['nonTMD_seq_query'].str.len()
+        dfs['len_nonTMD_seq_match'] = dfs['nonTMD_seq_match'].str.len()
         # calculate the number aligned sequences, excluding gaps (length of query, or length of match, whichever is shorter)
         dfs['len_nonTMD_align'] = dfs[['len_nonTMD_seq_query', 'len_nonTMD_seq_match']].dropna(how='all').min(axis=1)
 

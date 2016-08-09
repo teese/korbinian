@@ -90,7 +90,7 @@ def setup_file_locations_in_df(set_, pathdict):
     else:
         # the list of proteins did not come from UniProt. Simply use the accession to name the files.
         df['protein_name'] = df.uniprot_acc
-    df['first_two_letters_of_uniprot_acc'] = df['uniprot_acc'].apply(lambda x: x[0:2])
+    df['first_two_letters_of_uniprot_acc'] = df['uniprot_acc'].str[0:2]
     df['simap_filename_base'] = simap_database_dir + '/' + df.first_two_letters_of_uniprot_acc + '/' + df.protein_name
     # normalise path to suit operating system
     df['simap_filename_base'] = df['simap_filename_base'].apply(lambda x: os.path.normpath(x))
