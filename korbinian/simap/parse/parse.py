@@ -43,12 +43,12 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                 with tarfile.open(SIMAP_tar, mode='r:gz') as tar:
                     if ft_xml_filename in [tarinfo.name for tarinfo in tar]:
                         feature_table_in_tarfile = True
-                    #else:
-                    #    feature_table_in_tarfile = False
+                    else:
+                       feature_table_in_tarfile = False
                     if homol_xml_filename in [tarinfo.name for tarinfo in tar]:
                         homologues_XML_in_tarfile = True
-                        #else:
-                        #    homologues_XML_in_tarfile = False
+                    else:
+                       homologues_XML_in_tarfile = False
             except (EOFError, tarfile.ReadError):
                 #file may be corrupted, if script stopped unexpectedly before compression was finished
                 logging.info('%s seems to be corrupted.'
@@ -58,25 +58,20 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                 feature_table_in_tarfile = False
                 homologues_XML_in_tarfile = False
                 os.remove(df.loc[acc, 'SIMAP_tar'])
-        if not SIMAP_tarfile_exists:
+        else:
             feature_table_in_tarfile = False
             homologues_XML_in_tarfile = False
+
+        # if only one of the files is in the tarfile, it is corrupt and should be deleted:
+        if True in [feature_table_in_tarfile, homologues_XML_in_tarfile] and False in [feature_table_in_tarfile, homologues_XML_in_tarfile]:
+            os.remove(df.loc[acc, 'SIMAP_tar'])
+            logging.warning("Tarfile containing homologues may be corrupt, contains only one of two XML files. "
+                            "File will be deleted:\n{}".format(df.loc[acc, 'SIMAP_tar']))
 
         if all([feature_table_in_tarfile, homologues_XML_in_tarfile]):
             '''get the Phobius and TMHMM predictions from the feature table of the query sequence
             NOT USED, PHOBIUS PRED OFTEN MISSING, in the future the TMD region taken from uniprot record
             '''
-            #phobius_TMD_start, phobius_TMD_end, phobius_TMD_length = get_phobius_TMD_region(simap_feature_table_root)
-            #TMHMM_TMD_start, TMHMM_TMD_end = get_TMHMM_TMD_region(simap_feature_table_root)
-            #df.loc[acc,'phobius_TMD_start'] = phobius_TMD_start
-            #df.loc[acc,'phobius_TMD_end'] = phobius_TMD_end
-            #df.loc[acc,'phobius_TMD_length'] = phobius_TMD_length
-            #df.loc[acc,'TMHMM_TMD_start'] = TMHMM_TMD_start
-            #df.loc[acc,'TMHMM_TMD_end'] = TMHMM_TMD_end
-
-            #create a new file to store all of the simap data, and write the csv header
-            #SIMAP_temp_csv_from_XML_path = r"E:/Databases/simap/%s/%s_homologues.csv" % (organism_domain, protein_name[:30])
-
             # create subfolders, if they don't exist
             subfolder = os.path.dirname(df.loc[acc, 'homol_csv_zip'])
             utils.make_sure_path_exists(subfolder)

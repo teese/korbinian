@@ -142,7 +142,6 @@ def analyse_homologues_single_protein(homol_csv_zip, acc, protein_name, set_, df
         for n, col in enumerate(columns_from_regex_output):
             # add a new column which is named TM01_start, etc, and insert the appropriate integer (start or stop) or bool from the tuple
             dfs[col] = df_match['%s_start_end_list_in_SW_alignment'%TMD].dropna().apply(lambda x: x[n])
-        utils.aaa(dfs)
 
         ########################################################################################
         #                                                                                      #

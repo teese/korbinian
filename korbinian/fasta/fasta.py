@@ -97,11 +97,6 @@ def filter_and_save_fasta(df, dfs, acc, TMD, set_, logging, zipout_fasta):
 
     dfs_fa = dfs.query(fa_query_filt_str)
 
-    # refilter to obtain dfs_fa with the sliced sequences
-    # timeit result: filtering of 5000 homologues took ~8 ms, deemed worth it as you need to filter before slicing anyway
-
-    dfs_fa = dfs.query(fa_query_filt_str)
-
     # # and the same for the TMD + surrounding sequence, useful to examine the TMD interface
     # dfs['%s_SW_query_seq_plus_surr'%TMD] = dfs_fa[dfs_fa['%s_start_in_SW_alignment_plus_surr'%TMD].notnull()].apply(
     #     utils.slice_SW_query_TMD_seq_plus_surr, args=(TMD,), axis=1)
