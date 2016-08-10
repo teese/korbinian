@@ -119,12 +119,12 @@ def filter_and_save_fasta(df, dfs, acc, TMD, set_, logging, zipout_fasta):
     for s in fasta_savelist:
         #fasta_file = df.loc[acc, 'fasta_file%s_BASENAME'%s] + '%s.fas' % TMD
         fasta_file_path = df.loc[acc, 'fasta_file%s_BASENAMEPATH'%s] + '%s.fas' % TMD
-        print(fasta_file_path)
         with open(fasta_file_path, 'w') as f:
             # add the query sequence, if desired
             if set_["add_query_seq"]:
                 # add original query seq to fasta file. Note that the first SIMAP hit is excluded below.
-                f.write('>00_%s_%s_uniprot_query%s\n%s\n' % (df.loc[acc, 'protein_name'], TMD, s, df.loc[acc, '%s_seq%s'%(TMD,s)]))
+                if '%s_seq%s'%(TMD,s) in df.columns:
+                    f.write('>00_%s_%s_uniprot_query%s\n%s\n' % (df.loc[acc, 'protein_name'], TMD, s, df.loc[acc, '%s_seq%s'%(TMD,s)]))
             if set_["remove_redundant_seqs"]:
                 # select the non-redundant sequences by using the pandas duplicated function
                 nr_dfs_fa = dfs_fa.loc[~dfs_fa['%s_SW_match_seq%s'%(TMD,s)].duplicated()]
@@ -142,7 +142,8 @@ def filter_and_save_fasta(df, dfs, acc, TMD, set_, logging, zipout_fasta):
                         X_not_in_seq_ser = nr_dfs_fa['%s_SW_match_seq%s'%(TMD,s)].apply(lambda x : "X" not in x)
                         n_before = nr_dfs_fa.shape[0]
                         nr_dfs_fa = nr_dfs_fa.loc[X_not_in_seq_ser]
-                        print("{} seqs removed due to X in seq plus surr".format(n_before - nr_dfs_fa.shape[0]))
+                        if nr_dfs_fa.shape[0] > 0:
+                            logging.info("{} seqs removed due to X in seq plus surr".format(n_before - nr_dfs_fa.shape[0]))
 
             """REMOVED, FIRST HIT IS ALREADY EXCLUDED"""
             # # add the first non-redundant sequence from the homologues, but only if it is not the same as the query
