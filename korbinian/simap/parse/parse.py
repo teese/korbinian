@@ -85,7 +85,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                     try:
                         dfs_test = utils.open_df_from_csv_zip(df.loc[acc, 'homol_csv_zip'])
                         description_of_first_hit = dfs_test.loc[1, 'uniprot_description']
-                        logging.info('%s homologues already converted to csv. (%s)' % (acc, description_of_first_hit))
+                        logging.info('Protein %s: homologues already converted to csv. (%s)' % (acc, description_of_first_hit))
                         create_homol_csv = False
                         # with tarfile.open(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'], 'r:gz') as tar:
                         #     #create a list of files
