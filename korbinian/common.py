@@ -15,7 +15,7 @@ def setup_keyboard_interrupt_and_error_logging(set_, list_number):
         raise KeyboardInterrupt("CTRL-C!")
     signal.signal(signal.SIGINT, ctrlc)
     '''+++++++++++++++LOGGING++++++++++++++++++'''
-    date_string = strftime("%Y%m%d")
+    date_string = strftime("%Y%m%d_%H_%M_%S")
 
     # designate the output logfile
     logfile = os.path.join(set_["logfile_dir"],'List%s_%s_logfile.log' % (list_number, date_string))
