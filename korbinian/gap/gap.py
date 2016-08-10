@@ -42,9 +42,9 @@ def calculate_gap_densities(pathdict, set_, logging):
     #     raise IOError("df is not in memory, and neither %s nor %s are found" % (pathdict["dfout10_uniprot_gaps"],pathdict["dfout08_simap_AAIMON"]))
     df = pd.read_csv(pathdict["list_summary_csv"])
 
-    for acc in df.index:
+    # iterate through each protein that has a list_of_TMDs
+    for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
 
-        protein_name = df.loc[acc,'protein_name']
         # The next steps (the main analysis) is only executed, if previous analysis can be overwritten or no analysis has yet been done
         if (overwrite_previous_gap_analysis == True) or (df.loc[acc,"gaps_analysed"] != True):
             logging.info("%s"%acc)

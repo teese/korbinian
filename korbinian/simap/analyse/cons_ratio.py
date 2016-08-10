@@ -21,7 +21,8 @@ def create_fasta_or_calculate_AAIMON_ratios(pathdict, set_, logging):
     dataframe_contains_prev_calc_AAIMON_ratios = True if 'TM01_AAIMON_ratio_mean' in df.columns else False
     logging.info('dataframe_contains_prev_calc_AAIMON_ratios = %s' % dataframe_contains_prev_calc_AAIMON_ratios)
     #iterate over the dataframe for proteins with an existing list_of_TMDs. Note that acc = uniprot accession here.
-    for acc in df.loc[df['list_of_TMDs'] != 'nan'].index:
+    #for acc in df.loc[df['list_of_TMDs'] != 'nan'].index:
+    for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
         #assume af first that there is no previous data, and that the calculations can be re-run
         prev_calc_AAIMON_ratio_for_this_protein_exists = False
         if overwrite_prev_calculated_AAIMON_ratios == False:

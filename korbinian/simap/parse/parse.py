@@ -178,10 +178,10 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                     with open(pathdict["list_summary_csv"], 'w') as f:
                         df.to_csv(f, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
-                    #create new files to store the fasta sequences, and save the query sequence (the row here is the uniprot number in th df index)
-                    for row in df.index:
-                        #for a protein with TMDs, the list of TMD names should be ['TM01','TM02']
-                        list_of_TMDs = ast.literal_eval(df.loc[row, 'list_of_TMDs'])
+                    # #create new files to store the fasta sequences, and save the query sequence (the row here is the uniprot number in th df index)
+                    # for row in df.index:
+                    #     #for a protein with TMDs, the list of TMD names should be ['TM01','TM02']
+                    #     list_of_TMDs = ast.literal_eval(df.loc[row, 'list_of_TMDs'])
 
                     #for each hit, save all the relevant data in the form of a dictionary,
                     # so it can be added to a csv file or used in other calculations
@@ -345,12 +345,11 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                         match_details_dict['alignment_markup'] = smithWatermanAlignment_node[6].text
                                         match_details_dict['match_alignment_sequence'] = smithWatermanAlignment_node[7].text
                                         #create a list of TMD names to be used in the loops below (TM01, TM02 etc)
-                                        list_of_TMDs = ast.literal_eval(df.loc[acc, 'list_of_TMDs'])
-                                        #run the search using the regular expression that will find the TMD even if it contains gaps
-                                        for TMD in list_of_TMDs:
-                                            #if is_TMD_in_FASTA_alignment:
-                                            query_TMD_sequence = df.loc[acc, '%s_seq'%TMD]
-                                            query_TMD_length = len(query_TMD_sequence)
+                                        # list_of_TMDs = ast.literal_eval(df.loc[acc, 'list_of_TMDs'])
+                                        # #run the search using the regular expression that will find the TMD even if it contains gaps
+                                        # for TMD in list_of_TMDs:
+                                        #     #if is_TMD_in_FASTA_alignment:
+                                        #     query_TMD_sequence = df.loc[acc, '%s_seq'%TMD]
                                     else:
                                         number_of_hits_missing_smithWatermanAlignment_node += 1
                                     if A1_hit_number == 1:
