@@ -40,7 +40,7 @@ def calculate_gap_densities(pathdict, set_, logging):
     #         df['len_juxta_TM%.2d_extracellular'%n] = np.nan
     # else:
     #     raise IOError("df is not in memory, and neither %s nor %s are found" % (pathdict["dfout10_uniprot_gaps"],pathdict["dfout08_simap_AAIMON"]))
-    df = pd.read_csv(pathdict["list_summary_csv"])
+    df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
 
     # iterate through each protein that has a list_of_TMDs
     for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:

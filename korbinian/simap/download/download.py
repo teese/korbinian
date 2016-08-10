@@ -8,7 +8,7 @@ import tarfile
 
 def download_homologues_from_simap(pathdict, set_, logging):
 
-    df = pd.read_csv(pathdict["list_summary_csv"])
+    df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
     #def retrieve_simap_feature_table_and_homologues_from_list_in_csv(input_file, list_of_keys, settings):
     '''
     First prepare the csv file from the uniprot record.

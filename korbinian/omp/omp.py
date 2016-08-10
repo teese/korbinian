@@ -111,9 +111,9 @@ print(len(keywords["Uniprot"])
 
 # Creating Dataframe and saving it as csv and Excelfile
 
-df = pd.DataFrame(keywords)
-df.to_csv("OMPdb_Selected_by_IDs.csv",index=False)
+dfKW = pd.DataFrame(keywords)
+dfKW.to_csv("OMPdb_Selected_by_IDs.csv",index=False)
 
 writer = pd.ExcelWriter("OMPdb_Selected_by_IDs.xlsx")
-df.to_excel(writer)
+dfKW.to_excel(writer)
 

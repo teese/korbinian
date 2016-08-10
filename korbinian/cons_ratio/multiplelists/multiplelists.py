@@ -48,17 +48,17 @@ def compare_rel_con_lists(pathdict, set_, logging):
     '''
     # create new list of dataframes
     df_list_excluding_AAIMON_ones = []
-    for df in df_list:
+    for dfl in df_list:
         # count numbers of each AAIMON ratio
-        vc_AAIMON = df.AAIMON_ratio_mean_all_TMDs.value_counts()
-        # replace df with a filtered dataframe, with all rows excluded where AAIMON_ratio_mean_all_TMDs is 1.000000
+        vc_AAIMON = dfl.AAIMON_ratio_mean_all_TMDs.value_counts()
+        # replace dfl with a filtered dataframe, with all rows excluded where AAIMON_ratio_mean_all_TMDs is 1.000000
         if 1.000000 in vc_AAIMON:
             num_proteins_with_AAIMON_of_ONE = vc_AAIMON[1.000000]
-            total_num_prot_with_data = len(df['AAIMON_ratio_mean_all_TMDs'].dropna())
+            total_num_prot_with_data = len(dfl['AAIMON_ratio_mean_all_TMDs'].dropna())
             logging.info('num_proteins_with_AAIMON_of_ONE in orig dataframe : %i from %i total' % (
             num_proteins_with_AAIMON_of_ONE, total_num_prot_with_data))
-            df = df.loc[df['AAIMON_ratio_mean_all_TMDs'] != 1.000000]
-        df_list_excluding_AAIMON_ones.append(df)
+            dfl = dfl.loc[dfl['AAIMON_ratio_mean_all_TMDs'] != 1.000000]
+        df_list_excluding_AAIMON_ones.append(dfl)
     df_list = df_list_excluding_AAIMON_ones
 
     '''
@@ -93,14 +93,14 @@ def compare_rel_con_lists(pathdict, set_, logging):
         # create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
 
-    for n, df in enumerate(df_list):
+    for n, dfl in enumerate(df_list):
         data_column = 'AAIMON_ratio_mean_all_TMDs'
         color = TUM_colours_list_with_greys[n + 2]  # "#0489B1"
         alpha = 0.7
         col_width_value = 0.95
         ylabel = 'freq'
         xlabel = 'average conservation ratio (membranous over nonmembranous)'
-        utils.create_hist_from_df_col(df=df,
+        utils.create_hist_from_df_col(df=dfl,
                                       title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr,
                                       settings=set_,
                                       data_column=data_column,
@@ -123,14 +123,14 @@ def compare_rel_con_lists(pathdict, set_, logging):
         # create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
 
-    for n, df in enumerate(df_list):
+    for n, dfl in enumerate(df_list):
         data_column = 'AASMON_ratio_mean_all_TMDs'
         color = TUM_colours_list_with_greys[n + 2]  # "#0489B1"
         alpha = 0.7
         col_width_value = 0.95
         ylabel = 'freq'
         xlabel = 'average conservation ratio (membranous over nonmembranous)'
-        utils.create_hist_from_df_col(df=df,
+        utils.create_hist_from_df_col(df=dfl,
                                       title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr,
                                       settings=set_,
                                       data_column=data_column,
@@ -152,7 +152,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         # create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
 
-    for n, df in enumerate(df_list):
+    for n, dfl in enumerate(df_list):
         data_column = 'len_nonTMD_seq_match_mean'
         color = TUM_colours_list_with_greys[n + 2]  # "#0489B1"
         alpha = 0.7
@@ -160,7 +160,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         ylabel = 'freq'
         xlabel = data_column
 
-        utils.create_hist_from_df_col_with_auto_binlist(df=df,
+        utils.create_hist_from_df_col_with_auto_binlist(df=dfl,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
                                                         settings=set_,
                                                         data_column=data_column,
@@ -182,7 +182,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         # create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
 
-    for n, df in enumerate(df_list):
+    for n, dfl in enumerate(df_list):
         data_column = 'len_nonTMD_align_mean'
         color = TUM_colours_list_with_greys[n + 2]  # "#0489B1"
         alpha = 0.7
@@ -190,7 +190,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         ylabel = 'freq'
         xlabel = data_column
 
-        utils.create_hist_from_df_col_with_auto_binlist(df=df,
+        utils.create_hist_from_df_col_with_auto_binlist(df=dfl,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr,
                                                         num_bins=100,
                                                         settings=set_,
@@ -218,7 +218,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         # create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
 
-    for n, df in enumerate(df_list):
+    for n, dfl in enumerate(df_list):
         data_column = 'nonTMD_perc_ident_mean'
         color = TUM_colours_list_with_greys[n + 2]  # "#0489B1"
         alpha = 0.7
@@ -226,7 +226,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         ylabel = 'freq'
         xlabel = data_column
 
-        utils.create_hist_from_df_col_with_auto_binlist(df=df,
+        utils.create_hist_from_df_col_with_auto_binlist(df=dfl,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
                                                         settings=set_,
                                                         data_column=data_column,
@@ -249,7 +249,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         # create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
 
-    for n, df in enumerate(df_list):
+    for n, dfl in enumerate(df_list):
         data_column = 'nonTMD_perc_ident_mean'
         color = TUM_colours_list_with_greys[n + 2]  # "#0489B1"
         alpha = 0.7
@@ -257,7 +257,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         ylabel = 'freq'
         xlabel = data_column
 
-        utils.create_hist_from_df_col_with_auto_binlist(df=df,
+        utils.create_hist_from_df_col_with_auto_binlist(df=dfl,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
                                                         settings=set_,
                                                         data_column=data_column,
@@ -279,7 +279,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         # create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
 
-    for n, df in enumerate(df_list):
+    for n, dfl in enumerate(df_list):
         data_column = 'nonTMD_perc_sim_mean'
         color = TUM_colours_list_with_greys[n + 2]  # "#0489B1"
         alpha = 0.7
@@ -287,7 +287,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         ylabel = 'freq'
         xlabel = data_column
 
-        utils.create_hist_from_df_col_with_auto_binlist(df=df,
+        utils.create_hist_from_df_col_with_auto_binlist(df=dfl,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
                                                         settings=set_,
                                                         data_column=data_column,
@@ -310,7 +310,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         # create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
 
-    for n, df in enumerate(df_list):
+    for n, dfl in enumerate(df_list):
         data_column = 'nonTMD_perc_sim_plus_ident_mean'
         color = TUM_colours_list_with_greys[n + 2]  # "#0489B1"
         alpha = 0.7
@@ -318,7 +318,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         ylabel = 'freq'
         xlabel = data_column
 
-        utils.create_hist_from_df_col_with_auto_binlist(df=df,
+        utils.create_hist_from_df_col_with_auto_binlist(df=dfl,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
                                                         settings=set_,
                                                         data_column=data_column,
@@ -341,7 +341,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         # create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
 
-    for n, df in enumerate(df_list):
+    for n, dfl in enumerate(df_list):
         data_column = 'nonTMD_qm_gaps_per_q_residue_mean'
         color = TUM_colours_list_with_greys[n + 2]  # "#0489B1"
         alpha = 0.7
@@ -349,7 +349,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         ylabel = 'freq'
         xlabel = data_column
 
-        utils.create_hist_from_df_col_with_auto_binlist(df=df,
+        utils.create_hist_from_df_col_with_auto_binlist(df=dfl,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
                                                         settings=set_,
                                                         data_column=data_column,
@@ -377,7 +377,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         # create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
 
-    for n, df in enumerate(df_list):
+    for n, dfl in enumerate(df_list):
         data_column = 'TM01_AAIMON_ratio_mean'
         color = TUM_colours_list_with_greys[n + 2]  # "#0489B1"
         alpha = 0.7
@@ -385,7 +385,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         ylabel = 'freq'
         xlabel = data_column
 
-        utils.create_hist_from_df_col_with_auto_binlist(df=df,
+        utils.create_hist_from_df_col_with_auto_binlist(df=dfl,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
                                                         settings=set_,
                                                         data_column=data_column,
@@ -408,7 +408,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         # create a new figure
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
 
-    for n, df in enumerate(df_list):
+    for n, dfl in enumerate(df_list):
         data_column = 'TM01_perc_ident_mean'
         if data_column in df.columns:
             color = TUM_colours_list_with_greys[n + 2]  # "#0489B1"
@@ -417,7 +417,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
             ylabel = 'freq'
             xlabel = data_column
 
-            utils.create_hist_from_df_col_with_auto_binlist(df=df,
+            utils.create_hist_from_df_col_with_auto_binlist(df=dfl,
                                                             title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr,
                                                             num_bins=60,
                                                             settings=set_,
@@ -454,7 +454,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         ylabel = 'freq'
         xlabel = data_column
 
-        utils.create_hist_from_df_col_with_auto_binlist(df=df,
+        utils.create_hist_from_df_col_with_auto_binlist(df=dfl,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
                                                         settings=set_,
                                                         data_column=data_column,
@@ -487,7 +487,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         ylabel = 'freq'
         xlabel = data_column
 
-        utils.create_hist_from_df_col_with_auto_binlist(df=df,
+        utils.create_hist_from_df_col_with_auto_binlist(df=dfl,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
                                                         settings=set_,
                                                         data_column=data_column,
@@ -518,7 +518,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         ylabel = 'freq'
         xlabel = data_column
 
-        utils.create_hist_from_df_col_with_auto_binlist(df=df,
+        utils.create_hist_from_df_col_with_auto_binlist(df=dfl,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
                                                         settings=set_,
                                                         data_column=data_column,
@@ -552,7 +552,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
         ylabel = 'freq'
         xlabel = data_column
 
-        utils.create_hist_from_df_col_with_auto_binlist(df=df,
+        utils.create_hist_from_df_col_with_auto_binlist(df=dfl,
                                                         title=title, row_nr=row_nr, col_nr=col_nr, axarr=axarr, num_bins=60,
                                                         settings=set_,
                                                         data_column=data_column,
@@ -584,7 +584,7 @@ def compare_rel_con_lists(pathdict, set_, logging):
     #        ylabel = 'freq'
     #        xlabel = data_column
     #
-    #        utils.create_hist_from_df_col_with_auto_binlist(df=df,
+    #        utils.create_hist_from_df_col_with_auto_binlist(df=dfl,
     #                                                title=title,row_nr=row_nr,col_nr=col_nr,axarr=axarr,num_bins=60,
     #                                                settings=set_,
     #                                                data_column = data_column,
@@ -626,38 +626,38 @@ def compare_rel_con_lists(pathdict, set_, logging):
     GIVES A SettingWithCopyWarning: WHICH MAY, OR MAY NOT BE JUSTIFIED.
     '''
     logging.info("starting mean calculations")
-    for n, df in enumerate(df_list):
-        for acc in df.index:
+    for n, dfl in enumerate(df_list):
+        for acc in dfl.index:
             dict_len_TMD = {}
-            for TMD in ast.literal_eval(df.loc[acc, 'list_of_TMDs']):
-                if '%s_len'%TMD in df.columns:
-                    dict_len_TMD[TMD] = df.loc[acc, '%s_len'%TMD]
-                elif '%s_start'%TMD in df.columns:
-                    dict_len_TMD[TMD] = df.loc[acc, '%s_end'%TMD] - df.loc[acc, '%s_start'%TMD]
+            for TMD in ast.literal_eval(dfl.loc[acc, 'list_of_TMDs']):
+                if '%s_len'%TMD in dfl.columns:
+                    dict_len_TMD[TMD] = dfl.loc[acc, '%s_len'%TMD]
+                elif '%s_start'%TMD in dfl.columns:
+                    dict_len_TMD[TMD] = dfl.loc[acc, '%s_end'%TMD] - dfl.loc[acc, '%s_start'%TMD]
                 else:
-                    raise IndexError('neither TM01_len nor TM01_start are in df.columns')
-            df.loc[acc, 'len_all_TMD_region'] = np.sum(list(dict_len_TMD.values()))
+                    raise IndexError('neither TM01_len nor TM01_start are in dfl.columns')
+            dfl.loc[acc, 'len_all_TMD_region'] = np.sum(list(dict_len_TMD.values()))
             # series_len_all_TMD_region = np.sum(list(dict_len_TMD.values()))
-            df.loc[acc, 'average_len_all_TMDs'] = np.mean(list(dict_len_TMD.values()))
+            dfl.loc[acc, 'average_len_all_TMDs'] = np.mean(list(dict_len_TMD.values()))
             # series_average_len_all_TMDs = np.mean(list(dict_len_TMD.values()))
 
-        df.loc[:, 'ratio_len_all_TMD_to_seqlen'] = df['len_all_TMD_region'] / df.len_query_alignment_sequence
-        df.loc[:,
-        'proportion_JM_region_3aa'] = df.number_of_TMDs * 3 * 2 / df.len_query_alignment_sequence
-        df.loc[:,
-        'proportion_JM_region_6aa'] = df.number_of_TMDs * 6 * 2 / df.len_query_alignment_sequence
+        dfl.loc[:, 'ratio_len_all_TMD_to_seqlen'] = dfl['len_all_TMD_region'] / dfl.len_query_alignment_sequence
+        dfl.loc[:,
+        'proportion_JM_region_3aa'] = dfl.number_of_TMDs * 3 * 2 / dfl.len_query_alignment_sequence
+        dfl.loc[:,
+        'proportion_JM_region_6aa'] = dfl.number_of_TMDs * 6 * 2 / dfl.len_query_alignment_sequence
         print(
-            "df%i\nAverage AAIMON ratio all TMDs = %0.3f\nAverage len TMD = %0.2f\nAverage len full sequence = %0.2f\nAverage TMD proportion = %0.4f (%0.2f%%)\nAverage proportion JM (3aa each side) = %0.4f (%0.2f%%)\nAverage proportion JM (6aa each side) = %0.4f (%0.2f%%)" % (
+            "dfl%i\nAverage AAIMON ratio all TMDs = %0.3f\nAverage len TMD = %0.2f\nAverage len full sequence = %0.2f\nAverage TMD proportion = %0.4f (%0.2f%%)\nAverage proportion JM (3aa each side) = %0.4f (%0.2f%%)\nAverage proportion JM (6aa each side) = %0.4f (%0.2f%%)" % (
                 n,
-                df['AAIMON_ratio_mean_all_TMDs'].mean(),
-                df.len_all_TMD_region.mean(),
-                df.len_query_alignment_sequence.mean(),
-                df['ratio_len_all_TMD_to_seqlen'].mean(),
-                df['ratio_len_all_TMD_to_seqlen'].mean() * 100,
-                df['proportion_JM_region_3aa'].mean(),
-                df['proportion_JM_region_3aa'].mean() * 100,
-                df['proportion_JM_region_6aa'].mean(),
-                df['proportion_JM_region_6aa'].mean() * 100
+                dfl['AAIMON_ratio_mean_all_TMDs'].mean(),
+                dfl.len_all_TMD_region.mean(),
+                dfl.len_query_alignment_sequence.mean(),
+                dfl['ratio_len_all_TMD_to_seqlen'].mean(),
+                dfl['ratio_len_all_TMD_to_seqlen'].mean() * 100,
+                dfl['proportion_JM_region_3aa'].mean(),
+                dfl['proportion_JM_region_3aa'].mean() * 100,
+                dfl['proportion_JM_region_6aa'].mean(),
+                dfl['proportion_JM_region_6aa'].mean() * 100
             ))
 
     # for ax in axarr.flat:

@@ -172,15 +172,15 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
             uniprot_dict_all_proteins[output_dict['uniprot_acc']] = output_dict
 
         # convert that nested dict into a pandas dataframe, transverse
-        df = pd.DataFrame(uniprot_dict_all_proteins).sort_index().T
+        dfu = pd.DataFrame(uniprot_dict_all_proteins).sort_index().T
         # count records in dataframe
-        count_of_uniprot_records_added_to_csv = df.shape[0]
+        count_of_uniprot_records_added_to_csv = dfu.shape[0]
 
         ''' ~~ DETERMINE START AND STOP INDICES FOR TMD PLUS SURROUNDING SEQ ~~ '''
         fa_aa_before_tmd = set_["fa_aa_before_tmd"]
         fa_aa_after_tmd = set_["fa_aa_after_tmd"]
         # determine max number of TMD columns that need to be created
-        max_num_TMDs = df['number_of_TMDs'].max()
+        max_num_TMDs = dfu['number_of_TMDs'].max()
         # currently the loop is run for each TMD, based on the sequence with the most TMDs
         for i in range(1, max_num_TMDs + 1):
             TMD = 'TM%02d' % i
@@ -188,19 +188,19 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
             # UniProt database, such as "<5" or "?"
             # to avoid the bugs that this introduces, it is necessary to convert all strings to np.nan (as floats),
             # using the convert objects function. The numbers can then be converted back from floats to integers.
-            df['%s_start'%TMD] = pd.to_numeric(df['%s_start'%TMD]).dropna().astype('int64')
-            df['%s_end'%TMD] = pd.to_numeric(df['%s_end'%TMD]).dropna().astype('int64')
+            dfu['%s_start'%TMD] = pd.to_numeric(dfu['%s_start'%TMD]).dropna().astype('int64')
+            dfu['%s_end'%TMD] = pd.to_numeric(dfu['%s_end'%TMD]).dropna().astype('int64')
             # determine the position of the start of the surrounding sequence
-            df['%s_start_plus_surr'%TMD] = df['%s_start'%TMD] - fa_aa_before_tmd
+            dfu['%s_start_plus_surr'%TMD] = dfu['%s_start'%TMD] - fa_aa_before_tmd
             # replace negative values with zero. (slicing method was replaced with lambda function to avoid CopyWithSetting warning)
-            df['%s_start_plus_surr'%TMD] = df['%s_start_plus_surr'%TMD].apply(lambda x: x if x > 0 else 0)
-            df['%s_end_plus_surr'%TMD] = df['%s_end'%TMD] + fa_aa_after_tmd
+            dfu['%s_start_plus_surr'%TMD] = dfu['%s_start_plus_surr'%TMD].apply(lambda x: x if x > 0 else 0)
+            dfu['%s_end_plus_surr'%TMD] = dfu['%s_end'%TMD] + fa_aa_after_tmd
             # create a boolean series, describing whether the end_surrounding_seq_in_query is longer than the protein seq
-            series_indices_longer_than_prot_seq = df.apply(utils.find_indices_longer_than_prot_seq, args=(TMD,), axis=1)
+            series_indices_longer_than_prot_seq = dfu.apply(utils.find_indices_longer_than_prot_seq, args=(TMD,), axis=1)
             # obtain the indices of proteins in the series
             uniprot_acc_indices_longer_than_prot_seq = series_indices_longer_than_prot_seq[series_indices_longer_than_prot_seq].index
             # use indices to select the main dataframe, and convert these end_surrounding_seq_in_query values to the uniprot_seqlen value
-            df.loc[uniprot_acc_indices_longer_than_prot_seq, '%s_end_plus_surr'%TMD] = df.loc[uniprot_acc_indices_longer_than_prot_seq, 'uniprot_seqlen']
+            dfu.loc[uniprot_acc_indices_longer_than_prot_seq, '%s_end_plus_surr'%TMD] = dfu.loc[uniprot_acc_indices_longer_than_prot_seq, 'uniprot_seqlen']
 
         ''' ~~   SLICE TMDS FROM UNIPROT SEQ    ~~ '''
         # iterate through each TMD, slicing out the relevant sequence.
@@ -208,21 +208,21 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
         for i in range(1, max_num_TMDs + 1):
             TMD = 'TM%02d' % i
             # slice TMD
-            df['%s_seq'%TMD] = df[df['%s_start'%TMD].notnull()].apply(utils.slice_uniprot_TMD_seq, args=(TMD,), axis=1)
+            dfu['%s_seq'%TMD] = dfu[dfu['%s_start'%TMD].notnull()].apply(utils.slice_uniprot_TMD_seq, args=(TMD,), axis=1)
             # slice TMD plus surrounding seq
-            df['%s_seq_plus_surr'%TMD] = df[df['%s_start'%TMD].notnull()].apply(utils.slice_uniprot_TMD_plus_surr_seq, args=(TMD,), axis=1)
+            dfu['%s_seq_plus_surr'%TMD] = dfu[dfu['%s_start'%TMD].notnull()].apply(utils.slice_uniprot_TMD_plus_surr_seq, args=(TMD,), axis=1)
         # extract the organism domain (e.g. Eukaryota)
-        df['uniprot_orgclass'] = df['uniprot_orgclass'].astype(str)
-        df['organism_domain'] = df.uniprot_orgclass.apply(lambda x: x.strip("'[]").split("', '")[0])
+        dfu['uniprot_orgclass'] = dfu['uniprot_orgclass'].astype(str)
+        dfu['organism_domain'] = dfu.uniprot_orgclass.apply(lambda x: x.strip("'[]").split("', '")[0])
         # convert python datatypes to strings, as these currently give a TypeError when saving to excel
-        df['uniprot_all_accessions'] = df['uniprot_all_accessions'].astype(str)
-        df['uniprot_KW'] = df['uniprot_KW'].astype(str)
-        df['uniprot_features'] = df['uniprot_features'].astype(str)
-        df['list_of_TMDs'] = df['list_of_TMDs'].astype(str)
+        dfu['uniprot_all_accessions'] = dfu['uniprot_all_accessions'].astype(str)
+        dfu['uniprot_KW'] = dfu['uniprot_KW'].astype(str)
+        dfu['uniprot_features'] = dfu['uniprot_features'].astype(str)
+        dfu['list_of_TMDs'] = dfu['list_of_TMDs'].astype(str)
         # indicate that the create_csv_from_uniprot_flatfile function has been run
-        df['create_csv_from_uniprot_flatfile'] = True
+        dfu['create_csv_from_uniprot_flatfile'] = True
         # save to a csv
-        df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+        dfu.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     logging.info('create_csv_from_uniprot_flatfile was successful:'
                  '\n\%i uniprot records parsed to csv' % (count_of_uniprot_records_added_to_csv))

@@ -10,7 +10,7 @@ import zipfile
 def parse_SIMAP_to_csv(pathdict, set_, logging):
     counter_XML_to_CSV = 0
     logging.info('~~~~~~~~~~~~  starting parse_SIMAP_to_csv   ~~~~~~~~~~~~')
-    df = pd.read_csv(pathdict["list_summary_csv"])
+    df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
     # #filter to remove sequences where no TMDs are found
     # df = df.loc[df['list_of_TMDs'].notnull()]
     # #filter to remove sequences where no TMDs are found (if string)

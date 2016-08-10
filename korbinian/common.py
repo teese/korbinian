@@ -55,6 +55,10 @@ def create_pathdict(base_filename_summaries):
     pathdict["base_filename_summaries"] = base_filename_summaries
     # currently the protein list summary (each row is a protein, from uniprot etc) is a csv file
     pathdict["list_summary_csv"] = '%s_summary.csv' % base_filename_summaries
+    # add the base path for the sub-sequences (SE01, SE02, etc) added by the user
+    pathdict["list_user_subseqs_csv"] = '%s_user_subseqs.csv' % base_filename_summaries
+    pathdict["list_user_subseqs_xlsx"] = '%s_user_subseqs.xlsx' % base_filename_summaries
+
     pathdict["dfout01_uniprotcsv"] = '%s_uniprot.csv' % base_filename_summaries
     pathdict["dfout02_uniprotTcsv"] = '%s_uniprotT.csv' % base_filename_summaries
     pathdict["dfout03_uniprotxlsx"] = '%s_uniprot.xlsx' % base_filename_summaries
@@ -78,7 +82,7 @@ def create_pathdict(base_filename_summaries):
     return pathdict
 
 def setup_file_locations_in_df(set_, pathdict):
-    df = pd.read_csv(pathdict["list_summary_csv"])
+    df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
     # set up a folder to hold the SIMAP BLAST-like output
     # note that at the moment, files cannot be compressed
     simap_database_dir = set_['simap_database_dir']
@@ -90,6 +94,64 @@ def setup_file_locations_in_df(set_, pathdict):
     else:
         # the list of proteins did not come from UniProt. Simply use the accession to name the files.
         df['protein_name'] = df.uniprot_acc
+
+    if set_["add_user_subseqs"] == True:
+        ########################################################################################
+        #                                                                                      #
+        #      Add user-selected sequences from csv or excel("SE01", "SE02" etc)               #
+        #                                                                                      #
+        ########################################################################################
+
+        """determine if the user sequences are submitted as excel or CSV
+        Either way, they should have the following format:
+
+                    SE01_seq 	                            SE02_seq
+        uniprot_acc
+        A5HEI4 	    LLLSLAFMEALTIYGLVVALVLLFA 	            NaN
+        A5U127 	    VDLAVAVVIGTAFTALVTKFTDSIITPLI 	        NaN
+        A8EVM5 	    NaN 	                            YAWVFFIPFIFV
+        B0R2U4 	    NaN 	                            LGSLFTVIAADIGMCVTGLA
+        B0SR19 	    ISRNMYIMFFLGVVLWFVYGI 	                 NaN
+        """
+        if os.path.isfile(pathdict["list_user_subseqs_csv"]):
+            user_subseqs_file = pathdict["list_user_subseqs_csv"]
+        elif os.path.isfile(pathdict["list_user_subseqs_xlsx"]):
+            user_subseqs_file = pathdict["list_user_subseqs_xlsx"]
+        else:
+            raise FileNotFoundError("add_user_TMDs is marked as True, but we can't find a file containing the "
+                                    "user sequences to add to the list of TMDs (e.g.{})".format(pathdict["list_user_subseqs_xlsx"]))
+
+        # load as a pandas dataframe
+        if user_subseqs_file[-4:] == ".csv":
+            df_SE = pd.read_csv(user_subseqs_file, index_col=0)
+        elif user_subseqs_file[-4:] == "xlsx":
+            df_SE = pd.read_excel(user_subseqs_file, index_col=0)
+
+        # create a series of lists of SEs ([SE01, SE02] etc) for each protein
+        nested_list_of_SEs = []
+        for row in df_SE.index:
+            # get list of SE_seqs (SE01seq, SE02seq, etc)
+            list_of_SEs_with_seq = list(df_SE.loc[row, :].dropna().index)
+            # drop the _seq (SE01, SE02, etc)
+            list_of_SEs = [s[:-4] for s in list_of_SEs_with_seq]
+            nested_list_of_SEs.append(list_of_SEs)
+        nested_list_of_SEs
+        # convert nested list to pandas series
+        list_of_SEs_ser = pd.Series(nested_list_of_SEs, index=df_SE.index)
+
+        # append the list of SEs (selected sequences) to the list of TMDs e.g. [TM01, TM02, SE01]
+        if type(df["list_of_TMDs"][0]) == str:
+            df["list_of_TMDs"] = df["list_of_TMDs"].str.strip("'[]'").str.split("', '")
+        df["list_of_TMDs"] = df["list_of_TMDs"] + list_of_SEs_ser
+
+        # add the sequences (SE01_seq etc) to the main dataframe
+        df = pd.concat([df, df_SE], axis=1)
+
+    ########################################################################################
+    #                                                                                      #
+    #                                     setup file paths                                 #
+    #                                                                                      #
+    ########################################################################################
     df['first_two_letters_of_uniprot_acc'] = df['uniprot_acc'].str[0:2]
     df['simap_filename_base'] = simap_database_dir + '/' + df.first_two_letters_of_uniprot_acc + '/' + df.protein_name
     # normalise path to suit operating system
@@ -144,6 +206,11 @@ def setup_file_locations_in_df(set_, pathdict):
     df['csv_file_av_cons_ratios_hits'] = df.simap_filename_base + '_cons_ratios.csv'
     df['csv_file_av_cons_ratios_hits_BASENAME'] = df.protein_name + '_cons_ratios_'
     df['csv_file_av_cons_ratios_hits_BASENAMEPATH'] = df.simap_filename_base + '_cons_ratios_'
+    ########################################################################################
+    #                                                                                      #
+    #                                     Save to CSV                                       #
+    #                                                                                      #
+    ########################################################################################
     # indicate that the setup_file_locations_in_df function has been run
     df['setup_file_locations_in_df'] = True
     # save to a csv
