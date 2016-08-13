@@ -66,7 +66,7 @@ def download_homologues_from_simap(pathdict, set_, logging):
                 #check which files exist. This is useful, because it is not possible to open the tarfile as 'a:gz',
                 #therefore you cannot add files to an existing tarfile)
                 feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path)
-                if not SIMAP_tarfile_exists:
+                if not SIMAP_tarfile_exists or set_["overwrite_homologue_files"] == True:
                     if not feature_table_XML_exists:
                         #download feature table from SIMAP
                         utils.retrieve_simap_feature_table(input_sequence,
@@ -98,7 +98,7 @@ def download_homologues_from_simap(pathdict, set_, logging):
                             utils.sleep_x_hours(6)
                     else:
                         #if download is successful or file exists, the SIMAP server must be working,
-                    #therefore reset the number_of_files_not_found
+                        #therefore reset the number_of_files_not_found
                         number_of_files_not_found = 0
 
                     # create an empty text file with the download date
