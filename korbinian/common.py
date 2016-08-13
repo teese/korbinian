@@ -127,6 +127,12 @@ def setup_file_locations_in_df(set_, pathdict):
         elif user_subseqs_file[-4:] == "xlsx":
             df_SE = pd.read_excel(user_subseqs_file, index_col=0)
 
+        # df_SE with the selected sequences should be cropped to only include the proteins in the original list (df)
+        # first find the common indices between the two dataframes
+        common = set(df.index).intersection(set(df_SE.index))
+        # reindex the dataframe to drop any proteins not in the original list
+        df_SE = df_SE.reindex(index=common)
+
         # create a series of lists of SEs ([SE01, SE02] etc) for each protein
         nested_list_of_SEs = []
         for row in df_SE.index:
@@ -135,7 +141,6 @@ def setup_file_locations_in_df(set_, pathdict):
             # drop the _seq (SE01, SE02, etc)
             list_of_SEs = [s[:-4] for s in list_of_SEs_with_seq]
             nested_list_of_SEs.append(list_of_SEs)
-        nested_list_of_SEs
         # convert nested list to pandas series
         list_of_SEs_ser = pd.Series(nested_list_of_SEs, index=df_SE.index)
 
@@ -144,6 +149,7 @@ def setup_file_locations_in_df(set_, pathdict):
             df["list_of_TMDs"] = df["list_of_TMDs"].str.strip("'[]'").str.split("', '")
         df["list_of_TMDs"] = df["list_of_TMDs"] + list_of_SEs_ser
 
+        utils.aaa(df_SE)
         # add the sequences (SE01_seq etc) to the main dataframe
         df = pd.concat([df, df_SE], axis=1)
 

@@ -37,7 +37,6 @@ def aaa(df_or_series):
     csv_out = r"D:\data\000_aaa_temp_df_out.csv"
     df_or_series.to_csv(csv_out, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
-
 # Fibonacci numbers module. Use this to test that the utilities are working
 def fib(n):    # write Fibonacci series up to n
     a, b = 0, 1
