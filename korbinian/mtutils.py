@@ -1141,7 +1141,7 @@ def setup_error_logging(logfile):
                 "level": "DEBUG"
             }, 
             "file": {
-                "maxBytes": 5000000, 
+                "maxBytes": 10000000,
                 "formatter": "precise", 
                 "backupCount": 3, 
                 "class": "logging.handlers.RotatingFileHandler", 
@@ -1188,7 +1188,7 @@ def setup_error_logging(logfile):
     #with open(settings_file_output, 'w') as f:
     #    f.write(json.dumps(config, f, indent=4, sort_keys=True))
     
-    #create a blank logging file (if desired)
+    #create a blank logging file
     with open(logfile, 'w') as f:
         pass
     
