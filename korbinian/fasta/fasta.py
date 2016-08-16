@@ -142,8 +142,9 @@ def filter_and_save_fasta(df, dfs, acc, TMD, set_, logging, zipout_fasta):
                         X_not_in_seq_ser = nr_dfs_fa['%s_SW_match_seq%s'%(TMD,s)].apply(lambda x : "X" not in x)
                         n_before = nr_dfs_fa.shape[0]
                         nr_dfs_fa = nr_dfs_fa.loc[X_not_in_seq_ser]
-                        if nr_dfs_fa.shape[0] > 0:
-                            logging.info("{} seqs removed due to X in seq plus surr".format(n_before - nr_dfs_fa.shape[0]))
+                        n_X_removed = n_before - nr_dfs_fa.shape[0]
+                        if n_X_removed > 1:
+                            logging.info("{} seqs removed due to X in seq plus surr".format(n_X_removed))
 
             """REMOVED, FIRST HIT IS ALREADY EXCLUDED"""
             # # add the first non-redundant sequence from the homologues, but only if it is not the same as the query
