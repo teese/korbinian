@@ -2,6 +2,7 @@ import ast
 import csv
 import os
 import pandas as pd
+import pickle
 import tarfile
 import xml.etree.ElementTree as ET
 import korbinian.mtutils as utils
@@ -23,8 +24,8 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
         number_of_hits_missing_smithWatermanAlignment_node = 0
         #number_of_hits_kept_for_statistical_analysis = 0  # number_of_hits
         protein_name = df.loc[acc, 'protein_name']
-        ft_xml_path = df.loc[acc, 'SIMAP_feature_table_XML_file_path']
-        homol_xml_path = df.loc[acc, 'SIMAP_homologues_XML_file_path']
+        ft_xml_path = df.loc[acc, 'SIMAP_feature_table_XML_path']
+        homol_xml_path = df.loc[acc, 'SIMAP_homol_XML_path']
         SIMAP_tar = df.loc[acc, 'SIMAP_tar']
         ft_xml_filename = os.path.basename(ft_xml_path)
         homol_xml_filename = os.path.basename(homol_xml_path)
@@ -73,7 +74,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
             NOT USED, PHOBIUS PRED OFTEN MISSING, in the future the TMD region taken from uniprot record
             '''
             # create subfolders, if they don't exist
-            subfolder = os.path.dirname(df.loc[acc, 'homol_csv_zip'])
+            subfolder = os.path.dirname(df.loc[acc, 'homol_orig_table_zip'])
             utils.make_sure_path_exists(subfolder)
 
             #if the setting is "False", and you don't want to overwrite the files, skip this section
@@ -81,10 +82,10 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                 create_homol_csv = True
             else:
                 #check if output file already exists
-                if os.path.isfile(df.loc[acc, 'homol_csv_zip']):
+                if os.path.isfile(df.loc[acc, 'homol_orig_table_zip']):
                     try:
-                        dfs_test = utils.open_df_from_csv_zip(df.loc[acc, 'homol_csv_zip'])
-                        description_of_first_hit = dfs_test.loc[1, 'uniprot_description']
+                        dfs_test = utils.open_df_from_csv_zip(df.loc[acc, 'homol_orig_table_zip'])
+                        description_of_first_hit = dfs_test.loc[1, 'description']
                         logging.info('Protein %s: homologues already converted to csv. (%s)' % (acc, description_of_first_hit))
                         create_homol_csv = False
                         # with tarfile.open(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'], 'r:gz') as tar:
@@ -94,7 +95,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                         #     if df.loc[acc, 'SIMAP_csv_from_XML'] in files_in_output_tarball:
                         #         #read output csv in tarfile
                         #         dfs = pd.read_csv(tar.extractfile(df.loc[acc, 'SIMAP_csv_from_XML']), index_col = 0)
-                        #         description_of_first_hit = dfs.loc[1, 'uniprot_description']
+                        #         description_of_first_hit = dfs.loc[1, 'description']
                         #         logging.info('%s homologues already converted to csv. (%s)' % (acc, description_of_first_hit))
                         #         #filter to include only desired hits
                         #         '''OLD STUFF, from when XML to CSV was not saved separately
@@ -122,11 +123,11 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                         # create_homol_csv = False
                     except (EOFError, KeyError):
                         #file may be corrupted, if script stopped unexpectedly before compression was finished
-                        logging.info('%s seems to be corrupted. File will be deleted.' % df.loc[acc, 'homol_csv_zip'])
-                        os.remove(df.loc[acc, 'homol_csv_zip'])
+                        logging.info('%s seems to be corrupted. File will be deleted.' % df.loc[acc, 'homol_orig_table_zip'])
+                        os.remove(df.loc[acc, 'homol_orig_table_zip'])
                         create_homol_csv = True
                 else:
-                    logging.info('%s not found, create_homol_csv = True' % df.loc[acc, 'homol_csv_zip'])
+                    logging.info('%s not found, create_homol_csv = True' % df.loc[acc, 'homol_orig_table_zip'])
                     create_homol_csv = True
             #if the files don't exist, or you want to overwrite them
             if create_homol_csv:
@@ -219,14 +220,14 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                         #print (matrix)
                         #from Bio.SubsMat.MatrixInfo import matrix as matrix_name
 
-                        SIMAP_temp_csv_from_XML_path = df.loc[acc,'homol_csv_zip'][:-4]
+                        SIMAP_orig_csv = df.loc[acc,'homol_orig_table_zip'][:-4]
                         #fasta_file_path = df.loc[acc, 'fasta_file_path']
 
                         #create an empty file
-                        open(SIMAP_temp_csv_from_XML_path, 'w').close()
+                        open(SIMAP_orig_csv, 'w').close()
 
                         #reopen to add match details iteratively from dictionary
-                        with open(SIMAP_temp_csv_from_XML_path, 'a') as csvfile:
+                        with open(SIMAP_orig_csv, 'a') as csvfile:
 
                             #set up a bool to catch those files where not a single hit actually gives data
                             at_least_one_hit_contains_SW_node = False
@@ -235,8 +236,8 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                 match_details_dict = {}
 
                                 #add desired hit information to the dictionary for transfer to csv
-                                A1_hit_number = int(hit.attrib['number'])
-                                match_details_dict['A1_hit_number'] = A1_hit_number
+                                hit_num = int(hit.attrib['number'])
+                                match_details_dict['hit_num'] = hit_num
                                 match_details_dict['A3_md5'] = hit[1].attrib['md5']
 
                                 #define the major nodes in the XML-file
@@ -257,12 +258,12 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                     except IndexError:
                                         hit_contains_SW_node = False
                                     match_details_dict['hit_contains_SW_node'] = hit_contains_SW_node
-                                    #add the description. Make an empty string if it is the first (query) hit, preventing the presence of np.nan in the later dataframe
-                                    if A1_hit_number == 1:
-                                        uniprot_description = '%s_SIMAP_query_sequence' % protein_name
+                                    #add the description. Add a custom name if it is the first (query) hit
+                                    if hit_num == 1:
+                                        description = '%s_SIMAP_query_sequence' % protein_name
                                     else:
-                                        uniprot_description = protein_node.attrib['description']
-                                    match_details_dict['uniprot_description'] = uniprot_description
+                                        description = protein_node.attrib['description']
+                                    match_details_dict['description'] = description
                                     try:
                                         databaseId = int(protein_node[1].attrib['databaseId'])
                                         match_details_dict['databaseId'] = int(protein_node[1].attrib['databaseId'])
@@ -279,10 +280,10 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                         match_details_dict['taxonomy_rank'] = taxonomyNode.attrib['rank']
                                     except IndexError:
                                         #sequence is probably synthetic, as it has no database node
-                                        match_details_dict['uniprot_description'] += ', synthetic'
-                                        match_details_dict['organism'] = 'synthetic'
-                                        match_details_dict['taxonomy_node_id'] = 'synthetic'
-                                        match_details_dict['taxonomy_rank'] = 'synthetic'
+                                        match_details_dict['description'] += ', no_database_node'
+                                        match_details_dict['organism'] = 'no_database_node'
+                                        match_details_dict['taxonomy_node_id'] = 'no_database_node'
+                                        match_details_dict['taxonomy_rank'] = 'no_database_node'
                                     match_details_dict['len_full_match_seq'] = len(hit[1][0][0].text)
                                     #len_full_match_seq = len(full_match_seq)
                                     alignment_node = hit[0][0]
@@ -335,7 +336,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                         match_details_dict['SW_query_coverage'] = smithWatermanAlignment_node[2].text
                                         match_details_dict['SW_match_coverage'] = smithWatermanAlignment_node[3].text
                                         match_details_dict['SW_coverage_ratio'] = smithWatermanAlignment_node[4].text
-                                        match_details_dict['A5_alignment_pretty'] = smithWatermanAlignment_node[8].text
+                                        match_details_dict['align_pretty'] = smithWatermanAlignment_node[8].text
                                         match_details_dict['SW_alignment_seq1offset'] = int(smithWatermanAlignment_node.attrib['alignment-seq1offset'])
                                         match_details_dict['SW_alignment_seq2offset'] = int(smithWatermanAlignment_node.attrib['alignment-seq2offset'])
                                         match_details_dict['SW_identity'] = float(smithWatermanAlignment_node.attrib['identity'])
@@ -352,7 +353,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                         #     query_TMD_sequence = df.loc[acc, '%s_seq'%TMD]
                                     else:
                                         number_of_hits_missing_smithWatermanAlignment_node += 1
-                                    if A1_hit_number == 1:
+                                    if hit_num == 1:
                                         #sort
                                         csv_header_for_SIMAP_homologue_file = sorted(list(match_details_dict.keys()))
                                         #save the csv header to the csv file
@@ -364,14 +365,33 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                                             lineterminator='\n', quoting=csv.QUOTE_NONNUMERIC,
                                                             doublequote=True)
                                     writer.writerow(match_details_dict)
+
+                        # open csv as a dataframe,
+                        df_homol = pd.read_csv(SIMAP_orig_csv, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+                        # restrict to just a few columns including the align_pretty that might be useful to check manually
+                        df_pretty = df_homol[["hit_num", "FASTA_gapped_identity", "organism", "description", "align_pretty"]]
+                        utils.aaa(df_pretty)
+                        print("df.loc[acc,'SIMAP_align_pretty_csv']\n", df.loc[acc,'SIMAP_align_pretty_csv'])
+                        # save the align_pretty to csv
+                        df_pretty.to_csv(df.loc[acc,'SIMAP_align_pretty_csv'], sep=',', quoting=csv.QUOTE_NONNUMERIC)
+                        # drop the align_pretty column from the orig dataframe
+                        df_homol.drop("align_pretty", inplace=True)
+                        # save the whole dataframe as a pickle for faster opening later
+                        with open(df_homol.loc[acc,'SIMAP_orig_table_pickle'], "wb") as p:
+                            pickle.dump(df_homol, p)
                         # either create new zip and add ("w"), or open existing zip and add "a"
-                        with zipfile.ZipFile(df.loc[acc,'homol_csv_zip'], mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
-                            zipout.write(SIMAP_temp_csv_from_XML_path, arcname=os.path.basename(df.loc[acc,'homol_csv_zip'])[:-4])
-                        # delete temporary csv file
-                        os.remove(df.loc[acc,'homol_csv_zip'][:-4])
+                        with zipfile.ZipFile(df.loc[acc,'homol_orig_table_zip'], mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
+                            #zipout.write(SIMAP_orig_csv, arcname=os.path.basename(SIMAP_orig_csv))
+                            zipout.write(df.loc[acc,'SIMAP_align_pretty_csv'], arcname=os.path.basename(df.loc[acc,'SIMAP_align_pretty_csv']))
+                            zipout.write(df.loc[acc,'SIMAP_orig_table_pickle'], arcname=os.path.basename(df.loc[acc,'SIMAP_orig_table_pickle']))
+                        # delete temporary uncompressed files
+                        os.remove(SIMAP_orig_csv)
+                        os.remove(df.loc[acc,'SIMAP_align_pretty_csv'])
+                        os.remove(df.loc[acc,'SIMAP_orig_table_pickle'])
+
                         # with tarfile.open(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'], 'w:gz') as tar_SIMAP_out:
-                        #     tar_SIMAP_out.add(SIMAP_temp_csv_from_XML_path, arcname=df.loc[acc, 'SIMAP_csv_from_XML'])
-                        # os.remove(SIMAP_temp_csv_from_XML_path)
+                        #     tar_SIMAP_out.add(SIMAP_orig_csv, arcname=df.loc[acc, 'SIMAP_csv_from_XML'])
+                        # os.remove(SIMAP_orig_csv)
                         logging.info('%s homologous sequences parsed from SIMAP XML to csv' % int(df.loc[acc, 'SIMAP_total_hits']))
     logging.info('number_of_hits_missing_smithWatermanAlignment_node: %i' % number_of_hits_missing_smithWatermanAlignment_node)
     logging.info('number_of_hits_missing_protein_node: %i' % number_of_hits_missing_protein_node)

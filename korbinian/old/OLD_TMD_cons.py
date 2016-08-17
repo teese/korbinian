@@ -69,9 +69,9 @@ def OLD_calculate_TMD_conservation(pathdict, set_, logging):
         first_two_letters_of_uniprot_acc = df_old.loc[i, 'first_two_letters_of_uniprot_acc']
         protein_name = df_old.loc[i, 'protein_name']
         organism_domain = df_old.loc[i, 'organism_domain']
-        SIMAP_feature_table_XML_file_path = os.path.join(df_old.loc[i, 'simap_filename_base'], first_two_letters_of_uniprot_acc,
+        SIMAP_feature_table_XML_path = os.path.join(df_old.loc[i, 'simap_filename_base'], first_two_letters_of_uniprot_acc,
                                                          '%s_feature_table.xml' % protein_name)
-        SIMAP_homologues_XML_file_path = os.path.join(df_old.loc[i, 'simap_filename_base'], first_two_letters_of_uniprot_acc,
+        SIMAP_homol_XML_path = os.path.join(df_old.loc[i, 'simap_filename_base'], first_two_letters_of_uniprot_acc,
                                                       '%s_homologues.xml' % protein_name)
         # for i in range(len(list_of_protein_names)):
         # print dots to show that program is running
@@ -107,7 +107,7 @@ def OLD_calculate_TMD_conservation(pathdict, set_, logging):
                             list_of_csv_files_with_homologues_that_are_old.append(protein_name)
             if csv_file_with_homologues_is_old:
                 logging.warning("%s csv file is old!! Need to recreate csv from XML file of homologues (%s,%s)" % (
-                    protein_name[:6], df_old.loc[i, 'SIMAP_homologues_XML_file_path'],
+                    protein_name[:6], df_old.loc[i, 'SIMAP_homol_XML_path'],
                     df_old.loc[i, 'SIMAP_csv_analysed_path']))
                 # The uniprot TMD start and stop is necessary. Take this from the csv with uniprot data. Thi file and list_of_keys_to_keep should be global objects.
                 "since parse_single_homologue_XML_to_csv_and_fasta is no longer  function, "
@@ -122,7 +122,7 @@ def OLD_calculate_TMD_conservation(pathdict, set_, logging):
             #                    if protein_in_csv_cell == protein_name[:6]:
             #                        row_in_csv_with_protein = i
             # now update the csv with homologues, just for this sequence
-            #                parse_single_homologue_XML_to_csv_and_fasta(df_old.loc[i,'SIMAP_homologues_XML_file_path'],df_old.loc[i,'SIMAP_csv_analysed_path'], nested_dict_with_uniprot_seq[row_in_csv_with_protein])
+            #                parse_single_homologue_XML_to_csv_and_fasta(df_old.loc[i,'SIMAP_homol_XML_path'],df_old.loc[i,'SIMAP_csv_analysed_path'], nested_dict_with_uniprot_seq[row_in_csv_with_protein])
     
             # if not csv_file_with_homologues_is_old: #xxx hopefully they auto-update now!!!
             '''Use Pandas for the analysis of the hits, rather than the nested dictionary approach used previously

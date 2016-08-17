@@ -92,12 +92,12 @@ def OLD_fix_dfout05_simapcsv_by_adding_query_md5(pathdict, logging):
         protein_name = df_dfout05_simapcsv.loc[i, 'protein_name']
         #try:
         logging.info('%s %s' % (i, protein_name))
-        if os.path.isfile(df_dfout05_simapcsv.loc[i, 'SIMAP_feature_table_XML_file_path']):
+        if os.path.isfile(df_dfout05_simapcsv.loc[i, 'SIMAP_feature_table_XML_path']):
             feature_table_exists = True
         else:
             feature_table_exists = False
             logging.info('feature table and/or homologue file is missing\n')
-        if os.path.isfile(df_dfout05_simapcsv.loc[i, 'SIMAP_homologues_XML_file_path']):
+        if os.path.isfile(df_dfout05_simapcsv.loc[i, 'SIMAP_homol_XML_path']):
             homologue_file_exists = True
         else:
             homologue_file_exists = False
@@ -105,7 +105,7 @@ def OLD_fix_dfout05_simapcsv_by_adding_query_md5(pathdict, logging):
         if all([feature_table_exists, homologue_file_exists]):
             #parse the XML file with elementtree, define the 'root' of the XML file
             simap_homologue_tree = ET.parse(
-                df_dfout05_simapcsv.loc[i, 'SIMAP_homologues_XML_file_path'])
+                df_dfout05_simapcsv.loc[i, 'SIMAP_homol_XML_path'])
             simap_homologue_root = simap_homologue_tree.getroot()
             query_sequence_node = simap_homologue_root[0][0][0][0][2][0][0]
             ''' xxxx CURRENTLY THE df_dfout05_simapcsv is filled with nan values, but that doesn't make sense as the script seems to work

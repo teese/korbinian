@@ -4,7 +4,7 @@ import numpy as np
 import os
 import zipfile
 
-def save_hist_AAIMON_ratio_single_protein(dfs, set_, list_of_TMDs, homol_cons_ratio_zip, AAIMON_hist_path_prefix):
+def save_hist_AAIMON_ratio_single_protein(dfs, set_, list_of_TMDs, homol_cr_ratios_zip, AAIMON_hist_path_prefix):
     # use linspace to get a fixid number of points between tha min and the max for the histogram
     # set up evenly distributed bins between the chosen min and max
     # if possible, 1.0 should be in the centre of a bin, to catch cases where a lot of homologues have a ratio that approximates 1
@@ -26,7 +26,7 @@ def save_hist_AAIMON_ratio_single_protein(dfs, set_, list_of_TMDs, homol_cons_ra
         n_rows=nrows_in_each_fig,
         n_cols=ncols_in_each_fig)
     #with tarfile.open(df.loc[acc, 'output_tarfile_path'], mode='w:gz') as tar_out:
-    with zipfile.ZipFile(homol_cons_ratio_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
+    with zipfile.ZipFile(homol_cr_ratios_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
         # calculate ratio of Amino acid Identity Membranous Over Nonmembranous  (AAIMON ratio)
         for TMD in list_of_TMDs:
             # following the general filters, filter to only analyse sequences with TMD identity above cutoff, and a nonTMD_perc_ident above zero ,to avoid a divide by zero error

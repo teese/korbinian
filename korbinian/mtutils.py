@@ -1722,8 +1722,8 @@ def save_df_to_csv_zip(df,out_zipfile,open_method="w"):
     -------
     Much faster than saving to excel.
     """
-    # create a temporary csv file path
-    temp_csv = out_zipfile[:-4] + "_temp.csv"
+    # create a temporary csv file path, equivalent to .csv.zip minus the .zip
+    temp_csv = out_zipfile[:-4]
     # extract filename
     filename = os.path.basename(temp_csv)
     #save
@@ -1761,7 +1761,7 @@ def open_df_from_csv_zip(in_zipfile, filename=None):
             # open the file
             csv_file_handle = openzip.open(filename)
             # read as pandas dataframe
-            df = pd.read_csv(csv_file_handle)
+            df = pd.read_csv(csv_file_handle, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     else:
         raise FileNotFoundError("{} not found".format(in_zipfile))
     return df

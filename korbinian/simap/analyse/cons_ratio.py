@@ -59,18 +59,18 @@ def create_fasta_or_calculate_AAIMON_ratios(pathdict, set_, logging):
             #     SIMAP_csv_from_XML_exists = False
 
             SIMAP_csv_from_XML_exists = False
-            if os.path.exists(df.loc[acc, 'homol_csv_zip']):
+            if os.path.exists(df.loc[acc, 'homol_orig_table_zip']):
                 try:
-                    with zipfile.ZipFile(df.loc[acc, 'homol_csv_zip'], "r", zipfile.ZIP_DEFLATED) as openzip:
+                    with zipfile.ZipFile(df.loc[acc, 'homol_orig_table_zip'], "r", zipfile.ZIP_DEFLATED) as openzip:
                         if openzip.namelist()[0][-4:] == ".csv":
                             SIMAP_csv_from_XML_exists = True
                 except:
                     #file may be corrupted, if script stopped unexpectedly before compression was finished
                     logging.info('%s seems to be corrupted. File will be deleted.'
-                                 'Will need to be parsed again next time program is run' % df.loc[acc, 'homol_csv_zip'])
+                                 'Will need to be parsed again next time program is run' % df.loc[acc, 'homol_orig_table_zip'])
             if SIMAP_csv_from_XML_exists:
                 # run the analysis function, which slices homologues, calculates identity, and saves output files
-                analyse_homologues_single_protein(df.loc[acc, 'homol_csv_zip'], acc, protein_name, set_, df, pathdict, logging)
+                analyse_homologues_single_protein(df.loc[acc, 'homol_orig_table_zip'], acc, protein_name, set_, df, pathdict, logging)
 
     logging.info('calculate_AAIMON_ratios is finished.')
 
@@ -81,10 +81,10 @@ def juxta_function_1(dfs, TMD):
     dfs['start_juxta_before_%s'%TMD] = np.where(dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)] == dfs['end_juxta_before_%s'%TMD] ,dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)],dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)])
     return dfs
 
-def analyse_homologues_single_protein(homol_csv_zip, acc, protein_name, set_, df, pathdict, logging):
+def analyse_homologues_single_protein(homol_orig_table_zip, acc, protein_name, set_, df, pathdict, logging):
     # with tarfile.open(SIMAP_csv_from_XML_tarfile, 'r:gz') as tar_in:
     #SIMAP_csv_from_XML_extracted = tar_in.extractfile(df.loc[acc, 'SIMAP_csv_from_XML'])
-    dfs = utils.open_df_from_csv_zip(homol_csv_zip)
+    dfs = utils.open_df_from_csv_zip(homol_orig_table_zip)
     # print("DFS 112\n", dfs.columns[112])
     # print("DFS 110-14\n", dfs.columns[110:114])
     # reopen the csv file containing all the homologue data for that particular protein as a pandas dataframe (labelled Data Frame SIMAP, or dfs)
@@ -166,11 +166,11 @@ def analyse_homologues_single_protein(homol_csv_zip, acc, protein_name, set_, df
         #                                                                                      #
         ########################################################################################
         # define zip file that contains all the fasta files for the TMDs of that protein
-        homol_fasta_zip = df.loc[acc, "homol_fasta_zip"]
+        homol_fa_fasta_zip = df.loc[acc, "homol_fa_fasta_zip"]
         # delete any previous zip file with fasta sequences
-        if os.path.isfile(homol_fasta_zip):
-            os.remove(homol_fasta_zip)
-        with zipfile.ZipFile(homol_fasta_zip, mode="a", compression=zipfile.ZIP_DEFLATED) as zipout_fasta:
+        if os.path.isfile(homol_fa_fasta_zip):
+            os.remove(homol_fa_fasta_zip)
+        with zipfile.ZipFile(homol_fa_fasta_zip, mode="a", compression=zipfile.ZIP_DEFLATED) as zipout_fasta:
             for TMD in list_of_TMDs:
                 dfs = korbinian.fasta.filter_and_save_fasta(df, dfs, acc, TMD, set_, logging, zipout_fasta)
         logging.info("~~~~~run_create_fasta is finished ~~~~~")
@@ -296,10 +296,10 @@ def analyse_homologues_single_protein(homol_csv_zip, acc, protein_name, set_, df
             for TMD in list_of_TMDs:
                 df, dfs = korbinian.cons_ratio.calc_AAIMON(acc, TMD, dfs, set_, df, logging)
 
-            homol_cons_ratio_zip = df.loc[acc, 'homol_cons_ratio_zip']
+            homol_cr_ratios_zip = df.loc[acc, 'homol_cr_ratios_zip']
             AAIMON_hist_path_prefix = df.loc[acc, 'AAIMON_hist_path_prefix']
             # save histograms for each TMD of that protein, with relative conservation
-            korbinian.cons_ratio.save_hist_AAIMON_ratio_single_protein(dfs, set_, list_of_TMDs, homol_cons_ratio_zip, AAIMON_hist_path_prefix)
+            korbinian.cons_ratio.save_hist_AAIMON_ratio_single_protein(dfs, set_, list_of_TMDs, homol_cr_ratios_zip, AAIMON_hist_path_prefix)
 
         # remove columns to make output csv smaller
         if set_['drop_columns_to_reduce_csv_filesize']:
@@ -310,7 +310,7 @@ def analyse_homologues_single_protein(homol_csv_zip, acc, protein_name, set_, df
                     dfs.drop(col, axis=1, inplace=True)
         #dfs.to_csv(df.loc[acc, 'SIMAP_csv_analysed_path'], sep=",", quoting=csv.QUOTE_NONNUMERIC)
         # save dfs with homologues for a single protein, as a single zipped csv
-        utils.save_df_to_csv_zip(dfs, df.loc[acc, 'homol_csv_zip'], open_method="w")
+        utils.save_df_to_csv_zip(dfs, df.loc[acc, 'homol_orig_table_zip'], open_method="w")
 
         df.loc[acc, 'num_hits_with_SW_align_node'] = dfs['hit_contains_SW_node'].value_counts()[True]
         logging.info('num_hits_with_SW_align_node: %s' % df.loc[acc, 'num_hits_with_SW_align_node'])

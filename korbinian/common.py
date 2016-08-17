@@ -169,25 +169,43 @@ def setup_file_locations_in_df(set_, pathdict):
 
     # create filenames for simap output
     df['SIMAP_tar'] = df.simap_filename_base + '_SIMAP.tar.gz'
-    df['SIMAP_feature_table_XML_file_path'] = df.simap_filename_base + '_feature_table.xml'
-    df['SIMAP_homologues_XML_file_path'] = df.simap_filename_base + '_homologues.xml'
+    df['SIMAP_feature_table_XML_path'] = df.simap_filename_base + '_feature_table.xml'
+    df['SIMAP_homol_XML_path'] = df.simap_filename_base + '_homologues.xml'
     your_name = unicodedata.normalize('NFKD', set_["your_name"][:20]).encode('ascii', 'ignore').decode("utf-8")
     df['SIMAP_download_date_file_path'] = df.simap_filename_base + '--{}--{}.txt'.format(strftime("%Y%m%d"), your_name)
 
-    df['homol_csv_zip'] = df['homol_base'] + '.csv.zip'
-    df['homol_fasta_zip'] = df['homol_base'] + '_fasta.zip'
-    df['homol_cons_ratio_zip'] = df['homol_base'] + '_cons_ratio.zip'
-    df['homol_gaps_zip'] = df['homol_base'] + '_gaps.zip'
-    df['SIMAP_temp_csv_from_XML_path'] = df['homol_base'] + '.csv'
+    # ORIG: create filename for csv parsed from homologue XML file, stored temp as file, then zipped and pickled
+    df['SIMAP_orig_csv'] = df['homol_base'] + '_orig.csv'
+    # ORIG: create filename for csv with alignment_pretty, for visual analysis of homologues
+    df['SIMAP_align_pretty_csv'] = df['homol_base'] + '_align_pretty.csv'
+    # ORIG: create filename pickled dataframe
+    df['SIMAP_orig_table_pickle'] = df['homol_base'] + '_all.pickle'
+    # ORIG: create filename for zip that holds the XML parsed to a table (i.e. pandas dataframe, pickled)
+    df['homol_orig_table_zip'] = df['homol_base'] + '_homol_orig_table.zip'
 
-    # name the fasta file with the TMD seqs (eg A0A1F4_EYS_DROME_TMD_sequences_of_homologues.fas)
-    '''
-    FOR multiple TMDs, create a BASE from which the TMDs can be numbered
-    '''
+    # FASTA: create filename for zip that holds the tables (pickled dataframes) for each TMD
+    df['homol_fa_tables_zip'] = df['homol_base'] + '_fa_tables.zip'
+    # FASTA: create filename for zip that holds the .fas files
+    df['homol_fa_fasta_zip'] = df['homol_base'] + '_fa_fasta.zip'
+
+    # CONS_RATIOS: create filename for zip holding the tables (pickled dataframes with seqs) for each TMD
+    df['homol_cr_tables_zip'] = df['homol_base'] + '_cr_tables.zip'
+    # CONS_RATIOS: create filename for zip holding the ratios
+    df['homol_cr_ratios_zip'] = df['homol_base'] + '_cr_ratios.zip'
+    # CONS_RATIOS: create filename for zip holding the figures
+    df['homol_cr_figs_zip'] = df['homol_base'] + '_cr_figs.zip'
+
+    # GAPS: create filename for zip holding the tables (pickled dataframes with seqs) for each TMD
+    df['homol_gap_tables_zip'] = df['homol_base'] + '_gap_tables.zip'
+    # GAPS: create filename for zip holding the gap numbers (pickled dataframes) for each TMD
+    df['homol_gap_nums_zip'] = df['homol_base'] + '_gap_nums.zip'
+    # GAPS: create filename for zip folding the figures (pickled dataframes) for each TMD
+    df['homol_gap_figs_zip'] = df['homol_base'] + '_gap_figs.zip'
+
+    # FASTA: create basal name for fasta file with the TMD seqs (eg A0A1F4_EYS_DROME_homol_seq_ + TM01.fas)
     df['fasta_file_BASENAME'] = df.protein_name + '_homol_seq_'
     df['fasta_file_BASENAMEPATH'] = df.homol_base + '_homol_seq_'
-
-    # name the second fasta file (eg. A0T0U2_PSBE_THAPS_simap_TMD_seq_homol_&_surrounding.fas)
+    # FASTA: name the fasta file with surrounding seq (eg A0A1F4_EYS_DROME_homol_seq_plus_surr_ + TM01.fas)
     df['fasta_file_plus_surr_BASENAME'] = df.protein_name + '_homol_seq_plus_surr_'
     df['fasta_file_plus_surr_BASENAMEPATH'] = df.homol_base + '_homol_seq_plus_surr_'
 
@@ -200,7 +218,7 @@ def setup_file_locations_in_df(set_, pathdict):
     #                                                                                      #
     ########################################################################################
     # df['SIMAP_csv_from_XML'] = df.protein_name + '.csv'
-    # df['SIMAP_temp_csv_from_XML_path'] = df.simap_filename_base + '.csv'
+    # df['SIMAP_orig_csv'] = df.simap_filename_base + '.csv'
     # df['SIMAP_csv_from_XML_tarfile'] = df.simap_filename_base + '.csv.tar.gz'
     # df['SIMAP_csv_analysed'] = df.protein_name + '_analysed.csv'
     # df['SIMAP_csv_analysed_path'] = df.simap_filename_base + '_analysed.csv'

@@ -24,7 +24,7 @@ def OLD_calculate_TMD_conservation_by_gappedIdentity(pathdict, set_, logging, li
     '''
     open csv file with homologues
     '''
-    headers_to_retrieve_from_csv01 = ['A1_hit_number', 'match_TMD_added_to_FastA_alignment',
+    headers_to_retrieve_from_csv01 = ['hit_num', 'match_TMD_added_to_FastA_alignment',
                                       'ratio_ident_mem_to_nonmem',
                                       'A3_md5', 'percentage_identity_of_TMD', 'FASTA_identity', 'FASTA_gapped_identity',
                                       'match_TMD_kept_for_statistical_analysis']
