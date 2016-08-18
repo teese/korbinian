@@ -13,8 +13,8 @@ import csv
 import ctypes
 import errno
 import logging
-import logging.config
 import matplotlib.pyplot as plt
+import pickle
 import platform
 import psutil
 import subprocess, threading, time, sys
@@ -371,10 +371,10 @@ For an unknown reason, this is only necessary when the .apply is used in a funct
 
 '''
 def slice_uniprot_TMD_seq(x, TMD):
-   return x['uniprot_seq'][int(x['%s_start'%TMD] - 1):int(x['%s_end'%TMD])]
+   return x['full_seq'][int(x['%s_start'%TMD] - 1):int(x['%s_end'%TMD])]
 
 def slice_uniprot_TMD_plus_surr_seq(x, TMD):
-    return x['uniprot_seq'][int(x['%s_start_plus_surr'%TMD] - 1):int(x['%s_end_plus_surr'%TMD])]
+    return x['full_seq'][int(x['%s_start_plus_surr'%TMD] - 1):int(x['%s_end_plus_surr'%TMD])]
 
 #create small throwaway functions to slice all sequences in dataframe simultaneously
 #slice_SW_query_TMD_seq = lambda x: x['query_alignment_sequence'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
@@ -842,8 +842,8 @@ def retrieve_simap_homologues(input_sequence, output_file, max_hits, java_exec_s
 #input_seqs_mult_fasta = r'E:\Stephis\Projects\Programming\Python\files\learning\simap\multiple_protein_seqs_in_fasta_format.txt'
 #retrieve_simap_from_multiple_fasta(input_seqs_mult_fasta)
 #throwaway functions, currently kept in main
-#slice_TMD_seq = lambda x: x['uniprot_seq'][int(x['%s_start'%TMD_name]-1):int(x['%s_end'%TMD_name])]
-#slice_TMD_plus_surrounding_seq = lambda x: x['uniprot_seq'][int(x['%s_start_plus_surr'%TMD_name]-1):int(x['%s_end_plus_surr'%TMD_name])]
+#slice_TMD_seq = lambda x: x['full_seq'][int(x['%s_start'%TMD_name]-1):int(x['%s_end'%TMD_name])]
+#slice_TMD_plus_surrounding_seq = lambda x: x['full_seq'][int(x['%s_start_plus_surr'%TMD_name]-1):int(x['%s_end_plus_surr'%TMD_name])]
 
 class Command(object):
     '''
@@ -1766,6 +1766,48 @@ def open_df_from_csv_zip(in_zipfile, filename=None):
         raise FileNotFoundError("{} not found".format(in_zipfile))
     return df
 
+def open_df_from_pickle_zip(in_zipfile, filename=None):
+    """ Opens a pandas dataframe that is saved as a zipped pickle file (.pickle.zip)
+
+    Parameters
+    ----------
+    in_zipfile : str
+        Path to zip file
+    filename : str
+        Filename. Default is "None", which will result in the opening of the first .pickle file in the zipfile.
+
+    Returns
+    -------
+    df : DataFrame
+        pandas Dataframe
+
+    Note
+    -------
+    Much faster than reading from excel.
+    """
+    if os.path.isfile(in_zipfile):
+        with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
+            if filename == None:
+                picklefile = None
+                # if a filename is not given, open the first file in the list
+                filenamelist = openzip.namelist()
+                for filename in filenamelist:
+                    if filename[-7:] == ".pickle":
+                        picklefile = filename
+                        break
+            else:
+                picklefile = filename
+            # open the file
+            csv_file_handle = openzip.open(filename)
+            if picklefile is not None:
+                # read as pandas dataframe
+                df = pickle.load(csv_file_handle)
+            else:
+                raise FileNotFoundError("pickle file not found in {}".format(in_zipfile))
+    else:
+        raise FileNotFoundError("{} not found".format(in_zipfile))
+    return df
+
 def create_colour_lists():
     '''
     Converts several lists of rgb colours to the python format (normalized to between 0 and 1)
@@ -1838,3 +1880,17 @@ def create_colour_lists():
         grey -= 0.1
     output_dict['TUM_colours_list_with_greys'] = TUM_colours_list_with_greys
     return output_dict
+
+def savefig_if_necessary(savefig, fig, fig_nr, base_filepath, tight_layout = False, formats = ['png','pdf'], dpi = 400):
+    '''
+    Function to save figure with multiple subplots. (i.e., a canvas containing multiple figures)
+    Designed to work with the function create_dict_organising_subplots(), which creates a bool object "savefig".
+    Automatically names the figure based on the figure number (fig_nr), using a previously defined file path as a base.
+    '''
+    if savefig:
+        if 'png' in formats:
+            fig.savefig(base_filepath + '_%01d.png' % fig_nr, format='png', dpi=dpi)
+        if 'pdf' in formats:
+            fig.savefig(base_filepath + '_%01d.pdf' % fig_nr, format='pdf')
+        #close any open figures
+        plt.close('all')

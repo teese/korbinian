@@ -367,17 +367,15 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                     writer.writerow(match_details_dict)
 
                         # open csv as a dataframe,
-                        df_homol = pd.read_csv(SIMAP_orig_csv, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+                        df_homol = pd.read_csv(SIMAP_orig_csv, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col="hit_num")
                         # restrict to just a few columns including the align_pretty that might be useful to check manually
-                        df_pretty = df_homol[["hit_num", "FASTA_gapped_identity", "organism", "description", "align_pretty"]]
-                        utils.aaa(df_pretty)
-                        print("df.loc[acc,'SIMAP_align_pretty_csv']\n", df.loc[acc,'SIMAP_align_pretty_csv'])
+                        df_pretty = df_homol[["FASTA_gapped_identity", "organism", "description", "align_pretty"]]
                         # save the align_pretty to csv
                         df_pretty.to_csv(df.loc[acc,'SIMAP_align_pretty_csv'], sep=',', quoting=csv.QUOTE_NONNUMERIC)
                         # drop the align_pretty column from the orig dataframe
-                        df_homol.drop("align_pretty", inplace=True)
+                        df_homol.drop('align_pretty', axis=1, inplace=True)
                         # save the whole dataframe as a pickle for faster opening later
-                        with open(df_homol.loc[acc,'SIMAP_orig_table_pickle'], "wb") as p:
+                        with open(df.loc[acc,'SIMAP_orig_table_pickle'], "wb") as p:
                             pickle.dump(df_homol, p)
                         # either create new zip and add ("w"), or open existing zip and add "a"
                         with zipfile.ZipFile(df.loc[acc,'homol_orig_table_zip'], mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:

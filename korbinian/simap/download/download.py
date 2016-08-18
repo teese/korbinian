@@ -37,7 +37,7 @@ def download_homologues_from_simap(pathdict, set_, logging):
         for acc in df.index:
             protein_name = df.loc[acc, 'protein_name']
             query_sequence_length = df.loc[acc, 'uniprot_seqlen']
-            input_sequence = df.loc[acc, 'uniprot_seq']
+            input_sequence = df.loc[acc, 'full_seq']
             SIMAP_tar = df.loc[acc, 'SIMAP_tar']
             ft_xml_path = df.loc[acc, 'SIMAP_feature_table_XML_path']
             homol_xml_path = df.loc[acc, 'SIMAP_homol_XML_path']

@@ -61,7 +61,7 @@ def filter_and_save_fasta(df, dfs, acc, TMD, set_, logging, zipout_fasta):
     if fa_search_disallowed_words == True:
         fa_words_not_allowed_in_description = ast.literal_eval(set_["fa_words_not_allowed_in_description"])
         # collect disallowed words in hit protein description (patent, synthetic, etc)
-        dfs['fa_list_disallowed_words_in_descr'] = dfs['uniprot_description'].dropna().apply(utils.find_disallowed_words, args=(fa_words_not_allowed_in_description,))
+        dfs['fa_list_disallowed_words_in_descr'] = dfs['description'].dropna().apply(utils.find_disallowed_words, args=(fa_words_not_allowed_in_description,))
         # create a boolean column to select hits that do not contain these words in the description
         dfs['fa_disallowed_words_not_in_descr'] = dfs['fa_list_disallowed_words_in_descr'] == '[]'
 
@@ -150,13 +150,13 @@ def filter_and_save_fasta(df, dfs, acc, TMD, set_, logging, zipout_fasta):
             # # add the first non-redundant sequence from the homologues, but only if it is not the same as the query
             # if df.loc[acc, '%s_seq%s'%(TMD,s)] != nr_dfs_fa.loc[0, '%s_SW_match_seq%s'%(TMD,s)]:
             #     f.write('>%04d_%s_%s\n%s\n' % (1, str(nr_dfs_fa.loc[0, 'organism'])[:30],
-            #                                    str(nr_dfs_fa.loc[0, 'uniprot_description'])[:30],
+            #                                    str(nr_dfs_fa.loc[0, 'description'])[:30],
             #                                    nr_dfs_fa.loc[0, '%s_SW_match_seq%s'%(TMD,s)]))
             # for each hit after the first one, add the sequence to the fastA file
             for row in nr_dfs_fa.index: # formerly excluding the first hit
                 # add the original query seq
                 f.write('>%04d_%s_%s\n%s\n' % (row, str(dfs.loc[row, 'organism'])[:30],
-                                               str(dfs.loc[row, 'uniprot_description'])[:30],
+                                               str(dfs.loc[row, 'description'])[:30],
                                                dfs.loc[row, '%s_SW_match_seq%s'%(TMD,s)]))
                 # logging.info('saved ' + fasta_file_path)
 
@@ -165,7 +165,7 @@ def filter_and_save_fasta(df, dfs, acc, TMD, set_, logging, zipout_fasta):
         # delete temporary file
         os.remove(fasta_file_path)
         n_fa_saved = int(nr_dfs_fa.shape[0])
-        logging.info("TMD{} saved to fasta, {} sequences.".format(s, n_fa_saved))
+        logging.info("{}{} saved to fasta, {} sequences.".format(TMD, s, n_fa_saved))
 
             # if s == "":
             #     fasta_file_path = r"D:\Schweris\Projects\Xiao\20160728 SIMAP vs HHBLITS fasta" + "\\" + '%s_10gap.fas' % df.loc[acc, 'protein_name']
@@ -183,7 +183,7 @@ def filter_and_save_fasta(df, dfs, acc, TMD, set_, logging, zipout_fasta):
             #         for row in nr_dfs_fa.index:  # formerly excluding the first hit
             #             # add the original query seq
             #             f.write('>%04d_%s_%s\n%s\n' % (row, str(dfs.loc[row, 'organism'])[:30],
-            #                                            str(dfs.loc[row, 'uniprot_description'])[:30],
+            #                                            str(dfs.loc[row, 'description'])[:30],
             #                                            dfs.loc[row, '%s_SW_match_seq%s' % (TMD, s)]))
 
 

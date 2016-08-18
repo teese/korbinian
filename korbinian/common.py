@@ -148,8 +148,6 @@ def setup_file_locations_in_df(set_, pathdict):
         if type(df["list_of_TMDs"][0]) == str:
             df["list_of_TMDs"] = df["list_of_TMDs"].str.strip("'[]'").str.split("', '")
         df["list_of_TMDs"] = df["list_of_TMDs"] + list_of_SEs_ser
-
-        utils.aaa(df_SE)
         # add the sequences (SE01_seq etc) to the main dataframe
         df = pd.concat([df, df_SE], axis=1)
 

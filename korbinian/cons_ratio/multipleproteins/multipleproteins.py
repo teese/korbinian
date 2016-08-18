@@ -285,7 +285,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
     # improve ggplot style for a canvas (fig) with 4 figures (plots)
     utils.improve_ggplot_for_4_plots(axarr, row_nr, col_nr, backgroundcolour, legend_obj)
     # save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-    tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
+    utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
 
     '''
     Fig05: Scattergram comparing number_of_TMDs with mean AAIMON
@@ -419,7 +419,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
     # improve ggplot style for a canvas (fig) with 4 figures (plots)
     utils.improve_ggplot_for_4_plots(axarr, row_nr, col_nr, backgroundcolour, legend_obj)
     # save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-    tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
+    utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
 
     '''
     SHOW THE DATA FOR EACH TMD IN THE DATASET
@@ -770,7 +770,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
         # save the figure as it is
         savefig = True
         # save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-        tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
+        utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
 
         '''
         Fig13: TMD 5-10 only
@@ -1115,7 +1115,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
         # save the figure as it is
         savefig = True
         # save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-        tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
+        utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
 
         '''
         Fig17: Less than 12 TMDs vs at least 12 TMDs
@@ -1486,7 +1486,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
             utils.improve_ggplot_for_4_plots(axarr, row_nr, col_nr, backgroundcolour, legend_obj)
 
             # save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-            tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
+            utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
 
             '''
             Fig21: Boxplot only GPCRs
@@ -1571,7 +1571,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
             # save the figure as it is
             savefig = True
             # save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-            tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
+            utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
 
             '''
             Fig25 AND ONWARDS: Histograms split by keywords
@@ -1793,7 +1793,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
                                                xytext=None, xycoords='axes fraction', alpha=0.75)
 
                 # save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-                tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
+                utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
 
             # only create the following for multi-pass proteins (at least 2 proteins in lost with 7 TMDs)
             if dataset_contains_multipass_prots:
@@ -1950,7 +1950,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
                                                    xytext=None, xycoords='axes fraction', alpha=0.75)
 
                     # save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-                    tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
+                    utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
 
             '''
             Enzymes vs NonEnzymes
@@ -2072,7 +2072,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
             # improve ggplot style for a canvas (fig) with 4 figures (plots)
             utils.improve_ggplot_for_4_plots(axarr, row_nr, col_nr, backgroundcolour, legend_obj)
             # save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-            tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
+            utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
 
             if dataset_contains_multipass_prots:
                 '''
@@ -2178,7 +2178,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
                                                xytext=None, xycoords='axes fraction', alpha=0.75)
 
                 # save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-                tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
+                utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
             '''
             Histograms split by keywords (NONENZYME ONLY)
             '''
@@ -2342,7 +2342,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
                                                xytext=None, xycoords='axes fraction', alpha=0.75)
 
                 # save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-                tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
+                utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
 
             # only create the following for multi-pass proteins (at least 2 proteins in lost with 7 TMDs)
             if dataset_contains_multipass_prots:
@@ -2499,7 +2499,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
                                                    xytext=None, xycoords='axes fraction', alpha=0.75)
 
                     # save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
-                    tools.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
+                    utils.savefig_if_necessary(savefig, fig, fig_nr, base_filepath=pathdict["base_filename_summaries"])
 
     '''
     FINAL - MAKE SURE LAST GRAPHS ARE SAVED
