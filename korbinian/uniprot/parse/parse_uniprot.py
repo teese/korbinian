@@ -68,7 +68,7 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
             output_dict['uniprot_all_accessions'] = record.accessions
             output_dict['uniprot_KW'] = record.keywords
             output_dict['uniprot_features'] = record.features
-            output_dict['uniprot_seqlen'] = record.sequence_length
+            output_dict['seqlen'] = record.sequence_length
 
             # create a list of all the feature types (signal, transmem, etc)
             list_of_feature_types_in_uniprot_record = []
@@ -184,23 +184,25 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
         # currently the loop is run for each TMD, based on the sequence with the most TMDs
         for i in range(1, max_num_TMDs + 1):
             TMD = 'TM%02d' % i
-            # instead of integers showing the start or end of the TMD, some people write strings into the
-            # UniProt database, such as "<5" or "?"
-            # to avoid the bugs that this introduces, it is necessary to convert all strings to np.nan (as floats),
-            # using the convert objects function. The numbers can then be converted back from floats to integers.
-            dfu['%s_start'%TMD] = pd.to_numeric(dfu['%s_start'%TMD]).dropna().astype('int64')
-            dfu['%s_end'%TMD] = pd.to_numeric(dfu['%s_end'%TMD]).dropna().astype('int64')
-            # determine the position of the start of the surrounding sequence
-            dfu['%s_start_plus_surr'%TMD] = dfu['%s_start'%TMD] - fa_aa_before_tmd
-            # replace negative values with zero. (slicing method was replaced with lambda function to avoid CopyWithSetting warning)
-            dfu['%s_start_plus_surr'%TMD] = dfu['%s_start_plus_surr'%TMD].apply(lambda x: x if x > 0 else 0)
-            dfu['%s_end_plus_surr'%TMD] = dfu['%s_end'%TMD] + fa_aa_after_tmd
-            # create a boolean series, describing whether the end_surrounding_seq_in_query is longer than the protein seq
-            series_indices_longer_than_prot_seq = dfu.apply(utils.find_indices_longer_than_prot_seq, args=(TMD,), axis=1)
-            # obtain the indices of proteins in the series
-            uniprot_acc_indices_longer_than_prot_seq = series_indices_longer_than_prot_seq[series_indices_longer_than_prot_seq].index
-            # use indices to select the main dataframe, and convert these end_surrounding_seq_in_query values to the uniprot_seqlen value
-            dfu.loc[uniprot_acc_indices_longer_than_prot_seq, '%s_end_plus_surr'%TMD] = dfu.loc[uniprot_acc_indices_longer_than_prot_seq, 'uniprot_seqlen']
+            dfu = utils.get_indices_TMD_plus_surr_for_summary_file(dfu, TMD, fa_aa_before_tmd, fa_aa_after_tmd)
+
+            # # instead of integers showing the start or end of the TMD, some people write strings into the
+            # # UniProt database, such as "<5" or "?"
+            # # to avoid the bugs that this introduces, it is necessary to convert all strings to np.nan (as floats),
+            # # using the convert objects function. The numbers can then be converted back from floats to integers.
+            # dfu['%s_start'%TMD] = pd.to_numeric(dfu['%s_start'%TMD]).dropna().astype('int64')
+            # dfu['%s_end'%TMD] = pd.to_numeric(dfu['%s_end'%TMD]).dropna().astype('int64')
+            # # determine the position of the start of the surrounding sequence
+            # dfu['%s_start_plus_surr'%TMD] = dfu['%s_start'%TMD] - fa_aa_before_tmd
+            # # replace negative values with zero. (slicing method was replaced with lambda function to avoid CopyWithSetting warning)
+            # dfu['%s_start_plus_surr'%TMD] = dfu['%s_start_plus_surr'%TMD].apply(lambda x: x if x > 0 else 0)
+            # dfu['%s_end_plus_surr'%TMD] = dfu['%s_end'%TMD] + fa_aa_after_tmd
+            # # create a boolean series, describing whether the end_surrounding_seq_in_query is longer than the protein seq
+            # series_indices_longer_than_prot_seq = dfu.apply(utils.find_indices_longer_than_prot_seq, args=(TMD,), axis=1)
+            # # obtain the indices of proteins in the series
+            # indices_longer_than_prot_seq = series_indices_longer_than_prot_seq[series_indices_longer_than_prot_seq].index
+            # # use indices to select the main dataframe, and convert these end_surrounding_seq_in_query values to the seqlen value
+            # dfu.loc[indices_longer_than_prot_seq, '%s_end_plus_surr'%TMD] = dfu.loc[indices_longer_than_prot_seq, 'seqlen']
 
         ''' ~~   SLICE TMDS FROM UNIPROT SEQ    ~~ '''
         # iterate through each TMD, slicing out the relevant sequence.

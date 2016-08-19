@@ -6,8 +6,7 @@ import korbinian.mtutils as utils
 #
 ############################################################
 
-
-save_file =open("Potential_IDs.txt", "w+")
+save_file = open("Potential_IDs.txt", "w+")
 
 with open (r"C:\Users\Rima\Desktop\Bachelorthesis\Databases\Download\OMPdb.30\OMPdb.30") as text_file:
 
@@ -15,13 +14,11 @@ with open (r"C:\Users\Rima\Desktop\Bachelorthesis\Databases\Download\OMPdb.30\OM
     for ID in Potential_IDs:
         save_file.write("%s\n" % ID)
 
-
 ######################################################################################
 #
 #        from Ipython notebook, OMPdb entries of Potential IDs
 #
 ######################################################################################
-
 
 import pandas as pd
 
@@ -108,7 +105,6 @@ print(len(keywords["Uniprot"])
       , len(keywords["Topology_Reli"])
       , len(keywords["Topology"]))
 
-
 # Creating Dataframe and saving it as csv and Excelfile
 
 dfKW = pd.DataFrame(keywords)
@@ -116,4 +112,3 @@ dfKW.to_csv("OMPdb_Selected_by_IDs.csv",index=False)
 
 writer = pd.ExcelWriter("OMPdb_Selected_by_IDs.xlsx")
 dfKW.to_excel(writer)
-

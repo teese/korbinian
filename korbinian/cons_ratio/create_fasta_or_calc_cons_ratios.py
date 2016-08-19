@@ -7,7 +7,6 @@ import korbinian.mtutils as utils
 import zipfile
 import pandas as pd
 
-
 def create_fasta_or_calculate_AAIMON_ratios(pathdict, set_, logging):
     logging.info('~~~~~~~~~~~~starting create_fasta_or_calculate_AAIMON_ratios~~~~~~~~~~~~')
     df = pd.read_csv(pathdict["list_summary_csv"])
@@ -283,11 +282,10 @@ def create_fasta_or_calculate_AAIMON_ratios(pathdict, set_, logging):
                     #dfs.to_csv(df.loc[acc, 'SIMAP_csv_analysed_path'], sep=",", quoting=csv.QUOTE_NONNUMERIC)
                     # save dfs with homologues for a single protein, as a single zipped csv
                     #utils.save_df_to_csv_zip(dfs, df.loc[acc, 'homol_orig_table_zip'], open_method="w")
-                    important, work out a save method here
+                    print("important, work out a save method here" / 4)
 
                     df.loc[acc, 'num_hits_with_SW_align_node'] = dfs['hit_contains_SW_node'].value_counts()[True]
                     logging.info('num_hits_with_SW_align_node: %s' % df.loc[acc, 'num_hits_with_SW_align_node'])
-
 
             df.loc[acc, "create_fasta_or_cons_ratio_single_protein"] = True
             # save to csv after each protein is analysed, incrementally adding the extra data

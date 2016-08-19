@@ -398,7 +398,7 @@ def slice_uniprot_TMD_plus_surr_seq(x, TMD):
 # def slice_SW_match_TMD_seq_plus_surr(x, TMD):
 #     return x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
 # def find_indices_longer_than_prot_seq(df, TMD):
-#     return df['%s_end_plus_surr'%TMD] > df['uniprot_seqlen']
+#     return df['%s_end_plus_surr'%TMD] > df['seqlen']
 
 
 def slice_SW_query_TMD_seq(x, TMD):
@@ -414,7 +414,7 @@ def slice_SW_markup_TMD_plus_surr(x, TMD):
 def slice_SW_match_TMD_seq_plus_surr(x, TMD):
     return x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
 def find_indices_longer_than_prot_seq(df, TMD):
-    return df['%s_end_plus_surr'%TMD] > df['uniprot_seqlen']
+    return df['%s_end_plus_surr'%TMD] > df['seqlen']
 
 def create_indextuple_nonTMD_last(x):
     ''' Joins two columns into a tuple. Used to create the last tuple of the nonTMD region in the sequence.
@@ -430,7 +430,7 @@ def slice_with_listlike(string, tup, start=0, end=1):
 def slice_with_nested_tuple(string, nested_tuple):
     '''A function to slice a sequence multiple times, using the indices from nested tuples
     '''
-    #convert nested tuple from string to tuple 
+    #convert nested tuple from string to tuple
     nested_tuple = ast.literal_eval(nested_tuple)
     #for each tuple, slice the input string. Make a list of all the sliced strings. Join list with no gaps
     return ''.join([slice_with_listlike(string, tup) for tup in nested_tuple])
@@ -1903,3 +1903,29 @@ def savefig_if_necessary(savefig, fig, fig_nr, base_filepath, tight_layout = Fal
             fig.savefig(base_filepath + '_%01d.pdf' % fig_nr, format='pdf')
         #close any open figures
         plt.close('all')
+
+def get_indices_TMD_plus_surr_for_summary_file(dfsumm, TMD, fa_aa_before_tmd, fa_aa_after_tmd):
+    """Takes a summary dataframe (1 row for each protein) and slices out the TMD seqs
+
+    Returns the dataframe with extra columns, TM01_start, TM01_start_plus_surr_seq, etc
+    """
+
+    # instead of integers showing the start or end of the TMD, some people write strings into the
+    # UniProt database, such as "<5" or "?"
+    # to avoid the bugs that this introduces, it is necessary to convert all strings to np.nan (as floats),
+    # using the convert objects function. The numbers can then be converted back from floats to integers.
+    dfsumm['%s_start' % TMD] = pd.to_numeric(dfsumm['%s_start' % TMD]).dropna().astype('int64')
+    dfsumm['%s_end' % TMD] = pd.to_numeric(dfsumm['%s_end' % TMD]).dropna().astype('int64')
+    # determine the position of the start of the surrounding sequence
+    dfsumm['%s_start_plus_surr' % TMD] = dfsumm['%s_start' % TMD] - fa_aa_before_tmd
+    # replace negative values with zero. (slicing method was replaced with lambda function to avoid CopyWithSetting warning)
+    dfsumm['%s_start_plus_surr' % TMD] = dfsumm['%s_start_plus_surr' % TMD].apply(lambda x: x if x > 0 else 0)
+    dfsumm['%s_end_plus_surr' % TMD] = dfsumm['%s_end' % TMD] + fa_aa_after_tmd
+    # create a boolean series, describing whether the end_surrounding_seq_in_query is longer than the protein seq
+    series_indices_longer_than_prot_seq = dfsumm.apply(find_indices_longer_than_prot_seq, args=(TMD,), axis=1)
+    # obtain the indices of proteins in the series
+    indices_longer_than_prot_seq = series_indices_longer_than_prot_seq[series_indices_longer_than_prot_seq].index
+    # use indices to select the main dataframe, and convert these end_surrounding_seq_in_query values to the seqlen value
+    dfsumm.loc[indices_longer_than_prot_seq, '%s_end_plus_surr' % TMD] = dfsumm.loc[indices_longer_than_prot_seq, 'seqlen']
+
+    return dfsumm

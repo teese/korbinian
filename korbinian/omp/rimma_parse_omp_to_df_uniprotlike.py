@@ -21,7 +21,6 @@ def getting_membrane_indices(Topo_data):
 # Creating new column M_indices, which contains the indices of Ms
 df_KW["M_indices"] = df_KW.Topology.apply(getting_membrane_indices)
 
-
 # Converting empty entries to NaN
 df_KW.M_indices = df_KW.M_indices.apply(lambda x: np.nan if x ==[] else x)
 
@@ -35,13 +34,8 @@ df_KW2.index = range(1,len(df_KW2["Uniprot"])+1)
 
 df_KW.iloc[:5,7:]
 
-
-
-
-
 # Creating new list (nested list)
 nested_list_of_membrane_borders = []
-
 
 # Function which filters out start and end-points
 def check_for_border(m_indices):
