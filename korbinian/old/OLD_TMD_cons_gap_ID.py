@@ -50,8 +50,7 @@ def OLD_calculate_TMD_conservation_by_gappedIdentity(pathdict, set_, logging, li
             organism_domain = utils.convert_stringlist_to_list(
                 df.loc[i, 'uniprot_orgclass'])[0]
             protein_name = '%s_%s' % (df.loc[i, 'uniprot_acc'],
-                                      df.loc[
-                                          i, 'uniprot_entry_name'])
+                                      df.loc[i, 'uniprot_entry_name'])
             # open the csv file that contains a summary of all 'hits' for that protein
             csv_file_with_hit_details = 'E:\Databases\simap\%s\%s_homologues.csv' % (organism_domain, protein_name)
     
