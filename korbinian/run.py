@@ -113,7 +113,7 @@ def run_korbinian(excel_file_with_settings):
         korbinian.simap.parse_SIMAP_to_csv(pathdict, set_, logging)
 
     if any([set_["run_create_fasta"], set_["run_calculate_AAIMON_ratios"]]):
-        korbinian.simap.create_fasta_or_calculate_AAIMON_ratios(pathdict, set_, logging)
+        korbinian.cons_ratio.create_fasta_or_calculate_AAIMON_ratios(pathdict, set_, logging)
 
     if set_["run_calculate_gap_densities"]:
         korbinian.gap.calculate_gap_densities(pathdict, set_, logging)

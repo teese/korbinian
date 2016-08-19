@@ -158,8 +158,6 @@ df_KW5.to_excel("Dataframe with List of TMDs and Membrane Borders and Sliced Seq
 
 
 
-
-
 # Creating raw Startpoints (not considering overlapping!), if there is no Value or Value below 0 -> np.nan
 # (especially if there is no TMD at all)
 for n in range (1,25):

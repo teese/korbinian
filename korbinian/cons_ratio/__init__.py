@@ -3,3 +3,4 @@ from korbinian.cons_ratio.multipleproteins.multipleproteins import save_figures_
 from korbinian.cons_ratio.singleprotein.SiPr_AAIMON_hist import save_hist_AAIMON_ratio_single_protein
 from korbinian.cons_ratio.singleprotein.singleprotein import slice_homologues_and_count_gaps, calc_AAIMON
 from korbinian.cons_ratio.singleprotein.nonTMD import calc_nonTMD_perc_ident_and_gaps
+from korbinian.cons_ratio.create_fasta_or_calc_cons_ratios import create_fasta_or_calculate_AAIMON_ratios

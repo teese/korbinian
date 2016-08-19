@@ -1766,7 +1766,7 @@ def open_df_from_csv_zip(in_zipfile, filename=None):
         raise FileNotFoundError("{} not found".format(in_zipfile))
     return df
 
-def open_df_from_pickle_zip(in_zipfile, filename=None):
+def open_df_from_pickle_zip(in_zipfile, filename=None, delete_corrupt=False):
     """ Opens a pandas dataframe that is saved as a zipped pickle file (.pickle.zip)
 
     Parameters
@@ -1785,27 +1785,36 @@ def open_df_from_pickle_zip(in_zipfile, filename=None):
     -------
     Much faster than reading from excel.
     """
+    deletezip = False
+
     if os.path.isfile(in_zipfile):
         with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
             if filename == None:
                 picklefile = None
                 # if a filename is not given, open the first file in the list
                 filenamelist = openzip.namelist()
-                for filename in filenamelist:
-                    if filename[-7:] == ".pickle":
-                        picklefile = filename
-                        break
+                for file_in_zip in filenamelist:
+                    if file_in_zip[-7:] == ".pickle":
+                        picklefile = file_in_zip
             else:
                 picklefile = filename
-            # open the file
-            csv_file_handle = openzip.open(filename)
+                assert filename in openzip.namelist()
+
             if picklefile is not None:
+                csv_file_handle = openzip.open(picklefile)
                 # read as pandas dataframe
                 df = pickle.load(csv_file_handle)
             else:
-                raise FileNotFoundError("pickle file not found in {}".format(in_zipfile))
+                if delete_corrupt == True:
+                    deletezip = True
+                else:
+                    raise FileNotFoundError("pickle file not found in {}".format(in_zipfile))
     else:
         raise FileNotFoundError("{} not found".format(in_zipfile))
+    if deletezip:
+        logging.info("pickle file not found in {}, file deleted".format(in_zipfile))
+        os.remove(in_zipfile)
+        df = None
     return df
 
 def create_colour_lists():
