@@ -8,10 +8,18 @@ import os
 import tarfile
 import korbinian
 
-
 def download_homologues_from_simap(pathdict, set_, logging):
-
     df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
+    df.set_index("uniprot_acc", drop=False, inplace=True)
+    print(df.iloc[10:10])
+    list_failed_downloads = []
+    if os.path.isfile(pathdict["failed_downloads_txt"]):
+        # Extracts accession numbers out of file
+        with open(pathdict["failed_downloads_txt"], "r") as source:
+            for line in source:
+                line = line.strip()
+                list_failed_downloads.append(line)
+
     #def retrieve_simap_feature_table_and_homologues_from_list_in_csv(input_file, list_of_keys, settings):
     '''
     First prepare the csv file from the uniprot record.
@@ -61,6 +69,11 @@ def download_homologues_from_simap(pathdict, set_, logging):
                                     query_sequence_length))
             else:
                 download_homologues = True
+            if set_["attempt_prev_failed_downloads"] == False:
+                if acc in list_failed_downloads:
+                    download_homologues = False
+                    logging.info("{} is in list of previously failed downloads. Will be skipped.".format(acc))
+
             if download_homologues == True:
                 # create directories to hold file, if necessary
                 utils.make_sure_path_exists(homol_xml_path, isfile=True)
@@ -86,6 +99,9 @@ def download_homologues_from_simap(pathdict, set_, logging):
                     #now check again if the files exist
                     feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path)
                     if not homologues_XML_exists:
+                        # add accession number to the list of failed downloads
+                        with open(pathdict["failed_downloads_txt"], "a") as source:
+                            source.write("\n{}".format(acc))
                         #add one to the list of consecutive failed downloads.
                         number_of_files_not_found += 1
                         #if a large number of downloads failed, then the SIMAP server is probably not working.

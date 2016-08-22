@@ -42,13 +42,6 @@ def aaa(df_or_series):
     csv_out = r"D:\data\000_aaa_temp_df_out.csv"
     df_or_series.to_csv(csv_out, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
-# Fibonacci numbers module. Use this to test that the utilities are working
-def fib(n):    # write Fibonacci series up to n
-    a, b = 0, 1
-    while b < n:
-        print(b),
-        a, b = b, a+b
-
 def import_amino_acid_substitution_matrices():
     """
     imports several aa sub matrices from Bio.SubsMat.MatrixInfo
@@ -430,7 +423,7 @@ def slice_with_nested_tuple(string, nested_tuple):
     #for each tuple, slice the input string. Make a list of all the sliced strings. Join list with no gaps
     return ''.join([slice_with_listlike(string, tup) for tup in nested_tuple])
 
-def retrieve_selected_uniprot_records_from_flatfile(input_accession_list, large_input_uniprot_flatfile, output_flatfile):
+def retrieve_selected_uniprot_records_from_flatfile(input_accession_list, large_input_uniprot_flatfile, output_flatfile, logging):
     '''
     Function to select records from a large uniprot flatfile, and save them as a smaller flatfile of selected records.
     Input = list of uniprot accessions
@@ -448,7 +441,7 @@ def retrieve_selected_uniprot_records_from_flatfile(input_accession_list, large_
             #if the record is not in the file
             except KeyError:
                 list_acc_not_in_flatfile.append(acc)
-    print("SwissProt records not found in %s:\n%s." % (large_input_uniprot_flatfile, list_acc_not_in_flatfile))
+    logging.info("SwissProt records not found in %s:\n%s." % (large_input_uniprot_flatfile, list_acc_not_in_flatfile))
 
 
 def get_start_and_end_of_TMD_in_query(x, regex_string):
@@ -676,12 +669,10 @@ def run_command(command):
 
 def sleep_x_seconds(x):
     # sleep for several seconds to not overload a server, for example
-    sys.stdout.write("sleeping .")
-    sys.stdout.flush()
+    print("sleeping ", end="", flush=True)
     for i in range(x):
         time.sleep(1)
-        sys.stdout.write(" .")
-        sys.stdout.flush()
+        print(" .", end="", flush=True)
     print(' .')
 
 def sleep_x_hours(x):
@@ -698,8 +689,7 @@ def sleep_x_hours(x):
     sys.stdout.flush()
     for i in range(x):
         time.sleep(3600)
-        sys.stdout.write(" .")
-        sys.stdout.flush()
+        print(" .", end="", flush=True)
     print(' .\n')
 
 #set up a function for showing object names, in order to write the csv header from a list of objects

@@ -67,7 +67,7 @@ def convert_uniprot_list_to_nonred_ff_via_uniref(set_, list_number, uniprot_dir,
     # create a uniprot flatfile containing only the desired nonredundant accessions
     utils.retrieve_selected_uniprot_records_from_flatfile(list_nonred_acc,
                                                           redundant_uniprot_flatfile,
-                                                          uniprot_flatfile_of_selected_records)
+                                                          uniprot_flatfile_of_selected_records, logging)
     number_nonredundant_records = len(list_nonred_acc)
     number_total_records = df_uniprot_acc.shape[0]
     number_redundant_records = number_total_records - number_nonredundant_records

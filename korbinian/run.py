@@ -81,7 +81,8 @@ def run_korbinian(excel_file_with_settings):
     uniprot_folder_sel = os.path.join(set_["uniprot_dir"], 'selected')
     uniprot_flatfile_of_selected_records = os.path.join(uniprot_folder_sel,'List%s_selected_uniprot_records_flatfile.txt' % list_number)
 
-    base_filename_summaries = os.path.join(set_["summaries_dir"], 'List%02d' % list_number)
+    # set a base folder for the summaries, e.g. "D:\Databases\main\summaries\05\List05 [[_summary.csv]]"
+    base_filename_summaries = os.path.join(set_["summaries_dir"], '%02d' % list_number, 'List%02d' % list_number)
     excelfile_with_uniprot_accessions = os.path.join(base_filename_summaries, '.xlsx')
 
     # create dictionary of paths for output files

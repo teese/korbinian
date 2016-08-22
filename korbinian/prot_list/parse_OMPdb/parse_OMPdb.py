@@ -268,6 +268,9 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_summary_nr_csv, OMPdb_
     df_KW.rename(columns=dict_, inplace=True)
     df_KW["protein_name"] = df_KW["uniprot_acc"]
 
+    # reset the index to match the numer of sequences
+    df_KW.index = range(df_KW.shape[0])
+    # save to csv (presumably in summaries folder as a list number, so it is accessible by the rest of the scripts)
     df_KW.to_csv(OMPdb_summary_csv_with_TM_seqs, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     logging.info("\nnum_proteins_BEFORE_dropping_those_without_mem_indices : {}".format(num_proteins_BEFORE_dropping_those_without_mem_indices))
