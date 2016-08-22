@@ -6,7 +6,7 @@ import unicodedata
 
 def setup_file_locations_in_df(set_, pathdict):
     print(pathdict["list_summary_csv"])
-    df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = "uniprot_acc")
+    df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
     if "uniprot_acc" in df.columns:
         df.set_index("uniprot_acc", drop=False, inplace=True)
     else:
