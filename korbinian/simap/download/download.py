@@ -121,5 +121,7 @@ def download_homologues_from_simap(pathdict, set_, logging):
                             os.remove(date_file_path)
                         except FileNotFoundError:
                             pass
+                    # sometimes the SIMAP server seems to like a little rest in between downloads?
+                    utils.sleep_x_seconds(30)
 
     logging.info('retrieve_simap_feature_table_and_homologues_from_list_in_csv is finished')

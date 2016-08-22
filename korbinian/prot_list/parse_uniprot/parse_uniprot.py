@@ -61,7 +61,7 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
             output_dict['uniprot_acc'] = record.accessions[0]
             output_dict['organism'] = record.organism
             output_dict['uniprot_entry_name'] = record.entry_name
-            output_dict['uniprot_gene_name'] = record.gene_name
+            output_dict['gene_name'] = record.gene_name
             output_dict['uniprot_descr'] = record.description
             output_dict['full_seq'] = record.sequence
             output_dict['uniprot_orgclass'] = record.organism_classification

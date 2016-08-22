@@ -103,7 +103,7 @@ def OLD_fix_dfout05_simapcsv_by_adding_query_md5(pathdict, logging):
             homologue_file_exists = False
             logging.info('feature table and/or homologue file is missing\n')
         if all([feature_table_exists, homologue_file_exists]):
-            #parse the XML file with elementtree, define the 'root' of the XML file
+            #parse_uniprot the XML file with elementtree, define the 'root' of the XML file
             simap_homologue_tree = ET.parse(
                 df_dfout05_simapcsv.loc[i, 'SIMAP_homol_XML_path'])
             simap_homologue_root = simap_homologue_tree.getroot()

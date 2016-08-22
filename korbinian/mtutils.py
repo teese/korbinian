@@ -813,15 +813,15 @@ def retrieve_simap_homologues(input_sequence, output_file, max_hits, java_exec_s
     timeout = max_hits/5 if max_hits > 500 else 100
     command.run(timeout=timeout) #give 1000 for 5000 hits to download?   
     logging.info("Output file:     %s\n'file saved'" % output_file)
-    sleep_x_seconds(30)
+    #sleep_x_seconds(30)
     if not os.path.exists(output_file):
         logging.info('********************SIMAP download failed for : %s***************' % output_file)
-    '''There are many homologue XML files with nodes missing! Could this be due to the minidom parse?? 
-    Maybe it's better to leave this out, and only parse to a readable format for some example proteins???
+    '''There are many homologue XML files with nodes missing! Could this be due to the minidom parse_uniprot??
+    Maybe it's better to leave this out, and only parse_uniprot to a readable format for some example proteins???
     '''
 
 #def retrieve_simap_from_multiple_fasta(input_file):
-#    records = SeqIO.parse(input_file, "fasta")
+#    records = SeqIO.parse_uniprot(input_file, "fasta")
 #    global list_of_files_with_feature_tables, list_of_files_with_homologues
 #    list_of_files_with_feature_tables = []
 #    list_of_files_with_homologues = []
@@ -857,13 +857,14 @@ class Command(object):
 
     def run(self, timeout):
         def target():
-            logging.info('Thread started')
+            #logging.info('Thread started')
             self.process = subprocess.Popen(self.cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             #self.process.communicate()
             stdout, stderr = self.process.communicate() # from http://stackoverflow.com/questions/14366352/how-to-capture-information-from-executable-jar-in-python
-            logging.info('JAVA OUTPUT:%s' % stdout.decode("utf-8"))
+            # Thus far, SIMAP has only ever given java faults, never java output. Don't bother showing.
+            #logging.info('JAVA OUTPUT:%s' % stdout.decode("utf-8"))
             logging.warning('JAVA FAULTS: %s' %stderr.decode("utf-8"))
-            logging.info('Thread finished')
+            #logging.info('Thread finished')
 
         thread = threading.Thread(target=target)
         thread.start()
@@ -873,7 +874,8 @@ class Command(object):
             logging.info('Terminating process')
             self.process.terminate()
             thread.join()
-        logging.info(self.process.returncode)
+        # simply returns 0 every time it works. Waste of logging space! :)
+        #logging.info(self.process.returncode)
 
 def run_command(command):
     #this stopped working for some reason. Did I mess up a path variable?    

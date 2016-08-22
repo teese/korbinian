@@ -3,19 +3,19 @@ import korbinian.mtutils as utils
 import pandas as pd
 import numpy as np
 
-# location of unzipped fasta seqs from OMPdb, nonredundant(e.g. to 30% aa identity)
-#omp_nr_fasta = r"D:\Databases\OMPdb\OMPdb.30"
-omp_nr_fasta = r"D:\Databases\OMPdb\20160819_OMPdb.30"
-omp_ID_nr_txt = omp_nr_fasta + "_IDS.txt"
-#omp_ID_nr_txt = r"D:\Databases\OMPdb\test_list_IDs.txt"
-#OMPdb_all_flatfile = r"D:\Databases\OMPdb\OMPdb.flat"
-OMPdb_all_flatfile = r"D:\Databases\OMPdb\20160819_OMPdb.flat"
-#OMPdb_all_flatfile = r"D:\Databases\OMPdb\OMPdbsmaller.txt"
-#OMPdb_summary_nr_csv = omp_nr_fasta + "_flatfiles_nr.csv"
-OMPdb_summary_nr_csv = r"D:\Databases\OMPdb\rimma_orig\OMPdb_Selected_by_potential_IDs.csv"
-OMPdb_summary_csv_with_TM_seqs = OMPdb_summary_nr_csv[:-4] + "_with_seqs.csv"
+# # location of unzipped fasta seqs from OMPdb, nonredundant(e.g. to 30% aa identity)
+# #omp_nr_fasta = r"D:\Databases\OMPdb\OMPdb.30"
+# omp_nr_fasta = r"D:\Databases\OMPdb\20160819_OMPdb.30"
+# omp_ID_nr_txt = omp_nr_fasta + "_IDS.txt"
+# #omp_ID_nr_txt = r"D:\Databases\OMPdb\test_list_IDs.txt"
+# #OMPdb_all_flatfile = r"D:\Databases\OMPdb\OMPdb.flat"
+# OMPdb_all_flatfile = r"D:\Databases\OMPdb\20160819_OMPdb.flat"
+# #OMPdb_all_flatfile = r"D:\Databases\OMPdb\OMPdbsmaller.txt"
+# #OMPdb_summary_nr_csv = omp_nr_fasta + "_flatfiles_nr.csv"
+# OMPdb_summary_nr_csv = r"D:\Databases\OMPdb\rimma_orig\OMPdb_Selected_by_potential_IDs.csv"
+# OMPdb_summary_csv_with_TM_seqs = OMPdb_summary_nr_csv[:-4] + "_with_seqs.csv"
 
-def extract_omp_IDs_from_nr_fasta(omp_nr_fasta):
+def extract_omp_IDs_from_nr_fasta(omp_nr_fasta, omp_ID_nr_txt, logging):
     """ Takes the OMP non-redundant list of fasta sequences, and extracts the protein IDs (fasta names).
     """
     with open(omp_ID_nr_txt, "w") as s:
@@ -25,8 +25,9 @@ def extract_omp_IDs_from_nr_fasta(omp_nr_fasta):
             # write to text file
             for ID in ID_list:
                 s.write("%s\n" % ID)
+    logging.info("extract_omp_IDs_from_nr_fasta is completed")
 
-def parse_OMPdb_all_selected_to_csv(omp_ID_nr_txt, OMPdb_all_flatfile, OMPdb_summary_nr_csv):
+def parse_OMPdb_all_selected_to_csv(omp_ID_nr_txt, OMPdb_all_flatfile, OMPdb_summary_nr_csv, logging):
     """ Extracts ID, seq and topology data from the full OMPdb flatfile, saves to csv.
 
     Parameters
@@ -111,24 +112,24 @@ def parse_OMPdb_all_selected_to_csv(omp_ID_nr_txt, OMPdb_all_flatfile, OMPdb_sum
         Topos.remove("")
         keywords["Topology"] = Topos
 
-    # Checking if keywords-lists are equally long
-    print(len(keywords["Uniprot"])
-          , len(keywords["Family"])
-          , len(keywords["Gene_Name"])
-          , len(keywords["Organism"])
-          , len(keywords["NCBI_TaxID"])
-          , len(keywords["Coverage(%)"])
-          , len(keywords["Sequence"])
-          , len(keywords["len_Sequence"])
-          , len(keywords["Topology_Reli"])
-          , len(keywords["Topology"]))
+    # # Checking if keywords-lists are equally long
+    # logging.info(len(keywords["Uniprot"])
+    #       , len(keywords["Family"])
+    #       , len(keywords["Gene_Name"])
+    #       , len(keywords["Organism"])
+    #       , len(keywords["NCBI_TaxID"])
+    #       , len(keywords["Coverage(%)"])
+    #       , len(keywords["Sequence"])
+    #       , len(keywords["len_Sequence"])
+    #       , len(keywords["Topology_Reli"])
+    #       , len(keywords["Topology"]))
 
     # Creating Dataframe and saving it as csv
     dfKW = pd.DataFrame(keywords)
     dfKW.to_csv(OMPdb_summary_nr_csv,index=False)
+    logging.info("parse_OMPdb_all_selected_to_csv is completed. Dataframe shape = {}".format(dfKW.shape))
 
-
-def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_summary_nr_csv, OMPdb_summary_csv_with_TM_seqs):
+def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_summary_nr_csv, OMPdb_summary_csv_with_TM_seqs, logging):
     """ Take a csv parsed from OMPdb, get the TM indices and slice the TMDs for each protein
 
     Parameters:
@@ -188,7 +189,7 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_summary_nr_csv, OMPdb_
 
     array_membrane_borders = np.array(nested_list_of_membrane_borders)
     for subarray in array_membrane_borders:
-        # print(subarray[::2] = subarray[::2]*10)
+        # logging.info(subarray[::2] = subarray[::2]*10)
         subarray = np.array(subarray)
         subarray[1::2] = subarray[1::2] + 1
     nested_list_of_membrane_borders_python_indexstyle = array_membrane_borders.tolist()
@@ -268,15 +269,8 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_summary_nr_csv, OMPdb_
 
     df_KW.to_csv(OMPdb_summary_csv_with_TM_seqs, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
-    print("\nnum_proteins_BEFORE_dropping_those_without_mem_indices", num_proteins_BEFORE_dropping_those_without_mem_indices)
-    print("num_proteins_AFTER_dropping_those_without_mem_indices", num_proteins_AFTER_dropping_those_without_mem_indices)
-    print("num_proteins_AFTER_dropping_those_with_coverage_below_85", num_proteins_AFTER_dropping_those_with_coverage_below_85)
-    print("num_proteins_AFTER_dropping_those_without_TMs_between_8_and_24", num_proteins_AFTER_dropping_those_without_TMs_between_8_and_24)
-    print("num_proteins_AFTER_dropping_those_with_topology_reliability_below_90", num_proteins_AFTER_dropping_those_with_topology_reliability_below_90)
-
-
-
-
-# extract_omp_IDs_from_nr_fasta(omp_nr_fasta)
-# parse_OMPdb_all_selected_to_csv(omp_ID_nr_txt, OMPdb_all_flatfile, OMPdb_summary_nr_csv)
-get_omp_TM_indices_and_slice_from_summary_table(OMPdb_summary_nr_csv, OMPdb_summary_csv_with_TM_seqs)
+    logging.info("\nnum_proteins_BEFORE_dropping_those_without_mem_indices : {}".format(num_proteins_BEFORE_dropping_those_without_mem_indices))
+    logging.info("num_proteins_AFTER_dropping_those_without_mem_indices : {}".format(num_proteins_AFTER_dropping_those_without_mem_indices))
+    logging.info("num_proteins_AFTER_dropping_those_with_coverage_below_85 : {}".format(num_proteins_AFTER_dropping_those_with_coverage_below_85))
+    logging.info("num_proteins_AFTER_dropping_those_without_TMs_between_8_and_24 : {}".format(num_proteins_AFTER_dropping_those_without_TMs_between_8_and_24))
+    logging.info("num_proteins_AFTER_dropping_those_with_topology_reliability_below_90 : {}".format(num_proteins_AFTER_dropping_those_with_topology_reliability_below_90))

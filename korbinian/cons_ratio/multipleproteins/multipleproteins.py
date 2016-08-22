@@ -326,19 +326,19 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
     utils.improve_ggplot_for_4_plots(axarr, row_nr, col_nr, backgroundcolour, legend_obj)
 
     '''
-    Fig06: Scattergram comparing query_length with mean AAIMON
+    Fig06: Scattergram comparing seqlen with mean AAIMON
     '''
     Fig_Nr = 6
     # add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
-    if fig_title == "Fig06: Scattergram comparing query_length with mean AAIMON":
+    if fig_title == "Fig06: Scattergram comparing seqlen with mean AAIMON":
         pass
     sys.stdout.write(str(Fig_Nr) + ', ')
-    title = 'query_length vs AAIMON'
+    title = 'seqlen vs AAIMON'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     # if a new figure should be created (either because the orig is full, or the last TMD is analysed)
     fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi=300)
     # pylab.rcParams['figure.figsize'] = (100.0, 80.0)
-    x = np.array(df['query_length'])
+    x = np.array(df['seqlen'])
     y = np.array(df['AAIMON_ratio_mean_all_TMDs'])
     scattercontainer_AAIMON_AASMON_std = axarr[row_nr, col_nr].scatter(x=x, y=y, color="#0489B1", alpha=alpha,
                                                                        s=datapointsize)

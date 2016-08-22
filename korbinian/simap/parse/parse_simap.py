@@ -135,7 +135,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                 with tarfile.open(df.loc[acc, 'SIMAP_tar'], 'r:gz') as tar:
                     SIMAP_homologues_XML_file_extracted = tar.extractfile(homol_xml_filename)
 
-                    #parse the XML file with elementtree, define the 'root' of the XML file
+                    #parse_uniprot the XML file with elementtree, define the 'root' of the XML file
                     simap_homologue_tree = ET.parse(SIMAP_homologues_XML_file_extracted)
                     simap_homologue_root = simap_homologue_tree.getroot()
 
@@ -165,7 +165,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                         but that doesn't make sense as the script seems to work
                     '''
                     df.loc[acc, 'query_md5'] = query_sequence_node.attrib['md5']
-                    df.loc[acc, 'query_length'] = int(query_sequence_node.attrib['length'])
+                    df.loc[acc, 'seqlen'] = int(query_sequence_node.attrib['length'])
                     df.loc[acc, 'query_selfscore'] = query_sequence_node.attrib['selfscore']
                     df.loc[acc, 'query_sequenceid'] = query_sequence_node.attrib['sequenceid']
                     df.loc[acc, 'total_number_of_simap_hits'] = query_sequence_node[0].attrib['number_hits']

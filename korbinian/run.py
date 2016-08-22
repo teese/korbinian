@@ -87,24 +87,57 @@ def run_korbinian(excel_file_with_settings):
     # create dictionary of paths for output files
     pathdict = korbinian.common.create_pathdict(base_filename_summaries)
 
+    ########################################################################################
+    #                                                                                      #
+    #      prot_list, OMPdb (create a list of proteins from the OMPdb database)            #
+    #                                                                                      #
+    ########################################################################################
+
+    if set_["OMPdb_extract_omp_IDs_from_nr_fasta"]:
+        korbinian.prot_list.extract_omp_IDs_from_nr_fasta(set_["omp_nr_fasta"], set_["omp_ID_nr_txt"], logging)
+
+    if set_["OMPdb_parse_OMPdb_all_selected_to_csv"]:
+        korbinian.prot_list.parse_OMPdb_all_selected_to_csv(set_["omp_ID_nr_txt"], set_["OMPdb_all_flatfile"], set_["OMPdb_summary_nr_csv"], logging)
+
+    if set_["OMPdb_get_omp_TM_indices_and_slice_from_summary_table"]:
+        korbinian.prot_list.get_omp_TM_indices_and_slice_from_summary_table(set_["OMPdb_summary_nr_csv"], set_["OMPdb_summary_csv_with_TM_seqs"], logging)
+
+    ########################################################################################
+    #                                                                                      #
+    #      prot_list, UniProt (create a list of proteins from the UniProt database)        #
+    #                                                                                      #
+    ########################################################################################
+
     if set_["run_convert_uniprot_list_to_nonred_ff_via_uniref"] == True:
         logging.info('~~~~~~~~~~~~  starting run_convert_redundant_uniprot_list_to_nonred_ff_via_uniref   ~~~~~~~~~~~~')
         if os.path.isfile(uniprot_flatfile_of_selected_records) == False or set_["overwrite_selected_ff"] == True:
-            korbinian.uniprot.convert_uniprot_list_to_nonred_ff_via_uniref(set_, list_number, uniprot_folder_sel,
-                                                                           logging, uniprot_flatfile_of_selected_records)
+            korbinian.prot_list.convert_uniprot_list_to_nonred_ff_via_uniref(set_, list_number, uniprot_folder_sel,
+                                                                             logging, uniprot_flatfile_of_selected_records)
 
     if set_["run_parse_large_flatfile_with_list_uniprot_accessions"]:
         input_accession_list= set_["list_of_uniprot_accessions"]
-        korbinian.uniprot.parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, uniprot_folder_sel, list_number, logging, uniprot_flatfile_of_selected_records)
+        korbinian.prot_list.parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, uniprot_folder_sel, list_number, logging, uniprot_flatfile_of_selected_records)
 
     if set_["run_retrieve_uniprot_data_for_acc_list_in_xlsx_file"]:
-        korbinian.uniprot.retrieve_uniprot_data_for_acc_list_in_xlsx_file(excelfile_with_uniprot_accessions, logging, uniprot_flatfile_of_selected_records)
+        korbinian.prot_list.retrieve_uniprot_data_for_acc_list_in_xlsx_file(excelfile_with_uniprot_accessions, logging, uniprot_flatfile_of_selected_records)
 
     if set_["run_create_csv_from_uniprot_flatfile"]:
-        korbinian.uniprot.create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_, logging, pathdict)
+        korbinian.prot_list.create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_, logging, pathdict)
+
+    ########################################################################################
+    #                                                                                      #
+    #                            run_setup_df_file_locations                               #
+    #                                                                                      #
+    ########################################################################################
 
     if set_["run_setup_df_file_locations"]:
-        korbinian.common.setup_file_locations_in_df(set_, pathdict)
+        korbinian.prot_list.setup_file_locations_in_df(set_, pathdict)
+
+    ########################################################################################
+    #                                                                                      #
+    #                         run simap download, parse simap                              #
+    #                                                                                      #
+    ########################################################################################
 
     if set_["run_retrieve_simap_feature_table_and_homologues_from_list_in_csv"]:
         korbinian.simap.download_homologues_from_simap(pathdict, set_, logging)
@@ -112,14 +145,32 @@ def run_korbinian(excel_file_with_settings):
     if set_["run_parse_simap_to_csv"]:
         korbinian.simap.parse_SIMAP_to_csv(pathdict, set_, logging)
 
+    ########################################################################################
+    #                                                                                      #
+    #            run_create_fasta, run_calculate_AAIMON_ratios                             #
+    #                                                                                      #
+    ########################################################################################
+
     if any([set_["run_create_fasta"], set_["run_calculate_AAIMON_ratios"]]):
         korbinian.cons_ratio.create_fasta_or_calculate_AAIMON_ratios(pathdict, set_, logging)
+
+    ########################################################################################
+    #                                                                                      #
+    #                             gap density analysis                                     #
+    #                                                                                      #
+    ########################################################################################
 
     if set_["run_calculate_gap_densities"]:
         korbinian.gap.calculate_gap_densities(pathdict, set_, logging)
 
     if set_["run_create_graph_of_gap_density"]:
         korbinian.gap.create_graph_of_gap_density(pathdict, set_, logging)
+
+    ########################################################################################
+    #                                                                                      #
+    #                 conservation ratio (AAIMON ratio) figures                            #
+    #                                                                                      #
+    ########################################################################################
 
     '''+++++++++++++++ Summary figures describing the conservation ratios of proteins in the list ++++++++++++++++++'''
     if set_["run_save_figures_describing_proteins_in_list"]:
@@ -128,6 +179,12 @@ def run_korbinian(excel_file_with_settings):
     '''+++++++++++++++ Summary figures describing the conservation ratios of proteins in the list ++++++++++++++++++'''
     if set_["run_compare_lists"]:
         korbinian.cons_ratio.compare_rel_con_lists(pathdict, set_, logging)
+
+    ########################################################################################
+    #                                                                                      #
+    #                                     old stuff                                        #
+    #                                                                                      #
+    ########################################################################################
 
     '''+++++++++++++++TMD CONSERVATION (OLD)++++++++++++++++++'''
     if set_["old_calculate_TMD_conservation"]:
