@@ -9,7 +9,8 @@ import pandas as pd
 
 def create_fasta_or_calculate_AAIMON_ratios(pathdict, set_, logging):
     logging.info('~~~~~~~~~~~~starting create_fasta_or_calculate_AAIMON_ratios~~~~~~~~~~~~')
-    df = pd.read_csv(pathdict["list_summary_csv"])
+    df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    df.set_index("uniprot_acc", drop=False, inplace=True)
     #iterate over the dataframe for proteins with an existing list_of_TMDs. Note that acc = uniprot accession here.
     for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
         # if set_["overwrite_prev_calculated_AAIMON_ratios"] == True or prev_calc_AAIMON_ratio_for_this_protein_exists == False:
