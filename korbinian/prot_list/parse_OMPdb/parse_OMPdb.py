@@ -1,5 +1,6 @@
 import csv
 import korbinian.mtutils as utils
+import korbinian.prot_list.prot_list
 import pandas as pd
 import numpy as np
 
@@ -255,7 +256,7 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_summary_nr_csv, OMPdb_
     # currently the loop is run for each TMD, based on the sequence with the most TMDs
     for i in range(1, int(max_num_TMDs) + 1):
         TMD = 'TM%02d' % i
-        df_KW = utils.get_indices_TMD_plus_surr_for_summary_file(df_KW, TMD, fa_aa_before_tmd, fa_aa_after_tmd)
+        df_KW = korbinian.prot_list.prot_list.get_indices_TMD_plus_surr_for_summary_file(df_KW, TMD, fa_aa_before_tmd, fa_aa_after_tmd)
 
     # rename columns to match protein lists from uniprot
     dict_ = {"Sequence": "full_seq", "Organism": "organism", "Uniprot": "uniprot_acc", "Gene_Name": "gene_name",

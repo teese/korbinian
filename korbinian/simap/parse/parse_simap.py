@@ -396,3 +396,33 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
     logging.info('number_of_hits_missing_smithWatermanAlignment_node: %i' % number_of_hits_missing_smithWatermanAlignment_node)
     logging.info('number_of_hits_missing_protein_node: %i' % number_of_hits_missing_protein_node)
     logging.info('****parse_SIMAP_to_csv finished!!****\n%g files parsed from SIMAP XML to csv' % counter_XML_to_CSV)
+
+def get_phobius_TMD_region(feature_table_root):
+    """Old function, no longer in use."""
+    for feature in feature_table_root[0]:
+        if 'PHOBIUS' and 'TMHelix' in feature.attrib.values():
+            for begin in feature.iter('begin'):
+                TMD_start = int(begin.attrib['position']) #same as feature[0][0].attrib['position'], but more resistant to parser breaking
+            for end in feature.iter('end'):
+                TMD_end = int(end.attrib['position'])
+            TMD_length = TMD_end - TMD_start + 1
+            #logging.info('phobius prediction: TMD start = %s, TMD end = %s' % (TMD_start, TMD_end))
+                #logging.info(begin.attrib['position']) #same as feature[0][0].attrib['position'], but more resistant to parser breaking
+        else:
+            TMD_start, TMD_end, TMD_length = 0, 0, 0
+    return TMD_start, TMD_end, TMD_length
+
+def get_TMHMM_TMD_region(root):
+    """Old function, no longer in use."""
+    for feature in root[0]:
+        for subfeature in feature:
+            if 'TMHMM' and 'TMHelix' in subfeature.attrib.values():
+                for begin in subfeature.iter('begin'):
+                    TMD_start = begin.attrib['position'] #same as feature[0][0].attrib['position'], but more resistant to parser breaking
+                for end in subfeature.iter('end'):
+                    TMD_end = end.attrib['position']
+                #logging.info('TMHMM prediction: TMD start = %s, TMD end = %s' % (TMD_start, TMD_end))
+                #logging.info(begin.attrib['position']) #same as feature[0][0].attrib['position'], but more resistant to parser breaking
+            else:
+                TMD_start, TMD_end = 0, 0
+    return TMD_start, TMD_end

@@ -160,3 +160,34 @@ def setup_file_locations_in_df(set_, pathdict):
     df['setup_file_locations_in_df'] = True
     # save to a csv
     df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+
+
+def get_indices_TMD_plus_surr_for_summary_file(dfsumm, TMD, fa_aa_before_tmd, fa_aa_after_tmd):
+    """Takes a summary dataframe (1 row for each protein) and slices out the TMD seqs
+
+    Returns the dataframe with extra columns, TM01_start, TM01_start_plus_surr_seq, etc
+    """
+
+    # instead of integers showing the start or end of the TMD, some people write strings into the
+    # UniProt database, such as "<5" or "?"
+    # to avoid the bugs that this introduces, it is necessary to convert all strings to np.nan (as floats),
+    # using the convert objects function. The numbers can then be converted back from floats to integers.
+    dfsumm['%s_start' % TMD] = pd.to_numeric(dfsumm['%s_start' % TMD]).dropna().astype('int64')
+    dfsumm['%s_end' % TMD] = pd.to_numeric(dfsumm['%s_end' % TMD]).dropna().astype('int64')
+    # determine the position of the start of the surrounding sequence
+    dfsumm['%s_start_plus_surr' % TMD] = dfsumm['%s_start' % TMD] - fa_aa_before_tmd
+    # replace negative values with zero. (slicing method was replaced with lambda function to avoid CopyWithSetting warning)
+    dfsumm['%s_start_plus_surr' % TMD] = dfsumm['%s_start_plus_surr' % TMD].apply(lambda x: x if x > 0 else 0)
+    dfsumm['%s_end_plus_surr' % TMD] = dfsumm['%s_end' % TMD] + fa_aa_after_tmd
+    # create a boolean series, describing whether the end_surrounding_seq_in_query is longer than the protein seq
+    series_indices_longer_than_prot_seq = dfsumm.apply(find_indices_longer_than_prot_seq, args=(TMD,), axis=1)
+    # obtain the indices of proteins in the series
+    indices_longer_than_prot_seq = series_indices_longer_than_prot_seq[series_indices_longer_than_prot_seq].index
+    # use indices to select the main dataframe, and convert these end_surrounding_seq_in_query values to the seqlen value
+    dfsumm.loc[indices_longer_than_prot_seq, '%s_end_plus_surr' % TMD] = dfsumm.loc[indices_longer_than_prot_seq, 'seqlen']
+
+    return dfsumm
+
+
+def find_indices_longer_than_prot_seq(df, TMD):
+    return df['%s_end_plus_surr'%TMD] > df['seqlen']

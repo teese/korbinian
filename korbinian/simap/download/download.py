@@ -1,3 +1,4 @@
+import logging
 from time import strftime
 import csv
 import pandas as pd
@@ -5,6 +6,8 @@ import korbinian.mtutils as utils
 import platform
 import os
 import tarfile
+import korbinian
+
 
 def download_homologues_from_simap(pathdict, set_, logging):
 
@@ -25,8 +28,7 @@ def download_homologues_from_simap(pathdict, set_, logging):
         byteformat = "GB"
         data_harddrive = set_["data_harddrive"]
         size = utils.get_free_space(data_harddrive, byteformat)
-        logging.info('Hard disk remaining space =')
-        logging.info(size)
+        logging.info('Hard disk remaining space = {}'.format(size))
         if size[0] < 5:
             raise utils.HardDriveSpaceException("Hard drive space limit reached, there is only %s %s space left." % (size[0], size[1]))
     except utils.HardDriveSpaceException as e:
@@ -69,18 +71,18 @@ def download_homologues_from_simap(pathdict, set_, logging):
                 if not SIMAP_tarfile_exists or set_["overwrite_homologue_files"] == True:
                     if not feature_table_XML_exists:
                         #download feature table from SIMAP
-                        utils.retrieve_simap_feature_table(input_sequence,
-                                                           java_exec_str=java_exec_str,
-                                                           max_memory_allocation=max_memory_allocation,
-                                                           output_file=ft_xml_path,
-                                                           eaSimap_path=set_["eaSimap_path"])
+                        korbinian.simap.download.download.retrieve_simap_feature_table(input_sequence,
+                                                                                       java_exec_str=java_exec_str,
+                                                                                       max_memory_allocation=max_memory_allocation,
+                                                                                       output_file=ft_xml_path,
+                                                                                       eaSimap_path=set_["eaSimap_path"])
                     if not homologues_XML_exists:
                         #download homologue file from SIMAP
-                        utils.retrieve_simap_homologues(input_sequence,
-                                                        output_file=homol_xml_path,
-                                                        max_hits=max_hits, java_exec_str=java_exec_str,
-                                                        max_memory_allocation=max_memory_allocation, taxid=taxid,
-                                                        eaSimap_path=set_["eaSimap_path"])
+                        korbinian.simap.download.download.retrieve_simap_homologues(input_sequence,
+                                                                                    output_file=homol_xml_path,
+                                                                                    max_hits=max_hits, java_exec_str=java_exec_str,
+                                                                                    max_memory_allocation=max_memory_allocation, taxid=taxid,
+                                                                                    eaSimap_path=set_["eaSimap_path"])
                     #now check again if the files exist
                     feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path)
                     if not homologues_XML_exists:
@@ -125,3 +127,72 @@ def download_homologues_from_simap(pathdict, set_, logging):
                     utils.sleep_x_seconds(30)
 
     logging.info('retrieve_simap_feature_table_and_homologues_from_list_in_csv is finished')
+
+
+def retrieve_simap_feature_table(input_sequence, java_exec_str, max_memory_allocation, output_file, eaSimap_path):
+    '''
+    Uses the java program to access the simap database and download the small file containing information on that protein, called a "feature table".
+    '''
+    #prepare input sequence and settings as a "command_str", and run command
+    # command_str = '%s -Xmx%im -jar %s -s %s -o %s -f' % (java_exec_str, max_memory_allocation, eaSimap_path, input_sequence, output_file)
+    command_str = '{jes} -Xmx{mma:d}m -jar {esp} -s {s} -o {o} -f'.format(jes=java_exec_str,
+                                      mma=max_memory_allocation, esp=eaSimap_path, s=input_sequence,o=output_file)
+    logging.info(command_str)
+    command = utils.Command(command_str)
+    command.run(timeout=100)
+    logging.info("Output file:     %s\n" % output_file),
+    utils.sleep_x_seconds(5)
+    if not os.path.exists(output_file):
+        logging.info('********************SIMAP download failed for : %s***************' % output_file)
+
+
+def retrieve_simap_homologues(input_sequence, output_file, max_hits, java_exec_str, max_memory_allocation, taxid, eaSimap_path):
+    '''
+    Uses the java program to access the simap database and download the large file containing all homologues of that protein.
+    '''
+    # database selection is currently not working for download. Can be filtered later from all results.
+    #database_dictionary = {313: 'uniprot_swissprot', 314: 'uniprot_trembl', 595: 'refseq', 721: 'Escherichia coli', 1296: 'Homo sapiens', 4250: 'Hot springs metagenome'}
+    taxid_search_string = '' if taxid == '""' else '-i %s' % taxid
+    #note that windows has a character limit in the command prompt in theory of 8191 characters, but the command line java command seems to cause errors with sequences above 3000 amino acids.
+    #the 3000 character limit is currently applied in the main_simap script, rather than here
+    #run command
+    # command_str = '%s -Xmx%im -jar %s -s %s -m %s -o %s -x %s%s' % (java_exec_str, max_memory_allocation, eaSimap_path, input_sequence,
+    #                                                                 max_hits, output_file, taxid_search_string)
+    command_str = '{jes} -Xmx{mma:d}m -jar {esp} -s {s} -m {m} -o {o} -x{tss}'.format(jes=java_exec_str, mma=max_memory_allocation, esp=eaSimap_path, s=input_sequence,
+                                                                    m=max_hits, o=output_file, tss=taxid_search_string)
+    logging.info(command_str)
+    command = utils.Command(command_str)
+    timeout = max_hits/5 if max_hits > 500 else 100
+    command.run(timeout=timeout) #give 1000 for 5000 hits to download?
+    logging.info("Output file:     %s\n'file saved'" % output_file)
+    #sleep_x_seconds(30)
+    if not os.path.exists(output_file):
+        logging.info('********************SIMAP download failed for : %s***************' % output_file)
+    '''There are many homologue XML files with nodes missing! Could this be due to the minidom parse_uniprot??
+    Maybe it's better to leave this out, and only parse_uniprot to a readable format for some example proteins???
+    '''
+
+#def retrieve_simap_from_multiple_fasta(input_file):
+#    records = SeqIO.parse_uniprot(input_file, "fasta")
+#    global list_of_files_with_feature_tables, list_of_files_with_homologues
+#    list_of_files_with_feature_tables = []
+#    list_of_files_with_homologues = []
+#    recordcounter = 0
+#    for record in records:
+#        name = record.name.replace('|', '_')[:30]
+#        accession = 'Acc'
+#        label = '%s_%s' % (accession, name)
+#        print(label)
+#        SIMAP_feature_table_XML_file = r"E:\\Stephis\\Projects\\Programming\\Python\\files\\learning\\simap\\%s_simap_feature_table.xml" % label
+#        list_of_files_with_feature_tables.append(SIMAP_feature_table_XML_file)
+#        SIMAP_homologues_XML_file = r"E:\\Stephis\\Projects\\Programming\\Python\\files\\learning\\simap\\%s_simap_homologues.xml" % label
+#        list_of_files_with_homologues.append(SIMAP_homologues_XML_file)
+#        retrieve_simap_feature_table(input_sequence=record.seq, output_file=SIMAP_feature_table_XML_file)
+#        retrieve_simap_homologues(input_sequence=record.seq, output_file=SIMAP_homologues_XML_file, database='', max_hits='10', taxid='7227', extra_search_string='')
+#        recordcounter += 1
+#    logging.info('Download complete, %s SIMAP records saved.' % recordcounter)
+#input_seqs_mult_fasta = r'E:\Stephis\Projects\Programming\Python\files\learning\simap\multiple_protein_seqs_in_fasta_format.txt'
+#retrieve_simap_from_multiple_fasta(input_seqs_mult_fasta)
+#throwaway functions, currently kept in main
+#slice_TMD_seq = lambda x: x['full_seq'][int(x['%s_start'%TMD_name]-1):int(x['%s_end'%TMD_name])]
+#slice_TMD_plus_surrounding_seq = lambda x: x['full_seq'][int(x['%s_start_plus_surr'%TMD_name]-1):int(x['%s_end_plus_surr'%TMD_name])]

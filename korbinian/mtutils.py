@@ -6,22 +6,27 @@ More recent functions are at the top.
 Authors: Mark Teese, Rimma Jenske
 Created on Fri Nov  8 15:45:06 2013
 """
-from Bio import SeqIO
-from Bio.SeqUtils.ProtParam import ProteinAnalysis
 import ast
 import csv
 import ctypes
 import errno
 import logging
-import matplotlib.pyplot as plt
+import os
 import pickle
 import platform
-import psutil
-import subprocess, threading, time, sys
-import tarfile
-import zipfile
+import re as re
+import subprocess
 import sys
-import json
+import tarfile
+import threading
+import time
+import zipfile
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from Bio import SeqIO
+from Bio.SeqUtils.ProtParam import ProteinAnalysis
 
 '''
 ************************************************************The uniprot functions start here.***************************************************************
@@ -48,15 +53,7 @@ def import_amino_acid_substitution_matrices():
     """
     imports several aa sub matrices from Bio.SubsMat.MatrixInfo
     """
-    from Bio.SubsMat.MatrixInfo import blosum30 as blosum30_matrix
-    from Bio.SubsMat.MatrixInfo import blosum62 as blosum62_matrix
-    from Bio.SubsMat.MatrixInfo import blosum95 as blosum95_matrix
-    from Bio.SubsMat.MatrixInfo import ident as ident_matrix
-    from Bio.SubsMat.MatrixInfo import gonnet as gonnet_matrix
-    from Bio.SubsMat.MatrixInfo import pam250 as pam250_matrix
-    from Bio.SubsMat.MatrixInfo import pam120 as pam120_matrix
-    from Bio.SubsMat.MatrixInfo import pam30 as pam30_matrix
-    from Bio.SubsMat.MatrixInfo import levin as levin_matrix
+
 
 def all_df_in_list_contain_data(df_list_KW, title = '', KW = '', data_names_list = []):
     '''Function that takes a list of dataframes, and checks them all to make sure none are empty.
@@ -413,8 +410,6 @@ def slice_SW_markup_TMD_plus_surr(x, TMD):
     return x['alignment_markup'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
 def slice_SW_match_TMD_seq_plus_surr(x, TMD):
     return x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
-def find_indices_longer_than_prot_seq(df, TMD):
-    return df['%s_end_plus_surr'%TMD] > df['seqlen']
 
 def create_indextuple_nonTMD_last(x):
     ''' Joins two columns into a tuple. Used to create the last tuple of the nonTMD region in the sequence.
@@ -617,142 +612,6 @@ def score_pairwise(seq1, seq2, matrix, gap_open_penalty, gap_extension_penalty, 
             #the last amino acid pair contained a gap, so an extension penalty should be used instead of an opening penalty
         prev_site_contained_gap = gap_exists
 
-def create_dict_of_data_from_uniprot_record(record):
-    '''
-    For each uniprot record, collect the desired data into a dictionary.
-    '''
-    global uniprot_TMD_start, uniprot_TMD_end, uniprot_TMD_description, uniprot_TMD_sequence     
-    global TRANSMEM_missing_from_uniprot_features, output_dict, accession, uniprot_TMD_sequence, record_entry_name, record_gene_name, record_description, uniprot_TMD_start, uniprot_TMD_end, uniprot_TMD_description, record_sequence_length, comments_subcellular_location, record_keywords, record_features_all
-    
-    #convert the comments in uniprot to a dictionary. 
-    #the comments in uniprot are unordered and non-hierarchical and need to be processed with string manipulation     
-    comments_dict = {} #create a new empty dictionary
-    create_dictionary_of_comments(record, comments_dict)            
-    
-    #create an empty output dictionary to holnd the uniprot data for each record
-    output_dict = {}
-    
-    #print accession number
-    logging.info(record.accessions[0])
-
-    #by default this is zero
-    output_dict['uniprot_TMD_start'] = 0
-    output_dict['uniprot_TMD_end'] = 0
-    output_dict['uniprot_TMD_description'] = 0
-    output_dict['uniprot_record_included_in_csv'] = True
- 
-    #add data to dictionary
-    output_dict['accession_uniprot'] = record.accessions[0]
-    output_dict['full_list_of_accessions_uniprot'] = record.accessions
-    output_dict['record_entry_name_uniprot'] = record.entry_name
-    output_dict['record_gene_name_uniprot'] = record.gene_name
-    output_dict['record_description_uniprot'] = record.description
-    output_dict['sequence_uniprot'] = record.sequence
-    output_dict['organism_classification'] = record.organism_classification
-    output_dict['organism'] = record.organism
-    output_dict['record_keywords_uniprot'] = record.keywords
-    output_dict['record_features_all_uniprot'] = record.features
-    output_dict['record_sequence_length_uniprot'] = record.sequence_length
-    output_dict['comments_subcellular_location_uniprot'] = comments_dict['SUBCELLULAR LOCATION']
-
-    #create a list of all the feature types (signal, transmem, etc)
-    list_of_feature_types_in_uniprot_record = []
-    for sublist in record.features:
-        list_of_feature_types_in_uniprot_record.append(sublist[0])
-        #logging.info(sublist)
-    
-    #list of the features that we want in the final csv
-    desired_features_in_uniprot = ['TRANSMEM', 'VARIANT', 'CONFLICT', 'VAR_SEQ','VARSPLIC']
-    desired_features_in_uniprot_dict = {}
-    
-    location_of_tmds_in_feature_list = []  
-    
-    for feature in desired_features_in_uniprot:
-        if feature in list_of_feature_types_in_uniprot_record:
-            #find the features in the feature list. For polytopic membrane protoins, there will be more than one tmd.
-            location_of_features_in_feature_list = [i for i,x in enumerate(list_of_feature_types_in_uniprot_record) if x == feature]
-            desired_features_in_uniprot_dict[feature] = location_of_features_in_feature_list        
-            if feature == 'TRANSMEM':
-                location_of_tmds_in_feature_list = location_of_features_in_feature_list
-    
-    #determine if the TMD is actually annotated in the uniprot record
-    if 'TRANSMEM' not in desired_features_in_uniprot_dict.keys():
-        TRANSMEM_missing_from_uniprot_features = True
-    else:
-        TRANSMEM_missing_from_uniprot_features = False
-    output_dict['TRANSMEM_missing_from_uniprot_features'] = TRANSMEM_missing_from_uniprot_features
-    output_dict['more_than_one_tmd_in_uniprot_annotation'] = False     
-    
-    if not TRANSMEM_missing_from_uniprot_features:  
-        #add the TMD to the dictionary for single-pass membrane proteins
-        if(len(location_of_tmds_in_feature_list)) == 1:
-            location = location_of_tmds_in_feature_list[0]
-            output_dict['number_of_tmds_in_seq'] = 1
-            output_dict['uniprot_TMD_start'] = record.features[location][1]
-            output_dict['uniprot_TMD_end'] = record.features[location][2]
-            output_dict['uniprot_TMD_description'] = record.features[location][3]  
-        
-        #add the TMD to the dictionary for multi-pass membrane proteins
-        if(len(location_of_tmds_in_feature_list)) > 1:
-            logging.info('more than one "TRANSMEM" feature in uniprot for %s' % output_dict['accession_uniprot'])
-            output_dict['number_of_tmds_in_seq'] = len(location_of_tmds_in_feature_list)
-            output_dict['more_than_one_tmd_in_uniprot_annotation'] = True
-            output_dict['uniprot_record_included_in_csv'] = False
-#            for i in range(len(location_of_tmds_in_feature_list)):
-#                output_dict['uniprot_TMD%s_start' % i] = record.features[location[i]][1]
-#                output_dict['uniprot_TMD%s_end' % i] = record.features[location[i]][2]
-#                output_dict['uniprot_TMD%s_description' % i] = record.features[location[i]][3]      
-        
-        if output_dict['number_of_tmds_in_seq'] == 1:
-            #create a numpy array of any sequence variants are in the TMD region
-            list_of_variant_types_in_uniprot = ['VARIANT', 'CONFLICT','VARSPLIC', 'VAR_SEQ']
-            #array_of_all_variants_in_tmd = np.zeros(4)
-            array_of_all_variants_in_tmd = np.array([])
-            for variant_type in list_of_variant_types_in_uniprot:
-                if variant_type in desired_features_in_uniprot_dict.keys():
-                    list_of_variant_locations = list(desired_features_in_uniprot_dict[variant_type])       
-                    for i in range(len(list_of_variant_locations)):
-                        start_of_variant_in_seq = record.features[list_of_variant_locations[i]][1]
-                        end_of_variant_in_seq = record.features[list_of_variant_locations[i]][2]
-                        variant_description = record.features[list_of_variant_locations[i]][3]
-                        variant_feature_identifier = record.features[list_of_variant_locations[i]][4]
-                       #check if the variant is in the tmd   
-                        start_of_variant_is_after_start_of_tmd = True if start_of_variant_in_seq > output_dict['uniprot_TMD_start'] else False
-                        end_of_variant_is_before_end_of_tmd = True if end_of_variant_in_seq < output_dict['uniprot_TMD_end'] else False
-                        variant_is_in_tmd = True if all(start_of_variant_is_after_start_of_tmd and end_of_variant_is_before_end_of_tmd) else False
-                        
-                        #add to numpy array that contains all the variants in the tmd region
-                        if variant_is_in_tmd:
-                            variant_array = np.array([variant_type, start_of_variant_in_seq, end_of_variant_in_seq, variant_description,variant_feature_identifier])
-                            if array_of_all_variants_in_tmd.size == 0:
-                                array_of_all_variants_in_tmd = np.row_stack((array_of_all_variants_in_tmd, variant_array))
-                            else:
-                                array_of_all_variants_in_tmd = variant_array
-            #if there were variants added, add them to the output dictionary
-            output_dict['array_of_all_variants_in_tmd'] = array_of_all_variants_in_tmd
-    
-
-    #if the tmd region is annotated, get the sequence
-    if not TRANSMEM_missing_from_uniprot_features:
-        if output_dict['number_of_tmds_in_seq'] == 1:       
-            output_dict['uniprot_TMD_sequence'] = record.sequence[output_dict['uniprot_TMD_start'] - 1:output_dict['uniprot_TMD_end']]           
-        else:
-            output_dict['uniprot_record_included_in_csv'] = False
-            output_dict['uniprot_TMD_start'] = 0
-            output_dict['uniprot_TMD_end'] = 0
-            output_dict['uniprot_TMD_description'] = 0
-    else:    
-        output_dict['uniprot_record_included_in_csv'] = False
-        logging.info('%s: "TRANSMEM" not found in uniprot features, therefore not incuded in csv file for further analysis' % output_dict['accession_uniprot'])
-        output_dict['uniprot_TMD_start'] = 0
-        output_dict['uniprot_TMD_end'] = 0
-        output_dict['uniprot_TMD_description'] = 0
-            
-    #decide if the sequence goes in the csv file (more filters will probably be added later)
-    #output_dict['uniprot_record_included_in_csv'] = True if not all(TRANSMEM_missing_from_uniprot_features and output_dict['more_than_one_tmd_in_uniprot_annotation']) else False
-    return output_dict
-
-
 #def create_list_of_files_from_csv_with_uniprot_data(input_file, list_of_keys):
 #    '''
 #    Generate the list of filenames, assuming SIMAP has already run
@@ -775,75 +634,6 @@ def create_dict_of_data_from_uniprot_record(record):
 #        SIMAP_homologues_XML_file = r"E:\Databases\simap\%s\%s_homologues.xml" % (organism_domain, protein_name)
 #        list_of_files_with_homologues.append(SIMAP_homologues_XML_file) 
 #    return list_of_files_with_feature_tables, list_of_files_with_homologues, list_of_protein_names, list_of_org_domains
-
-
-def retrieve_simap_feature_table(input_sequence, java_exec_str, max_memory_allocation, output_file, eaSimap_path):
-    '''
-    Uses the java program to access the simap database and download the small file containing information on that protein, called a "feature table".
-    '''
-    #prepare input sequence and settings as a "command_str", and run command
-    # command_str = '%s -Xmx%im -jar %s -s %s -o %s -f' % (java_exec_str, max_memory_allocation, eaSimap_path, input_sequence, output_file)
-    command_str = '{jes} -Xmx{mma:d}m -jar {esp} -s {s} -o {o} -f'.format(jes=java_exec_str,
-                                      mma=max_memory_allocation, esp=eaSimap_path, s=input_sequence,o=output_file)
-    logging.info(command_str)
-    command = Command(command_str)
-    command.run(timeout=100)
-    logging.info("Output file:     %s\n" % output_file),
-    sleep_x_seconds(5)
-    if not os.path.exists(output_file):
-        logging.info('********************SIMAP download failed for : %s***************' % output_file)
-
-
-def retrieve_simap_homologues(input_sequence, output_file, max_hits, java_exec_str, max_memory_allocation, taxid, eaSimap_path):
-    '''
-    Uses the java program to access the simap database and download the large file containing all homologues of that protein.
-    '''
-    # database selection is currently not working for download. Can be filtered later from all results.
-    #database_dictionary = {313: 'uniprot_swissprot', 314: 'uniprot_trembl', 595: 'refseq', 721: 'Escherichia coli', 1296: 'Homo sapiens', 4250: 'Hot springs metagenome'}
-    taxid_search_string = '' if taxid == '""' else '-i %s' % taxid
-    #note that windows has a character limit in the command prompt in theory of 8191 characters, but the command line java command seems to cause errors with sequences above 3000 amino acids.
-    #the 3000 character limit is currently applied in the main_simap script, rather than here
-    #run command
-    # command_str = '%s -Xmx%im -jar %s -s %s -m %s -o %s -x %s%s' % (java_exec_str, max_memory_allocation, eaSimap_path, input_sequence,
-    #                                                                 max_hits, output_file, taxid_search_string)
-    command_str = '{jes} -Xmx{mma:d}m -jar {esp} -s {s} -m {m} -o {o} -x{tss}'.format(jes=java_exec_str, mma=max_memory_allocation, esp=eaSimap_path, s=input_sequence,
-                                                                    m=max_hits, o=output_file, tss=taxid_search_string)
-    logging.info(command_str)
-    command = Command(command_str)
-    timeout = max_hits/5 if max_hits > 500 else 100
-    command.run(timeout=timeout) #give 1000 for 5000 hits to download?   
-    logging.info("Output file:     %s\n'file saved'" % output_file)
-    #sleep_x_seconds(30)
-    if not os.path.exists(output_file):
-        logging.info('********************SIMAP download failed for : %s***************' % output_file)
-    '''There are many homologue XML files with nodes missing! Could this be due to the minidom parse_uniprot??
-    Maybe it's better to leave this out, and only parse_uniprot to a readable format for some example proteins???
-    '''
-
-#def retrieve_simap_from_multiple_fasta(input_file):
-#    records = SeqIO.parse_uniprot(input_file, "fasta")
-#    global list_of_files_with_feature_tables, list_of_files_with_homologues
-#    list_of_files_with_feature_tables = []
-#    list_of_files_with_homologues = []
-#    recordcounter = 0
-#    for record in records:
-#        name = record.name.replace('|', '_')[:30]
-#        accession = 'Acc'
-#        label = '%s_%s' % (accession, name)
-#        print(label)
-#        SIMAP_feature_table_XML_file = r"E:\\Stephis\\Projects\\Programming\\Python\\files\\learning\\simap\\%s_simap_feature_table.xml" % label
-#        list_of_files_with_feature_tables.append(SIMAP_feature_table_XML_file)
-#        SIMAP_homologues_XML_file = r"E:\\Stephis\\Projects\\Programming\\Python\\files\\learning\\simap\\%s_simap_homologues.xml" % label
-#        list_of_files_with_homologues.append(SIMAP_homologues_XML_file) 
-#        retrieve_simap_feature_table(input_sequence=record.seq, output_file=SIMAP_feature_table_XML_file)
-#        retrieve_simap_homologues(input_sequence=record.seq, output_file=SIMAP_homologues_XML_file, database='', max_hits='10', taxid='7227', extra_search_string='')
-#        recordcounter += 1    
-#    logging.info('Download complete, %s SIMAP records saved.' % recordcounter)                       
-#input_seqs_mult_fasta = r'E:\Stephis\Projects\Programming\Python\files\learning\simap\multiple_protein_seqs_in_fasta_format.txt'
-#retrieve_simap_from_multiple_fasta(input_seqs_mult_fasta)
-#throwaway functions, currently kept in main
-#slice_TMD_seq = lambda x: x['full_seq'][int(x['%s_start'%TMD_name]-1):int(x['%s_end'%TMD_name])]
-#slice_TMD_plus_surrounding_seq = lambda x: x['full_seq'][int(x['%s_start_plus_surr'%TMD_name]-1):int(x['%s_end_plus_surr'%TMD_name])]
 
 class Command(object):
     '''
@@ -894,47 +684,6 @@ def sleep_x_seconds(x):
         sys.stdout.flush()
     print(' .')
 
-
-def sleep_15_seconds():
-    # sleep for 30 seconds to not overload the server
-    sys.stdout.write("sleeping .")
-    sys.stdout.flush()
-    for i in range(15):
-        time.sleep(1)
-        sys.stdout.write(" .")
-        sys.stdout.flush()
-    print(' .')
-
-def sleep_120_seconds():
-    #sleep for 30 seconds to not overload the server 
-    sys.stdout.write("sleeping .")
-    sys.stdout.flush()
-    for i in range(12):
-        time.sleep(15)
-        sys.stdout.write(" .")
-        sys.stdout.flush()
-    print(' .\n')
-
-def sleep_6_hours():
-    #sleep for 30 seconds to not overload the server 
-    sys.stdout.write("sleeping .")
-    sys.stdout.flush()
-    for i in range(6):
-        time.sleep(3600)
-        sys.stdout.write(" .")
-        sys.stdout.flush()
-    print(' .\n')
-
-def sleep_24_hours():
-    #sleep for 30 seconds to not overload the server 
-    sys.stdout.write("sleeping .")
-    sys.stdout.flush()
-    for i in range(24):
-        time.sleep(3600)
-        sys.stdout.write(" .")
-        sys.stdout.flush()
-    print(' .\n')
-
 def sleep_x_hours(x):
     """Sleeps for a certain number of hours. Prints a dot each hour.
 
@@ -952,23 +701,6 @@ def sleep_x_hours(x):
         sys.stdout.write(" .")
         sys.stdout.flush()
     print(' .\n')
-
-def create_dictionary_of_comments(uniprot_record_handle, output_dictionary):
-    try:
-        for comment in uniprot_record_handle.comments:
-            # splits comments based on first ":" symbol, creates a list called split_comment        
-            split_comment = comment.strip().split(': ', 1)               
-             # several comments have the same name. need to check if it is already in the dictionary        
-            if split_comment[0] in output_dictionary:              
-                # list the different comments, one after another            
-                output_dictionary[split_comment[0]] += ", %s" % split_comment[1] 
-            else:
-                output_dictionary[split_comment[0]] = split_comment[1]
-    except AttributeError:
-        #there are no comments in this uniprot file!
-        logging.info('no comments in Uniprot file')
-        output_dictionary = {}
-        
 
 #set up a function for showing object names, in order to write the csv header from a list of objects
 def name_of_object_in_list_of_global_objects(object):
@@ -1001,7 +733,6 @@ def create_regex_string(inputseq):
         letter_with_underscore = letter + '-*'
         search_string += letter_with_underscore
     return search_string[:-2]
-
 
 def count_non_protein_characters(inputseq):
     number_of_non_protein_characters = 0
@@ -1127,119 +858,6 @@ def convert_string_to_boolean_value(boolean_string):
     if str(boolean_string).lower() in ("no",  "n", "false", "f", "0", "0.0", "", "none", "nein"): return False # can also add "[]", "{}" for empty lists if desired
     raise Exception('Invalid value for boolean conversion: ' + str(boolean_string))
 
-
-def setup_error_logging(logfile):
-
-    #you can either adjust the log settings from an external file, or paste them in teh script 
-    #external_log_settings_file = r'E:\Stephis\Projects\Programming\Python\files\learning\json\logging_settings.json'
-    
-    #load the log settings in json format, so it is easy to modify
-    logsettings = json.dumps({
-        "handlers": {
-            "console": {
-                "formatter": "brief", 
-                "class": "logging.StreamHandler", 
-                "stream": "ext://sys.stdout", 
-                "level": "DEBUG"
-            }, 
-            "file": {
-                "maxBytes": 10000000,
-                "formatter": "precise", 
-                "backupCount": 3, 
-                "class": "logging.handlers.RotatingFileHandler", 
-                "filename": "logfile.txt"
-            }
-        }, 
-        "loggers": {
-            "simpleExample": {
-                "handlers": [
-                    "console", 
-                    "file"
-                ], 
-                "propagate": "no", 
-                "level": "DEBUG"
-            }
-        }, 
-        "version": 1, 
-        "root": {
-            "handlers": [
-                "console", 
-                "file"
-            ], 
-            "level": "DEBUG"
-        }, 
-        "formatters": {
-            "simple": {
-                "format": "format=%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-            }, 
-            "precise": {
-                "format": "%(asctime)s %(name)-15s %(levelname)-8s %(message)s"
-            }, 
-            "brief": {
-                "format": "%(levelname)-8s: %(name)-15s: %(message)s"
-            }
-        }
-    }, skipkeys=True, sort_keys=True, indent=4, separators=(',', ': '))
-    
-    #modify the location of the log file to suit your needs
-    config=json.loads(logsettings)
-    config['handlers']['file']['filename'] = logfile
-    #logging.info(logsettings)
-    
-    #save the logging settings in an external file (if desired)
-    #with open(settings_file_output, 'w') as f:
-    #    f.write(json.dumps(config, f, indent=4, sort_keys=True))
-    
-    #create a blank logging file
-    with open(logfile, 'w') as f:
-        pass
-    
-    #clear any previous logging handlers that might have been previously run in the console
-    logging.getLogger('').handlers = [] 
-    #load the logging settings from the modified json string
-    logging.config.dictConfig(config)
-    
-    #write system settings to logfile
-    logging.warning('LOGGING LEVEL: %s' % config["loggers"]["simpleExample"]["level"])
-    #logging.critical('Example of critical-level error. Current logging settings are level %s. At level DEBUG this logfile should also contain examples of WARNING and INFO level reports.' % config['handlers']['console']['level'])
-    #logging.warning('Example of warning-level error')
-    #logging.info('Example of info-level error\n')
-    logging.info('SYSTEM INFORMATION')
-    system_settings_dict = {}
-    system_settings_dict["system description"] = platform.uname()
-    system_settings_dict["system"] = platform.system()
-    system_settings_dict["architecture"] = platform.architecture()
-    system_settings_dict["network_name"] = platform.node()
-    system_settings_dict["release"] = platform.release()
-    system_settings_dict["version"] = platform.version()
-    system_settings_dict["machine"] = platform.machine()
-    system_settings_dict["processor"] = platform.processor()
-    system_settings_dict["python_version"] = platform.python_version()
-    system_settings_dict["python_build"] = platform.python_build()
-    system_settings_dict["python_compiler"] = platform.python_compiler()
-    system_settings_dict["argv"] = sys.argv
-    system_settings_dict["dirname(argv[0])"] = os.path.abspath(os.path.expanduser(os.path.dirname(sys.argv[0])))
-    system_settings_dict["pwd"] = os.path.abspath(os.path.expanduser(os.path.curdir))
-    system_settings_dict["total_ram"] = "{:0.2f} GB".format(psutil.virtual_memory()[0] / 1000000000)
-    system_settings_dict["available_ram"] = "{:0.2f} GB ({}% used)".format(psutil.virtual_memory()[1] / 1000000000, psutil.virtual_memory()[2])
-
-    logging.warning(system_settings_dict)
-    #save the logging settings in the logfile    
-    #logging.info('LOGGING SETTINGS FOR THIS RUN IN JSON FORMAT')
-    #logging.info("%s\n" % config)
-    
-    #test error message reporting
-    #logging.warning('LOGGING TEST:')
-    #try:
-    #    open('/path/to/does/not/exist', 'rb')
-    #except (SystemExit, KeyboardInterrupt):
-    #    raise
-    #except Exception:
-    #    logging.error('Failed to open file', exc_info=True)
-    logging.warning('LOGGING SETUP IS SUCCESSFUL\n\nLOG INFORMATION STARTS HERE:\n')
-    return logging
-
-
 def save_structured_array_to_csv(array1, file1):
     #save the column names in the structured array as a header
     header = [x[0] for x in array1.dtype.descr]
@@ -1248,7 +866,6 @@ def save_structured_array_to_csv(array1, file1):
     #save the rest of the data in the csv file
     with open(file1, 'ab') as f:
         np.savetxt(f, array1, fmt='%s', delimiter=',', newline='\n', header='', footer='', comments='#')
-
 
 def load_structured_array_from_csv(file2, dtype2):
     '''
@@ -1273,7 +890,6 @@ class HardDriveSpaceException(Exception):
     def __str__(self):
         return repr(self.parameter)
 
-
 def get_free_space(folder, format="MB"):
     """ 
         Return folder/drive free space 
@@ -1290,91 +906,10 @@ def get_free_space(folder, format="MB"):
     else:
         return (int(os.statvfs(folder).f_bfree*os.statvfs(folder).f_bsize/fConstants[format.upper()]), format)
 
-
-'''****************************Small Bioinformatics Functions*****************************************'''
-
-class SmallBioinformaticsFunctions(object):
-    pass
-
-
-def get_phobius_TMD_region(feature_table_root):
-    for feature in feature_table_root[0]:
-        if 'PHOBIUS' and 'TMHelix' in feature.attrib.values():
-            for begin in feature.iter('begin'):
-                TMD_start = int(begin.attrib['position']) #same as feature[0][0].attrib['position'], but more resistant to parser breaking
-            for end in feature.iter('end'):
-                TMD_end = int(end.attrib['position'])
-            TMD_length = TMD_end - TMD_start + 1
-            #logging.info('phobius prediction: TMD start = %s, TMD end = %s' % (TMD_start, TMD_end)) 
-                #logging.info(begin.attrib['position']) #same as feature[0][0].attrib['position'], but more resistant to parser breaking
-        else:
-            TMD_start, TMD_end, TMD_length = 0, 0, 0
-    return TMD_start, TMD_end, TMD_length
-
-def get_TMHMM_TMD_region(root):
-    for feature in root[0]:
-        for subfeature in feature:
-            if 'TMHMM' and 'TMHelix' in subfeature.attrib.values():
-                for begin in subfeature.iter('begin'):
-                    TMD_start = begin.attrib['position'] #same as feature[0][0].attrib['position'], but more resistant to parser breaking
-                for end in subfeature.iter('end'):
-                    TMD_end = end.attrib['position']
-                #logging.info('TMHMM prediction: TMD start = %s, TMD end = %s' % (TMD_start, TMD_end)) 
-                #logging.info(begin.attrib['position']) #same as feature[0][0].attrib['position'], but more resistant to parser breaking
-            else:
-                TMD_start, TMD_end = 0, 0
-    return TMD_start, TMD_end
-
-def get_TMD_seq_of_query_from_homologue_root(root, input_dict_with_query_data):
-    for parameters in root[0][0][0][0].iter('parameters'):
-        for sequences in parameters.iter('sequences'):        
-            query_seq = sequences[0][0][0].text
-            TMDstart = input_dict_with_query_data['phobius_TMD_start']
-            TMDend = input_dict_with_query_data['phobius_TMD_end']
-            TMD_seq = query_seq[TMDstart - 1:TMDend]   
-            TMD_seq_uppercase = TMD_seq.upper()
-    return TMD_seq_uppercase
-
-def print_query_details_from_homologue_XML(root, query_details_dict):
-    global counter_XML_to_CSV
-    counter_XML_to_CSV = 1
-    for parameters in root[0][0][0][0].iter('parameters'):
-        SIMAP_input_seq_details_dict = parameters[0][0].attrib
-        query_details_dict['SIMAP_input_seq_details_dict'] = SIMAP_input_seq_details_dict
-        for filter in parameters.iter('filter'):
-            SIMAP_filter_string = filter.text
-        query_details_dict['SIMAP_filter_string'] = SIMAP_filter_string
-        for resultSpecification in parameters.iter('resultSpecification'):
-            SIMAP_resultSpecification_dict = resultSpecification.attrib
-        SIMAP_input_seq_details_dict['SIMAP_resultSpecification_dict'] = SIMAP_resultSpecification_dict 
-        for databases in parameters.iter('databases'):
-            database_details_dict = databases[0].attrib
-        SIMAP_input_seq_details_dict['database_details_dict'] = database_details_dict
-        simap_version = root[0][0][0][0][0].attrib['version']
-        SIMAP_input_seq_details_dict['simap_version'] = simap_version
-        SIMAP_total_hits = int(root[0][0][0][1][0].attrib['total'])
-        SIMAP_input_seq_details_dict['SIMAP_total_hits'] = SIMAP_total_hits
-#    if counter_XML_to_CSV == 1:
-#        logging.warning('This SIMAP parser was developed for SIMAP version 4.0. This XML file is SIMAP version %s.' % simap_version)
-    if simap_version != "4.0":
-        logging.warning('WARNING! Your XML file is simap version %s, however this SIMAP parser was developed for SIMAP version 4.0.' % simap_version)
-    counter_XML_to_CSV += 1    
-    logging.info('%s homologous sequences analysed' % SIMAP_total_hits)
-    return query_details_dict
-
-
-import pandas as pd
-import numpy as np
-import re as re
-import os
-
-
-
 # Function to store Dataframes in an Excelfile; Converting lists etc. into strings
 def df_to_excel(dataframe, path):
     temp_df = pd.DataFrame(dataframe, dtype=str)
     temp_df.to_excel(path)
-
 
 # Creates subfolders, based on first to letters of files; Distributes files to these subfolders
 def distribute_files_to_subfolders(path):
@@ -1386,7 +921,6 @@ def distribute_files_to_subfolders(path):
         new_directory = path + "/" + n[0:2] + "/" + n
         os.replace(directory, new_directory)
 
-
 # Moves files from a subfolder to the root folder;
 # Length of subfoldername = amount of letters; necessary for path-identification
 def move_files_from_subfolder_to_folder(path_of_subfolder, length_of_subfoldername):
@@ -1395,7 +929,6 @@ def move_files_from_subfolder_to_folder(path_of_subfolder, length_of_subfolderna
         new_directory = str(path_of_subfolder)[:-length_of_subfoldername] + "/" + n
         os.replace(directory, new_directory)
 
-
 # this functions works exclusivly with dataframes; query, start, stop, and new_name refer to columns
 # and as well, it does not work yet, still working on it
 def slicing(df, columname_of_sequence, start, stop, columnname_for_spliced_sequence):
@@ -1403,21 +936,17 @@ def slicing(df, columname_of_sequence, start, stop, columnname_for_spliced_seque
     for n in df["%s" % columname_of_sequence]:
         df["%s" % columnname_for_spliced_sequence] = n[start, stop]
 
-
 def getting_list_of_indices_of_M_in_a_string(string):
     ind_list = [i for i, element in enumerate(string) if element == "M"]  # find(Topo_data)
     return ind_list
 
-
 def getting_list_of_gapindices_of_string(string):
     gap_list = [i for i, element in enumerate(string) if element == "-"]  # find(Topo_data)
     return gap_list
 
-
 def getting_list_of_gapindices_of_string(string):
     gap_list = [i for i, element in enumerate(string) if element == "-"]  # find(Topo_data)
     return gap_list
-
 
 def create_border_list(index_list):
     m_borders = []
@@ -1429,25 +958,20 @@ def create_border_list(index_list):
     m_borders.append(index_list[-1] + 1)
     return m_borders
 
-
 def create_list_of_TMDs(amount_of_TMDs):
     list_of_TMDs = []
     for n in range(1, int(amount_of_TMDs) + 1):
         list_of_TMDs.append("TM%.2d" % n)
     return list_of_TMDs
 
-
 def isEven(number):
     return number % 2 == 0
-
 
 def isOdd(number):
     return number % 2 != 0
 
-
 def isNaN(num):
     return num != num
-
 
 def sum_gaps(df_column):
     sum = 0
@@ -1456,14 +980,12 @@ def sum_gaps(df_column):
             sum = sum + n
     return sum
 
-
 def frequency_of_tmd(int_of_tmd, column_containing_tmd_amount):
     frequency = 0
     for n in column_containing_tmd_amount:
         if int_of_tmd <= n:
             frequency = frequency + 1
     return frequency
-
 
 def create_regex_string_for_juxta(inputseq):
     ''' adds '-*' between each aa or nt/aa in a DNA or protein sequence, so that a particular
@@ -1478,7 +1000,6 @@ def create_regex_string_for_juxta(inputseq):
     return "-*" + search_string
 
 
-# m�sste passen
 def get_end_juxta_before_TMD(x, input_TMD):
     TM_int = int(input_TMD[2:])
     if input_TMD == "TM01":
@@ -1520,7 +1041,6 @@ def get_start_and_end_of_TMD_in_query(x, TMD_regex_ss):
     else:
         # if the tmd is not in the query, return False, 0, 0
         return np.nan
-
 
 def slice_juxta_before_TMD_in_query(x, TMD):
     return x['query_alignment_sequence'][int(x['start_juxta_before_%s'%TMD]):int(x['end_juxta_before_%s'%TMD])]
@@ -1628,7 +1148,6 @@ def convert_falselike_to_bool(input_item, convert_int=False, convert_float=False
     return_value = False if input_item in list_False_items else input_item
 
     return return_value
-
 
 def calc_hydrophob(seq):
     """ Calculates the average hydrophobicity of a sequence according to the Hessa biological scale.
@@ -1906,28 +1425,3 @@ def savefig_if_necessary(savefig, fig, fig_nr, base_filepath, tight_layout = Fal
         #close any open figures
         plt.close('all')
 
-def get_indices_TMD_plus_surr_for_summary_file(dfsumm, TMD, fa_aa_before_tmd, fa_aa_after_tmd):
-    """Takes a summary dataframe (1 row for each protein) and slices out the TMD seqs
-
-    Returns the dataframe with extra columns, TM01_start, TM01_start_plus_surr_seq, etc
-    """
-
-    # instead of integers showing the start or end of the TMD, some people write strings into the
-    # UniProt database, such as "<5" or "?"
-    # to avoid the bugs that this introduces, it is necessary to convert all strings to np.nan (as floats),
-    # using the convert objects function. The numbers can then be converted back from floats to integers.
-    dfsumm['%s_start' % TMD] = pd.to_numeric(dfsumm['%s_start' % TMD]).dropna().astype('int64')
-    dfsumm['%s_end' % TMD] = pd.to_numeric(dfsumm['%s_end' % TMD]).dropna().astype('int64')
-    # determine the position of the start of the surrounding sequence
-    dfsumm['%s_start_plus_surr' % TMD] = dfsumm['%s_start' % TMD] - fa_aa_before_tmd
-    # replace negative values with zero. (slicing method was replaced with lambda function to avoid CopyWithSetting warning)
-    dfsumm['%s_start_plus_surr' % TMD] = dfsumm['%s_start_plus_surr' % TMD].apply(lambda x: x if x > 0 else 0)
-    dfsumm['%s_end_plus_surr' % TMD] = dfsumm['%s_end' % TMD] + fa_aa_after_tmd
-    # create a boolean series, describing whether the end_surrounding_seq_in_query is longer than the protein seq
-    series_indices_longer_than_prot_seq = dfsumm.apply(find_indices_longer_than_prot_seq, args=(TMD,), axis=1)
-    # obtain the indices of proteins in the series
-    indices_longer_than_prot_seq = series_indices_longer_than_prot_seq[series_indices_longer_than_prot_seq].index
-    # use indices to select the main dataframe, and convert these end_surrounding_seq_in_query values to the seqlen value
-    dfsumm.loc[indices_longer_than_prot_seq, '%s_end_plus_surr' % TMD] = dfsumm.loc[indices_longer_than_prot_seq, 'seqlen']
-
-    return dfsumm
