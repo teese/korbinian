@@ -10,7 +10,10 @@ import korbinian
 
 def download_homologues_from_simap(pathdict, set_, logging):
     df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
-    df.set_index("uniprot_acc", drop=False, inplace=True)
+    if "uniprot_acc" in df.columns:
+        df.set_index("uniprot_acc", drop=False, inplace=True)
+    else:
+        df["uniprot_acc"] = df.index
     print(df.iloc[10:10])
     list_failed_downloads = []
     if os.path.isfile(pathdict["failed_downloads_txt"]):
@@ -51,8 +54,6 @@ def download_homologues_from_simap(pathdict, set_, logging):
             SIMAP_tar = df.loc[acc, 'SIMAP_tar']
             ft_xml_path = df.loc[acc, 'SIMAP_feature_table_XML_path']
             homol_xml_path = df.loc[acc, 'SIMAP_homol_XML_path']
-            print("homol_xml_path", homol_xml_path)
-            print("acc", acc)
             date_file_path = df.loc[acc, 'SIMAP_download_date_file_path']
             ''' windows has a character limit in the command prompt in theory of 8191 characters,
             but the command line java command seems to cause errors with sequences above 3000 amino acids.

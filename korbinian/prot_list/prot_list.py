@@ -5,8 +5,12 @@ from time import strftime
 import unicodedata
 
 def setup_file_locations_in_df(set_, pathdict):
-    df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
-    df.set_index("uniprot_acc", drop=False, inplace=True)
+    print(pathdict["list_summary_csv"])
+    df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = "uniprot_acc")
+    if "uniprot_acc" in df.columns:
+        df.set_index("uniprot_acc", drop=False, inplace=True)
+    else:
+        df["uniprot_acc"] = df.index
     # set up a folder to hold the SIMAP BLAST-like output
     # note that at the moment, files cannot be compressed
     simap_database_dir = set_['simap_database_dir']
@@ -14,10 +18,12 @@ def setup_file_locations_in_df(set_, pathdict):
 
     if "uniprot_entry_name" in df.columns:
         # join the accession and entry name to create a "protein name" for naming files
-        df['protein_name'] = df.uniprot_acc + '_' + df.uniprot_entry_name
+        #df['protein_name'] = df.uniprot_acc + '_' + df.uniprot_entry_name
+        df['protein_name'] = df.index + '_' + df.uniprot_entry_name
     else:
         # the list of proteins did not come from UniProt. Simply use the accession to name the files.
-        df['protein_name'] = df.uniprot_acc
+        #df['protein_name'] = df.uniprot_acc
+        df['protein_name'] = df.index
 
     if set_["add_user_subseqs"] == True:
         ########################################################################################

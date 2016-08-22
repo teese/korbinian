@@ -32,7 +32,10 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
     Prepare data for following figures
     '''
     df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
-    df.set_index("uniprot_acc", drop=False, inplace=True)
+    if "uniprot_acc" in df.columns:
+        df.set_index("uniprot_acc", drop=False, inplace=True)
+    else:
+        df["uniprot_acc"] = df.index
 
     # iterate over the datafra    # filter to remove sequences where no TMDs are found (will contain either np.nan, or 'nan')
     # df = df.loc[df['list_of_TMDs'].notnull()]

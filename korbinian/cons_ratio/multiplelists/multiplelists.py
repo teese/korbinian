@@ -22,27 +22,33 @@ def compare_rel_con_lists(pathdict, set_, logging):
         pathdict["dfout09_simap_AAIMON_02"] = '%s_simap_AAIMON_02.csv' % base_filename_summ
         if index == 0:
             df1 = pd.read_csv(pathdict["dfout09_simap_AAIMON_02"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-            df1.set_index("uniprot_acc", drop=False, inplace=True)
+            if "uniprot_acc" in df1.columns:
+                df1.set_index("uniprot_acc", drop=False, inplace=True)
             df_list.append(df1)
         if index == 1:
             df2 = pd.read_csv(pathdict["dfout09_simap_AAIMON_02"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-            df2.set_index("uniprot_acc", drop=False, inplace=True)
+            if "uniprot_acc" in df2.columns:
+                df2.set_index("uniprot_acc", drop=False, inplace=True)
             df_list.append(df2)
         if index == 2:
             df3 = pd.read_csv(pathdict["dfout09_simap_AAIMON_02"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-            df3.set_index("uniprot_acc", drop=False, inplace=True)
+            if "uniprot_acc" in df3.columns:
+                df3.set_index("uniprot_acc", drop=False, inplace=True)
             df_list.append(df3)
         if index == 3:
             df4 = pd.read_csv(pathdict["dfout09_simap_AAIMON_02"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-            df4.set_index("uniprot_acc", drop=False, inplace=True)
+            if "uniprot_acc" in df4.columns:
+                df4.set_index("uniprot_acc", drop=False, inplace=True)
             df_list.append(df4)
         if index == 4:
             df5 = pd.read_csv(pathdict["dfout09_simap_AAIMON_02"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-            df5.set_index("uniprot_acc", drop=False, inplace=True)
+            if "uniprot_acc" in df5.columns:
+                df5.set_index("uniprot_acc", drop=False, inplace=True)
             df_list.append(df5)
         if index == 5:
             df6 = pd.read_csv(pathdict["dfout09_simap_AAIMON_02"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-            df6.set_index("uniprot_acc", drop=False, inplace=True)
+            if "uniprot_acc" in df6.columns:
+                df6.set_index("uniprot_acc", drop=False, inplace=True)
             df_list.append(df6)
         if index == 6:
             logging.warning('ERROR! Too many lists included for analysis in compare_rel_con_lists')
