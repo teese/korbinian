@@ -10,10 +10,10 @@ import korbinian
 
 def download_homologues_from_simap(pathdict, set_, logging):
     df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
-    if "uniprot_acc" in df.columns:
-        df.set_index("uniprot_acc", drop=False, inplace=True)
-    else:
-        df["uniprot_acc"] = df.index
+    # if "uniprot_acc" in df.columns:
+    #     df.set_index("uniprot_acc", drop=False, inplace=True)
+    # else:
+    #     df["uniprot_acc"] = df.index
     list_failed_downloads = []
     if os.path.isfile(pathdict["failed_downloads_txt"]):
         # Extracts accession numbers out of file

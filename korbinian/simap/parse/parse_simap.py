@@ -12,10 +12,10 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
     counter_XML_to_CSV = 0
     logging.info('~~~~~~~~~~~~  starting parse_SIMAP_to_csv   ~~~~~~~~~~~~')
     df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
-    if "uniprot_acc" in df.columns:
-        df.set_index("uniprot_acc", drop=False, inplace=True)
-    else:
-        df["uniprot_acc"] = df.index
+    # if "uniprot_acc" in df.columns:
+    #     df.set_index("uniprot_acc", drop=False, inplace=True)
+    # else:
+    #     df["uniprot_acc"] = df.index
     # #filter to remove sequences where no TMDs are found
     # df = df.loc[df['list_of_TMDs'].notnull()]
     # #filter to remove sequences where no TMDs are found (if string)
@@ -142,6 +142,8 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                     #parse_uniprot the XML file with elementtree, define the 'root' of the XML file
                     simap_homologue_tree = ET.parse(SIMAP_homologues_XML_file_extracted)
                     simap_homologue_root = simap_homologue_tree.getroot()
+
+                    df.loc[acc, 'SIMAP_created'] = simap_homologue_root[0][0][0][0][2][1][0].attrib["created"]
 
                     #print the simap search details (database, e-value cutoff etc)
                     #dict_with_query_data = print_query_details_from_homologue_XML(simap_homologue_root, dict_with_query_data)

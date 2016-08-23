@@ -18,10 +18,6 @@ def create_graph_of_gap_density(pathdict, set_, logging):
     #         'No gap analysis has been done yet. %s is not found. Please run calculate calculate_gap_densities' % pathdict[
     #             "dfout10_uniprot_gaps"])
     df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
-    if "uniprot_acc" in df.columns:
-        df.set_index("uniprot_acc", drop=False, inplace=True)
-    else:
-        df["uniprot_acc"] = df.index
 
     num_of_bins_in_tmd_region = set_["variables"]["plot.create_graph_of_gap_density.num_of_bins_in_tmd_region"]
     # find the maximum number of TMDs amongst the proteins

@@ -7,10 +7,10 @@ import unicodedata
 def setup_file_locations_in_df(set_, pathdict):
     print(pathdict["list_summary_csv"])
     df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
-    if "uniprot_acc" in df.columns:
-        df.set_index("uniprot_acc", drop=False, inplace=True)
-    else:
-        df["uniprot_acc"] = df.index
+    # if "uniprot_acc" in df.columns:
+    #     df.set_index("uniprot_acc", drop=False, inplace=True)
+    # else:
+    #     df["uniprot_acc"] = df.index
     # set up a folder to hold the SIMAP BLAST-like output
     # note that at the moment, files cannot be compressed
     simap_database_dir = set_['simap_database_dir']
@@ -110,6 +110,9 @@ def setup_file_locations_in_df(set_, pathdict):
     df['SIMAP_orig_table_pickle'] = df['homol_base'] + '_all.pickle'
     # ORIG: create filename for zip that holds the XML parsed to a table (i.e. pandas dataframe, pickled)
     df['homol_orig_table_zip'] = df['homol_base'] + '_homol_orig_table.zip'
+
+    # SLICED (FASTA AND AAIMON): create filename for zip that holds the tables (pickled dataframes) for each TMD
+    df['homol_sliced_tables_zip'] = df['homol_base'] + '_fa_tables.zip'
 
     # FASTA: create filename for zip that holds the tables (pickled dataframes) for each TMD
     df['homol_fa_tables_zip'] = df['homol_base'] + '_fa_tables.zip'
