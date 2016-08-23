@@ -100,7 +100,7 @@ def download_homologues_from_simap(pathdict, set_, logging):
                                                                                     eaSimap_path=set_["eaSimap_path"])
                     #now check again if the files exist
                     feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path)
-                    if not homologues_XML_exists:
+                    if not homologues_XML_exists or not feature_table_XML_exists:
                         # add accession number to the list of failed downloads
                         with open(pathdict["failed_downloads_txt"], "a") as source:
                             source.write("\n{}".format(acc))
@@ -113,8 +113,6 @@ def download_homologues_from_simap(pathdict, set_, logging):
                         if number_of_files_not_found == 20:
                             utils.sleep_x_hours(24)
                         if number_of_files_not_found == 15:
-                            utils.sleep_x_hours(6)
-                        if number_of_files_not_found == 10:
                             utils.sleep_x_hours(6)
                     else:
                         #if download is successful or file exists, the SIMAP server must be working,
