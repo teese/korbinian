@@ -155,7 +155,7 @@ def retrieve_simap_feature_table(input_sequence, java_exec_str, max_memory_alloc
                                       mma=max_memory_allocation, esp=eaSimap_path, s=input_sequence,o=output_file)
     logging.info(command_str)
     command = utils.Command(command_str)
-    command.run(timeout=100)
+    command.run(timeout=500)
     logging.info("Output file:     %s\n" % output_file),
     utils.sleep_x_seconds(5)
     if not os.path.exists(output_file):
@@ -178,15 +178,13 @@ def retrieve_simap_homologues(input_sequence, output_file, max_hits, java_exec_s
                                                                     m=max_hits, o=output_file, tss=taxid_search_string)
     logging.info(command_str)
     command = utils.Command(command_str)
-    timeout = max_hits/5 if max_hits > 500 else 100
+    #timeout = max_hits/5 if max_hits > 500 else 100
+    timeout = 3000
     command.run(timeout=timeout) #give 1000 for 5000 hits to download?
     logging.info("Output file:     %s\n'file saved'" % output_file)
     #sleep_x_seconds(30)
     if not os.path.exists(output_file):
         logging.info('********************SIMAP download failed for : %s***************' % output_file)
-    '''There are many homologue XML files with nodes missing! Could this be due to the minidom parse_uniprot??
-    Maybe it's better to leave this out, and only parse_uniprot to a readable format for some example proteins???
-    '''
 
 #def retrieve_simap_from_multiple_fasta(input_file):
 #    records = SeqIO.parse_uniprot(input_file, "fasta")
