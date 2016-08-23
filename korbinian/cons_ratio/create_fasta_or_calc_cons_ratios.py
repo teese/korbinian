@@ -65,55 +65,73 @@ def create_fasta_or_calculate_AAIMON_ratios(pathdict, set_, logging):
             #         dfs['len_query_alignment_sequence'] = 0
 
             list_of_TMDs = ast.literal_eval(df.loc[acc, 'list_of_TMDs'])
-            number_of_TMDs_containing_some_homologue_data = 0
-            for TMD in list_of_TMDs:
-                ########################################################################################
-                #                                                                                      #
-                #                Slice out TMD regions [fasta and AAIMON]                              #
-                #                                                                                      #
-                ########################################################################################
-                '''slice the TMD regions out of the alignment markup and match sequences
-                the method first finds the indices of the TMD region in the query, and uses these indices to slice
-                the filters are not applied yet, so the sequences can be viewed in the csv file for analysis
-                '''
-                # create regex string for each TMD
-                query_TMD_sequence = df.loc[acc, '%s_seq'%TMD]
-                # create TMD regex search string (e.g. L.*L.*M.*L.*L.*M.*L.*L.*M.*L.*L.*M.*L.*L.*M.*)
-                TMD_regex_ss = utils.create_regex_string(query_TMD_sequence)
-                # select to only include data where the XML contained a SW node, and then apply function for a regex search
-                query_seqs_ser = dfs.query('hit_contains_SW_node == True')['query_alignment_sequence']
+            # create counter for number of TMDs with some homologue data
+            n_TMDs_w_homol = 0
 
-                dfs['%s_start_end_list_in_SW_alignment'%TMD] = query_seqs_ser.apply(utils.get_start_and_end_of_TMD_in_query,args=(TMD_regex_ss,))
-                '''the output of the regex search is a tuple with three components.
-                1) a match (e.g. True),
-                2) the start of the match (e.g. 124),
-                3) the end of the match (e.g. 144)
-                '''
-                # for convenience, separate the components into separate columns
-                columns_from_regex_output = ['%s_in_SW_alignment'%TMD, '%s_start_in_SW_alignment'%TMD,'%s_end_in_SW_alignment'%TMD]
-                # n = the index (1,2,3) in the tuple
-                # col = column item in the list (e.g. 'TM09_in_SW_alignment')
-                # first filter to analyse only columns that contain a SW node
-                df_match = dfs.query('hit_contains_SW_node == True')
-                for n, col in enumerate(columns_from_regex_output):
-                    # add a new column which is named TM01_start, etc, and insert the appropriate integer (start or stop) or bool from the tuple
-                    dfs[col] = df_match['%s_start_end_list_in_SW_alignment'%TMD].dropna().apply(lambda x: x[n])
-
-                ########################################################################################
-                #                                                                                      #
-                #          Apply function to slice homologues and count gaps [fasta and AAIMON]        #
-                #                                                                                      #
-                ########################################################################################
-
-                # in some cases, there is no data to obtain as the hit_contains_SW_node = False for too many sequences, giving no start_in_SW_alignment
-                number_of_rows_containing_data = dfs[dfs['%s_start_end_list_in_SW_alignment' % TMD].notnull()].shape[0]
-                if number_of_rows_containing_data == 0:
-                    logging.info('%s does not have any valid homologues for %s. '
-                                 'Re-downloading simap homologue XML may be necessary.' % (protein_name, TMD))
-                if number_of_rows_containing_data != 0:
-                    number_of_TMDs_containing_some_homologue_data += 1
-                    # apply the slicing function to the homologues
-                    dfs = korbinian.cons_ratio.slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_)
+            homol_sliced_tables_zip = df.loc[acc, 'homol_sliced_tables_zip']
+            # delete any existing sliced zipfile
+            if os.path.isfile(homol_sliced_tables_zip):
+                os.remove(homol_sliced_tables_zip)
+            # open new zipfile
+            with zipfile.ZipFile(homol_sliced_tables_zip, mode="a", compression=zipfile.ZIP_DEFLATED) as zipout_sliced:
+                for TMD in list_of_TMDs:
+                    df_TMD = korbinian.cons_ratio.slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_homol)
+                    here = ("write the pickle for df_TMD into the zipfile" / 4)
+                    # ########################################################################################
+                    # #                                                                                      #
+                    # #                Slice out TMD regions [fasta and AAIMON]                              #
+                    # #                                                                                      #
+                    # ########################################################################################
+                    #
+                    # # create a new dataframe to hold the sliced homol sequences for that TMD, and number of gaps, etc
+                    # df_TMD = pd.DataFrame()
+                    #
+                    # '''slice the TMD regions out of the alignment markup and match sequences
+                    # the method first finds the indices of the TMD region in the query, and uses these indices to slice
+                    # the filters are not applied yet, so the sequences can be viewed in the csv file for analysis
+                    # '''
+                    # # create regex string for each TMD
+                    # query_TMD_sequence = df.loc[acc, '%s_seq'%TMD]
+                    # # create TMD regex search string (e.g. L.*L.*M.*L.*L.*M.*L.*L.*M.*L.*L.*M.*L.*L.*M.*)
+                    # TMD_regex_ss = utils.create_regex_string(query_TMD_sequence)
+                    # # select to only include data where the XML contained a SW node, and then apply function for a regex search
+                    # dfs_with_SW_node = dfs.query('hit_contains_SW_node == True')
+                    # # create series of query_alignment_seqs
+                    # query_seqs_ser = dfs_with_SW_node['query_alignment_sequence']
+                    #
+                    # # obtain the bool, start, end of TMD seqs in the match sequences. Add to the new TMD-specific dataframe.
+                    # df_TMD['%s_start_end_list_in_SW_alignment'%TMD] = query_seqs_ser.apply(utils.get_start_and_end_of_TMD_in_query,args=(TMD_regex_ss,))
+                    # '''the output of the regex search is a list with three components.
+                    # 1) a match (e.g. True),
+                    # 2) the start of the match (e.g. 124),
+                    # 3) the end of the match (e.g. 144)
+                    # '''
+                    # # for convenience, separate the components into separate columns
+                    # columns_from_regex_output = ['%s_in_SW_alignment'%TMD, '%s_start_in_SW_alignment'%TMD,'%s_end_in_SW_alignment'%TMD]
+                    # # n = the index (1,2,3) in the tuple
+                    # # col = column item in the list (e.g. 'TM09_in_SW_alignment')
+                    # for n, col in enumerate(columns_from_regex_output):
+                    #     # add a new column which is named TM01_start, etc, and insert the appropriate integer (start or stop) or bool from the tuple
+                    #     df_TMD[col] = df_TMD['%s_start_end_list_in_SW_alignment'%TMD].dropna().apply(lambda x: x[n])
+                    # # drop the original listlike from the regex search
+                    # df_TMD.drop('%s_start_end_list_in_SW_alignment' % TMD, inplace=True)
+                    #
+                    # ########################################################################################
+                    # #                                                                                      #
+                    # #          Apply function to slice homologues and count gaps [fasta and AAIMON]        #
+                    # #                                                                                      #
+                    # ########################################################################################
+                    #
+                    # # in some cases, there is no data to obtain as the hit_contains_SW_node = False for too many sequences, giving no start_in_SW_alignment
+                    # number_of_rows_containing_data = df_TMD[df_TMD['%s_start_end_list_in_SW_alignment' % TMD].notnull()].shape[0]
+                    # if number_of_rows_containing_data == 0:
+                    #     logging.info('%s does not have any valid homologues for %s. '
+                    #                  'Re-downloading simap homologue XML may be necessary.' % (protein_name, TMD))
+                    # if number_of_rows_containing_data != 0:
+                    #     n_TMDs_w_homol += 1
+                    #     len_query_TMD = len(df.loc[acc, '%s_seq' % TMD])
+                    #     # apply the slicing function to the homologues
+                    #     df_TMD = korbinian.cons_ratio.slice_homologues_and_count_gaps(TMD, len_query_TMD, df_TMD, set_["cr_max_n_gaps_in_query_TMD"], set_["cr_max_n_gaps_in_match_TMD"])
 
             if set_["run_create_fasta"]:
                 ########################################################################################
@@ -249,14 +267,14 @@ def create_fasta_or_calculate_AAIMON_ratios(pathdict, set_, logging):
                                                                                             int(dfs.loc[hit, "start_juxta_after_%s"%TMD]):int(
                                                                                                 dfs.loc[hit, "end_juxta_after_%s"%TMD])]
 
-                    if number_of_TMDs_containing_some_homologue_data == 0:
+                    if n_TMDs_w_homol == 0:
                         # there was no data obtained from the csv file, which probably means the original XML file was not properly downloaded
                         # there is no need to continue the script for this protein
                         logging.warning('%s does not contain any valid homologues at all. '
                                         'CSV and/or XML file is damaged. Re-downloading simap homologue XML may be necessary. '
                                         'AAIMON ratios will not be calculated for this protein.' % protein_name)
 
-                    if number_of_TMDs_containing_some_homologue_data > 0:
+                    if n_TMDs_w_homol > 0:
                         # create a boolean column that describel whether the sequence is above the minimum gapped identity
                         cr_minimum_identity_of_full_protein = set_["cr_minimum_identity_of_full_protein"]
                         dfs['cr_gapped_ident_above_cutoff'] = dfs['FASTA_gapped_identity'] > cr_minimum_identity_of_full_protein

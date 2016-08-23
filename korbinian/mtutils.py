@@ -605,6 +605,28 @@ def score_pairwise(seq1, seq2, matrix, gap_open_penalty, gap_extension_penalty, 
             #the last amino acid pair contained a gap, so an extension penalty should be used instead of an opening penalty
         prev_site_contained_gap = gap_exists
 
+def score_pairwise_gapless(seq1, seq2, matrix):
+    '''
+    Calculates a score between two aligned sequences without gaps, based on matrix applied.
+
+    A, B are each paired amino acid in the pairwise alignment
+
+    Usage:
+    # import various matrices from biopython (many available)
+    from Bio.SubsMat.MatrixInfo import ident, blosum62, pam120, levin
+    a = "ACGEGGGFFFCCC"
+    b = "ACFGGGTFFTCCC"
+    c = score_pairwise_gapless(a, b, blosum62_matrix)
+    score = sum(c)
+    '''
+    for A, B in zip(seq1, seq2):
+        pair = (A, B)
+        if pair not in matrix:
+            yield matrix[(tuple(reversed(pair)))]
+        else:
+            yield matrix[pair]
+
+
 #def create_list_of_files_from_csv_with_uniprot_data(input_file, list_of_keys):
 #    '''
 #    Generate the list of filenames, assuming SIMAP has already run
