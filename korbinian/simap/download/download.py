@@ -14,7 +14,6 @@ def download_homologues_from_simap(pathdict, set_, logging):
         df.set_index("uniprot_acc", drop=False, inplace=True)
     else:
         df["uniprot_acc"] = df.index
-    print(df.iloc[10:10])
     list_failed_downloads = []
     if os.path.isfile(pathdict["failed_downloads_txt"]):
         # Extracts accession numbers out of file

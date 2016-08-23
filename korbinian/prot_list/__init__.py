@@ -5,4 +5,4 @@ from korbinian.prot_list.parse_uniprot.parse_uniprot import create_csv_from_unip
 from korbinian.prot_list.parse_OMPdb.parse_OMPdb import extract_omp_IDs_from_nr_fasta
 from korbinian.prot_list.parse_OMPdb.parse_OMPdb import parse_OMPdb_all_selected_to_csv
 from korbinian.prot_list.parse_OMPdb.parse_OMPdb import get_omp_TM_indices_and_slice_from_summary_table
-from korbinian.prot_list.prot_list import setup_file_locations_in_df
+from korbinian.prot_list.prot_list import setup_file_locations_in_df, get_indices_TMD_plus_surr_for_summary_file

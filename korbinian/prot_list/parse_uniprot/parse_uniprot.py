@@ -5,12 +5,13 @@ import re
 import numpy as np
 import pandas as pd
 import csv
+import korbinian
 import korbinian.mtutils as utils
 
 def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_, logging, pathdict):
     logging.info('~~~~~~~~~~~~  starting A03_create_csv_from_uniprot_flatfile   ~~~~~~~~~~~~')
     uniprot_dict_all_proteins = {}
-    with open(uniprot_flatfile_of_selected_records, "r")as f:
+    with open(uniprot_flatfile_of_selected_records, "r") as f:
         records = SwissProt.parse(f)
         count_of_uniprot_records_processed = 0
         for record in records:
@@ -18,6 +19,7 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
             output_dict = {}
             # extract the subcellular location detail from the (poorly organized and unsorted) uniprot comments section
             comments_dict = {}
+
             try:
                 for comment in record.comments:
                     # splits comments based on first ":" symbol, creates a list called split_comment
@@ -78,7 +80,7 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
                 list_of_feature_types_in_uniprot_record.append(sublist[0])
 
             # list of the features that we want in the final csv
-            desired_features_in_uniprot = ['TRANSMEM', 'VARIANT', 'CONFLICT', 'VAR_SEQ', 'VARSPLIC', 'TOPO_DOM']
+            desired_features_in_uniprot = ['TRANSMEM', 'VARIANT', 'CONFLICT', 'VAR_SEQ', 'VARSPLIC', 'TOPO_DOM'] # SIGNAL?
             desired_features_in_uniprot_dict = {}
             location_of_tmds_in_feature_list = []
             location_of_non_tmds_in_feature_list = []
@@ -186,7 +188,7 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
         # currently the loop is run for each TMD, based on the sequence with the most TMDs
         for i in range(1, max_num_TMDs + 1):
             TMD = 'TM%02d' % i
-            dfu = utils.get_indices_TMD_plus_surr_for_summary_file(dfu, TMD, fa_aa_before_tmd, fa_aa_after_tmd)
+            dfu = korbinian.prot_list.get_indices_TMD_plus_surr_for_summary_file(dfu, TMD, fa_aa_before_tmd, fa_aa_after_tmd)
 
             # # instead of integers showing the start or end of the TMD, some people write strings into the
             # # UniProt database, such as "<5" or "?"
@@ -294,7 +296,7 @@ def create_dict_of_data_from_uniprot_record(record):
         #logging.info(sublist)
 
     #list of the features that we want in the final csv
-    desired_features_in_uniprot = ['TRANSMEM', 'VARIANT', 'CONFLICT', 'VAR_SEQ','VARSPLIC']
+    desired_features_in_uniprot = ['TRANSMEM', 'VARIANT', 'CONFLICT', 'VAR_SEQ','VARSPLIC'] # SIGNAL ?
     desired_features_in_uniprot_dict = {}
 
     location_of_tmds_in_feature_list = []
