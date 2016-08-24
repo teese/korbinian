@@ -112,15 +112,15 @@ def setup_file_locations_in_df(set_, pathdict):
     df['homol_orig_table_zip'] = df['homol_base'] + '_homol_orig_table.zip'
 
     # SLICED (FASTA AND AAIMON): create filename for zip that holds the tables (pickled dataframes) for each TMD
-    df['homol_sliced_tables_zip'] = df['homol_base'] + '_fa_tables.zip'
+    df['fa_cr_sliced_TMDs_zip'] = df['homol_base'] + '_fa_tables.zip'
 
     # FASTA: create filename for zip that holds the tables (pickled dataframes) for each TMD
-    df['homol_fa_tables_zip'] = df['homol_base'] + '_fa_tables.zip'
+    df['homol_fa_TMDs_zip'] = df['homol_base'] + '_fa_tables.zip'
     # FASTA: create filename for zip that holds the .fas files
     df['homol_fa_fasta_zip'] = df['homol_base'] + '_fa_fasta.zip'
 
     # CONS_RATIOS: create filename for zip holding the tables (pickled dataframes with seqs) for each TMD
-    df['homol_cr_tables_zip'] = df['homol_base'] + '_cr_tables.zip'
+    df['homol_cr_TMDs_zip'] = df['homol_base'] + '_cr_tables.zip'
     # CONS_RATIOS: create filename for zip holding the ratios
     df['homol_cr_ratios_zip'] = df['homol_base'] + '_cr_ratios.zip'
     # CONS_RATIOS: create filename for zip holding the figures

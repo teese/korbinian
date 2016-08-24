@@ -8,16 +8,16 @@ def filter_and_save_fasta(df, dfs, acc, TMD, set_, logging, zipout_fasta):
                        "match_alignment_sequence", "cr_disallowed_words_not_in_descr", "hit_contains_SW_node"]
     list_fasta_cols_TMD = ['%s_SW_match_seq'%TMD, '%s_start_in_SW_alignment_plus_surr'%TMD, '%s_end_in_SW_alignment_plus_surr'%TMD, '%s_SW_query_num_gaps'%TMD]
 
-    # redefine the number of amino acids before and after the TMD to be inserted into the FastA files
-    fa_aa_before_tmd = set_["fa_aa_before_tmd"]
-    fa_aa_after_tmd = set_["fa_aa_after_tmd"]
-
-    # define the start of theTMD + surrounding sequence
-    dfs['%s_start_in_SW_alignment_plus_surr'%TMD] = dfs['%s_start_in_SW_alignment'%TMD] - fa_aa_before_tmd
-    # replace negative values with zero
-    dfs.loc[dfs['%s_start_in_SW_alignment_plus_surr'%TMD] < 0, '%s_start_in_SW_alignment_plus_surr'%TMD] = 0
-    # define the end of the TMD + surrounding sequence
-    dfs['%s_end_in_SW_alignment_plus_surr'%TMD] = dfs['%s_end_in_SW_alignment'%TMD] + fa_aa_after_tmd
+    # # redefine the number of amino acids before and after the TMD to be inserted into the FastA files
+    # fa_aa_before_tmd = set_["fa_aa_before_tmd"]
+    # fa_aa_after_tmd = set_["fa_aa_after_tmd"]
+    #
+    # # define the start of theTMD + surrounding sequence
+    # dfs['%s_start_in_SW_alignment_plus_surr'%TMD] = dfs['%s_start_in_SW_alignment'%TMD] - fa_aa_before_tmd
+    # # replace negative values with zero
+    # dfs.loc[dfs['%s_start_in_SW_alignment_plus_surr'%TMD] < 0, '%s_start_in_SW_alignment_plus_surr'%TMD] = 0
+    # # define the end of the TMD + surrounding sequence
+    # dfs['%s_end_in_SW_alignment_plus_surr'%TMD] = dfs['%s_end_in_SW_alignment'%TMD] + fa_aa_after_tmd
     # replace values longer than the actual sequence with the length of the sequence
     # dfs.loc[dfs['%s_end_in_SW_alignment_plus_surr'%TMD] > dfs['len_query_alignment_sequence'],
     #         '%s_end_in_SW_alignment_plus_surr'%TMD] = dfs['len_query_alignment_sequence']
@@ -65,9 +65,9 @@ def filter_and_save_fasta(df, dfs, acc, TMD, set_, logging, zipout_fasta):
         # create a boolean column to select hits that do not contain these words in the description
         dfs['fa_disallowed_words_not_in_descr'] = dfs['fa_list_disallowed_words_in_descr'] == '[]'
 
-    # select sequences that seem to have a start
-    dfs_sel2 = dfs.loc[dfs['%s_start_in_SW_alignment_plus_surr'%TMD].notnull()]
-    dfs['%s_SW_match_seq_plus_surr'%TMD] = dfs_sel2.apply(utils.slice_SW_match_TMD_seq_plus_surr, args=(TMD,), axis=1)
+    # # select sequences that seem to have a start
+    # dfs_sel2 = dfs.loc[dfs['%s_start_in_SW_alignment_plus_surr'%TMD].notnull()]
+    # dfs['%s_SW_match_seq_plus_surr'%TMD] = dfs_sel2.apply(utils.slice_SW_match_TMD_seq_plus_surr, args=(TMD,), axis=1)
 
     '''re-filter the original dataframe to create another copy with the desired sequences
     note that some values were added after filtering in the last round,

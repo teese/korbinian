@@ -7,10 +7,6 @@ def slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_h
     #                Slice out TMD regions [fasta and AAIMON]                              #
     #                                                                                      #
     ########################################################################################
-
-    # create a new dataframe to hold the sliced homol sequences for that TMD, and number of gaps, etc
-    df_TMD = pd.DataFrame()
-
     '''slice the TMD regions out of the alignment markup and match sequences
     the method first finds the indices of the TMD region in the query, and uses these indices to slice
     the filters are not applied yet, so the sequences can be viewed in the csv file for analysis
@@ -25,7 +21,7 @@ def slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_h
     query_seqs_ser = dfs_with_SW_node['query_alignment_sequence']
 
     # obtain the bool, start, end of TMD seqs in the match sequences. Add to the new TMD-specific dataframe.
-    df_TMD['%s_start_end_list_in_SW_alignment' % TMD] = query_seqs_ser.apply(utils.get_start_and_end_of_TMD_in_query,
+    dfs['%s_start_end_list_in_SW_alignment' % TMD] = query_seqs_ser.apply(utils.get_start_and_end_of_TMD_in_query,
                                                                              args=(TMD_regex_ss,))
     '''the output of the regex search is a list with three components.
     1) a match (e.g. True),
@@ -39,10 +35,7 @@ def slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_h
     # col = column item in the list (e.g. 'TM09_in_SW_alignment')
     for n, col in enumerate(columns_from_regex_output):
         # add a new column which is named TM01_start, etc, and insert the appropriate integer (start or stop) or bool from the tuple
-        df_TMD[col] = df_TMD['%s_start_end_list_in_SW_alignment' % TMD].dropna().apply(lambda x: x[n])
-    # drop the original listlike from the regex search
-    df_TMD.drop('%s_start_end_list_in_SW_alignment' % TMD, inplace=True)
-
+        dfs[col] = dfs['%s_start_end_list_in_SW_alignment' % TMD].dropna().apply(lambda x: x[n])
     ########################################################################################
     #                                                                                      #
     #          Apply function to slice homologues and count gaps [fasta and AAIMON]        #
@@ -50,7 +43,10 @@ def slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_h
     ########################################################################################
 
     # in some cases, there is no data to obtain as the hit_contains_SW_node = False for too many sequences, giving no start_in_SW_alignment
-    number_of_rows_containing_data = df_TMD[df_TMD['%s_start_end_list_in_SW_alignment' % TMD].notnull()].shape[0]
+    number_of_rows_containing_data = dfs[dfs['%s_start_end_list_in_SW_alignment' % TMD].notnull()].shape[0]
+    # drop the original listlike from the regex search
+    #NOT NECESSARY. DFS WILL NOT BE RETURNED!
+    #df_TMD.drop('%s_start_end_list_in_SW_alignment' % TMD, inplace=True, axis=1)
     if number_of_rows_containing_data == 0:
         logging.info('%s does not have any valid homologues for %s. '
                      'Re-downloading simap homologue XML may be necessary.' % (df.loc[acc,"protein_name"], TMD))
@@ -64,13 +60,45 @@ def slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_h
         # use small throwaway functions to slice each TMD from the query, markup and match sequences
         # notnull() removes missing data
         # explanation: df_TMD['new_column_with_selected_seq'] = df_TMD[df_TMD['only_rows_containing_data]].apply(utils.slice_function_that_specifies_columns_with_start_and_stop)
-        dfs_sel = df_TMD[df_TMD['%s_start_in_SW_alignment'%TMD].notnull()]
+        dfs_sel = dfs[dfs['%s_start_in_SW_alignment'%TMD].notnull()]
         # df_TMD['%s_SW_query_seq'%TMD] = dfs_sel.apply(utils.slice_SW_query_TMD_seq,args=(TMD,), axis=1)
         # df_TMD['%s_SW_markup_seq'%TMD] = dfs_sel.apply(utils.slice_SW_markup_TMD,args=(TMD,), axis=1)
         # df_TMD['%s_SW_match_seq'%TMD] = dfs_sel.apply(utils.slice_SW_match_TMD_seq,args=(TMD,), axis=1)
+
+        #create a new dataframe to hold the sliced homol sequences for that TMD, and number of gaps, etc
+        df_TMD = pd.DataFrame()
         df_TMD['%s_SW_query_seq' % TMD] = dfs_sel.apply(utils.slice_SW_query_TMD_seq, args=(TMD,), axis=1)
         df_TMD['%s_SW_markup_seq' % TMD] = dfs_sel.apply(utils.slice_SW_markup_TMD, args=(TMD,), axis=1)
         df_TMD['%s_SW_match_seq' % TMD] = dfs_sel.apply(utils.slice_SW_match_TMD_seq, args=(TMD,), axis=1)
+
+        ########################################################################################
+        #                                                                                      #
+        #                         FASTA: slice TMD plus surrounding sequence                   #
+        #                                                                                      #
+        #       NOTE: probably not used in AAIMON, but if it is not here,                      #
+        # the full match_alignment_seq needs to be saved for the fasta algorithms somewhere.   #
+        #    Putting it here allows these large, memory-chewing columns to be dropped.         #
+        #                                                                                      #
+        ########################################################################################
+        # redefine the number of amino acids before and after the TMD to be inserted into the FastA files
+        fa_aa_before_tmd = set_["fa_aa_before_tmd"]
+        fa_aa_after_tmd = set_["fa_aa_after_tmd"]
+
+        # define the start of theTMD + surrounding sequence
+        dfs['%s_start_in_SW_alignment_plus_surr' % TMD] = dfs['%s_start_in_SW_alignment' % TMD] - fa_aa_before_tmd
+        # replace negative values with zero
+        dfs.loc[dfs['%s_start_in_SW_alignment_plus_surr' % TMD] < 0, '%s_start_in_SW_alignment_plus_surr' % TMD] = 0
+        # define the end of the TMD + surrounding sequence. In python slicing, this end can be longer than the sequence.
+        dfs['%s_end_in_SW_alignment_plus_surr' % TMD] = dfs['%s_end_in_SW_alignment' % TMD] + fa_aa_after_tmd
+
+        # select sequences that seem to have a start
+        dfs = dfs.loc[dfs['%s_start_in_SW_alignment_plus_surr' % TMD].notnull()]
+        # slice out the match seq + the surrounding sequence
+        df_TMD['%s_SW_match_seq_plus_surr' % TMD] = dfs.apply(utils.slice_SW_match_TMD_seq_plus_surr, args=(TMD,),axis=1)
+        #and the same for the TMD + surrounding sequence, useful to examine the TMD interface
+        # NOT DEEMED NECESSARY. WHY WOULD YOU NEED TO SLICE QUERY OR MARKUP + SURROUNDING?
+        # df_TMD['%s_SW_query_seq_plus_surr'%TMD] = dfs.apply(utils.slice_SW_query_TMD_seq_plus_surr, args=(TMD,), axis=1)
+        # df_TMD['%s_SW_markup_seq_plus_surr'%TMD] = dfs.apply(utils.slice_SW_markup_TMD_plus_surr, args=(TMD,), axis=1)
 
         # count the number of gaps in the query and match sequences
         df_TMD['%s_SW_query_num_gaps'%TMD] = df_TMD['%s_SW_query_seq'%TMD].str.count("-")

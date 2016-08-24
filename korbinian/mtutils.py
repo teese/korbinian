@@ -404,6 +404,10 @@ def slice_SW_markup_TMD_plus_surr(x, TMD):
 def slice_SW_match_TMD_seq_plus_surr(x, TMD):
     return x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
 
+
+
+['query_alignment_sequence', 'match_alignment_sequence', 'alignment_markup']
+
 def create_indextuple_nonTMD_last(x):
     ''' Joins two columns into a tuple. Used to create the last tuple of the nonTMD region in the sequence.
     '''
