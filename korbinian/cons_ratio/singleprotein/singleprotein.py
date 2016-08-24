@@ -66,7 +66,7 @@ def slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_h
         # df_TMD['%s_SW_match_seq'%TMD] = dfs_sel.apply(utils.slice_SW_match_TMD_seq,args=(TMD,), axis=1)
 
         #create a new dataframe to hold the sliced homol sequences for that TMD, and number of gaps, etc
-        df_TMD = pd.DataFrame()
+        df_TMD = dfs_sel[["organism", "description"]].copy()
         df_TMD['%s_SW_query_seq' % TMD] = dfs_sel.apply(utils.slice_SW_query_TMD_seq, args=(TMD,), axis=1)
         df_TMD['%s_SW_markup_seq' % TMD] = dfs_sel.apply(utils.slice_SW_markup_TMD, args=(TMD,), axis=1)
         df_TMD['%s_SW_match_seq' % TMD] = dfs_sel.apply(utils.slice_SW_match_TMD_seq, args=(TMD,), axis=1)
@@ -132,7 +132,7 @@ def slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_h
         # calculate the average number of gaps per residue in the TMD alignment
         # (number of gaps)/(length of sequence excluding gaps)
         df_TMD['%s_SW_q_gaps_per_q_residue'%TMD] = df_TMD['%s_SW_query_num_gaps'%TMD].dropna() / len_query_TMD
-    return df_TMD, n_TMDs_w_homol
+    return df_TMD
 
 def calc_AAIMON(acc, TMD, dfs, set_, df, logging):
     # following the general filters, filter to only analyse sequences with TMD identity above cutoff, and a nonTMD_perc_ident above zero ,to avoid a divide by zero error

@@ -152,8 +152,14 @@ def run_korbinian(excel_file_with_settings):
     #                                                                                      #
     ########################################################################################
 
-    if any([set_["run_create_fasta"], set_["run_calculate_AAIMON_ratios"]]):
-        korbinian.cons_ratio.create_fasta_or_calculate_AAIMON_ratios(pathdict, set_, logging)
+    if set_["slice_TMDs_from_homologues"]:
+        korbinian.cons_ratio.slice_TMDs_from_homologues(pathdict, set_, logging)
+
+    if set_["run_create_fasta"]:
+        korbinian.fasta.filter_and_save_fasta(pathdict, set_, logging)
+
+    if set_["run_calculate_AAIMON_ratios"]:
+        korbinian.cons_ratio.run_calculate_AAIMON_ratios(pathdict, set_, logging)
 
     ########################################################################################
     #                                                                                      #

@@ -18,12 +18,10 @@ def setup_file_locations_in_df(set_, pathdict):
 
     if "uniprot_entry_name" in df.columns:
         # join the accession and entry name to create a "protein name" for naming files
-        #df['protein_name'] = df.uniprot_acc + '_' + df.uniprot_entry_name
-        df['protein_name'] = df.index + '_' + df.uniprot_entry_name
+        df['protein_name'] = df.uniprot_acc + '_' + df.uniprot_entry_name
     else:
         # the list of proteins did not come from UniProt. Simply use the accession to name the files.
-        #df['protein_name'] = df.uniprot_acc
-        df['protein_name'] = df.index
+        df['protein_name'] = df.uniprot_acc
 
     if set_["add_user_subseqs"] == True:
         ########################################################################################
@@ -107,17 +105,17 @@ def setup_file_locations_in_df(set_, pathdict):
     # ORIG: create filename for csv with alignment_pretty, for visual analysis of homologues
     df['SIMAP_align_pretty_csv'] = df['homol_base'] + '_align_pretty.csv'
     # ORIG: create filename pickled dataframe
-    df['SIMAP_orig_table_pickle'] = df['homol_base'] + '_all.pickle'
+    df['homol_df_orig_pickle'] = df['homol_base'] + '_df_orig.pickle'
     # ORIG: create filename for zip that holds the XML parsed to a table (i.e. pandas dataframe, pickled)
-    df['homol_orig_table_zip'] = df['homol_base'] + '_homol_orig_table.zip'
+    df['homol_df_orig_zip'] = df['homol_base'] + '_homol_orig_table.zip'
 
     # SLICED (FASTA AND AAIMON): create filename for zip that holds the tables (pickled dataframes) for each TMD
-    df['fa_cr_sliced_TMDs_zip'] = df['homol_base'] + '_fa_tables.zip'
+    df['fa_cr_sliced_TMDs_zip'] = df['homol_base'] + '_fa_cr_sliced_TMDs.zip'
 
     # FASTA: create filename for zip that holds the tables (pickled dataframes) for each TMD
-    df['homol_fa_TMDs_zip'] = df['homol_base'] + '_fa_tables.zip'
+    df['fa_TMDs_zip'] = df['homol_base'] + '_fa_TMDs.zip'
     # FASTA: create filename for zip that holds the .fas files
-    df['homol_fa_fasta_zip'] = df['homol_base'] + '_fa_fasta.zip'
+    df['fa_fasta_zip'] = df['homol_base'] + '_fa_fasta.zip'
 
     # CONS_RATIOS: create filename for zip holding the tables (pickled dataframes with seqs) for each TMD
     df['homol_cr_TMDs_zip'] = df['homol_base'] + '_cr_tables.zip'

@@ -54,7 +54,7 @@ def calculate_gap_densities(pathdict, set_, logging):
             #if os.path.exists(df.loc[acc,'output_tarfile_path']):
             #if os.path.exists(df.loc[acc, 'homol_gap_nums_zip']):
 
-            analysed_df = utils.open_df_from_csv_zip(df.loc[acc,'homol_orig_table_zip'])
+            analysed_df = utils.open_df_from_csv_zip(df.loc[acc,'homol_df_orig_zip'])
 
             ## opens the analysed csv for each protein and loads it into a dataframe
             #    #with tarfile.open(df.loc[acc,'output_tarfile_path'], mode= 'r:gz')as tar:

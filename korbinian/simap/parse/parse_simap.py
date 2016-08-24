@@ -78,7 +78,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
             NOT USED, PHOBIUS PRED OFTEN MISSING, in the future the TMD region taken from uniprot record
             '''
             # create subfolders, if they don't exist
-            subfolder = os.path.dirname(df.loc[acc, 'homol_orig_table_zip'])
+            subfolder = os.path.dirname(df.loc[acc, 'homol_df_orig_zip'])
             utils.make_sure_path_exists(subfolder)
 
             #if the setting is "False", and you don't want to overwrite the files, skip this section
@@ -86,9 +86,9 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                 create_homol_csv = True
             else:
                 #check if output file already exists
-                if os.path.isfile(df.loc[acc, 'homol_orig_table_zip']):
+                if os.path.isfile(df.loc[acc, 'homol_df_orig_zip']):
                     try:
-                        dfs_test = utils.open_df_from_csv_zip(df.loc[acc, 'homol_orig_table_zip'])
+                        dfs_test = utils.open_df_from_csv_zip(df.loc[acc, 'homol_df_orig_zip'])
                         description_of_first_hit = dfs_test.loc[1, 'description']
                         logging.info('Protein %s: homologues already converted to csv. (%s)' % (acc, description_of_first_hit))
                         create_homol_csv = False
@@ -127,11 +127,11 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                         # create_homol_csv = False
                     except (EOFError, KeyError):
                         #file may be corrupted, if script stopped unexpectedly before compression was finished
-                        logging.info('%s seems to be corrupted. File will be deleted.' % df.loc[acc, 'homol_orig_table_zip'])
-                        os.remove(df.loc[acc, 'homol_orig_table_zip'])
+                        logging.info('%s seems to be corrupted. File will be deleted.' % df.loc[acc, 'homol_df_orig_zip'])
+                        os.remove(df.loc[acc, 'homol_df_orig_zip'])
                         create_homol_csv = True
                 else:
-                    logging.info('%s not found, create_homol_csv = True' % df.loc[acc, 'homol_orig_table_zip'])
+                    logging.info('%s not found, create_homol_csv = True' % df.loc[acc, 'homol_df_orig_zip'])
                     create_homol_csv = True
             #if the files don't exist, or you want to overwrite them
             if create_homol_csv:
@@ -226,7 +226,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                         #print (matrix)
                         #from Bio.SubsMat.MatrixInfo import matrix as matrix_name
 
-                        SIMAP_orig_csv = df.loc[acc,'homol_orig_table_zip'][:-4]
+                        SIMAP_orig_csv = df.loc[acc,'homol_df_orig_zip'][:-4]
                         #fasta_file_path = df.loc[acc, 'fasta_file_path']
 
                         #create an empty file
@@ -381,17 +381,17 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                         # drop the align_pretty column from the orig dataframe
                         df_homol.drop('align_pretty', axis=1, inplace=True)
                         # save the whole dataframe as a pickle for faster opening later
-                        with open(df.loc[acc,'SIMAP_orig_table_pickle'], "wb") as p:
+                        with open(df.loc[acc,'homol_df_orig_pickle'], "wb") as p:
                             pickle.dump(df_homol, p)
                         # either create new zip and add ("w"), or open existing zip and add "a"
-                        with zipfile.ZipFile(df.loc[acc,'homol_orig_table_zip'], mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
+                        with zipfile.ZipFile(df.loc[acc,'homol_df_orig_zip'], mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
                             #zipout.write(SIMAP_orig_csv, arcname=os.path.basename(SIMAP_orig_csv))
                             zipout.write(df.loc[acc,'SIMAP_align_pretty_csv'], arcname=os.path.basename(df.loc[acc,'SIMAP_align_pretty_csv']))
-                            zipout.write(df.loc[acc,'SIMAP_orig_table_pickle'], arcname=os.path.basename(df.loc[acc,'SIMAP_orig_table_pickle']))
+                            zipout.write(df.loc[acc,'homol_df_orig_pickle'], arcname=os.path.basename(df.loc[acc,'homol_df_orig_pickle']))
                         # delete temporary uncompressed files
                         os.remove(SIMAP_orig_csv)
                         os.remove(df.loc[acc,'SIMAP_align_pretty_csv'])
-                        os.remove(df.loc[acc,'SIMAP_orig_table_pickle'])
+                        os.remove(df.loc[acc,'homol_df_orig_pickle'])
 
                         # with tarfile.open(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'], 'w:gz') as tar_SIMAP_out:
                         #     tar_SIMAP_out.add(SIMAP_orig_csv, arcname=df.loc[acc, 'SIMAP_csv_from_XML'])

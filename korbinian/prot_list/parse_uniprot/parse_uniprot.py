@@ -228,6 +228,7 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
         # indicate that the create_csv_from_uniprot_flatfile function has been run
         dfu['create_csv_from_uniprot_flatfile'] = True
         # save to a csv
+        utils.make_sure_path_exists(pathdict["list_summary_csv"], isfile=True)
         dfu.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     logging.info('create_csv_from_uniprot_flatfile was successful:'

@@ -1109,7 +1109,7 @@ def convert_truelike_to_bool(input_item, convert_int=False, convert_float=False,
 
     # if you want to accept 1 or 1.0 as a true value, add it to the list
     if convert_int:
-        list_True_items += [1, "1"]
+        list_True_items += ["1"]
     if convert_float:
         list_True_items += [1.0, "1.0"]
     # check if the user input string is in the list_True_items
@@ -1122,7 +1122,12 @@ def convert_truelike_to_bool(input_item, convert_int=False, convert_float=False,
         nontrue_return_value = input_item
     # return True if the input item is in the list. If not, return either False, or the original input_item
     return_value = input_item_is_true if input_item_is_true == True else nontrue_return_value
-
+    # special case: decide if 1 as an integer is True or 1
+    if input_item == 1:
+        if convert_int == True:
+            return_value = True
+        else:
+            return_value = 1
     return return_value
 
 def convert_falselike_to_bool(input_item, convert_int=False, convert_float=False):
