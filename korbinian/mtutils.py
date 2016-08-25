@@ -367,46 +367,43 @@ def slice_uniprot_TMD_plus_surr_seq(x, TMD):
     return x['full_seq'][int(x['%s_start_plus_surr'%TMD] - 1):int(x['%s_end_plus_surr'%TMD])]
 
 #create small throwaway functions to slice all sequences in dataframe simultaneously
-#slice_SW_query_TMD_seq = lambda x: x['query_alignment_sequence'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
-#slice_SW_markup_TMD = lambda x: x['alignment_markup'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
-#slice_SW_match_TMD_seq = lambda x: x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
-#slice_SW_query_TMD_seq_plus_surr = lambda x: x['query_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
-#slice_SW_markup_TMD_plus_surr = lambda x: x['alignment_markup'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
-#slice_SW_match_TMD_seq_plus_surr = lambda x: x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
+#slice_SW_query_TMD_seq = lambda x: x['query_align_seq'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
+#slice_SW_markup_TMD = lambda x: x['align_markup_seq'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
+#slice_SW_match_TMD_seq = lambda x: x['match_align_seq'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
+#slice_SW_query_TMD_seq_plus_surr = lambda x: x['query_align_seq'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
+#slice_SW_markup_TMD_plus_surr = lambda x: x['align_markup_seq'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
+#slice_SW_match_TMD_seq_plus_surr = lambda x: x['match_align_seq'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
 
 #create small throwaway functions to slice all sequences in dataframe simultaneously
 # def slice_SW_query_TMD_seq(x, TMD):
-#     return x['query_alignment_sequence'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
+#     return x['query_align_seq'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
 # def slice_SW_markup_TMD(x, TMD):
-#     return x['alignment_markup'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
+#     return x['align_markup_seq'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
 # def slice_SW_match_TMD_seq(x, TMD):
-#     return x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
+#     return x['match_align_seq'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
 # def slice_SW_query_TMD_seq_plus_surr(x, TMD):
-#     return x['query_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
+#     return x['query_align_seq'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
 # def slice_SW_markup_TMD_plus_surr(x, TMD):
-#     return x['alignment_markup'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
+#     return x['align_markup_seq'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
 # def slice_SW_match_TMD_seq_plus_surr(x, TMD):
-#     return x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
+#     return x['match_align_seq'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
 # def find_indices_longer_than_prot_seq(df, TMD):
 #     return df['%s_end_plus_surr'%TMD] > df['seqlen']
 
 
 def slice_SW_query_TMD_seq(x, TMD):
-    return x['query_alignment_sequence'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
+    return x['query_align_seq'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
 def slice_SW_markup_TMD(x, TMD):
-    return x['alignment_markup'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
+    return x['align_markup_seq'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
 def slice_SW_match_TMD_seq(x, TMD):
-    return x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
+    return x['match_align_seq'][int(x['%s_start_in_SW_alignment'%TMD]):int(x['%s_end_in_SW_alignment'%TMD])]
 def slice_SW_query_TMD_seq_plus_surr(x, TMD):
-    return x['query_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
+    return x['query_align_seq'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
 def slice_SW_markup_TMD_plus_surr(x, TMD):
-    return x['alignment_markup'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
+    return x['align_markup_seq'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
 def slice_SW_match_TMD_seq_plus_surr(x, TMD):
-    return x['match_alignment_sequence'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
+    return x['match_align_seq'][int(x['%s_start_in_SW_alignment_plus_surr'%TMD]):int(x['%s_end_in_SW_alignment_plus_surr'%TMD])]
 
-
-
-['query_alignment_sequence', 'match_alignment_sequence', 'alignment_markup']
 
 def create_indextuple_nonTMD_last(x):
     ''' Joins two columns into a tuple. Used to create the last tuple of the nonTMD region in the sequence.
@@ -1059,16 +1056,16 @@ def get_start_and_end_of_TMD_in_query(x, TMD_regex_ss):
         return np.nan
 
 def slice_juxta_before_TMD_in_query(x, TMD):
-    return x['query_alignment_sequence'][int(x['start_juxta_before_%s'%TMD]):int(x['end_juxta_before_%s'%TMD])]
+    return x['query_align_seq'][int(x['start_juxta_before_%s'%TMD]):int(x['end_juxta_before_%s'%TMD])]
 
 def slice_juxta_after_TMD_in_query(x, TMD):
-    return x['query_alignment_sequence'][int(x['start_juxta_after_%s'%TMD]):int(x['end_juxta_after_%s'%TMD])]
+    return x['query_align_seq'][int(x['start_juxta_after_%s'%TMD]):int(x['end_juxta_after_%s'%TMD])]
 
 def slice_juxta_before_TMD_in_match(x, TMD):
-    return x['match_alignment_sequence'][int(x['start_juxta_before_%s'%TMD]):int(x['end_juxta_before_%s'%TMD])]
+    return x['match_align_seq'][int(x['start_juxta_before_%s'%TMD]):int(x['end_juxta_before_%s'%TMD])]
 
 def slice_juxta_after_TMD_in_match(x, TMD):
-    return x['match_alignment_sequence'][int(x['start_juxta_after_%s'%TMD]):int(x['end_juxta_after_%s'%TMD])]
+    return x['match_align_seq'][int(x['start_juxta_after_%s'%TMD]):int(x['end_juxta_after_%s'%TMD])]
 
 def find_last_TMD(dfs):
     # dfs was missing from input, added by MT 20.07.2016
@@ -1345,7 +1342,7 @@ def open_df_from_pickle_zip(in_zipfile, filename=None, delete_corrupt=False):
             if picklefile is not None:
                 csv_file_handle = openzip.open(picklefile)
                 # read as pandas dataframe
-                df = pickle.load(csv_file_handle)
+                df_loaded = pickle.load(csv_file_handle)
             else:
                 if delete_corrupt == True:
                     deletezip = True
@@ -1356,8 +1353,8 @@ def open_df_from_pickle_zip(in_zipfile, filename=None, delete_corrupt=False):
     if deletezip:
         logging.info("pickle file not found in {}, file deleted".format(in_zipfile))
         os.remove(in_zipfile)
-        df = None
-    return df
+        df_loaded = pd.DataFrame()
+    return df_loaded
 
 def create_colour_lists():
     '''

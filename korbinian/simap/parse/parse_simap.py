@@ -11,6 +11,7 @@ import zipfile
 def parse_SIMAP_to_csv(pathdict, set_, logging):
     counter_XML_to_CSV = 0
     logging.info('~~~~~~~~~~~~  starting parse_SIMAP_to_csv   ~~~~~~~~~~~~')
+    # open dataframe with list of proteins
     df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
     # if "uniprot_acc" in df.columns:
     #     df.set_index("uniprot_acc", drop=False, inplace=True)
@@ -104,7 +105,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                         #         #filter to include only desired hits
                         #         '''OLD STUFF, from when XML to CSV was not saved separately
                         #         dfs_filt = dfs.query(
-                        #             'gapped_ident_above_cutoff == True and hit_contains_SW_node == True and cr_disallowed_words_not_in_descr == True')
+                        #             'gapped_ident_above_cutoff == True and hit_contains_SW_node == True and disallowed_words_not_in_descr == True')
                         #         #avoid a divide by zero error in the unlikely case that there are no_identical_residues_in_alignment
                         #         dfs_filt_AAIMON = dfs_filt.loc[dfs_filt['nonTMD_perc_ident'] != 0]
                         #         list_of_TMDs = ast.literal_eval(df.loc[acc, 'list_of_TMDs'])
@@ -285,7 +286,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                         match_details_dict['taxonomy_node_id'] = taxonomyNode.attrib['node_id']
                                         match_details_dict['taxonomy_rank'] = taxonomyNode.attrib['rank']
                                     except IndexError:
-                                        #sequence is probably synthetic, as it has no database node
+                                        #sequence is from an unknown organism, as it has no database node
                                         match_details_dict['description'] += ', no_database_node'
                                         match_details_dict['organism'] = 'no_database_node'
                                         match_details_dict['taxonomy_node_id'] = 'no_database_node'
@@ -334,7 +335,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                     if hit_contains_SW_node:
                                         #check that at least one hit gives data
                                         at_least_one_hit_contains_SW_node = True
-                                        query_alignment_sequence = ''
+                                        query_align_seq = ''
                                         '''For the moment, there is no need to put the whole match hsp sequence into the csv file'''
                                         #for smithWatermanAlignment in alignment_node.iter('smithWatermanAlignment'):
                                         match_details_dict['SW_query_score_ratio'] = smithWatermanAlignment_node[0].text
@@ -348,9 +349,9 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                         match_details_dict['SW_identity'] = float(smithWatermanAlignment_node.attrib['identity'])
                                         match_details_dict['SW_similarity'] = float(smithWatermanAlignment_node.attrib['similarity'])
                                         #Get the full sequences. Note that they greatly increase the size of the csv file.
-                                        match_details_dict['query_alignment_sequence'] = smithWatermanAlignment_node[5].text
-                                        match_details_dict['alignment_markup'] = smithWatermanAlignment_node[6].text
-                                        match_details_dict['match_alignment_sequence'] = smithWatermanAlignment_node[7].text
+                                        match_details_dict['query_align_seq'] = smithWatermanAlignment_node[5].text
+                                        match_details_dict['align_markup_seq'] = smithWatermanAlignment_node[6].text
+                                        match_details_dict['match_align_seq'] = smithWatermanAlignment_node[7].text
                                         #create a list of TMD names to be used in the loops below (TM01, TM02 etc)
                                         # list_of_TMDs = ast.literal_eval(df.loc[acc, 'list_of_TMDs'])
                                         # #run the search using the regular expression that will find the TMD even if it contains gaps
@@ -374,6 +375,20 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
 
                         # open csv as a dataframe,
                         df_homol = pd.read_csv(SIMAP_orig_csv, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col="hit_num")
+
+                        # get length of seq. Previously this was a lambda function that needed more filtering
+                        df_homol['len_query_align_seq'] = df_homol['query_align_seq'].str.len()
+
+                        # conduct the text searching for disallowed words
+                        words_not_allowed_in_description = ast.literal_eval(set_["words_not_allowed_in_description"])
+                        # collect disallowed words in hit protein description (patent, synthetic, etc)
+                        df_homol['list_disallowed_words_in_descr'] = df_homol['description'].dropna().apply(utils.find_disallowed_words, args=(words_not_allowed_in_description,))
+                        # create a boolean column to select hits that do not contain these words in the description
+                        df_homol['disallowed_words_not_in_descr'] = df_homol['list_disallowed_words_in_descr'] == '[]'
+
+                        # check if there are non-IUPAC amino acids in the sequence (frequently large gaps from NG sequencing data)
+                        df_homol['X_in_match_seq'] = 'X' in df_homol['match_align_seq']
+
                         # restrict to just a few columns including the align_pretty that might be useful to check manually
                         df_pretty = df_homol[["FASTA_gapped_identity", "organism", "description", "align_pretty"]]
                         # save the align_pretty to csv

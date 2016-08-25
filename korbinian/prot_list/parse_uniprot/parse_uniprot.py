@@ -181,14 +181,14 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
         count_of_uniprot_records_added_to_csv = dfu.shape[0]
 
         ''' ~~ DETERMINE START AND STOP INDICES FOR TMD PLUS SURROUNDING SEQ ~~ '''
-        fa_aa_before_tmd = set_["fa_aa_before_tmd"]
-        fa_aa_after_tmd = set_["fa_aa_after_tmd"]
+        n_aa_before_tmd = set_["n_aa_before_tmd"]
+        n_aa_after_tmd = set_["n_aa_after_tmd"]
         # determine max number of TMD columns that need to be created
         max_num_TMDs = dfu['number_of_TMDs'].max()
         # currently the loop is run for each TMD, based on the sequence with the most TMDs
         for i in range(1, max_num_TMDs + 1):
             TMD = 'TM%02d' % i
-            dfu = korbinian.prot_list.get_indices_TMD_plus_surr_for_summary_file(dfu, TMD, fa_aa_before_tmd, fa_aa_after_tmd)
+            dfu = korbinian.prot_list.get_indices_TMD_plus_surr_for_summary_file(dfu, TMD, n_aa_before_tmd, n_aa_after_tmd)
 
             # # instead of integers showing the start or end of the TMD, some people write strings into the
             # # UniProt database, such as "<5" or "?"
@@ -197,10 +197,10 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
             # dfu['%s_start'%TMD] = pd.to_numeric(dfu['%s_start'%TMD]).dropna().astype('int64')
             # dfu['%s_end'%TMD] = pd.to_numeric(dfu['%s_end'%TMD]).dropna().astype('int64')
             # # determine the position of the start of the surrounding sequence
-            # dfu['%s_start_plus_surr'%TMD] = dfu['%s_start'%TMD] - fa_aa_before_tmd
+            # dfu['%s_start_plus_surr'%TMD] = dfu['%s_start'%TMD] - n_aa_before_tmd
             # # replace negative values with zero. (slicing method was replaced with lambda function to avoid CopyWithSetting warning)
             # dfu['%s_start_plus_surr'%TMD] = dfu['%s_start_plus_surr'%TMD].apply(lambda x: x if x > 0 else 0)
-            # dfu['%s_end_plus_surr'%TMD] = dfu['%s_end'%TMD] + fa_aa_after_tmd
+            # dfu['%s_end_plus_surr'%TMD] = dfu['%s_end'%TMD] + n_aa_after_tmd
             # # create a boolean series, describing whether the end_surrounding_seq_in_query is longer than the protein seq
             # series_indices_longer_than_prot_seq = dfu.apply(utils.find_indices_longer_than_prot_seq, args=(TMD,), axis=1)
             # # obtain the indices of proteins in the series

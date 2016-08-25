@@ -62,10 +62,10 @@ def conduct_ssr_ratio_calculations(dfs, list_of_TMDs, set_, list_of_aa_sub_matri
            #                         gap_open_penalty=gap_open_penalty,
            #                         gap_extension_penalty=gap_extension_penalty))
            #print(score_qTMD_mTMD)
-           dfs_nonTMD = dfs.query('"X" not in match_alignment_sequence')
-           dfs_nonTMD = dfs_nonTMD.loc[dfs_nonTMD['match_alignment_sequence'].notnull()]
+           dfs_nonTMD = dfs.query('"X" not in match_align_seq')
+           dfs_nonTMD = dfs_nonTMD.loc[dfs_nonTMD['match_align_seq'].notnull()]
            dfs_nonTMD = dfs_nonTMD.loc[dfs_nonTMD['nonTMD_seq_query'].notnull()]
-           dfs_nonTMD = dfs_nonTMD.loc[dfs_nonTMD['match_alignment_sequence'].apply(lambda x : 'X' not in x)]
+           dfs_nonTMD = dfs_nonTMD.loc[dfs_nonTMD['match_align_seq'].apply(lambda x : 'X' not in x)]
 
            #score/self-score ratio of nonTMD query
            dfs_nonTMD[column_basename + '_ss_q_nonTMD'] = dfs_nonTMD.apply(calc_ss_q_nonTMD, axis = 1)

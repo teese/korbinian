@@ -641,17 +641,17 @@ def compare_rel_con_lists(pathdict, set_, logging):
             dfl.loc[acc, 'average_len_all_TMDs'] = np.mean(list(dict_len_TMD.values()))
             # series_average_len_all_TMDs = np.mean(list(dict_len_TMD.values()))
 
-        dfl.loc[:, 'ratio_len_all_TMD_to_seqlen'] = dfl['len_all_TMD_region'] / dfl.len_query_alignment_sequence
+        dfl.loc[:, 'ratio_len_all_TMD_to_seqlen'] = dfl['len_all_TMD_region'] / dfl.len_query_align_seq
         dfl.loc[:,
-        'proportion_JM_region_3aa'] = dfl.number_of_TMDs * 3 * 2 / dfl.len_query_alignment_sequence
+        'proportion_JM_region_3aa'] = dfl.number_of_TMDs * 3 * 2 / dfl.len_query_align_seq
         dfl.loc[:,
-        'proportion_JM_region_6aa'] = dfl.number_of_TMDs * 6 * 2 / dfl.len_query_alignment_sequence
+        'proportion_JM_region_6aa'] = dfl.number_of_TMDs * 6 * 2 / dfl.len_query_align_seq
         print(
             "dfl%i\nAverage AAIMON ratio all TMDs = %0.3f\nAverage len TMD = %0.2f\nAverage len full sequence = %0.2f\nAverage TMD proportion = %0.4f (%0.2f%%)\nAverage proportion JM (3aa each side) = %0.4f (%0.2f%%)\nAverage proportion JM (6aa each side) = %0.4f (%0.2f%%)" % (
                 n,
                 dfl['AAIMON_ratio_mean_all_TMDs'].mean(),
                 dfl.len_all_TMD_region.mean(),
-                dfl.len_query_alignment_sequence.mean(),
+                dfl.len_query_align_seq.mean(),
                 dfl['ratio_len_all_TMD_to_seqlen'].mean(),
                 dfl['ratio_len_all_TMD_to_seqlen'].mean() * 100,
                 dfl['proportion_JM_region_3aa'].mean(),

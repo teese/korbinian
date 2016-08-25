@@ -18,7 +18,7 @@ def slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_h
     # select to only include data where the XML contained a SW node, and then apply function for a regex search
     dfs_with_SW_node = dfs.query('hit_contains_SW_node == True')
     # create series of query_alignment_seqs
-    query_seqs_ser = dfs_with_SW_node['query_alignment_sequence']
+    query_seqs_ser = dfs_with_SW_node['query_align_seq']
 
     # obtain the bool, start, end of TMD seqs in the match sequences. Add to the new TMD-specific dataframe.
     dfs['%s_start_end_list_in_SW_alignment' % TMD] = query_seqs_ser.apply(utils.get_start_and_end_of_TMD_in_query,
@@ -29,8 +29,7 @@ def slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_h
     3) the end of the match (e.g. 144)
     '''
     # for convenience, separate the components into separate columns
-    columns_from_regex_output = ['%s_in_SW_alignment' % TMD, '%s_start_in_SW_alignment' % TMD,
-                                 '%s_end_in_SW_alignment' % TMD]
+    columns_from_regex_output = ['%s_in_SW_alignment' % TMD, '%s_start_in_SW_alignment' % TMD, '%s_end_in_SW_alignment' % TMD]
     # n = the index (1,2,3) in the tuple
     # col = column item in the list (e.g. 'TM09_in_SW_alignment')
     for n, col in enumerate(columns_from_regex_output):
@@ -67,6 +66,13 @@ def slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_h
 
         #create a new dataframe to hold the sliced homol sequences for that TMD, and number of gaps, etc
         df_TMD = dfs_sel[["organism", "description"]].copy()
+
+        # transfer the columns with indices across to the df_TMD
+        cols = ['%s_in_SW_alignment' % TMD, '%s_start_in_SW_alignment' % TMD, '%s_end_in_SW_alignment' % TMD]
+        for col in cols:
+            df_TMD[col] = dfs_sel[col]
+
+        # slice TMDs out of dfs_sel, and save them in the new df_TMD
         df_TMD['%s_SW_query_seq' % TMD] = dfs_sel.apply(utils.slice_SW_query_TMD_seq, args=(TMD,), axis=1)
         df_TMD['%s_SW_markup_seq' % TMD] = dfs_sel.apply(utils.slice_SW_markup_TMD, args=(TMD,), axis=1)
         df_TMD['%s_SW_match_seq' % TMD] = dfs_sel.apply(utils.slice_SW_match_TMD_seq, args=(TMD,), axis=1)
@@ -81,15 +87,15 @@ def slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_h
         #                                                                                      #
         ########################################################################################
         # redefine the number of amino acids before and after the TMD to be inserted into the FastA files
-        fa_aa_before_tmd = set_["fa_aa_before_tmd"]
-        fa_aa_after_tmd = set_["fa_aa_after_tmd"]
+        n_aa_before_tmd = set_["n_aa_before_tmd"]
+        n_aa_after_tmd = set_["n_aa_after_tmd"]
 
         # define the start of theTMD + surrounding sequence
-        dfs['%s_start_in_SW_alignment_plus_surr' % TMD] = dfs['%s_start_in_SW_alignment' % TMD] - fa_aa_before_tmd
+        dfs['%s_start_in_SW_alignment_plus_surr' % TMD] = dfs['%s_start_in_SW_alignment' % TMD] - n_aa_before_tmd
         # replace negative values with zero
         dfs.loc[dfs['%s_start_in_SW_alignment_plus_surr' % TMD] < 0, '%s_start_in_SW_alignment_plus_surr' % TMD] = 0
         # define the end of the TMD + surrounding sequence. In python slicing, this end can be longer than the sequence.
-        dfs['%s_end_in_SW_alignment_plus_surr' % TMD] = dfs['%s_end_in_SW_alignment' % TMD] + fa_aa_after_tmd
+        dfs['%s_end_in_SW_alignment_plus_surr' % TMD] = dfs['%s_end_in_SW_alignment' % TMD] + n_aa_after_tmd
 
         # select sequences that seem to have a start
         dfs = dfs.loc[dfs['%s_start_in_SW_alignment_plus_surr' % TMD].notnull()]

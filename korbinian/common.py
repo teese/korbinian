@@ -10,23 +10,6 @@ import psutil
 import signal
 import sys
 
-def setup_keyboard_interrupt_and_error_logging(set_, list_number):
-    ''' -------Setup keyboard interrupt----------
-    '''
-    # import arcgisscripting
-
-    def ctrlc(sig, frame):
-        raise KeyboardInterrupt("CTRL-C!")
-    signal.signal(signal.SIGINT, ctrlc)
-    '''+++++++++++++++LOGGING++++++++++++++++++'''
-    date_string = strftime("%Y%m%d_%H_%M_%S")
-
-    # designate the output logfile
-    logfile = os.path.join(set_["logfile_dir"],'List%s_%s_logfile.log' % (list_number, date_string))
-    # a file to keep a record of the log settings used for that script
-    logging = korbinian.common.setup_error_logging(logfile)
-    return logging
-
 def create_settingsdict(excel_file_with_settings):
     sheetnames = ["run_settings", "file_locations", "variables"]
     set_ = {}
@@ -52,6 +35,129 @@ def create_settingsdict(excel_file_with_settings):
             set_[path] = os.path.normpath(set_[path])
 
     return set_
+
+def setup_keyboard_interrupt_and_error_logging(set_, list_number):
+    ''' -------Setup keyboard interrupt----------
+    '''
+    # import arcgisscripting
+
+    def ctrlc(sig, frame):
+        raise KeyboardInterrupt("CTRL-C!")
+    signal.signal(signal.SIGINT, ctrlc)
+    '''+++++++++++++++LOGGING++++++++++++++++++'''
+    date_string = strftime("%Y%m%d_%H_%M_%S")
+
+    # designate the output logfile
+    logfile = os.path.join(set_["logfile_dir"],'List%s_%s_logfile.log' % (list_number, date_string))
+
+    # if multiprocessing is used, disable logging except for critical messages.
+    if set_["use_multiprocessing"]:
+        level_console = "CRITICAL"
+        level_logfile = "CRITICAL"
+    else:
+        level_console = set_["logging_level_console"]
+        level_logfile = set_["logging_level_logfile"]
+
+    logging = korbinian.common.setup_error_logging(logfile, level_console, level_logfile)
+    return logging
+
+
+def setup_error_logging(logfile, level_console="DEBUG", level_logfile="DEBUG"):
+    """ Sets up error logging, and logs a number of system settings.
+
+    Parameters:
+    -----------
+    logfile : str
+        Path to output logfile. If size exceeds limit set below in JSON settings, path.1, path.2 etc will be created.
+    level_console : str
+        Logging level for printing to console. DEBUG, WARNING or CRITICAL
+    level_logfile : str
+        Logging level for printing to logfile. DEBUG, WARNING or CRITICAL
+    """
+    # load the log settings in json format
+    logsettings = json.dumps({
+        "handlers": {
+            "console": {
+                "formatter": "brief",
+                "class": "logging.StreamHandler",
+                "stream": "ext://sys.stdout",
+                "level": "DEBUG"
+            },
+            "file": {
+                "maxBytes": 10000000,
+                "formatter": "precise",
+                "backupCount": 3,
+                "class": "logging.handlers.RotatingFileHandler",
+                "level": "DEBUG",
+                "filename": "logfile.txt"
+            }
+        },
+        "version": 1,
+        "root": {
+            "handlers": [
+                "console",
+                "file"
+            ],
+            "propagate": "no",
+            "level": "DEBUG"
+        },
+        "formatters": {
+            "simple": {
+                "format": "format=%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+            },
+            "precise": {
+                "format": "%(asctime)s %(name)-15s %(levelname)-8s %(message)s"
+            },
+            "brief": {
+                "format": "%(levelname)-8s: %(name)-15s: %(message)s"
+            }
+        }
+    }, skipkeys=True, sort_keys=True, indent=4, separators=(',', ': '))
+
+    config=json.loads(logsettings)
+    # add user parameters to the logging settings (logfile, and logging levels)
+    config['handlers']['file']['filename'] = logfile
+    config['handlers']['console']['level'] = level_console
+    config['handlers']['file']['level'] = level_logfile
+
+    #create a blank logging file
+    with open(logfile, 'w') as f:
+        pass
+
+    #clear any previous logging handlers that might have been previously run in the console
+    logging.getLogger('').handlers = []
+    #load the logging settings from the modified json string
+    logging.config.dictConfig(config)
+    # collect a number of system settings that could be useful for troubleshooting
+    system_settings_dict = {}
+    system_settings_dict["system description"] = platform.uname()
+    system_settings_dict["system"] = platform.system()
+    system_settings_dict["architecture"] = platform.architecture()
+    system_settings_dict["network_name"] = platform.node()
+    system_settings_dict["release"] = platform.release()
+    system_settings_dict["version"] = platform.version()
+    system_settings_dict["machine"] = platform.machine()
+    system_settings_dict["processor"] = platform.processor()
+    system_settings_dict["python_version"] = platform.python_version()
+    system_settings_dict["python_build"] = platform.python_build()
+    system_settings_dict["python_compiler"] = platform.python_compiler()
+    system_settings_dict["argv"] = sys.argv
+    system_settings_dict["dirname(argv[0])"] = os.path.abspath(os.path.expanduser(os.path.dirname(sys.argv[0])))
+    system_settings_dict["pwd"] = os.path.abspath(os.path.expanduser(os.path.curdir))
+    system_settings_dict["total_ram"] = "{:0.2f} GB".format(psutil.virtual_memory()[0] / 1000000000)
+    system_settings_dict["available_ram"] = "{:0.2f} GB ({}% used)".format(psutil.virtual_memory()[1] / 1000000000, psutil.virtual_memory()[2])
+    # log the system settings
+    logging.warning(system_settings_dict)
+    #test error message reporting
+    #logging.warning('LOGGING TEST:')
+    #try:
+    #    open('/path/to/does/not/exist', 'rb')
+    #except (SystemExit, KeyboardInterrupt):
+    #    raise
+    #except Exception:
+    #    logging.error('Failed to open file', exc_info=True)
+    logging.warning('LOGGING SETUP IS SUCCESSFUL (logging levels: console={}, logfile={}). \n'.format(level_console, level_logfile))
+    return logging
 
 
 def create_pathdict(base_filename_summaries):
@@ -86,114 +192,3 @@ def create_pathdict(base_filename_summaries):
     pathdict["csv_std_cons_ratio_all_proteins"] = '%s_cons_ratios_nonred_std.csv' % base_filename_summaries
     pathdict["create_graph_of_gap_density_png"] = '%s_create_graph_of_gap_density.png' % base_filename_summaries
     return pathdict
-
-
-def setup_error_logging(logfile):
-    #you can either adjust the log settings from an external file, or paste them in teh script
-    #external_log_settings_file = r'E:\Stephis\Projects\Programming\Python\files\learning\json\logging_settings.json'
-
-    #load the log settings in json format, so it is easy to modify
-    logsettings = json.dumps({
-        "handlers": {
-            "console": {
-                "formatter": "brief",
-                "class": "logging.StreamHandler",
-                "stream": "ext://sys.stdout",
-                "level": "DEBUG"
-            },
-            "file": {
-                "maxBytes": 10000000,
-                "formatter": "precise",
-                "backupCount": 3,
-                "class": "logging.handlers.RotatingFileHandler",
-                "filename": "logfile.txt"
-            }
-        },
-        "loggers": {
-            "simpleExample": {
-                "handlers": [
-                    "console",
-                    "file"
-                ],
-                "propagate": "no",
-                "level": "DEBUG"
-            }
-        },
-        "version": 1,
-        "root": {
-            "handlers": [
-                "console",
-                "file"
-            ],
-            "level": "DEBUG"
-        },
-        "formatters": {
-            "simple": {
-                "format": "format=%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-            },
-            "precise": {
-                "format": "%(asctime)s %(name)-15s %(levelname)-8s %(message)s"
-            },
-            "brief": {
-                "format": "%(levelname)-8s: %(name)-15s: %(message)s"
-            }
-        }
-    }, skipkeys=True, sort_keys=True, indent=4, separators=(',', ': '))
-
-    #modify the location of the log file to suit your needs
-    config=json.loads(logsettings)
-    config['handlers']['file']['filename'] = logfile
-    #logging.info(logsettings)
-
-    #save the logging settings in an external file (if desired)
-    #with open(settings_file_output, 'w') as f:
-    #    f.write(json.dumps(config, f, indent=4, sort_keys=True))
-
-    #create a blank logging file
-    with open(logfile, 'w') as f:
-        pass
-
-    #clear any previous logging handlers that might have been previously run in the console
-    logging.getLogger('').handlers = []
-    #load the logging settings from the modified json string
-    logging.config.dictConfig(config)
-
-    #write system settings to logfile
-    logging.warning('LOGGING LEVEL: %s' % config["loggers"]["simpleExample"]["level"])
-    #logging.critical('Example of critical-level error. Current logging settings are level %s. At level DEBUG this logfile should also contain examples of WARNING and INFO level reports.' % config['handlers']['console']['level'])
-    #logging.warning('Example of warning-level error')
-    #logging.info('Example of info-level error\n')
-    logging.info('SYSTEM INFORMATION')
-    system_settings_dict = {}
-    system_settings_dict["system description"] = platform.uname()
-    system_settings_dict["system"] = platform.system()
-    system_settings_dict["architecture"] = platform.architecture()
-    system_settings_dict["network_name"] = platform.node()
-    system_settings_dict["release"] = platform.release()
-    system_settings_dict["version"] = platform.version()
-    system_settings_dict["machine"] = platform.machine()
-    system_settings_dict["processor"] = platform.processor()
-    system_settings_dict["python_version"] = platform.python_version()
-    system_settings_dict["python_build"] = platform.python_build()
-    system_settings_dict["python_compiler"] = platform.python_compiler()
-    system_settings_dict["argv"] = sys.argv
-    system_settings_dict["dirname(argv[0])"] = os.path.abspath(os.path.expanduser(os.path.dirname(sys.argv[0])))
-    system_settings_dict["pwd"] = os.path.abspath(os.path.expanduser(os.path.curdir))
-    system_settings_dict["total_ram"] = "{:0.2f} GB".format(psutil.virtual_memory()[0] / 1000000000)
-    system_settings_dict["available_ram"] = "{:0.2f} GB ({}% used)".format(psutil.virtual_memory()[1] / 1000000000, psutil.virtual_memory()[2])
-
-    logging.warning(system_settings_dict)
-    #save the logging settings in the logfile
-    #logging.info('LOGGING SETTINGS FOR THIS RUN IN JSON FORMAT')
-    #logging.info("%s\n" % config)
-
-    #test error message reporting
-    #logging.warning('LOGGING TEST:')
-    #try:
-    #    open('/path/to/does/not/exist', 'rb')
-    #except (SystemExit, KeyboardInterrupt):
-    #    raise
-    #except Exception:
-    #    logging.error('Failed to open file', exc_info=True)
-    logging.warning('LOGGING SETUP IS SUCCESSFUL\n\nLOG INFORMATION STARTS HERE:\n')
-    return logging
