@@ -10,7 +10,7 @@ import zipfile
 
 def parse_SIMAP_to_csv(pathdict, set_, logging):
     counter_XML_to_CSV = 0
-    logging.info('~~~~~~~~~~~~  starting parse_SIMAP_to_csv   ~~~~~~~~~~~~')
+    logging.info('~~~~~~~~~~~~  starting parse_SIMAP_to_csv  ~~~~~~~~~~~~')
     # open dataframe with list of proteins
     df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
     # if "uniprot_acc" in df.columns:

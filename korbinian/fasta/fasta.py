@@ -6,10 +6,11 @@ import korbinian.mtutils as utils
 import zipfile
 
 def filter_and_save_fasta(pathdict, set_, logging):
-    logging.info('~~~~~~~~~~~~starting filter_and_save_fasta~~~~~~~~~~~~')
+    logging.info('~~~~~~~~~~~~  starting filter_and_save_fasta  ~~~~~~~~~~~~~')
     df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     #iterate over the dataframe for proteins with an existing list_of_TMDs. acc = uniprot accession.
     for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
+        logging.info(acc)
         # if the homol_df_orig_zip file does not exist, skip that protein
         if not os.path.exists(df.loc[acc, 'homol_df_orig_zip']):
             logging.info("{} Protein skipped, file not found.".format(df.loc[acc, 'homol_df_orig_zip']))
@@ -20,7 +21,9 @@ def filter_and_save_fasta(pathdict, set_, logging):
         if dfh.empty:
             logging.info("{} Protein skipped, file deleted as it is possibly corrupt.".format(df.loc[acc, 'homol_df_orig_zip']))
             continue
-        list_of_TMDs = df.loc[acc, 'list_of_TMDs'].strip("[']").split(", ")
+        #list_of_TMDs = df.loc[acc, 'list_of_TMDs'].strip("[']").split(", ")
+        list_of_TMDs = ast.literal_eval(df.loc[acc, 'list_of_TMDs'])
+
         if os.path.isfile(df.loc[acc, "fa_fasta_zip"]):
             os.remove(df.loc[acc, "fa_fasta_zip"])
         zipout_fasta = zipfile.ZipFile(df.loc[acc, "fa_fasta_zip"], mode="a", compression=zipfile.ZIP_DEFLATED)
@@ -184,5 +187,6 @@ def filter_and_save_fasta(pathdict, set_, logging):
                     #                                            str(dfs.loc[row, 'description'])[:30],
                     #                                            dfs.loc[row, '%s_SW_match_seq%s' % (TMD, s)]))
 
-            zipout_fasta.close()
-    logging.info("~~~~~run_create_fasta is finished ~~~~~")
+        # close the zipfile
+        zipout_fasta.close()
+    logging.info('~~~~~~~~~~~~  run_create_fasta is finished  ~~~~~~~~~~~~~')

@@ -9,7 +9,7 @@ import zipfile
 import pandas as pd
 
 def slice_TMDs_from_homologues(pathdict, set_, logging):
-    logging.info('~~~~~~~~~~~~starting slice_TMDs_from_homologues~~~~~~~~~~~~')
+    logging.info('~~~~~~~~~~  starting slice_TMDs_from_homologues  ~~~~~~~~~~')
     df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     #iterate over the dataframe for proteins with an existing list_of_TMDs. Note that acc = uniprot accession here.
     for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
