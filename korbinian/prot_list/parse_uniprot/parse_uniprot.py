@@ -232,7 +232,7 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
         dfu.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     logging.info('create_csv_from_uniprot_flatfile was successful:'
-                 '\n\%i uniprot records parsed to csv' % (count_of_uniprot_records_added_to_csv))
+                 '%i uniprot records parsed to csv' % (count_of_uniprot_records_added_to_csv))
 
 
 def create_dictionary_of_comments(uniprot_record_handle, output_dictionary):
