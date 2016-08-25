@@ -66,23 +66,17 @@ def run_calculate_AAIMON_ratios(pathdict, set_, logging):
         # filter based on the query string
         dfh.query(fa_homol_query_str, inplace=True)
 
+        # calculate the nonTMD percentage identity and gaps
+        df, df_cr = korbinian.cons_ratio.calc_nonTMD_perc_ident_and_gaps(acc, df_cr, set_, df, list_of_TMDs, logging)
+
         for TMD in list_of_TMDs:
             # open the dataframe containing the sequences, gap counts, etc for that TMD only
-            print("{}_{}_sliced.pickle".format(acc, TMD))
             df_cr = utils.open_df_from_pickle_zip(df.loc[acc, 'fa_cr_sliced_TMDs_zip'], filename="{}_{}_sliced.pickle".format(acc, TMD), delete_corrupt=True)
             # filter based on dfh above, for general homologue settings (e.g. % identity of full protein)
             df_cr = df_cr.loc[dfh.index,:]
 
-            '''
-            3) values associated each TMD, such as average AAIMON ratio
-            '''
-
-            # calculate the nonTMD percentage identity and gaps
-            df, df_cr = korbinian.cons_ratio.calc_nonTMD_perc_ident_and_gaps(acc, df_cr, set_, df, list_of_TMDs, logging)
-
-            # calculate AAISMON etc for each TMD
-            for TMD in list_of_TMDs:
-                df, df_cr = korbinian.cons_ratio.calc_AAIMON(acc, TMD, df_cr, set_, df, logging)
+            # # calculate AAISMON etc for each TMD
+            df, df_cr = korbinian.cons_ratio.calc_AAIMON(acc, TMD, df_cr, set_, df, logging)
 
             homol_cr_ratios_zip = df.loc[acc, 'homol_cr_ratios_zip']
             AAIMON_hist_path_prefix = df.loc[acc, 'AAIMON_hist_path_prefix']

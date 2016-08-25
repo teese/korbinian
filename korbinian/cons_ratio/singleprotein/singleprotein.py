@@ -1,7 +1,7 @@
 import korbinian.mtutils as utils
 import pandas as pd
 
-def slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_homol):
+def slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_homol):
     ########################################################################################
     #                                                                                      #
     #                Slice out TMD regions [fasta and AAIMON]                              #
@@ -53,7 +53,7 @@ def slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_h
         n_TMDs_w_homol += 1
         len_query_TMD = len(df.loc[acc, '%s_seq' % TMD])
         # apply the slicing function to the homologues
-        # df_TMD = korbinian.cons_ratio.slice_homologues_and_count_gaps(TMD, len_query_TMD, df_TMD,
+        # df_TMD = korbinian.cons_ratio.slice_TMD_homol_and_count_gaps(TMD, len_query_TMD, df_TMD,
         #                                                               set_["cr_max_n_gaps_in_query_TMD"],
         #                                                               set_["cr_max_n_gaps_in_match_TMD"])
         # use small throwaway functions to slice each TMD from the query, markup and match sequences

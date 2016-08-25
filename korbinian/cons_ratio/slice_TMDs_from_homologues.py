@@ -139,24 +139,32 @@ def slice_TMDs_from_homologues(pathdict, set_, logging):
 
         # get directory for zip (and other temp files to be transferred)
         homol_dir = os.path.dirname(fa_cr_sliced_TMDs_zip)
-        # create a specific dataframe to hold the indices (True, start, end) of all the TMD segments
-        df_TMD_indices = pd.DataFrame()
+        # create a specific dataframe to hold the nonTMD region, including indices (True, start, end) of all the TMD segments
+        df_nonTMD_sliced = pd.DataFrame()
+        # add the length of the alignment sequence from dfs, to act as the "end" of all the nonTMD regions
+        df_nonTMD_sliced['len_query_align_seq'] = dfs['len_query_align_seq']
         for TMD in list_of_TMDs:
-            df_TMD = korbinian.cons_ratio.slice_homologues_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_homol)
+            df_TMD = korbinian.cons_ratio.slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_homol)
 
-            # transfer the columns with indices across to the df_TMD_indices
+            # transfer the columns with indices across to the df_nonTMD_sliced
             cols = ['%s_in_SW_alignment' % TMD, '%s_start_in_SW_alignment' % TMD, '%s_end_in_SW_alignment' % TMD]
             for col in cols:
-                df_TMD_indices[col] = df_TMD[col]
+                df_nonTMD_sliced[col] = df_TMD[col]
 
             TM_temp_pickle = os.path.join(homol_dir, "{}_{}_sliced.pickle".format(acc, TMD))
             with open(TM_temp_pickle, "wb") as p:
                 pickle.dump(df_TMD, p)
             homol_sliced_zip.write(TM_temp_pickle, arcname=os.path.basename(TM_temp_pickle))
             os.remove(TM_temp_pickle)
+            #korbinian.cons_ratio.slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs)
 
-        TMD_indices_temp_pickle = os.path.join(homol_dir, "{}_TMD_indices.pickle".format(acc, TMD))
-        nonTMD_temp_pickle = os.path.join(homol_dir, "{}_nonTMD_sliced.pickle".format(acc, TMD))
+        df_nonTMD_sliced = korbinian.cons_ratio.slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs)
+
+        df_nonTMD_temp_pickle = os.path.join(homol_dir, "{}_nonTMD_sliced.pickle".format(acc, TMD))
+        with open(df_nonTMD_temp_pickle, "wb") as p:
+            pickle.dump(df_nonTMD_sliced, p)
+        homol_sliced_zip.write(df_nonTMD_temp_pickle, arcname=os.path.basename(df_nonTMD_temp_pickle))
+        os.remove(df_nonTMD_temp_pickle)
 
         homol_sliced_zip.close()
 
@@ -214,7 +222,7 @@ def slice_TMDs_from_homologues(pathdict, set_, logging):
         #     n_TMDs_w_homol += 1
         #     len_query_TMD = len(df.loc[acc, '%s_seq' % TMD])
         #     # apply the slicing function to the homologues
-        #     df_TMD = korbinian.cons_ratio.slice_homologues_and_count_gaps(TMD, len_query_TMD, df_TMD, set_["cr_max_n_gaps_in_query_TMD"], set_["cr_max_n_gaps_in_match_TMD"])
+        #     df_TMD = korbinian.cons_ratio.slice_TMD_homol_and_count_gaps(TMD, len_query_TMD, df_TMD, set_["cr_max_n_gaps_in_query_TMD"], set_["cr_max_n_gaps_in_match_TMD"])
 
 
 
