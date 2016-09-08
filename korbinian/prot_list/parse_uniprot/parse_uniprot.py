@@ -1,5 +1,4 @@
 import logging
-
 from Bio import SwissProt
 import re
 import numpy as np
@@ -8,7 +7,7 @@ import csv
 import korbinian
 import korbinian.mtutils as utils
 
-def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_, logging, pathdict):
+def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, n_aa_before_tmd, n_aa_after_tmd, logging, list_summary_csv_path):
     logging.info('~~~~~~~~~~~~  starting A03_create_csv_from_uniprot_flatfile   ~~~~~~~~~~~~')
     uniprot_dict_all_proteins = {}
     with open(uniprot_flatfile_of_selected_records, "r") as f:
@@ -180,9 +179,6 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
         # count records in dataframe
         count_of_uniprot_records_added_to_csv = dfu.shape[0]
 
-        ''' ~~ DETERMINE START AND STOP INDICES FOR TMD PLUS SURROUNDING SEQ ~~ '''
-        n_aa_before_tmd = set_["n_aa_before_tmd"]
-        n_aa_after_tmd = set_["n_aa_after_tmd"]
         # determine max number of TMD columns that need to be created
         max_num_TMDs = dfu['number_of_TMDs'].max()
         # currently the loop is run for each TMD, based on the sequence with the most TMDs
@@ -228,8 +224,8 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_,
         # indicate that the create_csv_from_uniprot_flatfile function has been run
         dfu['create_csv_from_uniprot_flatfile'] = True
         # save to a csv
-        utils.make_sure_path_exists(pathdict["list_summary_csv"], isfile=True)
-        dfu.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+        utils.make_sure_path_exists(list_summary_csv_path, isfile=True)
+        dfu.to_csv(list_summary_csv_path, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     logging.info('create_csv_from_uniprot_flatfile was successful:'
                  '%i uniprot records parsed to csv' % (count_of_uniprot_records_added_to_csv))

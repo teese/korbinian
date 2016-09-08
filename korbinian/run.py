@@ -124,7 +124,11 @@ def run_korbinian(excel_file_with_settings):
         korbinian.prot_list.retrieve_uniprot_data_for_acc_list_in_xlsx_file(excelfile_with_uniprot_accessions, logging, uniprot_flatfile_of_selected_records)
 
     if set_["run_create_csv_from_uniprot_flatfile"]:
-        korbinian.prot_list.create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, set_, logging, pathdict)
+        ''' ~~ DETERMINE START AND STOP INDICES FOR TMD PLUS SURROUNDING SEQ ~~ '''
+        n_aa_before_tmd = set_["n_aa_before_tmd"]
+        n_aa_after_tmd = set_["n_aa_after_tmd"]
+        list_summary_csv_path = pathdict["list_summary_csv"]
+        korbinian.prot_list.create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, n_aa_before_tmd, n_aa_after_tmd, logging, list_summary_csv_path)
 
     ########################################################################################
     #                                                                                      #
