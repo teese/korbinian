@@ -66,17 +66,46 @@ def run_calculate_AAIMON_ratios(pathdict, set_, logging):
         # filter based on the query string
         dfh.query(fa_homol_query_str, inplace=True)
 
+        '''Calculate average values, add to original dataframe.
+           1) values associated with the FASTA output of SIMAP
+        '''
+        # fasta identity
+        df.loc[acc, 'FASTA_ident_mean'] = float('%0.2f' % dfh['FASTA_identity'].mean())
+        # number of identical residues in FASTA alignment
+        dfh['FASTA_num_ident_res'] = dfh['FASTA_identity'] / 100 * dfh['FASTA_overlap']
+        df.loc[acc, 'FASTA_num_ident_res'] = float('%0.2f' % dfh['FASTA_identity'].mean())
+
+        nonTMD_pickle_name = "{}_nonTMD_sliced.pickle".format(acc)
+        df_nonTMD = utils.open_df_from_pickle_zip(df.loc[acc, 'fa_cr_sliced_TMDs_zip'], filename=nonTMD_pickle_name, delete_corrupt=True)
+        if df_nonTMD.empty:
+            logging.info("{}file was corrupt and was deleted".format(df.loc[acc, 'fa_cr_sliced_TMDs_zip']))
+            continue
+
+        # filter based on dfh above, for general homologue settings (e.g. % identity of full protein)
+        df_nonTMD = df_nonTMD.loc[dfh.index, :]
+
         # calculate the nonTMD percentage identity and gaps
-        df, df_cr = korbinian.cons_ratio.calc_nonTMD_perc_ident_and_gaps(acc, df_cr, set_, df, list_of_TMDs, logging)
+        df, df_nonTMD = korbinian.cons_ratio.calc_nonTMD_perc_ident_and_gaps(acc, df_nonTMD, df, logging)
+
+        # save the nonTMD dataframe
+
+        # filter nonTMD dataframe to only contain entries where nonTMD_perc_ident is not zero
+        df_nonTMD = df_nonTMD.loc[df_nonTMD['nonTMD_perc_ident'] != 0]
 
         for TMD in list_of_TMDs:
             # open the dataframe containing the sequences, gap counts, etc for that TMD only
             df_cr = utils.open_df_from_pickle_zip(df.loc[acc, 'fa_cr_sliced_TMDs_zip'], filename="{}_{}_sliced.pickle".format(acc, TMD), delete_corrupt=True)
-            # filter based on dfh above, for general homologue settings (e.g. % identity of full protein)
-            df_cr = df_cr.loc[dfh.index,:]
-
-            # # calculate AAISMON etc for each TMD
-            df, df_cr = korbinian.cons_ratio.calc_AAIMON(acc, TMD, df_cr, set_, df, logging)
+            # add the nonTMD percentage identity, etc. NOTE THAT THE INDEX SHOULD STILL BE COMPATIBLE, as the hit_num!
+            df_cr['nonTMD_perc_ident'] = df_nonTMD['nonTMD_perc_ident']
+            df_cr['nonTMD_perc_sim_plus_ident'] = df_nonTMD['nonTMD_perc_sim_plus_ident']
+            df_cr['FASTA_overlap'] = dfh['FASTA_overlap']
+            df_cr['len_full_match_seq'] = dfh[ 'len_full_match_seq']
+            # filter based on dfh above, for general homologue settings (e.g. % identity of full protein), and df_nonTMD (for nonTMD_perc_ident is not zero, etc)
+            df_cr = df_cr.loc[df_nonTMD.index,:]
+            # following the general filters, filter to only analyse sequences with TMD identity above cutoff, and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
+            df_cr = df_cr.loc[df_cr['%s_perc_ident' % TMD] >= set_['cr_min_identity_of_TMD_initial_filter']]
+            # calculate AAISMON etc for each TMD
+            df, df_cr = korbinian.cons_ratio.calc_AAIMON(acc, TMD, df_cr, df, logging)
 
             homol_cr_ratios_zip = df.loc[acc, 'homol_cr_ratios_zip']
             AAIMON_hist_path_prefix = df.loc[acc, 'AAIMON_hist_path_prefix']

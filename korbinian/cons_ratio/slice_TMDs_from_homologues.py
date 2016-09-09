@@ -135,38 +135,36 @@ def slice_TMDs_from_homologues(pathdict, set_, logging):
         if os.path.isfile(fa_cr_sliced_TMDs_zip):
             os.remove(fa_cr_sliced_TMDs_zip)
         # open new zipfile (NOTE, it must be closed later!!)
-        homol_sliced_zip = zipfile.ZipFile(fa_cr_sliced_TMDs_zip, mode="a", compression=zipfile.ZIP_DEFLATED)
+        with zipfile.ZipFile(df.loc[acc, 'fa_cr_sliced_TMDs_zip'], mode="a", compression=zipfile.ZIP_DEFLATED) as homol_sliced_zip:
 
-        # get directory for zip (and other temp files to be transferred)
-        homol_dir = os.path.dirname(fa_cr_sliced_TMDs_zip)
-        # create a specific dataframe to hold the nonTMD region, including indices (True, start, end) of all the TMD segments
-        df_nonTMD_sliced = pd.DataFrame()
-        # add the length of the alignment sequence from dfs, to act as the "end" of all the nonTMD regions
-        df_nonTMD_sliced['len_query_align_seq'] = dfs['len_query_align_seq']
-        for TMD in list_of_TMDs:
-            df_TMD = korbinian.cons_ratio.slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_homol)
+            # get directory for zip (and other temp files to be transferred)
+            homol_dir = os.path.dirname(fa_cr_sliced_TMDs_zip)
+            # create a specific dataframe to hold the nonTMD region, including indices (True, start, end) of all the TMD segments
+            # add the FASTA_gapped_identity and length of the alignment sequence from dfs, to act as the "end" of all the nonTMD regions
+            df_nonTMD_sliced = dfs[['len_query_align_seq']].copy()
+            for TMD in list_of_TMDs:
+                df_TMD = korbinian.cons_ratio.slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_homol)
 
-            # transfer the columns with indices across to the df_nonTMD_sliced
-            cols = ['%s_in_SW_alignment' % TMD, '%s_start_in_SW_alignment' % TMD, '%s_end_in_SW_alignment' % TMD]
-            for col in cols:
-                df_nonTMD_sliced[col] = df_TMD[col]
+                # transfer the columns with indices across to the df_nonTMD_sliced
+                cols = ['%s_in_SW_alignment' % TMD, '%s_start_in_SW_alignment' % TMD, '%s_end_in_SW_alignment' % TMD]
+                for col in cols:
+                    df_nonTMD_sliced[col] = df_TMD[col]
 
-            TM_temp_pickle = os.path.join(homol_dir, "{}_{}_sliced.pickle".format(acc, TMD))
-            with open(TM_temp_pickle, "wb") as p:
-                pickle.dump(df_TMD, p)
-            homol_sliced_zip.write(TM_temp_pickle, arcname=os.path.basename(TM_temp_pickle))
-            os.remove(TM_temp_pickle)
-            #korbinian.cons_ratio.slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs)
+                TM_temp_pickle = os.path.join(homol_dir, "{}_{}_sliced.pickle".format(acc, TMD))
+                with open(TM_temp_pickle, "wb") as p:
+                    pickle.dump(df_TMD, p)
+                homol_sliced_zip.write(TM_temp_pickle, arcname=os.path.basename(TM_temp_pickle))
+                os.remove(TM_temp_pickle)
+                #korbinian.cons_ratio.slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs)
 
-        df_nonTMD_sliced = korbinian.cons_ratio.slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs)
+            df_nonTMD_sliced = korbinian.cons_ratio.slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs)
 
-        df_nonTMD_temp_pickle = os.path.join(homol_dir, "{}_nonTMD_sliced.pickle".format(acc, TMD))
-        with open(df_nonTMD_temp_pickle, "wb") as p:
-            pickle.dump(df_nonTMD_sliced, p)
-        homol_sliced_zip.write(df_nonTMD_temp_pickle, arcname=os.path.basename(df_nonTMD_temp_pickle))
-        os.remove(df_nonTMD_temp_pickle)
+            df_nonTMD_temp_pickle = os.path.join(homol_dir, "{}_nonTMD_sliced.pickle".format(acc))
+            with open(df_nonTMD_temp_pickle, "wb") as p:
+                pickle.dump(df_nonTMD_sliced, p)
+            homol_sliced_zip.write(df_nonTMD_temp_pickle, arcname=os.path.basename(df_nonTMD_temp_pickle))
+            os.remove(df_nonTMD_temp_pickle)
 
-        homol_sliced_zip.close()
 
         # ########################################################################################
         # #                                                                                      #

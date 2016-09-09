@@ -3,7 +3,6 @@ import korbinian.mtutils as utils
 import pandas as pd
 
 def slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs):
-
     ########################################################################################
     #                                                                                      #
     #                           nonTMD calculations    [AAIMON]                            #
@@ -138,90 +137,73 @@ def slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs):
         return df_nonTMD_sliced
 
 
-def calc_nonTMD_perc_ident_and_gaps(acc, df_cr, set_, df, list_of_TMDs, logging):
+def calc_nonTMD_perc_ident_and_gaps(acc, df_nonTMD, df, logging):
+
+
         ########################################################################################
         #                                                                                      #
         #         calculate nonTMD len, percent identity, gaps, etc [AAIMON]                   #
         #                                                                                      #
         ########################################################################################
         # calculate identical residues in the nonTMD region (simply count the pipes '|' in the markup sequence)
-        df_cr['nonTMD_num_ident_res'] = df_cr['nonTMD_markup'].str.count('|')
+        df_nonTMD['nonTMD_num_ident_res'] = df_nonTMD['nonTMD_markup'].str.count('|')
         # calculate similar residues in the nonTMD region (simply count the colons ':' in the markup sequence)
-        df_cr['nonTMD_num_sim_res'] = df_cr['nonTMD_markup'].str.count(':')
+        df_nonTMD['nonTMD_num_sim_res'] = df_nonTMD['nonTMD_markup'].str.count(':')
         # add the identical and similar residues together to get the total number of similar + identical residues
-        df_cr['nonTMD_num_sim_plus_ident_res'] = df_cr['nonTMD_num_ident_res'] + df_cr['nonTMD_num_sim_res']
+        df_nonTMD['nonTMD_num_sim_plus_ident_res'] = df_nonTMD['nonTMD_num_ident_res'] + df_nonTMD['nonTMD_num_sim_res']
 
         # count the gaps in the nonTMD sequence of the query
-        df_cr['nonTMD_q_num_gaps'] = df_cr['nonTMD_seq_query'].str.count('-')
+        df_nonTMD['nonTMD_q_num_gaps'] = df_nonTMD['nonTMD_seq_query'].str.count('-')
         # count the gaps in the nonTMD sequence of the match
-        df_cr['nonTMD_m_num_gaps'] = df_cr['nonTMD_seq_match'].str.count('-')
+        df_nonTMD['nonTMD_m_num_gaps'] = df_nonTMD['nonTMD_seq_match'].str.count('-')
         # calculate the length of the nonTMD sequences, which may include gaps
-        df_cr['len_nonTMD_seq_query'] = df_cr['nonTMD_seq_query'].str.len()
-        df_cr['len_nonTMD_seq_match'] = df_cr['nonTMD_seq_match'].str.len()
+        df_nonTMD['len_nonTMD_seq_query'] = df_nonTMD['nonTMD_seq_query'].str.len()
+        df_nonTMD['len_nonTMD_seq_match'] = df_nonTMD['nonTMD_seq_match'].str.len()
         # calculate the number aligned sequences, excluding gaps (length of query, or length of match, whichever is shorter)
-        df_cr['len_nonTMD_align'] = df_cr[['len_nonTMD_seq_query', 'len_nonTMD_seq_match']].dropna(how='all').min(axis=1)
+        df_nonTMD['len_nonTMD_align'] = df_nonTMD[['len_nonTMD_seq_query', 'len_nonTMD_seq_match']].dropna(how='all').min(axis=1)
 
         # calculate the length of the nonTMD sequence excluding gaps
-        df_cr['len_nonTMD_q_excl_gaps'] = df_cr['len_nonTMD_seq_query'] - df_cr['nonTMD_q_num_gaps']
-        df_cr['len_nonTMD_m_excl_gaps'] = df_cr['len_nonTMD_seq_match'] - df_cr['nonTMD_m_num_gaps']
+        df_nonTMD['len_nonTMD_q_excl_gaps'] = df_nonTMD['len_nonTMD_seq_query'] - df_nonTMD['nonTMD_q_num_gaps']
+        df_nonTMD['len_nonTMD_m_excl_gaps'] = df_nonTMD['len_nonTMD_seq_match'] - df_nonTMD['nonTMD_m_num_gaps']
         # calculate the lenth of the alignment by finding which seq excl gaps is smaller
-        df_cr['len_nonTMD_align'] = df_cr[['len_nonTMD_q_excl_gaps', 'len_nonTMD_m_excl_gaps']].min(axis=1)
+        df_nonTMD['len_nonTMD_align'] = df_nonTMD[['len_nonTMD_q_excl_gaps', 'len_nonTMD_m_excl_gaps']].min(axis=1)
 
         # calculate the percentage identity of the nonTMD region (number of identical residues divided by the length excluding gaps)
         # used for the Amino Acid Identity : Membranous over Nonmembranous (AAIMON ratio)
         # note that the length = length of the aligned residues excluding gaps
-        df_cr['nonTMD_perc_ident'] = df_cr['nonTMD_num_ident_res'] / df_cr['len_nonTMD_align']
-        df_cr['nonTMD_perc_sim'] = df_cr['nonTMD_num_sim_res'] / df_cr['len_nonTMD_align']
-        df_cr['nonTMD_perc_sim_plus_ident'] = df_cr['nonTMD_num_sim_plus_ident_res'] / df_cr['len_nonTMD_align']
+        df_nonTMD['nonTMD_perc_ident'] = df_nonTMD['nonTMD_num_ident_res'] / df_nonTMD['len_nonTMD_align']
+        df_nonTMD['nonTMD_perc_sim'] = df_nonTMD['nonTMD_num_sim_res'] / df_nonTMD['len_nonTMD_align']
+        df_nonTMD['nonTMD_perc_sim_plus_ident'] = df_nonTMD['nonTMD_num_sim_plus_ident_res'] / df_nonTMD['len_nonTMD_align']
         # calculate the average number of gaps per residue in the nonTMD alignment
         # filter to analyse only sequences that are valid (length > 0)
-        df_cr_filt_gaps = df_cr.loc[df_cr['len_nonTMD_q_excl_gaps'] != 0]
+        df_nonTMD_filt_gaps = df_nonTMD.loc[df_nonTMD['len_nonTMD_q_excl_gaps'] != 0]
         # calculate number of gaps in query AND match
-        df_cr_filt_gaps['nonTMD_qm_num_gaps'] = df_cr_filt_gaps['nonTMD_q_num_gaps'] + df_cr_filt_gaps['nonTMD_m_num_gaps']
+        df_nonTMD_filt_gaps['nonTMD_qm_num_gaps'] = df_nonTMD_filt_gaps['nonTMD_q_num_gaps'] + df_nonTMD_filt_gaps['nonTMD_m_num_gaps']
         # add to simap dataframe
-        df_cr['nonTMD_qm_num_gaps'] = df_cr_filt_gaps['nonTMD_qm_num_gaps']
+        df_nonTMD['nonTMD_qm_num_gaps'] = df_nonTMD_filt_gaps['nonTMD_qm_num_gaps']
         # gaps per query residue for both query and match = ((gaps in query + gaps in match)/2))/length of query excluding gaps
-        df_cr['nonTMD_qm_gaps_per_q_residue'] = df_cr_filt_gaps['nonTMD_qm_num_gaps'] / 2 / df_cr_filt_gaps['len_nonTMD_q_excl_gaps']
+        df_nonTMD['nonTMD_qm_gaps_per_q_residue'] = df_nonTMD_filt_gaps['nonTMD_qm_num_gaps'] / 2 / df_nonTMD_filt_gaps['len_nonTMD_q_excl_gaps']
 
         # SSR ratio calculations take a long time and show no difference to AAIMON
         SSR_ratio_calculations = False
         if SSR_ratio_calculations:
             korbinian.cons_ratio.ssr.conduct_ssr_ratio_calculations()
 
-        # create optional filter string, related to X in the full sequence
-        cr_X_filt_str = " and X_in_match_seq == False" if set_["cr_X_allowed_in_full_seq"] == False else ""
-
-        # re-filter the original dataframe to create another copy with the desired sequences
-        cons_ratio_query_str = 'cr_gapped_ident_above_cutoff == True and ' \
-                               'hit_contains_SW_node == True and ' \
-                               'disallowed_words_not_in_descr == True' \
-                               '{}'.format(cr_X_filt_str)
-
-        df_cr_filt = df_cr.query(cons_ratio_query_str)
         ########################################################################################
         #                                                                                      #
         #   calculate average nonTMD len, perc ident, etc and add to list of proteins [AAIMON] #
         #                                                                                      #
         ########################################################################################
 
-        '''Calculate average values, add to original dataframe.
-           1) values associated with the FASTA output of SIMAP
-        '''
-        # fasta identity
-        df.loc[acc, 'FASTA_ident_mean'] = float('%0.2f' % df_cr['FASTA_identity'].mean())
-        # number of identical residues in FASTA alignment
-        df_cr['FASTA_num_ident_res'] = df_cr_filt['FASTA_identity'] / 100 * df_cr_filt['FASTA_overlap']
-        df.loc[acc, 'FASTA_num_ident_res'] = float('%0.2f' % df_cr_filt['FASTA_identity'].mean())
-
-        '''2) values associated with the nonTMD region
+        ''' calculate values associated with the nonTMD region and add to main dataframe
         '''
         # add the average values regarding the nonTMD region to the original file/dataframe with each protein
-        df.loc[acc, 'len_nonTMD_seq_match_mean'] = float('%0.2f' % df_cr_filt['len_nonTMD_seq_match'].dropna().mean())
-        df.loc[acc, 'nonTMD_perc_ident_mean'] = float('%0.3f' % df_cr_filt['nonTMD_perc_ident'].dropna().mean())
-        df.loc[acc, 'nonTMD_perc_sim_mean'] = float('%0.3f' % df_cr_filt['nonTMD_perc_sim'].dropna().mean())
-        df.loc[acc, 'nonTMD_perc_sim_plus_ident_mean'] = float('%0.3f' % df_cr_filt['nonTMD_perc_sim_plus_ident'].dropna().mean())
-        df.loc[acc, 'len_nonTMD_align_mean'] = float('%0.2f' % df_cr_filt['len_nonTMD_align'].dropna().mean())
-        df.loc[acc, 'nonTMD_qm_gaps_per_q_residue_mean'] = float('%0.2f' % df_cr_filt['nonTMD_qm_gaps_per_q_residue'].dropna().mean())
+        df.loc[acc, 'len_nonTMD_seq_match_mean'] = float('%0.2f' % df_nonTMD['len_nonTMD_seq_match'].dropna().mean())
+        df.loc[acc, 'nonTMD_perc_ident_mean'] = float('%0.3f' % df_nonTMD['nonTMD_perc_ident'].dropna().mean())
+        df.loc[acc, 'nonTMD_perc_sim_mean'] = float('%0.3f' % df_nonTMD['nonTMD_perc_sim'].dropna().mean())
+        df.loc[acc, 'nonTMD_perc_sim_plus_ident_mean'] = float('%0.3f' % df_nonTMD['nonTMD_perc_sim_plus_ident'].dropna().mean())
+        df.loc[acc, 'len_nonTMD_align_mean'] = float('%0.2f' % df_nonTMD['len_nonTMD_align'].dropna().mean())
+        df.loc[acc, 'nonTMD_qm_gaps_per_q_residue_mean'] = float('%0.2f' % df_nonTMD['nonTMD_qm_gaps_per_q_residue'].dropna().mean())
         logging.info('nonTMD_qm_gaps_per_q_residue : %0.5f' % df.loc[acc, 'nonTMD_qm_gaps_per_q_residue_mean'])
 
-        return df, df_cr
+        return df, df_nonTMD

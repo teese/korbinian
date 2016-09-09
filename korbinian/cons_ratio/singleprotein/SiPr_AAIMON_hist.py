@@ -66,7 +66,7 @@ def save_hist_AAIMON_ratio_single_protein(dfs, set_, list_of_TMDs, homol_cr_rati
             hist_data_S = np.array(dfs['%s_AASMON_ratio'%TMD].dropna())
             # use numpy to create a histogram
             freq_counts, bin_array = np.histogram(hist_data_S, bins=binlist)
-            # create a line graph rather than a bar graph for the AAISON (ident + similarity)
+            # create a line graph rather than a bar graph for the AASMON (ident + similarity)
             linecontainer_S = axarr[row_nr, col_nr].plot(centre_of_bar_in_x_axis, freq_counts,
                                                          color="#0101DF", alpha=0.5)
             # other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A

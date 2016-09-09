@@ -108,12 +108,12 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
                                                          align='center', width=col_width, color="#0489B1",
                                                          alpha=0.5)  # edgecolor='black',
     # create numpy array of membranous over nonmembranous conservation ratios (identity + similarity)
-    hist_data_AAISON_mean = np.array(df['AASMON_ratio_mean_all_TMDs'].dropna())
+    hist_data_AASMON_mean = np.array(df['AASMON_ratio_mean_all_TMDs'].dropna())
     # use numpy to create a histogram
-    freq_counts_S, bin_array_S = np.histogram(hist_data_AAISON_mean, bins=binlist)
+    freq_counts_S, bin_array_S = np.histogram(hist_data_AASMON_mean, bins=binlist)
     # barcontainer_S = axarr[row_nr,col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts_S, align='center', width=col_width, color="#0101DF", edgecolor="#0101DF", alpha = 0.5)
-    # create a line graph rather than a bar graph for the AAISON (ident + similarity)
-    linecontainer_AAISON_mean = axarr[row_nr, col_nr].plot(centre_of_bar_in_x_axis, freq_counts_S, color="#0101DF",
+    # create a line graph rather than a bar graph for the AASMON (ident + similarity)
+    linecontainer_AASMON_mean = axarr[row_nr, col_nr].plot(centre_of_bar_in_x_axis, freq_counts_S, color="#0101DF",
                                                            alpha=0.5)
     # other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
     # http://html-color-codes.info/
@@ -181,13 +181,13 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
                                                         align='center', width=col_width, color="#0489B1",
                                                         alpha=0.5)  # edgecolor='black',
     # create numpy array of membranous over nonmembranous conservation ratios (identity + similarity)
-    hist_data_AAISON_std = np.array(df['AASMON_ratio_std_all_TMDs'].dropna())
+    hist_data_AASMON_std = np.array(df['AASMON_ratio_std_all_TMDs'].dropna())
     # use numpy to create a histogram
     # N.B. use the bins from the previous plot
-    freq_counts, bin_array = np.histogram(hist_data_AAISON_std, bins=bin_array_S)
+    freq_counts, bin_array = np.histogram(hist_data_AASMON_std, bins=bin_array_S)
     # barcontainer_S = axarr[row_nr,col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts, align='center', width=col_width, color="#0101DF", edgecolor="#0101DF", alpha = 0.5)
-    # create a line graph rather than a bar graph for the AAISON (ident + similarity)
-    linecontainer_AAISON_std = axarr[row_nr, col_nr].plot(centre_of_bar_in_x_axis, freq_counts, color="#0101DF",
+    # create a line graph rather than a bar graph for the AASMON (ident + similarity)
+    linecontainer_AASMON_std = axarr[row_nr, col_nr].plot(centre_of_bar_in_x_axis, freq_counts, color="#0101DF",
                                                           alpha=0.5)
     # other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
     # http://html-color-codes.info/

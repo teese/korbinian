@@ -255,8 +255,8 @@ def create_line_hist_from_df_col(df,title,axarr,row_nr,col_nr,settings,data_colu
     #add the final bin, which is physically located just after the last regular bin but represents all higher values
     bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
     centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)        
-    #create a line graph rather than a bar graph for the AAISON (ident + similarity)
-    linecontainer_AAISON_mean = axarr[row_nr, col_nr].plot(centre_of_bar_in_x_axis, freq_counts_S, color=color,
+    #create a line graph rather than a bar graph for the AASMON (ident + similarity)
+    linecontainer_AASMON_mean = axarr[row_nr, col_nr].plot(centre_of_bar_in_x_axis, freq_counts_S, color=color,
                                                            alpha=alpha)
     #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A 
     #http://html-color-codes.info/
