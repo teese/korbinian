@@ -165,11 +165,15 @@ def create_pathdict(base_filename_summaries):
     pathdict["base_filename_summaries"] = base_filename_summaries
     # currently the protein list summary (each row is a protein, from uniprot etc) is a csv file
     pathdict["list_summary_csv"] = '%s_summary.csv' % base_filename_summaries
+    # define path for csv with conservation ratios(mean AAIMON) (output from the gather_AAIMON_ratios function)
+    pathdict["list_cr_summary_csv"] = '%s_cr_summary.csv' % base_filename_summaries
     # for SIMAP or BLAST downloads, gives a list of accessions that failed
     pathdict["failed_downloads_txt"] = '%s_failed_downloads.txt' % base_filename_summaries
     # add the base path for the sub-sequences (SE01, SE02, etc) added by the user
     pathdict["list_user_subseqs_csv"] = '%s_user_subseqs.csv' % base_filename_summaries
     pathdict["list_user_subseqs_xlsx"] = '%s_user_subseqs.xlsx' % base_filename_summaries
+
+
 
     pathdict["dfout01_uniprotcsv"] = '%s_uniprot.csv' % base_filename_summaries
     pathdict["dfout02_uniprotTcsv"] = '%s_uniprotT.csv' % base_filename_summaries

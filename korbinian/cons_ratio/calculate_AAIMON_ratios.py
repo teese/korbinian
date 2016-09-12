@@ -8,7 +8,7 @@ import korbinian.mtutils as utils
 import pandas as pd
 import zipfile
 
-def run_calculate_AAIMON_ratios(pathdict, set_, logging):
+def calculate_AAIMON_ratios(pathdict, set_, logging):
     logging.info('~~~~~~~~~~~~      starting run_calculate_AAIMON_ratios        ~~~~~~~~~~~~')
     df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     # set current working directory as the homol folder, where temp files will be saved before moving to zip
@@ -123,7 +123,6 @@ def run_calculate_AAIMON_ratios(pathdict, set_, logging):
 
                 logging.info('AAIMON MEAN %s: %0.2f' % (TMD, mean_ser['%s_AAIMON_ratio_mean' % TMD]))
                 # logging.info('AASMON MEAN %s: %0.2f' % (TMD, mean_ser['%s_AASMON_ratio_mean'%TMD]))
-
 
                 # save the dataframe for that TMD
                 TM_cr_outfile_pickle = "{}_{}_cr_df.pickle".format(acc, TMD)

@@ -23,6 +23,11 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
     # df = df.loc[df['list_of_TMDs'] != 'nan']
     #iterate over the dataframe, excluding any proteins that do not have a list of TMDs
     for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
+        # if overwrite_simap_parsed_to_csv is False, skip proteins where the homol_df_orig_zip file exists
+        if set_["overwrite_simap_parsed_to_csv"] == False:
+            if os.path.isfile(df.loc[acc,'homol_df_orig_zip']):
+                logging.info("{} skipped, homologues already parsed to csv".format(df.loc[acc,'protein_name']))
+                continue
         #set up counters
         number_of_hits_missing_protein_node = 0
         num_hits_with_SW_align_node = 0

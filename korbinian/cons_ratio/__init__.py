@@ -4,4 +4,5 @@ from korbinian.cons_ratio.singleprotein.SiPr_AAIMON_hist import save_hist_AAIMON
 from korbinian.cons_ratio.singleprotein.singleprotein import slice_TMD_homol_and_count_gaps, calc_AAIMON
 from korbinian.cons_ratio.singleprotein.nonTMD import slice_nonTMD_seqs, calc_nonTMD_perc_ident_and_gaps
 from korbinian.cons_ratio.slice_TMDs_from_homologues import slice_TMDs_from_homologues
-from korbinian.cons_ratio.calculate_AAIMON_ratios import run_calculate_AAIMON_ratios
+from korbinian.cons_ratio.calculate_AAIMON_ratios import calculate_AAIMON_ratios
+from korbinian.cons_ratio.gather import gather_AAIMON_ratios
