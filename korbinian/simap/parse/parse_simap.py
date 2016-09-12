@@ -397,7 +397,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                         df_homol.drop('align_pretty', axis=1, inplace=True)
                         # save the whole dataframe as a pickle for faster opening later
                         with open(df.loc[acc,'homol_df_orig_pickle'], "wb") as p:
-                            pickle.dump(df_homol, p)
+                            pickle.dump(df_homol, p, protocol=pickle.HIGHEST_PROTOCOL)
                         # either create new zip and add ("w"), or open existing zip and add "a"
                         with zipfile.ZipFile(df.loc[acc,'homol_df_orig_zip'], mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
                             #zipout.write(SIMAP_orig_csv, arcname=os.path.basename(SIMAP_orig_csv))

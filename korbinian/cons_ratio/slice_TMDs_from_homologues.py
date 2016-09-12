@@ -9,13 +9,11 @@ import zipfile
 import pandas as pd
 
 def slice_TMDs_from_homologues(pathdict, set_, logging):
-    logging.info('~~~~~~~~~~  starting slice_TMDs_from_homologues  ~~~~~~~~~~')
+    logging.info('~~~~~~~~~~~~       starting slice_TMDs_from_homologues        ~~~~~~~~~~~~')
     df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     #iterate over the dataframe for proteins with an existing list_of_TMDs. Note that acc = uniprot accession here.
     for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
-        # if set_["overwrite_prev_calculated_AAIMON_ratios"] == True or prev_calc_AAIMON_ratio_for_this_protein_exists == False:
-        protein_name = df.loc[acc, 'protein_name']
-        logging.info('%s' % protein_name)
+        logging.info(df.loc[acc, 'protein_name'])
 
         if not os.path.exists(df.loc[acc, 'homol_df_orig_zip']):
             logging.info("{} Protein skipped. File does not exist".format(df.loc[acc, 'homol_df_orig_zip']))
@@ -150,21 +148,22 @@ def slice_TMDs_from_homologues(pathdict, set_, logging):
                 for col in cols:
                     df_nonTMD_sliced[col] = df_TMD[col]
 
-                TM_temp_pickle = os.path.join(homol_dir, "{}_{}_sliced.pickle".format(acc, TMD))
+                TM_temp_pickle = os.path.join(homol_dir, "{}_{}_sliced_df.pickle".format(acc, TMD))
                 with open(TM_temp_pickle, "wb") as p:
-                    pickle.dump(df_TMD, p)
+                    pickle.dump(df_TMD, p, protocol=pickle.HIGHEST_PROTOCOL)
                 homol_sliced_zip.write(TM_temp_pickle, arcname=os.path.basename(TM_temp_pickle))
                 os.remove(TM_temp_pickle)
                 #korbinian.cons_ratio.slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs)
 
             df_nonTMD_sliced = korbinian.cons_ratio.slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs)
 
-            df_nonTMD_temp_pickle = os.path.join(homol_dir, "{}_nonTMD_sliced.pickle".format(acc))
+            df_nonTMD_temp_pickle = os.path.join(homol_dir, "{}_nonTMD_sliced_df.pickle".format(acc))
             with open(df_nonTMD_temp_pickle, "wb") as p:
-                pickle.dump(df_nonTMD_sliced, p)
+                pickle.dump(df_nonTMD_sliced, p, protocol=pickle.HIGHEST_PROTOCOL)
             homol_sliced_zip.write(df_nonTMD_temp_pickle, arcname=os.path.basename(df_nonTMD_temp_pickle))
             os.remove(df_nonTMD_temp_pickle)
 
+    logging.info("~~~~~~~~~~~~     slice_TMDs_from_homologues is finished       ~~~~~~~~~~~~")
 
         # ########################################################################################
         # #                                                                                      #

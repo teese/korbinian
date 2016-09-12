@@ -137,7 +137,7 @@ def slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs):
         return df_nonTMD_sliced
 
 
-def calc_nonTMD_perc_ident_and_gaps(acc, df_nonTMD, df, logging):
+def calc_nonTMD_perc_ident_and_gaps(acc, df_nonTMD, mean_ser, logging):
 
 
         ########################################################################################
@@ -198,12 +198,12 @@ def calc_nonTMD_perc_ident_and_gaps(acc, df_nonTMD, df, logging):
         ''' calculate values associated with the nonTMD region and add to main dataframe
         '''
         # add the average values regarding the nonTMD region to the original file/dataframe with each protein
-        df.loc[acc, 'len_nonTMD_seq_match_mean'] = float('%0.2f' % df_nonTMD['len_nonTMD_seq_match'].dropna().mean())
-        df.loc[acc, 'nonTMD_perc_ident_mean'] = float('%0.3f' % df_nonTMD['nonTMD_perc_ident'].dropna().mean())
-        df.loc[acc, 'nonTMD_perc_sim_mean'] = float('%0.3f' % df_nonTMD['nonTMD_perc_sim'].dropna().mean())
-        df.loc[acc, 'nonTMD_perc_sim_plus_ident_mean'] = float('%0.3f' % df_nonTMD['nonTMD_perc_sim_plus_ident'].dropna().mean())
-        df.loc[acc, 'len_nonTMD_align_mean'] = float('%0.2f' % df_nonTMD['len_nonTMD_align'].dropna().mean())
-        df.loc[acc, 'nonTMD_qm_gaps_per_q_residue_mean'] = float('%0.2f' % df_nonTMD['nonTMD_qm_gaps_per_q_residue'].dropna().mean())
-        logging.info('nonTMD_qm_gaps_per_q_residue : %0.5f' % df.loc[acc, 'nonTMD_qm_gaps_per_q_residue_mean'])
+        mean_ser['len_nonTMD_seq_match_mean'] = float('%0.2f' % df_nonTMD['len_nonTMD_seq_match'].dropna().mean())
+        mean_ser['nonTMD_perc_ident_mean'] = float('%0.3f' % df_nonTMD['nonTMD_perc_ident'].dropna().mean())
+        mean_ser['nonTMD_perc_sim_mean'] = float('%0.3f' % df_nonTMD['nonTMD_perc_sim'].dropna().mean())
+        mean_ser['nonTMD_perc_sim_plus_ident_mean'] = float('%0.3f' % df_nonTMD['nonTMD_perc_sim_plus_ident'].dropna().mean())
+        mean_ser['len_nonTMD_align_mean'] = float('%0.2f' % df_nonTMD['len_nonTMD_align'].dropna().mean())
+        mean_ser['nonTMD_qm_gaps_per_q_residue_mean'] = float('%0.2f' % df_nonTMD['nonTMD_qm_gaps_per_q_residue'].dropna().mean())
+        #logging.info('nonTMD_qm_gaps_per_q_residue : %0.5f' % mean_ser['nonTMD_qm_gaps_per_q_residue_mean'])
 
-        return df, df_nonTMD
+        return mean_ser, df_nonTMD

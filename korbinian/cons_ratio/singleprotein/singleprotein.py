@@ -140,25 +140,23 @@ def slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_ho
         df_TMD['%s_SW_q_gaps_per_q_residue'%TMD] = df_TMD['%s_SW_query_num_gaps'%TMD].dropna() / len_query_TMD
     return df_TMD
 
-def calc_AAIMON(acc, TMD, df_cr, df, logging):
+def calc_AAIMON(TMD, df_cr, mean_ser, logging):
 
     # calculate the Amino Acid Identity : Membranous Over Nonmembranous
     df_cr['%s_AAIMON_ratio'%TMD] = df_cr['%s_perc_ident'%TMD] / df_cr['nonTMD_perc_ident']
     # calculate the Amino Acid Similarity : Membranous Over Nonmembranous (AASMON) (includes similarity + identity based on the matrix used in the SW alignment of SIMAP)
     df_cr['%s_AASMON_ratio'%TMD] = df_cr['%s_perc_sim_plus_ident'%TMD] / df_cr['nonTMD_perc_sim_plus_ident']
-    df.loc[acc, '%s_SW_q_gaps_per_q_residue_mean'%TMD] = df_cr['%s_SW_q_gaps_per_q_residue'%TMD].dropna().mean()
-    logging.info('%s_SW_q_gaps_per_q_residue Average: %0.3e' %(TMD, df.loc[acc, '%s_SW_q_gaps_per_q_residue_mean'%TMD]))
+    mean_ser['%s_SW_q_gaps_per_q_residue_mean'%TMD] = df_cr['%s_SW_q_gaps_per_q_residue'%TMD].dropna().mean()
+    #logging.info('%s_SW_q_gaps_per_q_residue Average: %0.3e' %(TMD, mean_ser['%s_SW_q_gaps_per_q_residue_mean'%TMD]))
 
     # add to original dataframe with the list of uniprot sequences
-    df.loc[acc, '%s_perc_ident_mean'%TMD] = df_cr['%s_perc_ident'%TMD].mean()
-    df.loc[acc, '%s_perc_sim_mean'%TMD] = df_cr['%s_perc_sim'%TMD].mean()
-    df.loc[acc, '%s_perc_sim_plus_ident_mean'%TMD] = df_cr['%s_perc_sim_plus_ident'%TMD].mean()
-    df.loc[acc, '%s_AAIMON_ratio_mean'%TMD] = float(df_cr['%s_AAIMON_ratio'%TMD].mean())
-    df.loc[acc, '%s_AAIMON_ratio_std'%TMD] = df_cr['%s_AAIMON_ratio'%TMD].std()
-    df.loc[acc, '%s_AASMON_ratio_mean'%TMD] = df_cr['%s_AASMON_ratio'%TMD].mean()
-    df.loc[acc, '%s_AASMON_ratio_std'%TMD] = df_cr['%s_AASMON_ratio'%TMD].std()
-    logging.info('AAIMON MEAN %s: %0.2f' % (TMD, df.loc[acc, '%s_AAIMON_ratio_mean'%TMD]))
-    logging.info('AASMON MEAN %s: %0.2f' % (TMD, df.loc[acc, '%s_AASMON_ratio_mean'%TMD]))
+    mean_ser['%s_perc_ident_mean'%TMD] = df_cr['%s_perc_ident'%TMD].mean()
+    mean_ser['%s_perc_sim_mean'%TMD] = df_cr['%s_perc_sim'%TMD].mean()
+    mean_ser['%s_perc_sim_plus_ident_mean'%TMD] = df_cr['%s_perc_sim_plus_ident'%TMD].mean()
+    mean_ser['%s_AAIMON_ratio_mean'%TMD] = float(df_cr['%s_AAIMON_ratio'%TMD].mean())
+    mean_ser['%s_AAIMON_ratio_std'%TMD] = df_cr['%s_AAIMON_ratio'%TMD].std()
+    mean_ser['%s_AASMON_ratio_mean'%TMD] = df_cr['%s_AASMON_ratio'%TMD].mean()
+    mean_ser['%s_AASMON_ratio_std'%TMD] = df_cr['%s_AASMON_ratio'%TMD].std()
 
     # add to the dataframe with the SIMAP data for that particular protein
     df_cr['%s_AAIMON_ratio'%TMD] = df_cr['%s_AAIMON_ratio'%TMD]
@@ -167,6 +165,6 @@ def calc_AAIMON(acc, TMD, df_cr, df, logging):
     df_cr['%s_ratio_length_of_TMD_to_rest_of_alignment'%TMD] = df_cr['%s_SW_query_seq'%TMD].str.len() / df_cr['FASTA_overlap']
     df_cr['%s_ratio_length_of_query_TMD_to_rest_of_match_protein'%TMD] = df_cr['%s_SW_query_seq'%TMD].str.len() / df_cr[ 'len_full_match_seq']
 
-    df.loc[acc, '%s_ratio_length_of_TMD_to_rest_of_alignment_mean'%TMD] = float('%0.2f' % df_cr['%s_ratio_length_of_TMD_to_rest_of_alignment'%TMD].dropna().mean())
-    df.loc[acc, '%s_ratio_length_of_query_TMD_to_rest_of_match_protein_mean'%TMD] = float('%0.2f' % df_cr['%s_ratio_length_of_query_TMD_to_rest_of_match_protein'%TMD].dropna().mean())
-    return df, df_cr
+    mean_ser['%s_ratio_length_of_TMD_to_rest_of_alignment_mean'%TMD] = float('%0.2f' % df_cr['%s_ratio_length_of_TMD_to_rest_of_alignment'%TMD].dropna().mean())
+    mean_ser['%s_ratio_length_of_query_TMD_to_rest_of_match_protein_mean'%TMD] = float('%0.2f' % df_cr['%s_ratio_length_of_query_TMD_to_rest_of_match_protein'%TMD].dropna().mean())
+    return mean_ser, df_cr

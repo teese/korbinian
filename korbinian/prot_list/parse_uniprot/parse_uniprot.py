@@ -8,7 +8,7 @@ import korbinian
 import korbinian.mtutils as utils
 
 def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, n_aa_before_tmd, n_aa_after_tmd, logging, list_summary_csv_path):
-    logging.info('~~~~~~~~~~~~  starting A03_create_csv_from_uniprot_flatfile   ~~~~~~~~~~~~')
+    logging.info('~~~~~~~~~~~~    starting create_csv_from_uniprot_flatfile     ~~~~~~~~~~~~')
     uniprot_dict_all_proteins = {}
     with open(uniprot_flatfile_of_selected_records, "r") as f:
         records = SwissProt.parse(f)
@@ -65,7 +65,7 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, n_aa_
             output_dict['organism'] = record.organism
             output_dict['uniprot_entry_name'] = record.entry_name
             output_dict['gene_name'] = record.gene_name
-            output_dict['uniprot_descr'] = record.description
+            output_dict['prot_descr'] = record.description
             output_dict['full_seq'] = record.sequence
             output_dict['uniprot_orgclass'] = record.organism_classification
             output_dict['uniprot_all_accessions'] = record.accessions
@@ -227,8 +227,7 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, n_aa_
         utils.make_sure_path_exists(list_summary_csv_path, isfile=True)
         dfu.to_csv(list_summary_csv_path, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
-    logging.info('create_csv_from_uniprot_flatfile was successful:'
-                 '%i uniprot records parsed to csv' % (count_of_uniprot_records_added_to_csv))
+    logging.info('%i uniprot records parsed to csv\n~~~~~~~~~~~~   create_csv_from_uniprot_flatfile is finished   ~~~~~~~~~~~~' % (count_of_uniprot_records_added_to_csv))
 
 
 def create_dictionary_of_comments(uniprot_record_handle, output_dictionary):

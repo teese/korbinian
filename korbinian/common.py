@@ -109,7 +109,7 @@ def setup_error_logging(logfile, level_console="DEBUG", level_logfile="DEBUG"):
                 "format": "%(asctime)s %(name)-15s %(levelname)-8s %(message)s"
             },
             "brief": {
-                "format": "%(levelname)-8s: %(name)-15s: %(message)s"
+                "format": "%(message)s"
             }
         }
     }, skipkeys=True, sort_keys=True, indent=4, separators=(',', ': '))
@@ -147,7 +147,7 @@ def setup_error_logging(logfile, level_console="DEBUG", level_logfile="DEBUG"):
     system_settings_dict["total_ram"] = "{:0.2f} GB".format(psutil.virtual_memory()[0] / 1000000000)
     system_settings_dict["available_ram"] = "{:0.2f} GB ({}% used)".format(psutil.virtual_memory()[1] / 1000000000, psutil.virtual_memory()[2])
     # log the system settings
-    logging.warning(system_settings_dict)
+    logging.warning("system description : {}".format(system_settings_dict))
     #test error message reporting
     #logging.warning('LOGGING TEST:')
     #try:
@@ -156,7 +156,7 @@ def setup_error_logging(logfile, level_console="DEBUG", level_logfile="DEBUG"):
     #    raise
     #except Exception:
     #    logging.error('Failed to open file', exc_info=True)
-    logging.warning('LOGGING SETUP IS SUCCESSFUL (logging levels: console={}, logfile={}). \n'.format(level_console, level_logfile))
+    logging.warning('logging setup is successful (logging levels: console={}, logfile={}). \n'.format(level_console, level_logfile))
     return logging
 
 
