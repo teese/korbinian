@@ -149,41 +149,48 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                     simap_homologue_tree = ET.parse(SIMAP_homologues_XML_file_extracted)
                     simap_homologue_root = simap_homologue_tree.getroot()
 
-                    df.loc[acc, 'SIMAP_created'] = simap_homologue_root[0][0][0][0][2][1][0].attrib["created"]
+                    try:
+                        df.loc[acc, 'SIMAP_created'] = simap_homologue_root[0][0][0][0][2][1][0].attrib["created"]
 
-                    #print the simap search details (database, e-value cutoff etc)
-                    #dict_with_query_data = print_query_details_from_homologue_XML(simap_homologue_root, dict_with_query_data)
-                    for parameters in simap_homologue_root[0][0][0][0].iter('parameters'):
-                        df.loc[acc, 'SIMAP_input_seq_details_dict'] = str(parameters[0][0].attrib)
-                        for SIMAP_filter in parameters.iter('filter'):
-                            SIMAP_filter_string = SIMAP_filter.text
-                        df.loc[acc, 'SIMAP_filter_string'] = str(SIMAP_filter_string)
-                        for resultSpecification in parameters.iter('resultSpecification'):
-                            SIMAP_resultSpecification_dict = resultSpecification.attrib
-                        df.loc[acc, 'SIMAP_resultSpecification_dict'] = '"%s"' % SIMAP_resultSpecification_dict
-                        for databases in parameters.iter('databases'):
-                            database_details_dict = databases[0].attrib
-                        df.loc[acc, 'database_details_dict'] = '"%s"' % database_details_dict
-                        df.loc[acc, 'simap_version'] = simap_homologue_root[0][0][0][0][0].attrib['version']
-                        df.loc[acc, 'SIMAP_total_hits'] = int(simap_homologue_root[0][0][0][1][0].attrib['total'])
-                    if df.loc[acc, 'simap_version'] != '4.0':
-                        logging.warning('WARNING! Your XML file is simap version %s,'
-                                        'however this SIMAP parser was developed for SIMAP version 4.0.' %
-                                         df.loc[acc, 'simap_version'])
-                    counter_XML_to_CSV += 1
+                        #print the simap search details (database, e-value cutoff etc)
+                        #dict_with_query_data = print_query_details_from_homologue_XML(simap_homologue_root, dict_with_query_data)
+                        for parameters in simap_homologue_root[0][0][0][0].iter('parameters'):
+                            df.loc[acc, 'SIMAP_input_seq_details_dict'] = str(parameters[0][0].attrib)
+                            for SIMAP_filter in parameters.iter('filter'):
+                                SIMAP_filter_string = SIMAP_filter.text
+                            df.loc[acc, 'SIMAP_filter_string'] = str(SIMAP_filter_string)
+                            for resultSpecification in parameters.iter('resultSpecification'):
+                                SIMAP_resultSpecification_dict = resultSpecification.attrib
+                            df.loc[acc, 'SIMAP_resultSpecification_dict'] = '"%s"' % SIMAP_resultSpecification_dict
+                            for databases in parameters.iter('databases'):
+                                database_details_dict = databases[0].attrib
+                            df.loc[acc, 'database_details_dict'] = '"%s"' % database_details_dict
+                            df.loc[acc, 'simap_version'] = simap_homologue_root[0][0][0][0][0].attrib['version']
+                            df.loc[acc, 'SIMAP_total_hits'] = int(simap_homologue_root[0][0][0][1][0].attrib['total'])
 
-                    query_sequence_node = simap_homologue_root[0][0][0][0][2][0][0]
-                    ''' xxxx CURRENTLY THE df is filled with nan values,
-                        but that doesn't make sense as the script seems to work
-                    '''
-                    df.loc[acc, 'query_md5'] = query_sequence_node.attrib['md5']
-                    df.loc[acc, 'seqlen'] = int(query_sequence_node.attrib['length'])
-                    df.loc[acc, 'query_selfscore'] = query_sequence_node.attrib['selfscore']
-                    df.loc[acc, 'query_sequenceid'] = query_sequence_node.attrib['sequenceid']
-                    df.loc[acc, 'total_number_of_simap_hits'] = query_sequence_node[0].attrib['number_hits']
-                    df.loc[acc, 'query_sequence_from_homologue_XML_file'] = query_sequence_node[0][0].text
-                    df.loc[acc, 'number_of_hits_in_homologue_XML_file'] = int(
-                        simap_homologue_root[0][0][0][1][0].attrib['total'])
+                        if df.loc[acc, 'simap_version'] != '4.0':
+                            logging.warning('WARNING! Your XML file is simap version %s,'
+                                            'however this SIMAP parser was developed for SIMAP version 4.0.' %
+                                             df.loc[acc, 'simap_version'])
+                        counter_XML_to_CSV += 1
+
+                        query_sequence_node = simap_homologue_root[0][0][0][0][2][0][0]
+                        ''' xxxx CURRENTLY THE df is filled with nan values,
+                            but that doesn't make sense as the script seems to work
+                        '''
+                        df.loc[acc, 'query_md5'] = query_sequence_node.attrib['md5']
+                        df.loc[acc, 'seqlen'] = int(query_sequence_node.attrib['length'])
+                        df.loc[acc, 'query_selfscore'] = query_sequence_node.attrib['selfscore']
+                        df.loc[acc, 'query_sequenceid'] = query_sequence_node.attrib['sequenceid']
+                        df.loc[acc, 'total_number_of_simap_hits'] = query_sequence_node[0].attrib['number_hits']
+                        df.loc[acc, 'query_sequence_from_homologue_XML_file'] = query_sequence_node[0][0].text
+                        df.loc[acc, 'number_of_hits_in_homologue_XML_file'] = int(
+                            simap_homologue_root[0][0][0][1][0].attrib['total'])
+                    except (IndexError, KeyError):
+                        df.loc[acc, 'homol_XML_damaged'] = True
+                        logging.warning("{} skipped, homologue XML seems to be damaged. Error in reading general query details.".format(acc))
+                        # skip to the next protein
+                        continue
                     '''
                     Create an updated csv_file_with_uniprot_data to include the data from SIMAP regarding the query
                     '''
@@ -260,8 +267,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                                     hit_contains_protein_node = False
                                     number_of_hits_missing_protein_node += 1
                                     logging.warning('%s hit %s contains no protein node' % (protein_name,
-                                                                                            match_details_dict['A3_md5'])
-                                                                                            )
+                                                                                            match_details_dict['A3_md5']))
                                 if hit_contains_protein_node:
                                     try:
                                         smithWatermanAlignment_node = hit[0][0][14]
