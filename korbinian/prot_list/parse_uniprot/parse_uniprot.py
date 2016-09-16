@@ -7,7 +7,7 @@ import csv
 import korbinian
 import korbinian.mtutils as utils
 
-def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, n_aa_before_tmd, n_aa_after_tmd, analyse_sp, logging, list_summary_csv_path):
+def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, n_aa_before_tmd, n_aa_after_tmd, logging, list_summary_csv_path):
     logging.info('~~~~~~~~~~~~    starting create_csv_from_uniprot_flatfile     ~~~~~~~~~~~~')
     uniprot_dict_all_proteins = {}
     with open(uniprot_flatfile_of_selected_records, "r") as f:
