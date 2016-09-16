@@ -1,6 +1,7 @@
 import ast
 import numpy as np
 import csv
+import matplotlib.pyplot as plt
 import os
 import pickle
 import korbinian
@@ -31,7 +32,7 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
         mean_ser["organism"] = df.loc[acc, 'organism']
         mean_ser["prot_descr"] = df.loc[acc, 'prot_descr']
         mean_ser['list_of_TMDs'] = df.loc[acc, 'list_of_TMDs']
-        list_of_TMDs = df.loc[acc, 'list_of_TMDs'].strip("[']").split(", ")
+        list_of_TMDs = ast.literal_eval(df.loc[acc, 'list_of_TMDs'])
 
         ########################################################################################
         #                                                                                      #
@@ -102,7 +103,28 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
             # filter nonTMD dataframe to only contain entries where nonTMD_perc_ident is not zero
             df_nonTMD = df_nonTMD.loc[df_nonTMD['nonTMD_perc_ident'] != 0]
 
-            for TMD in list_of_TMDs:
+            linspace_binlist = np.linspace(set_["1p_smallest_bin"],
+                                           set_["1p_largest_bin"],
+                                           set_["1p_number_of_bins"])
+            # add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
+            binlist = np.append(linspace_binlist,
+                                set_["1p_final_highest_bin"])
+
+            # se default font size for text in the plot
+            fontsize = 4
+            # use a dictionary to organise the saving of multiple plots in multiple figures, with a certain number of plots per figure
+            n_plots_per_fig = 4
+            nrows_in_each_fig = 2
+            ncols_in_each_fig = 2
+            dict_organising_subplots = utils.create_dict_organising_subplots(
+                n_plots_per_fig=n_plots_per_fig,
+                n_rows=nrows_in_each_fig,
+                n_cols=ncols_in_each_fig)
+            # make the IDE happy
+            fig, axarr = None, None
+
+            for TMD_Nr, TMD in enumerate(list_of_TMDs):
+                TMD_Nr = TMD_Nr + 1
                 # open the dataframe containing the sequences, gap counts, etc for that TMD only
                 df_cr = utils.open_df_from_pickle_zip(df.loc[acc, 'fa_cr_sliced_TMDs_zip'], filename="{}_{}_sliced_df.pickle".format(acc, TMD), delete_corrupt=True)
                 # add the nonTMD percentage identity, etc. NOTE THAT THE INDEX SHOULD STILL BE COMPATIBLE, as the hit_num!
@@ -117,10 +139,6 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
                 # calculate AAISMON etc for each TMD
                 mean_ser, df_cr = korbinian.cons_ratio.calc_AAIMON(TMD, df_cr, mean_ser, logging)
 
-                AAIMON_hist_path_prefix = df.loc[acc, 'AAIMON_hist_path_prefix']
-                # save histograms for each TMD of that protein, with relative conservation
-                korbinian.cons_ratio.save_hist_AAIMON_ratio_single_protein(df_cr, set_, list_of_TMDs, zipout, AAIMON_hist_path_prefix)
-
                 logging.info('AAIMON MEAN %s: %0.2f' % (TMD, mean_ser['%s_AAIMON_ratio_mean' % TMD]))
                 # logging.info('AASMON MEAN %s: %0.2f' % (TMD, mean_ser['%s_AASMON_ratio_mean'%TMD]))
 
@@ -130,6 +148,24 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
                     pickle.dump(df_cr, p, protocol=pickle.HIGHEST_PROTOCOL)
                 zipout.write(TM_cr_outfile_pickle, arcname=TM_cr_outfile_pickle)
                 os.remove(TM_cr_outfile_pickle)
+
+                # use the dictionary to obtain the figure number, plot number in figure, plot indices, etc
+                newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[TMD_Nr]
+                # if the TMD is the last one, the figure should be saved
+                if TMD_Nr == len(list_of_TMDs):
+                    savefig = True
+                # if a new figure should be created (either because the orig is full, or the last TMD is analysed)
+                if newfig:
+                    # create a new figure
+                    fig, axarr = plt.subplots(nrows=nrows_in_each_fig,
+                                              ncols=ncols_in_each_fig)  # sharex=True
+
+                #" NOT STABLE! NEED TO CHANGE save_hist_AAIMON_ratio_single_protein SO THAT IT RUNS WITHIN THE FOR LOOP ABOVE, AND TAKES A SINGLE TMD AS INPUT, RATHER THAN LIST OF TMDS" / 4
+                AAIMON_hist_path_prefix = df.loc[acc, 'AAIMON_hist_path_prefix']
+                # find the TMD number (starting from 1)
+                TMD_Nr = list_of_TMDs.index(TMD) + 1
+                # save histograms for each TMD of that protein, with relative conservation
+                korbinian.cons_ratio.save_hist_AAIMON_ratio_single_protein(fig_nr, fig, axarr, df_cr, set_, TMD, binlist, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix)
 
             # # remove columns to make output csv smaller
             # if set_['drop_columns_to_reduce_csv_filesize']:

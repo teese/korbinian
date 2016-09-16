@@ -127,13 +127,8 @@ def run_korbinian(excel_file_with_settings):
         ''' ~~ DETERMINE START AND STOP INDICES FOR TMD PLUS SURROUNDING SEQ ~~ '''
         n_aa_before_tmd = set_["n_aa_before_tmd"]
         n_aa_after_tmd = set_["n_aa_after_tmd"]
-        if set_['analyse_signal_peptides']:
-            analyse_sp = set_['analyse_sp']
-        else:
-            analyse_sp = 0
         list_summary_csv_path = pathdict["list_summary_csv"]
-        korbinian.prot_list.create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, n_aa_before_tmd, n_aa_after_tmd, analyse_sp,logging, list_summary_csv_path)
-
+        korbinian.prot_list.create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, n_aa_before_tmd, n_aa_after_tmd, set_['analyse_signal_peptides'], logging, list_summary_csv_path)
     ########################################################################################
     #                                                                                      #
     #                            run_setup_df_file_locations                               #

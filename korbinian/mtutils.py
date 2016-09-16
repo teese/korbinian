@@ -47,7 +47,6 @@ def import_amino_acid_substitution_matrices():
     imports several aa sub matrices from Bio.SubsMat.MatrixInfo
     """
 
-
 def all_df_in_list_contain_data(df_list_KW, title = '', KW = '', data_names_list = []):
     '''Function that takes a list of dataframes, and checks them all to make sure none are empty.
     Useful when slicing dataframes based on a list of keywords.
@@ -417,7 +416,6 @@ def create_indextuple_nonTMD_last(x):
 def slice_with_listlike(string, tup, start=0, end=1):
     '''A function to slice a single string, taking the start and stop indices from a tuple
     '''
-    #print(tup[0])
     return string[int(tup[start]):int(tup[end])]
 
 def slice_with_nested_tuple(string, nested_tuple):
@@ -477,7 +475,6 @@ def find_disallowed_words(description, words_not_allowed_in_description):
     list_of_list_disallowed_words_in_descr = []
     for disallowed_word in words_not_allowed_in_description:
         if disallowed_word in description:
-            #print(disallowed_word)
             list_of_list_disallowed_words_in_descr.append(disallowed_word)
     return str(list_of_list_disallowed_words_in_descr)
 
@@ -517,7 +514,6 @@ def create_dict_organising_subplots(n_plots_per_fig,n_rows,n_cols):
             savefig = True
         #if plot_nr_in_fig is in a multiple of n_rows, then the plot goes to the second column
         if plot_nr_in_fig % n_rows == 0 and plot_nr_in_fig != 0:
-            #print(plot_nr_in_fig)
             col_nr += 1
             row_nr = 0
         #if the plotnr is in a multple of n_plots_per_fig, then a new figure needs to created, and everything else reset
@@ -856,7 +852,6 @@ def create_new_dict_with_only_selected_keys(inputdict, keylist):
     global output_dict3
     for key in keylist:
         output_dict3 = { key: inputdict[key] for key in keylist }
-    #print(output_dict3)
     return output_dict3
 #    for key in keylist:
 #        try:        
@@ -1050,7 +1045,6 @@ def get_start_and_end_of_TMD_in_query(x, TMD_regex_ss):
     the functions were originally in MAIN, as I am not sure how to apply **args and **kwargs in functions that apply to pandas
     note that TMD_regex_ss is therefore a global variable
     '''
-    # print('x  ', x, 'TMD_regex_ss     ', TMD_regex_ss)
     m = re.search(TMD_regex_ss, x)
     if m:
         # if the tmd is in the query, return True, start, stop
@@ -1077,7 +1071,7 @@ def find_last_TMD(dfs):
         if isNaN(dfs['TM%.2d_start_in_SW_alignment' % n]):
             last_TMD = n
 
-def convert_truelike_to_bool(input_item, convert_int=False, convert_float=False, convert_nontrue=True):
+def convert_truelike_to_bool(input_item, convert_int=False, convert_float=False, convert_nontrue=False):
     """Converts true-like values ("true", 1, True", "WAHR", etc) to python boolean True.
 
     Parameters

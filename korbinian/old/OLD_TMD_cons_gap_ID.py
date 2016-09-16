@@ -75,7 +75,6 @@ def OLD_calculate_TMD_conservation_by_gappedIdentity(pathdict, set_, logging, li
                             if dict_from_homologue_csv_for_GI_analysis[i]['ratio_ident_mem_to_nonmem'] != '':
                                 FASTA_gapped_identity = float(
                                     dict_from_homologue_csv_for_GI_analysis[i]['FASTA_gapped_identity'])
-                                # print(FASTA_gapped_identity)
                                 if dict_from_homologue_csv_for_GI_analysis[i]['ratio_ident_mem_to_nonmem'] != '':
                                     ratio_ident_mem_to_nonmem = float(
                                         dict_from_homologue_csv_for_GI_analysis[i]['ratio_ident_mem_to_nonmem'])

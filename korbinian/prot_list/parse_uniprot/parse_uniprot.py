@@ -7,7 +7,7 @@ import csv
 import korbinian
 import korbinian.mtutils as utils
 
-def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, n_aa_before_tmd, n_aa_after_tmd, logging, list_summary_csv_path):
+def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, n_aa_before_tmd, n_aa_after_tmd, analyse_sp, logging, list_summary_csv_path):
     logging.info('~~~~~~~~~~~~    starting create_csv_from_uniprot_flatfile     ~~~~~~~~~~~~')
     uniprot_dict_all_proteins = {}
     with open(uniprot_flatfile_of_selected_records, "r") as f:
@@ -80,7 +80,7 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, n_aa_
 
             # list of the features that we want in the final csv
             desired_features_in_uniprot = ['TRANSMEM', 'VARIANT', 'CONFLICT', 'VAR_SEQ', 'VARSPLIC', 'TOPO_DOM']
-            if analyse_sp == 1:
+            if analyse_sp == True:
                 desired_features_in_uniprot.append('SIGNAL')
             desired_features_in_uniprot_dict = {}
             location_of_sp_in_featrue_list = []
@@ -227,7 +227,7 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, n_aa_
         # If there is no TMD, the cells will contain np.nan
 
         # slicing out the signal peptide sequence
-        if analyse_sp == 1:
+        if analyse_sp == True:
             dfu['SP01_seq'] = dfu[dfu['SP01_start'].notnull()].apply(utils.slice_uniprot_SP_seg, args=(SP,), axis=1)
 
         for i in range(1, max_num_TMDs + 1):
