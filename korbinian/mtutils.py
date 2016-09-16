@@ -360,6 +360,10 @@ be a bug, and it will cause an error when used as a function
 For an unknown reason, this is only necessary when the .apply is used in a function.
 
 '''
+def slice_uniprot_SP_seg(x, SP):
+    if x['SP01_end'] != '?':
+        return x['full_seq'][int(x['SP01_start'] - 1):int(x['SP01_end'])]
+
 def slice_uniprot_TMD_seq(x, TMD):
    return x['full_seq'][int(x['%s_start'%TMD] - 1):int(x['%s_end'%TMD])]
 
