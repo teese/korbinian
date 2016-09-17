@@ -94,8 +94,6 @@ def match_list_uniprot_acc_to_uniref_clusters(redundant_uniprot_acc_tab, uniref_
     dfu = pd.read_table(redundant_uniprot_acc_tab)
     # set the uniprot acc as the index
     dfu = dfu.set_index('Entry', drop=False)
-    # create an empty column to contain the cluster_ID
-    dfu['cluster_ID'] = ''
 
     ##################################################################################################################
     #                                                                                                                #
@@ -138,8 +136,8 @@ def match_list_uniprot_acc_to_uniref_clusters(redundant_uniprot_acc_tab, uniref_
     #       For non representatives, search each cluster separately to see if it contains the accession              #
     #                                                                                                                #
     ##################################################################################################################
-    for n, acc in enumerate(dfu.loc[dfu.nonred != True].index):
-
+    for n, acc in enumerate(dfu.loc[dfu.nonred.isnull()].index):
+        cluster_found = False
         if n % 50 == 0:
             if n != 0:
                 logging.info('%i records checked for redundancy' % n)
@@ -149,46 +147,69 @@ def match_list_uniprot_acc_to_uniref_clusters(redundant_uniprot_acc_tab, uniref_
             if acc in cluster_members:
                 # if the acc is a member of a uniref cluster, add the cluster name to the original dataframe
                 dfu.loc[acc, 'cluster_ID'] = cluster_ID
+                cluster_found = True
                 # stop the loop, as the cluster_ID has been found
                 break
-            # if the accession is not found in any of the cluster members, mark it as "not found"
-            dfu.loc[acc, 'cluster_ID'] = "not found"
+        if not cluster_found:
+            # if the accession is not found in any of the cluster members, mark it as "not_found"
+            dfu.loc[acc, 'cluster_ID'] = "not_found"
             dfu.loc[acc, 'nonred'] = False
+    logging.info('%i records checked for redundancy' % n)
 
     # sort the dataframe based cluster_ID
     dfu.sort_values(["cluster_ID"], inplace=True)
-    #array_cluster_IDs_marked_redu = dfu.loc[dfu['nonred'] == True]  # ['cluster_ID']
+
+    ##################################################################################################################
+    #                                                                                                                #
+    #          Create a set of cluster_ID that are unique, and have not yet been assigned to any acc                 #
+    #                                                                                                                #
+    ##################################################################################################################
     # cluster IDs marked as redundant (so far)
-    cluster_IDs_marked_redu_array = np.array(dfu[dfu["nonred"].isnull]['cluster_ID'])
+    cluster_IDs_marked_redu_array = np.array(dfu[dfu["nonred"].isnull()]['cluster_ID'])
     # set of unique cluster IDs marked as redundant (so far)
     cluster_IDs_marked_redu_unique_array = set(cluster_IDs_marked_redu_array)
     # cluster IDs marked as redundant (so far), minus those already found due to presence of reference acc in list
     cluster_IDs_marked_redu_unique_array_excl_common_refs_set = cluster_IDs_marked_redu_unique_array - common_refs_set
-
-    print(len(cluster_IDs_marked_redu_unique_array), len(cluster_IDs_marked_redu_unique_array_excl_common_refs_set))
-    list_indices_nonred = []
+    # create a list of the acc still assumed to be redundant
+    dfu_red = dfu.loc[dfu.nonred.isnull()]
+    # set the cluster ID as an index
+    dfu_red.set_index("cluster_ID", inplace=True)
+    ##################################################################################################################
+    #                                                                                                                #
+    #                  Get the first accession for the list of acc matching each cluster_ID                          #
+    #                                                                                                                #
+    ##################################################################################################################
+    acc_nonred_list = []
+    # selecting by the unique cluster ID will give either a single row (Series), or several rows (DataFrame)
     for uniq_CID in cluster_IDs_marked_redu_unique_array_excl_common_refs_set:
-        print(uniq_CID)
-        if uniq_CID in ["", "not found"]:
-            # skip to next
-            continue
-        if uniq_CID in cluster_IDs_marked_redu_array:
-            row = np.searchsorted(cluster_IDs_marked_redu_array, uniq_CID)
-            list_indices_nonred.append(row)
-    # identif nonred index
-    nonred_col = list(dfu.columns).index("nonred")
-    # mark the first acc in each cluster as "nonred"
-    dfu.iloc[list_indices_nonred, nonred_col] = True
+        series_or_df = dfu_red.loc[uniq_CID, :]
+        if "DataFrame" in str(type(series_or_df)):
+            acc = series_or_df.Entry.iloc[0]
+        elif "Series" in str(type(series_or_df)):
+            acc = series_or_df.Entry
+        else:
+            raise TypeError()
+    acc_nonred_list.append(acc)
+    # label all the accessions in the nonredundant list as True
+    dfu.loc[acc_nonred_list, "nonred"] = True
     # convert all NaNs to "False"
     dfu["nonred"] = dfu["nonred"].fillna(False)
+
+    ##################################################################################################################
+    #                                                                                                                #
+    #                                      save list and print record numbers                                        #
+    #                                                                                                                #
+    ##################################################################################################################
     # save list after redundancy check
     dfu.to_csv(nonred_uniprot_acc_csv)
+    # log the number of redundant an nonredundant accessions
     nonred_value_counts = dfu['nonred'].value_counts()
-    logging.info("nonred_value_counts:\n{}".format(nonred_value_counts))
-
     number_nonredundant_records = nonred_value_counts[True]
     number_total_records = dfu.shape[0]
     number_redundant_records = number_total_records - number_nonredundant_records
+    if "not_found" in dfu["cluster_ID"].tolist():
+        number_acc_not_found_in_UniRef = dfu["cluster_ID"].value_counts()["not_found"]
+        logging.info("{} acc not found in UniRef lists".format(number_acc_not_found_in_UniRef))
 
     logging.info('number_total_records = {0}, number_redundant_records removed = {1}, '
                  'final number_nonredundant_records = {2}'.format(number_total_records,
@@ -228,6 +249,9 @@ def retrieve_selected_uniprot_records_from_flatfile(input_accession_list, large_
             except KeyError:
                 list_acc_not_in_flatfile.append(acc)
             if n % 50 == 0:
-                logging.info('%i records retrieved from large flatfile' % n)
-    logging.info("SwissProt records not found in %s:\n%s." % (large_input_uniprot_flatfile, list_acc_not_in_flatfile))
+                if n!= 0:
+                    logging.info('%i records retrieved from large flatfile' % n)
+    logging.info('%i-%i records retrieved from large flatfile' % (n, len(list_acc_not_in_flatfile)))
+    if len(list_acc_not_in_flatfile) > 0:
+        logging.info("SwissProt records not found in %s:\n%s." % (large_input_uniprot_flatfile, list_acc_not_in_flatfile))
     logging.info("~~~~~~~~~~~~retrieve_selected_uniprot_records_from_flatfile is finished~~~~~~~~~~~~")
