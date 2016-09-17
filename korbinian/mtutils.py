@@ -25,7 +25,6 @@ import zipfile
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from Bio import SeqIO
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 
 '''
@@ -425,26 +424,6 @@ def slice_with_nested_tuple(string, nested_tuple):
     nested_tuple = ast.literal_eval(nested_tuple)
     #for each tuple, slice the input string. Make a list of all the sliced strings. Join list with no gaps
     return ''.join([slice_with_listlike(string, tup) for tup in nested_tuple])
-
-def retrieve_selected_uniprot_records_from_flatfile(input_accession_list, large_input_uniprot_flatfile, output_flatfile, logging):
-    '''
-    Function to select records from a large uniprot flatfile, and save them as a smaller flatfile of selected records.
-    Input = list of uniprot accessions
-    '''
-    #accession_list = [line.strip() for line in open(input_accession_list, "r")]
-    #open input flatfile
-    uniprot_index_handle = SeqIO.index(large_input_uniprot_flatfile, "swiss")  
-    #create an empty list to hold all the accessions that are not in the flatfile
-    list_acc_not_in_flatfile = []
-    with open(output_flatfile, "wb") as output:    
-        for acc in input_accession_list:
-            try:                  
-                #get the raw uniprot record, and write to the output file
-                output.write(uniprot_index_handle.get_raw(acc))              
-            #if the record is not in the file
-            except KeyError:
-                list_acc_not_in_flatfile.append(acc)
-    logging.info("SwissProt records not found in %s:\n%s." % (large_input_uniprot_flatfile, list_acc_not_in_flatfile))
 
 
 def get_start_and_end_of_TMD_in_query(x, regex_string):

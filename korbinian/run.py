@@ -70,6 +70,7 @@ TM01_perc_sim starts with 0 instead of 1.0. Simply remove column?
 """
 import os
 import korbinian
+import pandas as pd
 
 def run_korbinian(excel_file_with_settings):
 
@@ -80,7 +81,7 @@ def run_korbinian(excel_file_with_settings):
     logging.warning("list_number : {}".format(list_number))
 
     uniprot_folder_sel = os.path.join(set_["uniprot_dir"], 'selected')
-    uniprot_flatfile_of_selected_records = os.path.join(uniprot_folder_sel,'List%s_selected_uniprot_records_flatfile.txt' % list_number)
+    uniprot_flatfile_of_selected_records = os.path.join(uniprot_folder_sel,'List%02d_selected_uniprot_records_flatfile.txt' % list_number)
 
     # set a base folder for the summaries, e.g. "D:\Databases\main\summaries\05\List05 [[_summary.csv]]"
     base_filename_summaries = os.path.join(set_["summaries_dir"], '%02d' % list_number, 'List%02d' % list_number)
@@ -110,11 +111,8 @@ def run_korbinian(excel_file_with_settings):
     #                                                                                      #
     ########################################################################################
 
-    if set_["run_convert_uniprot_list_to_nonred_ff_via_uniref"] == True:
-        logging.info('~~~~~~~~~~~~  starting run_convert_redundant_uniprot_list_to_nonred_ff_via_uniref   ~~~~~~~~~~~~')
-        if os.path.isfile(uniprot_flatfile_of_selected_records) == False or set_["overwrite_selected_ff"] == True:
-            korbinian.prot_list.convert_uniprot_list_to_nonred_ff_via_uniref(set_, list_number, uniprot_folder_sel,
-                                                                             logging, uniprot_flatfile_of_selected_records)
+    if set_["create_nonred_uniprot_flatfile_via_uniref"] == True:
+        korbinian.prot_list.create_nonred_uniprot_flatfile_via_uniref(set_, uniprot_folder_sel, list_number, uniprot_flatfile_of_selected_records, logging)
 
     if set_["run_parse_large_flatfile_with_list_uniprot_accessions"]:
         input_accession_list= set_["list_of_uniprot_accessions"]
