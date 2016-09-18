@@ -54,10 +54,6 @@ def slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs):
         # create the index tuple
         df_nonTMD_sliced['nonTMD_index_tuple_last'] = df_nonTMD_sliced.apply(utils.create_indextuple_nonTMD_last, axis=1)
 
-
-        utils.aaa(df_nonTMD_sliced)
-
-
         ########################################################################################
         #                                                                                      #
         #            create the indices for the nonTMD region [AAIMON]                         #

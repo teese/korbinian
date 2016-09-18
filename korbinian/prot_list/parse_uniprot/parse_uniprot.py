@@ -94,20 +94,20 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, n_aa_
                     location_of_features_in_feature_list = [i for i, x in
                                                             enumerate(list_of_feature_types_in_uniprot_record) if
                                                             x == feature]
-                desired_features_in_uniprot_dict[feature] = location_of_features_in_feature_list
-                if feature == 'SIGNAL':
-                    location_of_sp_in_featrue_list = location_of_features_in_feature_list
-                    # location_of_sp_in_featrue_list.sort()
-                if feature == 'TRANSMEM':
-                    location_of_tmds_in_feature_list = location_of_features_in_feature_list
-                    # sort list to be sure that the "transmem" notation is definitely ordered correctly,
-                    # as this order determines the TMD name
-                    location_of_tmds_in_feature_list.sort()
-                if feature == 'TOPO_DOM':
-                    location_of_non_tmds_in_feature_list = location_of_features_in_feature_list
-                    # sort list to be sure that the "transmem" notation is definitely ordered correctly,
-                    # as this order determines the TMD name
-                    location_of_non_tmds_in_feature_list.sort()
+                    desired_features_in_uniprot_dict[feature] = location_of_features_in_feature_list
+                    if feature == 'SIGNAL':
+                        location_of_sp_in_featrue_list = location_of_features_in_feature_list
+                        # location_of_sp_in_featrue_list.sort()
+                    if feature == 'TRANSMEM':
+                        location_of_tmds_in_feature_list = location_of_features_in_feature_list
+                        # sort list to be sure that the "transmem" notation is definitely ordered correctly,
+                        # as this order determines the TMD name
+                        location_of_tmds_in_feature_list.sort()
+                    if feature == 'TOPO_DOM':
+                        location_of_non_tmds_in_feature_list = location_of_features_in_feature_list
+                        # sort list to be sure that the "transmem" notation is definitely ordered correctly,
+                        # as this order determines the TMD name
+                        location_of_non_tmds_in_feature_list.sort()
 
             # count the number of SP
             output_dict['number_of_SP'] = len(location_of_sp_in_featrue_list)
@@ -132,6 +132,9 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, n_aa_
                     output_dict['%s_start'%TMD] = record.features[TMD_location][1]
                     output_dict['%s_end'%TMD] = record.features[TMD_location][2]
                     output_dict['%s_description'%TMD] = record.features[TMD_location][3]
+                    if isinstance(output_dict['%s_start'%TMD], str) or isinstance(output_dict['%s_end'%TMD], str):
+                        logging.info("{} strings found in feature indices: {},{}".format(output_dict['uniprot_acc'], output_dict['%s_start'%TMD], output_dict['%s_end'%TMD]))
+                        output_dict['%s_start' % TMD], output_dict['%s_end'%TMD] = np.nan, np.nan
 
                 # information about SP location
                 if output_dict['number_of_SP'] != 0:
@@ -142,6 +145,9 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, n_aa_
                         output_dict['SP01_start'] = record.features[SP_location][1]
                         output_dict['SP01_end'] = record.features[SP_location][2]
                         output_dict['SP01_description'] = record.features[SP_location][3]
+                    if isinstance(output_dict['SP01_start'], str) or isinstance(output_dict['SP01_end'], str):
+                        logging.info("{} strings found in feature indices: {},{}".format(output_dict['uniprot_acc'], output_dict['SP01_start'], output_dict['SP01_end']))
+                        output_dict['SP01_start'], output_dict['SP01_end'] = np.nan, np.nan
 
                 # add the list of TMD names to the dictionary and dataframe
                 output_dict['list_of_TMDs'] = list_of_TMDs
@@ -165,12 +171,10 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, n_aa_
                                 variant_description = record.features[list_of_variant_locations[v]][3]
                                 variant_feature_identifier = record.features[list_of_variant_locations[v]][4]
                                 # check if the variant is in the tmd
-                                start_of_variant_is_after_start_of_tmd = True if start_of_variant_in_seq > output_dict[
-                                    '%s_start'%TMD] else False
-                                end_of_variant_is_before_end_of_tmd = True if end_of_variant_in_seq < output_dict[
-                                    '%s_end'%TMD] else False
-                                variant_is_in_tmd = True if all([start_of_variant_is_after_start_of_tmd,
-                                                                 end_of_variant_is_before_end_of_tmd]) else False
+                                #print("str" in type(output_dict['%s_end'%TMD])[0])
+                                start_of_variant_is_after_start_of_tmd = True if start_of_variant_in_seq > output_dict['%s_start'%TMD] else False
+                                end_of_variant_is_before_end_of_tmd = True if end_of_variant_in_seq < output_dict['%s_end'%TMD] else False
+                                variant_is_in_tmd = True if all([start_of_variant_is_after_start_of_tmd, end_of_variant_is_before_end_of_tmd]) else False
                                 # if the variants are the tmd region, add to numpy array
                                 if variant_is_in_tmd:
                                     # create array of the variant data
