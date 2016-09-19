@@ -239,7 +239,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                         #print (matrix)
                         #from Bio.SubsMat.MatrixInfo import matrix as matrix_name
 
-                        SIMAP_orig_csv = df.loc[acc,'homol_df_orig_zip'][:-4]
+                        SIMAP_orig_csv = df.loc[acc,'homol_df_orig_zip'][:-4] + ".csv"
                         #fasta_file_path = df.loc[acc, 'fasta_file_path']
 
                         #create an empty file
@@ -386,7 +386,13 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
 
                         # open csv as a dataframe,
                         df_homol = pd.read_csv(SIMAP_orig_csv, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col="hit_num")
-
+                        if "query_align_seq" not in df_homol.columns:
+                            # this is a serious error in the XML file. None of the hits had a protein node. The file should probably be downloaded.
+                            logging.warning('The homologue XML file likely has a serious error, "query_align_seq" is not in dataframe. '
+                                            'XML should probably be re-downloaded.\n'
+                                            'df_homol["hit_contains_SW_node"].value_counts()\n{}'.format(df_homol["hit_contains_SW_node"].value_counts()))
+                            # skip this protein
+                            continue
                         # get length of seq. Previously this was a lambda function that needed more filtering
                         df_homol['len_query_align_seq'] = df_homol['query_align_seq'].str.len()
 
