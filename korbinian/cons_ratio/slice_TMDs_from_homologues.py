@@ -104,9 +104,6 @@ def slice_TMDs_from_homologues(pathdict, set_, logging):
                                                                                 int(dfs.loc[hit, "start_juxta_after_%s" % TMD]):int(
                                                                                     dfs.loc[hit, "end_juxta_after_%s" % TMD])]
 
-
-
-
         # # get length of seq. Previously this was a lambda function.
         # if True in dfs['hit_contains_SW_node'].tolist():
         #     dfs['len_query_align_seq'] = dfs['query_align_seq'].str.len()
@@ -127,17 +124,27 @@ def slice_TMDs_from_homologues(pathdict, set_, logging):
         list_of_TMDs = ast.literal_eval(df.loc[acc, 'list_of_TMDs'])
         # create counter for number of TMDs with some homologue data
         n_TMDs_w_homol = 0
-
         fa_cr_sliced_TMDs_zip = df.loc[acc, 'fa_cr_sliced_TMDs_zip']
-        # delete any existing sliced zipfile
         if os.path.isfile(fa_cr_sliced_TMDs_zip):
-            os.remove(fa_cr_sliced_TMDs_zip)
+            if set_["overwrite_sliced_homologues"] == True:
+                # delete any existing sliced zipfile
+                os.remove(fa_cr_sliced_TMDs_zip)
+            else:
+                logging.info("protein skipped, output from slice_TMDs_from_homologues already exists")
+                # skip this protein
+                continue
+
         # open new zipfile (NOTE, it must be closed later!!)
-        with zipfile.ZipFile(df.loc[acc, 'fa_cr_sliced_TMDs_zip'], mode="a", compression=zipfile.ZIP_DEFLATED) as homol_sliced_zip:
+        with zipfile.ZipFile(fa_cr_sliced_TMDs_zip, mode="a", compression=zipfile.ZIP_DEFLATED) as homol_sliced_zip:
 
             # get directory for zip (and other temp files to be transferred)
             homol_dir = os.path.dirname(fa_cr_sliced_TMDs_zip)
             # create a specific dataframe to hold the nonTMD region, including indices (True, start, end) of all the TMD segments
+            if "len_query_align_seq" not in dfs.columns:
+                logging.info ("len_query_align_seq not in columns, protein skipped for slice_TMDs_from_homologues")
+                #skip protein
+                continue
+
             # add the FASTA_gapped_identity and length of the alignment sequence from dfs, to act as the "end" of all the nonTMD regions
             df_nonTMD_sliced = dfs[['len_query_align_seq']].copy()
             for TMD in list_of_TMDs:
@@ -220,7 +227,6 @@ def slice_TMDs_from_homologues(pathdict, set_, logging):
         #     len_query_TMD = len(df.loc[acc, '%s_seq' % TMD])
         #     # apply the slicing function to the homologues
         #     df_TMD = korbinian.cons_ratio.slice_TMD_homol_and_count_gaps(TMD, len_query_TMD, df_TMD, set_["cr_max_n_gaps_in_query_TMD"], set_["cr_max_n_gaps_in_match_TMD"])
-
 
 
 def juxta_function_1(dfs, TMD):

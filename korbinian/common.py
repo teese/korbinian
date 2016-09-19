@@ -48,7 +48,7 @@ def setup_keyboard_interrupt_and_error_logging(set_, list_number):
     date_string = strftime("%Y%m%d_%H_%M_%S")
 
     # designate the output logfile
-    logfile = os.path.join(set_["logfile_dir"],'List%s_%s_logfile.log' % (list_number, date_string))
+    logfile = os.path.join(set_["logfile_dir"],'List%02d_%s_logfile.log' % (list_number, date_string))
 
     # if multiprocessing is used, disable logging except for critical messages.
     if set_["use_multiprocessing"]:
