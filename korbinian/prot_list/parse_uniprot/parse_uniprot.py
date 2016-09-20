@@ -7,10 +7,28 @@ import csv
 import korbinian
 import korbinian.mtutils as utils
 
-def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, n_aa_before_tmd, n_aa_after_tmd, analyse_sp, logging, list_summary_csv_path):
+def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_sp, logging, list_summary_csv_path):
+    """ Parses a flatfile of UniProt records to csv.
+
+    Parameters
+    ----------
+    selected_uniprot_records_flatfile : str
+        Path to UniProt flatfile containing selected records for analysis.
+    n_aa_before_tmd : int
+        Number of amino acids before the TMD to be included when slicing the "TMD_plus_surr".
+    n_aa_after_tmd : int
+        Number of amino acids before the TMD to be included when slicing the "TMD_plus_surr".
+    analyse_sp : bool
+        Whether to analyse the signal peptides.
+    logging : logging.Logger
+        Logger for printing to console and logfile.
+    list_summary_csv_path : str
+        Path to output csv file containing the list of proteins for analysis.
+
+    """
     logging.info('~~~~~~~~~~~~    starting create_csv_from_uniprot_flatfile     ~~~~~~~~~~~~')
     uniprot_dict_all_proteins = {}
-    with open(uniprot_flatfile_of_selected_records, "r") as f:
+    with open(selected_uniprot_records_flatfile, "r") as f:
         records = SwissProt.parse(f)
         count_of_uniprot_records_processed = 0
         for record in records:
@@ -257,7 +275,20 @@ def create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, n_aa_
     logging.info('%i uniprot records parsed to csv\n~~~~~~~~~~~~   create_csv_from_uniprot_flatfile is finished   ~~~~~~~~~~~~' % (count_of_uniprot_records_added_to_csv))
 
 
-def create_dictionary_of_comments(uniprot_record_handle, output_dictionary):
+def create_dictionary_of_comments(uniprot_record_handle):
+    """ Create a dictionary of the comments from a UniProt record.
+
+    Parameters
+    ----------
+    uniprot_record_handle : Bio.SwissProt.Record
+        UniProt record handle, via BioPython.
+
+    Returns
+    -------
+    output_dictionary : dict
+        Output dictionary containing the comments.
+    """
+    output_dictionary = {} #create a new empty dictionary
     try:
         for comment in uniprot_record_handle.comments:
             # splits comments based on first ":" symbol, creates a list called split_comment
@@ -272,19 +303,25 @@ def create_dictionary_of_comments(uniprot_record_handle, output_dictionary):
         #there are no comments in this uniprot file!
         logging.info('no comments in Uniprot file')
         output_dictionary = {}
-
+    return output_dictionary
 
 def create_dict_of_data_from_uniprot_record(record):
-    '''
-    For each uniprot record, collect the desired data into a dictionary.
-    '''
+    """For each uniprot record, collect the desired data into a dictionary.
+
+    Parameters
+    ----------
+    record
+
+    Returns
+    -------
+
+    """
     global uniprot_TMD_start, uniprot_TMD_end, uniprot_TMD_description, uniprot_TMD_sequence
     global TRANSMEM_missing_from_uniprot_features, output_dict, accession, uniprot_TMD_sequence, record_entry_name, record_gene_name, record_description, uniprot_TMD_start, uniprot_TMD_end, uniprot_TMD_description, record_sequence_length, comments_subcellular_location, record_keywords, record_features_all
 
     #convert the comments in uniprot to a dictionary.
     #the comments in uniprot are unordered and non-hierarchical and need to be processed with string manipulation
-    comments_dict = {} #create a new empty dictionary
-    create_dictionary_of_comments(record, comments_dict)
+    comments_dict = create_dictionary_of_comments(record)
 
     #create an empty output dictionary to holnd the uniprot data for each record
     output_dict = {}

@@ -5,6 +5,22 @@ from time import strftime
 import unicodedata
 
 def setup_file_locations_in_df(set_, pathdict):
+    """ Sets up the file locations in the DataFrame containing the list of proteins for analysis.
+
+    Parameters
+    ----------
+    set_ : dict
+        Dictionary of settings derived from settings excel file.
+        Columns "Parameter" and "Value" are converted to key/value in the dictionary, respectively.
+    pathdict : dict
+        Dictionary of the key paths and files associated with that List number.
+
+    Saved Files and Figures
+    -----------------------
+    pathdict["list_summary_csv"] : csv file
+        Input CSV file is overwritten at end of function, including the extra file locations.
+
+    """
     df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
     # if "uniprot_acc" in df.columns:
     #     df.set_index("uniprot_acc", drop=False, inplace=True)
@@ -170,11 +186,24 @@ def setup_file_locations_in_df(set_, pathdict):
 
 
 def get_indices_TMD_plus_surr_for_summary_file(dfsumm, TMD, n_aa_before_tmd, n_aa_after_tmd):
-    """Takes a summary dataframe (1 row for each protein) and slices out the TMD seqs
+    """Takes a summary dataframe (1 row for each protein) and slices out the TMD seqs.
 
     Returns the dataframe with extra columns, TM01_start, TM01_start_plus_surr_seq, etc
-    """
 
+    Parameters
+    ----------
+    dfsumm : pd.DataFrame
+        Input dataframe with sequences for slicing
+    TMD : str
+        String denoting transmembrane domain number (e.g. "TM01")
+    n_aa_before_tmd
+    n_aa_after_tmd
+
+    Returns
+    -------
+    dfsumm : pd.DataFrame
+        Returns the dataframe with extra columns, TM01_start, TM01_start_plus_surr_seq, etc
+    """
     # instead of integers showing the start or end of the TMD, some people write strings into the
     # UniProt database, such as "<5" or "?"
     # to avoid the bugs that this introduces, it is necessary to convert all strings to np.nan (as floats),
@@ -197,4 +226,17 @@ def get_indices_TMD_plus_surr_for_summary_file(dfsumm, TMD, n_aa_before_tmd, n_a
 
 
 def find_indices_longer_than_prot_seq(df, TMD):
+    """ Finds indices that are longer than the protein sequence.
+
+    Small lambda-like function used to determine where the TMD plus surrounding exceeds the length of the protein sequence
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Dataframe containing the columns for analysis.
+    TMD : str
+        String denoting transmembrane domain number (e.g. "TM01")
+    -------
+
+    """
     return df['%s_end_plus_surr'%TMD] > df['seqlen']

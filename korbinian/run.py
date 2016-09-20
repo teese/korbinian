@@ -81,7 +81,7 @@ def run_korbinian(excel_file_with_settings):
     logging.warning("list_number : {}".format(list_number))
 
     uniprot_folder_sel = os.path.join(set_["uniprot_dir"], 'selected')
-    uniprot_flatfile_of_selected_records = os.path.join(uniprot_folder_sel,'List%02d_selected_uniprot_records_flatfile.txt' % list_number)
+    selected_uniprot_records_flatfile = os.path.join(uniprot_folder_sel,'List%02d_selected_uniprot_records_flatfile.txt' % list_number)
 
     # set a base folder for the summaries, e.g. "D:\Databases\main\summaries\05\List05 [[_summary.csv]]"
     base_filename_summaries = os.path.join(set_["summaries_dir"], '%02d' % list_number, 'List%02d' % list_number)
@@ -112,21 +112,21 @@ def run_korbinian(excel_file_with_settings):
     ########################################################################################
 
     if set_["create_nonred_uniprot_flatfile_via_uniref"] == True:
-        korbinian.prot_list.create_nonred_uniprot_flatfile_via_uniref(set_, uniprot_folder_sel, list_number, uniprot_flatfile_of_selected_records, logging)
+        korbinian.prot_list.create_nonred_uniprot_flatfile_via_uniref(set_, uniprot_folder_sel, list_number, selected_uniprot_records_flatfile, logging)
 
     if set_["run_parse_large_flatfile_with_list_uniprot_accessions"]:
         input_accession_list= set_["list_of_uniprot_accessions"]
-        korbinian.prot_list.parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, uniprot_folder_sel, list_number, logging, uniprot_flatfile_of_selected_records)
+        korbinian.prot_list.parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, uniprot_folder_sel, list_number, logging, selected_uniprot_records_flatfile)
 
     if set_["run_retrieve_uniprot_data_for_acc_list_in_xlsx_file"]:
-        korbinian.prot_list.retrieve_uniprot_data_for_acc_list_in_xlsx_file(excelfile_with_uniprot_accessions, logging, uniprot_flatfile_of_selected_records)
+        korbinian.prot_list.retrieve_uniprot_data_for_acc_list_in_xlsx_file(excelfile_with_uniprot_accessions, logging, selected_uniprot_records_flatfile)
 
     if set_["run_create_csv_from_uniprot_flatfile"]:
         ''' ~~ DETERMINE START AND STOP INDICES FOR TMD PLUS SURROUNDING SEQ ~~ '''
         n_aa_before_tmd = set_["n_aa_before_tmd"]
         n_aa_after_tmd = set_["n_aa_after_tmd"]
         list_summary_csv_path = pathdict["list_summary_csv"]
-        korbinian.prot_list.create_csv_from_uniprot_flatfile(uniprot_flatfile_of_selected_records, n_aa_before_tmd, n_aa_after_tmd, set_['analyse_signal_peptides'], logging, list_summary_csv_path)
+        korbinian.prot_list.create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, set_['analyse_signal_peptides'], logging, list_summary_csv_path)
     ########################################################################################
     #                                                                                      #
     #                            run_setup_df_file_locations                               #

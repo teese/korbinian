@@ -17,7 +17,16 @@ import numpy as np
 # OMPdb_summary_csv_with_TM_seqs = OMPdb_summary_nr_csv[:-4] + "_with_seqs.csv"
 
 def extract_omp_IDs_from_nr_fasta(omp_nr_fasta, omp_ID_nr_txt, logging):
-    """ Takes the OMP non-redundant list of fasta sequences, and extracts the protein IDs (fasta names).
+    """Takes the OMP non-redundant list of fasta sequences, and extracts the protein IDs (fasta names).
+
+    Parameters
+    ----------
+    omp_nr_fasta : str
+        Path to OMPdb non-redundant list of fasta sequences
+    omp_ID_nr_txt : str
+        Path to output file, with list of OMPdb accessions.
+    logging : logging.Logger
+        Logger for printing to console and logfile.
     """
     with open(omp_ID_nr_txt, "w") as s:
         with open(omp_nr_fasta) as f:
@@ -34,14 +43,14 @@ def parse_OMPdb_all_selected_to_csv(omp_ID_nr_txt, OMPdb_all_flatfile, OMPdb_sum
     Parameters
     ----------
     omp_ID_nr_txt : str
-    Path to OMPdb list of non-redundant IDs, textfile.
+        Path to OMPdb list of non-redundant IDs, textfile.
     OMPdb_all_flatfile : str
-    Path to full OMPdb flatfile, all proteins, unzipped.
+        Path to full OMPdb flatfile, all proteins, unzipped.
     OMPdb_summary_nr_csv : str
-    Path to output csv file.
+        Path to output csv file.
 
-    Notes:
-    ------
+    Notes
+    -----
     This script parses the original text file, rather than XML. Version on server was not working due to " ' error.
     The script works, but goes through an entire flatfile, so is unbelievably slow. Use at your own risk.
     """
@@ -139,7 +148,8 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_summary_nr_csv, OMPdb_
         Path to input csv with OMP sequences and membrane annotation
     OMPdb_summary_csv_with_TM_seqs : str
         Path to output csv with the sliced TM sequences
-
+    logging : logging.Logger
+        Logger for printing to console and logfile.
     """
     df_KW = pd.read_csv(OMPdb_summary_nr_csv)
 

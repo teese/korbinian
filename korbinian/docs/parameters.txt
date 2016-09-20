@@ -1,0 +1,49 @@
+    Parameters
+    ----------
+    Saved Files
+    -----------
+    Notes
+    -----
+
+    logging : logging.Logger
+        Logger for printing to console and logfile.
+
+
+    selected_uniprot_records_flatfile : str
+        Path to UniProt flatfile containing selected records for analysis.
+
+
+    list_summary_csv_path : str
+        Path to csv file containing the list of proteins for analysis.
+
+    TMD : str
+        String denoting transmembrane domain number (e.g. "TM01")
+
+    set_ : dict
+        Settings dictionary extracted from excel settings file.
+
+
+
+    PROTEIN_NAME_HUMAN_SIMAP.tar.gz : gzip file
+        e.g. A1A5B4_ANO9_HUMAN_SIMAP.tar.gz
+
+    uniprot_folder_sel : str
+        Path to uniprot/selected folder.
+    list_number : int
+        List number (e.g. 8), determining the input and output files.
+    selected_uniprot_records_flatfile : str
+        Path to output UniProt flatfile of selected records. E.g. List08_selected_uniprot_records_flatfile.txt
+    logging : logging.Logger
+        Logger for printing to console and logfile.
+    OMPdb_summary_nr_csv : str
+        Path to input csv with OMP sequences and membrane annotation
+    OMPdb_summary_csv_with_TM_seqs : str
+        Path to output csv with the sliced TM sequences
+    input_accession_list : list
+        List of accessions.
+    uniprot_dir : str
+        Path to UniProt folder, where selected_uniprot_records_flatfile will be saved
+    list_number : int
+        List number used to determine the output filename.
+    logging : logging.Logger
+        Logger for printing to console and logfile.

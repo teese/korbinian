@@ -9,6 +9,46 @@ import tarfile
 import korbinian
 
 def download_homologues_from_simap(pathdict, set_, logging):
+    """From the list of proteins in csv format, begins downloading homologues from the SIMAP database.
+
+     - opens the csv file containing the list of proteins
+     - opens or creates a text file with the list of failed downloads
+     - checks if there is enough hard-drive space
+     - checks what files currently exist (feature table, homologue, zip)
+     - tries to download feature table
+     - tries to download homologues
+     - if both feature table and homologues exist, compresses both into a tarball and deletes original files
+     - counts the number of failed downloads. Assumes most failed downloads are due to server errors on the SIMAP side.
+     With more and more failed downloads, sleeps for longer and longer.
+
+
+    Parameters
+    ----------
+    pathdict : dict
+        Dictionary of the key paths and files associated with that List number.
+    set_ : dict
+        Settings dictionary extracted from excel settings file.
+    logging : logging.Logger
+        Logger for printing to console and logfile.
+
+    Saved Files and Figures
+    -----------------------
+    PROTEIN_NAME_SIMAP.tar.gz : gzip file
+        (e.g. A1A5B4_ANO9_HUMAN_SIMAP.tar.gz)
+        Contains
+        --------
+        PROTEIN_NAME_feature_table.xml (e.g. A1A5B4_ANO9_HUMAN_feature_table.xml)
+            XML feature table from SIMAP, with information regarding each protein.
+        PROTEIN_NAME_homologues.xml (e.g. A1A5B4_ANO9_HUMAN_homologues.xml)
+            homologues from SIMAP in SIMAP-XML (rather than BLAST-XML) format
+        PROTEIN_NAME--DATE--RESEARCHERNAME.txt (e.g. A1DT13_A1DT13_HUMAN--20160811--Mark Teese.txt)
+            [only in later versions] Text file showing the download date and researcher name.
+
+    pathdict["failed_downloads_txt"] : txt
+        File containing a list of accessions that could not be downloaded. At each run, the program checks
+        if this file exists. If it doesn't exist, it will be created. If it exists, the settings file
+        determines whether the previously failed downloads will be re-attempted.
+    """
     df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
     # if "uniprot_acc" in df.columns:
     #     df.set_index("uniprot_acc", drop=False, inplace=True)
@@ -144,9 +184,29 @@ def download_homologues_from_simap(pathdict, set_, logging):
 
 
 def retrieve_simap_feature_table(input_sequence, java_exec_str, max_memory_allocation, output_file, eaSimap_path):
-    '''
-    Uses the java program to access the simap database and download the small file containing information on that protein, called a "feature table".
-    '''
+    """ Runs eaSimap.jar from the command line, to download the feature table XML from SIMAP.
+
+    Downloads the feature table, which contains various information on that protein (TM regions, names, etc).
+
+    Parameters
+    ----------
+    input_sequence : str
+        Protein sequence.
+    java_exec_str : str
+        String used to run Java Runtime Environment. E.g. "java" or "%JAVA_JRE%"
+    max_memory_allocation : int
+        Maximum memory allocated to running the jar file. E.g. 3000, for 3GB ram.
+    output_file : str
+        Path for output XML file.
+    eaSimap_path : str
+        Path to the eaSimap.jar file in this operating system, to be run with java runtime environment.
+
+    Saved Files and Figures
+    -----------------------
+    output_file : XML
+        Feature table XML file.
+
+    """
     #prepare input sequence and settings as a "command_str", and run command
     # command_str = '%s -Xmx%im -jar %s -s %s -o %s -f' % (java_exec_str, max_memory_allocation, eaSimap_path, input_sequence, output_file)
     command_str = '{jes} -Xmx{mma:d}m -jar {esp} -s {s} -o {o} -f'.format(jes=java_exec_str,
@@ -161,6 +221,33 @@ def retrieve_simap_feature_table(input_sequence, java_exec_str, max_memory_alloc
 
 
 def retrieve_simap_homologues(input_sequence, output_file, max_hits, java_exec_str, max_memory_allocation, taxid, eaSimap_path):
+    """Runs eaSimap.jar from the command line, to download the homologues XML from SIMAP.
+
+    Downloads the homologues, which contains BLAST-like output in SIMAP format.
+
+    Parameters
+    ----------
+    input_sequence : str
+        Protein sequence.
+    output_file : str
+        Path for output XML file.
+    max_hits : int
+        Maximum number of hits from the BLAST-like output (usually 5000, the maximum).
+    java_exec_str : str
+        String used to run Java Runtime Environment. E.g. "java" or "%JAVA_JRE%"
+    max_memory_allocation : int
+        Maximum memory allocated to running the jar file. E.g. 3000, for 3GB ram.
+    taxid : int
+        Taxonomy ID (usually blank)
+    eaSimap_path : str
+        Path to the eaSimap.jar file in this operating system, to be run with java runtime environment.
+
+    Saved Files and Figures
+    -----------------------
+    output_file : XML
+        Homologue XML file.
+
+    """
     '''
     Uses the java program to access the simap database and download the large file containing all homologues of that protein.
     '''
