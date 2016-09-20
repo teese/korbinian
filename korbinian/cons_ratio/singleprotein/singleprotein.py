@@ -46,9 +46,6 @@ def slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_ho
     # drop the original listlike from the regex search
     #NOT NECESSARY. DFS WILL NOT BE RETURNED!
     #df_TMD.drop('%s_start_end_list_in_SW_alignment' % TMD, inplace=True, axis=1)
-    if number_of_rows_containing_data == 0:
-        logging.info('%s does not have any valid homologues for %s. '
-                     'Re-downloading simap homologue XML may be necessary.' % (df.loc[acc,"protein_name"], TMD))
     if number_of_rows_containing_data != 0:
         n_TMDs_w_homol += 1
         len_query_TMD = len(df.loc[acc, '%s_seq' % TMD])
@@ -138,6 +135,11 @@ def slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_ho
         # calculate the average number of gaps per residue in the TMD alignment
         # (number of gaps)/(length of sequence excluding gaps)
         df_TMD['%s_SW_q_gaps_per_q_residue'%TMD] = df_TMD['%s_SW_query_num_gaps'%TMD].dropna() / len_query_TMD
+    else:
+        logging.info('%s does not have any valid homologues for %s. '
+                     'Re-downloading simap homologue XML may be necessary.' % (df.loc[acc,"protein_name"], TMD))
+        df_TMD = pd.DataFrame()
+
     return df_TMD
 
 def calc_AAIMON(TMD, df_cr, mean_ser, logging):

@@ -428,7 +428,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                         # with tarfile.open(df.loc[acc, 'SIMAP_csv_from_XML_tarfile'], 'w:gz') as tar_SIMAP_out:
                         #     tar_SIMAP_out.add(SIMAP_orig_csv, arcname=df.loc[acc, 'SIMAP_csv_from_XML'])
                         # os.remove(SIMAP_orig_csv)
-    logging.info('%s homologous sequences parsed from SIMAP XML to csv' % int(df.loc[acc, 'SIMAP_total_hits']))
+    logging.info('{} homologous sequences parsed from SIMAP XML to csv'.format(df.loc[acc, 'SIMAP_total_hits']))
     logging.info('number_of_hits_missing_smithWatermanAlignment_node: %i' % number_of_hits_missing_smithWatermanAlignment_node)
     logging.info('number_of_hits_missing_protein_node: %i' % number_of_hits_missing_protein_node)
     logging.info('****parse_SIMAP_to_csv finished!!****\n%g files parsed from SIMAP XML to csv' % counter_XML_to_CSV)

@@ -149,7 +149,9 @@ def slice_TMDs_from_homologues(pathdict, set_, logging):
             df_nonTMD_sliced = dfs[['len_query_align_seq']].copy()
             for TMD in list_of_TMDs:
                 df_TMD = korbinian.cons_ratio.slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_homol)
-
+                if df_TMD.empty:
+                    # skip protein, as number_of_rows_containing_data == 0
+                    continue
                 # transfer the columns with indices across to the df_nonTMD_sliced
                 cols = ['%s_in_SW_alignment' % TMD, '%s_start_in_SW_alignment' % TMD, '%s_end_in_SW_alignment' % TMD]
                 for col in cols:
