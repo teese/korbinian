@@ -150,7 +150,8 @@ def slice_TMDs_from_homologues(pathdict, set_, logging):
             for TMD in list_of_TMDs:
                 df_TMD = korbinian.cons_ratio.slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_homol)
                 if df_TMD.empty:
-                    # skip protein, as number_of_rows_containing_data == 0
+                    # skip TMD, as number_of_rows_containing_data == 0
+                    # here I really should skip the protein too. It's tempting to use goto: "from goto import goto" (http://entrian.com/goto/)
                     continue
                 # transfer the columns with indices across to the df_nonTMD_sliced
                 cols = ['%s_in_SW_alignment' % TMD, '%s_start_in_SW_alignment' % TMD, '%s_end_in_SW_alignment' % TMD]
@@ -163,6 +164,9 @@ def slice_TMDs_from_homologues(pathdict, set_, logging):
                 homol_sliced_zip.write(TM_temp_pickle, arcname=os.path.basename(TM_temp_pickle))
                 os.remove(TM_temp_pickle)
                 #korbinian.cons_ratio.slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs)
+            if df_TMD.empty:
+                # skip protein, as number_of_rows_containing_data == 0 for at least one TMD (or at least the last TMD)
+                continue
 
             df_nonTMD_sliced = korbinian.cons_ratio.slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs)
 
