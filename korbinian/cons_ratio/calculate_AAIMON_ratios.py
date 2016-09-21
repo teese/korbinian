@@ -16,7 +16,8 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
     os.chdir(set_["simap_database_dir"])
     # iterate over the dataframe for proteins with an existing list_of_TMDs. acc = uniprot accession.
     for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
-        logging.info(df.loc[acc, 'protein_name'])
+        protein_name = df.loc[acc, 'protein_name']
+        logging.info(protein_name)
         if not os.path.exists(df.loc[acc, 'homol_df_orig_zip']):
             logging.info("{} Protein skipped. File does not exist".format(df.loc[acc, 'homol_df_orig_zip']))
             continue
@@ -41,7 +42,7 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
         ########################################################################################
 
         homol_cr_ratios_zip = df.loc[acc, 'homol_cr_ratios_zip']
-        mean_ser_filename = "{}_cr_mean.csv".format(acc)
+        mean_ser_filename = "{}_cr_mean.csv".format(protein_name)
 
         #assume af first that there is no previous data, and that the calculations can be re-run
         prev_calc_AAIMON_ratio_for_this_protein_exists = False
@@ -49,7 +50,7 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
             if os.path.isfile(homol_cr_ratios_zip):
                 with zipfile.ZipFile(homol_cr_ratios_zip, mode="r", compression=zipfile.ZIP_DEFLATED) as zip:
                     if mean_ser_filename in zip.namelist():
-                        logging.info('{} AAIMON_ratios skipped, file with mean AAIMON ratios exists (in settings, overwrite_prev_calculated_AAIMON_ratios = True)'.format(df.loc[acc, 'uniprot_acc']))
+                        logging.info('{} AAIMON_ratios skipped, file with mean AAIMON ratios exists (in settings, overwrite_prev_calculated_AAIMON_ratios = True)'.format(protein_name))
                         # if the means are saved as a csv in the homol cr_ratios zipfile, skip to the next protein
                         continue
 
@@ -79,14 +80,19 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
         dfh['FASTA_num_ident_res'] = dfh['FASTA_identity'] / 100 * dfh['FASTA_overlap']
         mean_ser['FASTA_num_ident_res'] = float('%0.2f' % dfh['FASTA_identity'].mean())
 
-        nonTMD_pickle_name = "{}_nonTMD_sliced_df.pickle".format(acc)
+        nonTMD_pickle_name = "{}_nonTMD_sliced_df.pickle".format(protein_name)
         df_nonTMD = utils.open_df_from_pickle_zip(df.loc[acc, 'fa_cr_sliced_TMDs_zip'], filename=nonTMD_pickle_name, delete_corrupt=True)
         if df_nonTMD.empty:
-            logging.info("{}file was corrupt and was deleted".format(df.loc[acc, 'fa_cr_sliced_TMDs_zip']))
+            logging.info("{} file was corrupt and was deleted".format(df.loc[acc, 'fa_cr_sliced_TMDs_zip']))
             continue
 
         # filter based on dfh above, for general homologue settings (e.g. % identity of full protein)
-        df_nonTMD = df_nonTMD.loc[dfh.index, :]
+        try:
+            df_nonTMD = df_nonTMD.loc[dfh.index, :]
+        except KeyError:
+            # in very rare cases, none of the dfh.index is actually found in df_nonTMD, and therefore the protein should be skipped
+            # since the df_nonTMD depends on ALL TMDs being found, this occurs when none of the homologues contain all TMDs
+            continue
 
         # calculate the nonTMD percentage identity and gaps
         mean_ser, df_nonTMD = korbinian.cons_ratio.calc_nonTMD_perc_ident_and_gaps(acc, df_nonTMD, mean_ser, logging)
@@ -94,7 +100,7 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
         with zipfile.ZipFile(homol_cr_ratios_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
 
             # save the nonTMD dataframe
-            nonTMD_cr_outfile_pickle = "{}_nonTMD_cr_df.pickle".format(acc)
+            nonTMD_cr_outfile_pickle = "{}_nonTMD_cr_df.pickle".format(protein_name)
             with open(nonTMD_cr_outfile_pickle, "wb") as p:
                 pickle.dump(df_nonTMD, p, protocol=pickle.HIGHEST_PROTOCOL)
             zipout.write(nonTMD_cr_outfile_pickle, arcname=nonTMD_cr_outfile_pickle)
@@ -126,7 +132,7 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
             for TMD_Nr, TMD in enumerate(list_of_TMDs):
                 TMD_Nr = TMD_Nr + 1
                 # open the dataframe containing the sequences, gap counts, etc for that TMD only
-                df_cr = utils.open_df_from_pickle_zip(df.loc[acc, 'fa_cr_sliced_TMDs_zip'], filename="{}_{}_sliced_df.pickle".format(acc, TMD), delete_corrupt=True)
+                df_cr = utils.open_df_from_pickle_zip(df.loc[acc, 'fa_cr_sliced_TMDs_zip'], filename="{}_{}_sliced_df.pickle".format(protein_name, TMD), delete_corrupt=True)
                 # add the nonTMD percentage identity, etc. NOTE THAT THE INDEX SHOULD STILL BE COMPATIBLE, as the hit_num!
                 df_cr['nonTMD_perc_ident'] = df_nonTMD['nonTMD_perc_ident']
                 df_cr['nonTMD_perc_sim_plus_ident'] = df_nonTMD['nonTMD_perc_sim_plus_ident']
@@ -139,11 +145,11 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
                 # calculate AAISMON etc for each TMD
                 mean_ser, df_cr = korbinian.cons_ratio.calc_AAIMON(TMD, df_cr, mean_ser, logging)
 
-                logging.info('AAIMON MEAN %s: %0.2f' % (TMD, mean_ser['%s_AAIMON_ratio_mean' % TMD]))
-                # logging.info('AASMON MEAN %s: %0.2f' % (TMD, mean_ser['%s_AASMON_ratio_mean'%TMD]))
+                logging.info('%s AAIMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean' % TMD]))
+                # logging.info('%s AASMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AASMON_ratio_mean'%TMD]))
 
                 # save the dataframe for that TMD
-                TM_cr_outfile_pickle = "{}_{}_cr_df.pickle".format(acc, TMD)
+                TM_cr_outfile_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
                 with open(TM_cr_outfile_pickle, "wb") as p:
                     pickle.dump(df_cr, p, protocol=pickle.HIGHEST_PROTOCOL)
                 zipout.write(TM_cr_outfile_pickle, arcname=TM_cr_outfile_pickle)
@@ -178,7 +184,12 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
             # save df_cr with homologues for a single protein, as a single zipped csv
             #utils.save_df_to_csv_zip(df_cr, mean_ser['homol_df_orig_zip'], open_method="w")
 
-            mean_ser['num_hits_with_SW_align_node'] = dfh['hit_contains_SW_node'].value_counts()[True]
+            value_counts_hit_contains_SW_node = dfh['hit_contains_SW_node'].value_counts()
+            if True in value_counts_hit_contains_SW_node:
+                mean_ser['num_hits_with_SW_align_node'] = value_counts_hit_contains_SW_node[True]
+            else:
+                logging.warning("{} num_hits_with_SW_align_node = 0".format(protein_name))
+                mean_ser['num_hits_with_SW_align_node'] = 0
             #logging.info('num_hits_with_SW_align_node: %s' % mean_ser['num_hits_with_SW_align_node'])
 
             # save to csv after each protein is analysed, incrementally adding the extra data

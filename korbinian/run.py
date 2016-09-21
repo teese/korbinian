@@ -164,7 +164,7 @@ def run_korbinian(excel_file_with_settings):
         korbinian.cons_ratio.calculate_AAIMON_ratios(pathdict, set_, logging)
 
     if set_["run_gather_AAIMON_ratios"]:
-        korbinian.cons_ratio.gather_AAIMON_ratios(pathdict, set_, logging)
+        korbinian.cons_ratio.gather_AAIMON_ratios(pathdict, logging)
 
     ########################################################################################
     #                                                                                      #

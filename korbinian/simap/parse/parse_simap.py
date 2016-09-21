@@ -188,7 +188,7 @@ def parse_SIMAP_to_csv(pathdict, set_, logging):
                             simap_homologue_root[0][0][0][1][0].attrib['total'])
                     except (IndexError, KeyError):
                         df.loc[acc, 'homol_XML_damaged'] = True
-                        logging.warning("{} skipped, homologue XML seems to be damaged. Error in reading general query details.".format(acc))
+                        logging.warning("{} skipped, homologue XML seems to be damaged. Error in reading general query details.".format(protein_name))
                         # skip to the next protein
                         continue
                     '''

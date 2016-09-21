@@ -10,7 +10,8 @@ def filter_and_save_fasta(pathdict, set_, logging):
     df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     #iterate over the dataframe for proteins with an existing list_of_TMDs. acc = uniprot accession.
     for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
-        logging.info(df.loc[acc, "protein_name"])
+        protein_name = df.loc[acc, "protein_name"]
+        logging.info(protein_name)
         # if the homol_df_orig_zip file does not exist, skip that protein
         if not os.path.exists(df.loc[acc, 'homol_df_orig_zip']):
             logging.info("{} Protein skipped, file not found.".format(df.loc[acc, 'homol_df_orig_zip']))
@@ -47,7 +48,7 @@ def filter_and_save_fasta(pathdict, set_, logging):
 
         for TMD in list_of_TMDs:
             # open the dataframe containing the sequences, gap counts, etc for that TMD only
-            df_fa = utils.open_df_from_pickle_zip(df.loc[acc, 'fa_cr_sliced_TMDs_zip'], filename="{}_{}_sliced_df.pickle".format(acc, TMD), delete_corrupt=True)
+            df_fa = utils.open_df_from_pickle_zip(df.loc[acc, 'fa_cr_sliced_TMDs_zip'], filename="{}_{}_sliced_df.pickle".format(protein_name, TMD), delete_corrupt=True)
             # filter based on dfh above, for general homologue settings (e.g. % identity of full protein)
             df_fa = df_fa.loc[dfh.index,:]
 

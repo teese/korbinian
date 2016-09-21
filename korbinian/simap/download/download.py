@@ -54,13 +54,13 @@ def download_homologues_from_simap(pathdict, set_, logging):
     #     df.set_index("uniprot_acc", drop=False, inplace=True)
     # else:
     #     df["uniprot_acc"] = df.index
-    list_failed_downloads = []
+    acc_list_failed_downloads = []
     if os.path.isfile(pathdict["failed_downloads_txt"]):
         # Extracts accession numbers out of file
         with open(pathdict["failed_downloads_txt"], "r") as source:
             for line in source:
                 line = line.strip()
-                list_failed_downloads.append(line)
+                acc_list_failed_downloads.append(line)
 
     #def retrieve_simap_feature_table_and_homologues_from_list_in_csv(input_file, list_of_keys, settings):
     '''
@@ -95,8 +95,8 @@ def download_homologues_from_simap(pathdict, set_, logging):
             homol_xml_path = df.loc[acc, 'SIMAP_homol_XML_path']
             date_file_path = df.loc[acc, 'SIMAP_download_date_file_path']
             if set_["attempt_prev_failed_downloads"] == False:
-                if acc in list_failed_downloads:
-                    logging.info("{} is in list of previously failed downloads. Will be skipped.".format(acc))
+                if acc in acc_list_failed_downloads:
+                    logging.info("{} is in list of previously failed downloads. Will be skipped.".format(protein_name))
                     continue
 
             # create directories to hold file, if necessary

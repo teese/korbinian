@@ -1314,7 +1314,11 @@ def open_df_from_pickle_zip(in_zipfile, filename=None, delete_corrupt=False):
                         picklefile = file_in_zip
             else:
                 picklefile = filename
-                assert filename in openzip.namelist()
+                if  filename not in openzip.namelist():
+                    if delete_corrupt == True:
+                        deletezip = True
+                    else:
+                        df_loaded = pd.DataFrame()
 
             if picklefile is not None:
                 csv_file_handle = openzip.open(picklefile)
@@ -1328,7 +1332,7 @@ def open_df_from_pickle_zip(in_zipfile, filename=None, delete_corrupt=False):
     else:
         raise FileNotFoundError("{} not found".format(in_zipfile))
     if deletezip:
-        logging.info("pickle file not found in {}, file deleted".format(in_zipfile))
+        logging.info("pickle file not found in {}, file is old or damaged, and has been deleted".format(in_zipfile))
         os.remove(in_zipfile)
         df_loaded = pd.DataFrame()
     return df_loaded
