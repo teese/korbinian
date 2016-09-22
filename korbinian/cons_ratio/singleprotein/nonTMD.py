@@ -142,7 +142,8 @@ def calc_nonTMD_perc_ident_and_gaps(acc, df_nonTMD, mean_ser, logging):
         #                                                                                      #
         ########################################################################################
         # calculate identical residues in the nonTMD region (simply count the pipes '|' in the markup sequence)
-        df_nonTMD['nonTMD_num_ident_res'] = df_nonTMD['nonTMD_markup'].str.count('|')
+        # NOTE THAT df_nonTMD['nonTMD_markup'].str.count('|') DOES NOT WORK, as "|" has a function in regex and needs to be escaped
+        df_nonTMD['nonTMD_num_ident_res'] = df_nonTMD['nonTMD_markup'].str.count('\|')
         # calculate similar residues in the nonTMD region (simply count the colons ':' in the markup sequence)
         df_nonTMD['nonTMD_num_sim_res'] = df_nonTMD['nonTMD_markup'].str.count(':')
         # add the identical and similar residues together to get the total number of similar + identical residues
@@ -154,15 +155,21 @@ def calc_nonTMD_perc_ident_and_gaps(acc, df_nonTMD, mean_ser, logging):
         df_nonTMD['nonTMD_m_num_gaps'] = df_nonTMD['nonTMD_seq_match'].str.count('-')
         # calculate the length of the nonTMD sequences, which may include gaps
         df_nonTMD['len_nonTMD_seq_query'] = df_nonTMD['nonTMD_seq_query'].str.len()
+        df_nonTMD['len_nonTMD_seq_markup'] = df_nonTMD['nonTMD_markup'].str.len()
         df_nonTMD['len_nonTMD_seq_match'] = df_nonTMD['nonTMD_seq_match'].str.len()
+
         # calculate the number aligned sequences, excluding gaps (length of query, or length of match, whichever is shorter)
-        df_nonTMD['len_nonTMD_align'] = df_nonTMD[['len_nonTMD_seq_query', 'len_nonTMD_seq_match']].dropna(how='all').min(axis=1)
+        # NOTE, THIS IS CURRENTLY TOO SHORT, GIVING NONTMD IDENTITIES ALWAYS ABOVE 1.0. NEEDS TO BE FIXED.
+        #df_nonTMD['len_nonTMD_align'] = df_nonTMD[['len_nonTMD_seq_query', 'len_nonTMD_seq_match']].dropna(how='all').min(axis=1)
+        df_nonTMD['len_nonTMD_align'] = df_nonTMD['len_nonTMD_seq_query']
+
 
         # calculate the length of the nonTMD sequence excluding gaps
         df_nonTMD['len_nonTMD_q_excl_gaps'] = df_nonTMD['len_nonTMD_seq_query'] - df_nonTMD['nonTMD_q_num_gaps']
         df_nonTMD['len_nonTMD_m_excl_gaps'] = df_nonTMD['len_nonTMD_seq_match'] - df_nonTMD['nonTMD_m_num_gaps']
-        # calculate the lenth of the alignment by finding which seq excl gaps is smaller
-        df_nonTMD['len_nonTMD_align'] = df_nonTMD[['len_nonTMD_q_excl_gaps', 'len_nonTMD_m_excl_gaps']].min(axis=1)
+        # calculate the length of the alignment by finding which seq excl gaps is smaller
+        # NOTE, THIS IS CURRENTLY TOO SHORT, GIVING NONTMD IDENTITIES ALWAYS ABOVE 1.0. NEEDS TO BE FIXED.
+        #df_nonTMD['len_nonTMD_align'] = df_nonTMD[['len_nonTMD_q_excl_gaps', 'len_nonTMD_m_excl_gaps']].min(axis=1)
 
         # calculate the percentage identity of the nonTMD region (number of identical residues divided by the length excluding gaps)
         # used for the Amino Acid Identity : Membranous over Nonmembranous (AAIMON ratio)
@@ -201,5 +208,4 @@ def calc_nonTMD_perc_ident_and_gaps(acc, df_nonTMD, mean_ser, logging):
         mean_ser['len_nonTMD_align_mean'] = float('%0.2f' % df_nonTMD['len_nonTMD_align'].dropna().mean())
         mean_ser['nonTMD_qm_gaps_per_q_residue_mean'] = float('%0.2f' % df_nonTMD['nonTMD_qm_gaps_per_q_residue'].dropna().mean())
         #logging.info('nonTMD_qm_gaps_per_q_residue : %0.5f' % mean_ser['nonTMD_qm_gaps_per_q_residue_mean'])
-
         return mean_ser, df_nonTMD

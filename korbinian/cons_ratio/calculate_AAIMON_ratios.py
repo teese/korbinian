@@ -18,8 +18,8 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
     for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
         protein_name = df.loc[acc, 'protein_name']
         logging.info(protein_name)
-        if not os.path.exists(df.loc[acc, 'homol_df_orig_zip']):
-            logging.info("{} Protein skipped. File does not exist".format(df.loc[acc, 'homol_df_orig_zip']))
+        if not os.path.exists(df.loc[acc, 'fa_cr_sliced_TMDs_zip']):
+            logging.info("{} Protein skipped. File does not exist".format(df.loc[acc, 'fa_cr_sliced_TMDs_zip']))
             continue
         dfh = utils.open_df_from_pickle_zip(df.loc[acc, 'homol_df_orig_zip'],filename=os.path.basename(df.loc[acc, 'homol_df_orig_pickle']), delete_corrupt=True)
         if dfh.empty:

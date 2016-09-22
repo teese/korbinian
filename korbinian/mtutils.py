@@ -1290,49 +1290,53 @@ def open_df_from_pickle_zip(in_zipfile, filename=None, delete_corrupt=False):
     in_zipfile : str
         Path to zip file
     filename : str
-        Filename. Default is "None", which will result in the opening of the first .pickle file in the zipfile.
+        Filename inside zipfile to open. Default is "None", which will result in the opening of the first .pickle file in the zipfile.
 
     Returns
     -------
-    df : DataFrame
-        pandas Dataframe
+    df_loaded : pd.DataFrame
+        Output pandas Dataframe.
 
     Note
     -------
     Much faster than reading from excel.
     """
+    # create bool deciding whether zip file will be deleted
     deletezip = False
-
     if os.path.isfile(in_zipfile):
         with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
+            filenamelist = openzip.namelist()
             if filename == None:
-                picklefile = None
                 # if a filename is not given, open the first file in the list
-                filenamelist = openzip.namelist()
                 for file_in_zip in filenamelist:
                     if file_in_zip[-7:] == ".pickle":
-                        picklefile = file_in_zip
-            else:
-                picklefile = filename
-                if  filename not in openzip.namelist():
+                        filename = file_in_zip
+                        # pickle is found, stop searching
+                        break
+            if filename is not None:
+                # if a filename is available, check if the file is in the zip
+                if  filename in filenamelist:
+                    csv_file_handle = openzip.open(filename)
+                    # read as pandas dataframe
+                    df_loaded = pickle.load(csv_file_handle)
+                    # make sure that the pickled object was REALLY a pandas object, and not some other python datatype that was pickled.
+                    assert isinstance(df_loaded, (pd.Series, pd.DataFrame))
+                else:
+                    # the desired file is not in the zip. Either delete the zip, or return an empty dataframe.
                     if delete_corrupt == True:
                         deletezip = True
                     else:
                         df_loaded = pd.DataFrame()
-
-            if picklefile is not None:
-                csv_file_handle = openzip.open(picklefile)
-                # read as pandas dataframe
-                df_loaded = pickle.load(csv_file_handle)
             else:
+                # if the zipfile doesn't contain ANY pickle files, something is seriously wrong. Either delete or raise Error.
                 if delete_corrupt == True:
                     deletezip = True
                 else:
-                    raise FileNotFoundError("pickle file not found in {}".format(in_zipfile))
+                    raise FileNotFoundError("{} does not contain a valid pickle file".format(in_zipfile))
     else:
         raise FileNotFoundError("{} not found".format(in_zipfile))
     if deletezip:
-        logging.info("pickle file not found in {}, file is old or damaged, and has been deleted".format(in_zipfile))
+        logging.info("{} does not contain expected pickle file {}. File is old or damaged, and has been deleted".format(in_zipfile, filename))
         os.remove(in_zipfile)
         df_loaded = pd.DataFrame()
     return df_loaded
