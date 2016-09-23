@@ -1,7 +1,7 @@
     Parameters
     ----------
-    Saved Files
-    -----------
+    Saved Files and Figures
+    -----------------------
     Notes
     -----
 
@@ -22,7 +22,8 @@
     set_ : dict
         Settings dictionary extracted from excel settings file.
 
-
+    pathdict : dict
+        Dictionary of the key paths and files associated with that List number.
 
     PROTEIN_NAME_HUMAN_SIMAP.tar.gz : gzip file
         e.g. A1A5B4_ANO9_HUMAN_SIMAP.tar.gz

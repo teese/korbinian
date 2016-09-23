@@ -5,6 +5,28 @@ import os
 import zipfile
 
 def save_hist_AAIMON_ratio_single_protein (fig_nr, fig, axarr, df_cr, set_, TMD, binlist, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix):
+    """
+
+    Parameters
+    ----------
+    fig_nr
+    fig
+    axarr
+    df_cr
+    set_
+    TMD
+    binlist
+    zipout
+    row_nr
+    col_nr
+    fontsize
+    savefig
+    AAIMON_hist_path_prefix
+
+    Returns
+    -------
+
+    """
     # use linspace to get a fixid number of points between tha min and the max for the histogram
     # set up evenly distributed bins between the chosen min and max
     # if possible, 1.0 should be in the centre of a bin, to catch cases where a lot of homologues have a ratio that approximates 1

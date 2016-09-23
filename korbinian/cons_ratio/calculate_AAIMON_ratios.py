@@ -10,6 +10,35 @@ import pandas as pd
 import zipfile
 
 def calculate_AAIMON_ratios(pathdict, set_, logging):
+    """Calculate the AAIMON ratios for a particular dataset (based on list csv file)
+
+    Parameters
+    ----------
+    pathdict : dict
+        Dictionary of the key paths and files associated with that List number.
+    set_ : dict
+        Settings dictionary extracted from excel settings file.
+    logging : logging.Logger
+        Logger for printing to console and logfile.
+
+    Saved Files and Figures
+    -----------------------
+    homol_cr_ratios_zip : zipfile
+        PROTEIN_NAME_cr_ratios.zip (E.g. A6BM72_MEG11_HUMAN_cr_ratios.zip)
+        Contains
+        --------
+        A6BM72_MEG11_HUMAN_AAIMON_hist_0.png : png
+            Histograms of AAIMON ratios for homologues of each TMD.
+        A6BM72_MEG11_HUMAN_cr_mean.csv : csv
+            Summary file for that protein. Contains conservation ratios means.
+            Will be gathered for all proteins by the gather_AAIMON_ratios function.
+        A6BM72_MEG11_HUMAN_nonTMD_cr_df.pickle : pickled pd.DataFrame
+            Dataframe containing the percentage_identity etc for sliced nonTMD region.
+        A6BM72_MEG11_HUMAN_SP01_cr_df.pickle : pickled pd.DataFrame
+            Dataframe containing the percentage_identity etc for that particular TMD/region (in this case, the signal peptide).
+        A6BM72_MEG11_HUMAN_TM01_cr_df.pickle
+            Dataframe containing the percentage_identity etc for that particular TMD/region (in this case, TM01).
+    """
     logging.info('~~~~~~~~~~~~      starting run_calculate_AAIMON_ratios        ~~~~~~~~~~~~')
     df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     # set current working directory as the homol folder, where temp files will be saved before moving to zip
@@ -26,7 +55,7 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
             logging.info("{} Protein skipped, file deleted as it is possibly corrupt.".format(df.loc[acc, 'homol_df_orig_zip']))
             continue
 
-        # create an output series containing the mean values
+        # create an output series for that protein, containing mean AAIMON values, etc.
         mean_ser = pd.Series()
         mean_ser["acc"] = acc
         mean_ser["protein_name"] = df.loc[acc, 'protein_name']
@@ -93,8 +122,11 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
             # in very rare cases, none of the dfh.index is actually found in df_nonTMD, and therefore the protein should be skipped
             # since the df_nonTMD depends on ALL TMDs being found, this occurs when none of the homologues contain all TMDs
             continue
-
-        # calculate the nonTMD percentage identity and gaps
+        ########################################################################################
+        #                                                                                      #
+        #                 Calculate the nonTMD percentage identity and gaps                    #
+        #                                                                                      #
+        ########################################################################################
         mean_ser, df_nonTMD = korbinian.cons_ratio.calc_nonTMD_perc_ident_and_gaps(acc, df_nonTMD, mean_ser, logging)
 
         with zipfile.ZipFile(homol_cr_ratios_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
@@ -130,7 +162,14 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
             fig, axarr = None, None
 
             for TMD_Nr, TMD in enumerate(list_of_TMDs):
-                TMD_Nr = TMD_Nr + 1
+                #TMD_Nr = TMD_Nr + 1
+                # # find the TMD number (starting from 1)
+                TMD_Nr = list_of_TMDs.index(TMD) + 1
+                ########################################################################################
+                #                                                                                      #
+                #                    Add nonTMD info to df_cr for each TMD.                            #
+                #                                                                                      #
+                ########################################################################################
                 # open the dataframe containing the sequences, gap counts, etc for that TMD only
                 df_cr = utils.open_df_from_pickle_zip(df.loc[acc, 'fa_cr_sliced_TMDs_zip'], filename="{}_{}_sliced_df.pickle".format(protein_name, TMD), delete_corrupt=True)
                 # add the nonTMD percentage identity, etc. NOTE THAT THE INDEX SHOULD STILL BE COMPATIBLE, as the hit_num!
@@ -142,7 +181,11 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
                 df_cr = df_cr.loc[df_nonTMD.index,:]
                 # following the general filters, filter to only analyse sequences with TMD identity above cutoff, and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
                 df_cr = df_cr.loc[df_cr['%s_perc_ident' % TMD] >= set_['cr_min_identity_of_TMD_initial_filter']]
-                # calculate AAISMON etc for each TMD
+                ########################################################################################
+                #                                                                                      #
+                #                       Calculate AAIMON, AASMON for each TMD                          #
+                #                                                                                      #
+                ########################################################################################
                 mean_ser, df_cr = korbinian.cons_ratio.calc_AAIMON(TMD, df_cr, mean_ser, logging)
 
                 logging.info('%s AAIMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean' % TMD]))
@@ -168,9 +211,11 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
 
                 #" NOT STABLE! NEED TO CHANGE save_hist_AAIMON_ratio_single_protein SO THAT IT RUNS WITHIN THE FOR LOOP ABOVE, AND TAKES A SINGLE TMD AS INPUT, RATHER THAN LIST OF TMDS" / 4
                 AAIMON_hist_path_prefix = df.loc[acc, 'AAIMON_hist_path_prefix']
-                # find the TMD number (starting from 1)
-                TMD_Nr = list_of_TMDs.index(TMD) + 1
-                # save histograms for each TMD of that protein, with relative conservation
+                ########################################################################################
+                #                                                                                      #
+                #       Save histograms for each TMD of that protein, with relative conservation       #
+                #                                                                                      #
+                ########################################################################################
                 korbinian.cons_ratio.save_hist_AAIMON_ratio_single_protein(fig_nr, fig, axarr, df_cr, set_, TMD, binlist, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix)
 
             # # remove columns to make output csv smaller
