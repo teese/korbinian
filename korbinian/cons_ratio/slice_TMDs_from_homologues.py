@@ -149,11 +149,12 @@ def slice_TMDs_from_homologues(pathdict, set_, logging):
             # add the FASTA_gapped_identity and length of the alignment sequence from dfs, to act as the "end" of all the nonTMD regions
             df_nonTMD_sliced = dfs[['len_query_align_seq']].copy()
             for TMD in list_of_TMDs:
-                df_TMD = korbinian.cons_ratio.slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_homol)
+                df_TMD = korbinian.cons_ratio.slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging)
                 if df_TMD.empty:
                     # skip TMD, as number_of_rows_containing_data == 0
                     # here I really should skip the protein too. It's tempting to use goto: "from goto import goto" (http://entrian.com/goto/)
                     continue
+                n_TMDs_w_homol += 1
                 # transfer the columns with indices across to the df_nonTMD_sliced
                 cols = ['%s_in_SW_alignment' % TMD, '%s_start_in_SW_alignment' % TMD, '%s_end_in_SW_alignment' % TMD]
                 for col in cols:
@@ -237,6 +238,19 @@ def slice_TMDs_from_homologues(pathdict, set_, logging):
 
 
 def juxta_function_1(dfs, TMD):
+    """
+
+    Parameters
+    ----------
+    dfs : pd.Dataframe
+        Dataframe for Sequences (dfs). This is the dataframe containing the full homologue sequences from the BLAST-like data analysis.
+    TMD : str
+        String denoting transmembrane domain number (e.g. "TM01")
+
+    Returns
+    -------
+
+    """
     dfs['start_juxta_after_%s'%TMD] = np.where(utils.isNaN(dfs['TM%.2d_start_in_SW_alignment'%(int(TMD[2:])+1)])==True,np.nan,dfs['%s_end_in_SW_alignment'%TMD])
     dfs['end_juxta_before_%s'%TMD] = np.where(dfs["%s_start_in_SW_alignment"%TMD]!=0,dfs["%s_start_in_SW_alignment"%TMD],np.nan)
     dfs['end_juxta_after_%s'%TMD] = dfs["%s_end_in_SW_alignment"%TMD]+((dfs["TM%.2d_start_in_SW_alignment"%(int(TMD[2:])+1)]-dfs["%s_end_in_SW_alignment"%TMD])/2).apply(lambda x :int(x) if not np.isnan(x) else np.nan)

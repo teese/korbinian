@@ -5,24 +5,36 @@ import os
 import zipfile
 
 def save_hist_AAIMON_ratio_single_protein (fig_nr, fig, axarr, df_cr, set_, TMD, binlist, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix):
-    """
+    """Save histogram showing the AAIMON ratio for homologues of a single TMD, for a single protein.
 
     Parameters
     ----------
-    fig_nr
-    fig
-    axarr
-    df_cr
-    set_
-    TMD
-    binlist
-    zipout
-    row_nr
-    col_nr
-    fontsize
-    savefig
-    AAIMON_hist_path_prefix
-
+    fig_nr : int
+        Figure number (canvas number). Used to save Fig01, Fig02 etc, each with 4 plots (e.g. for 4 TMDs)
+    fig : matplotlib.figure
+        Figure (canvas) object, containing plots for AAIMON of up to 4 TMDs.
+    axarr : array
+        Array used to select the plots in the figure object. E.g. axarr[0,0] refers to the plot on the top left.
+    df_cr : pd.DataFrame
+        Dataframe with conservation ratios for a particular TMD (or region).
+    set_ : dict
+        Settings dictionary extracted from excel settings file.
+    TMD : str
+        String denoting transmembrane domain number (e.g. "TM01")
+    binlist : list
+        List of bins used for the histogram.
+    zipout : zipfile.Zipfile handle
+        Handle for zipfile, open for writing.
+    row_nr : int
+        Row number in Figure canvas. E.g. when row_nr & col_nr are both 0, the axarr[row_nr, col_nr] is axarr[0, 0], which refers to the plot on the top left.
+    col_nr : int
+        Column number in Figure canvas. E.g. when row_nr & col_nr are both 0, the axarr[row_nr, col_nr] is axarr[0, 0], which refers to the plot on the top left.
+    fontsize : int
+        Fontsize in plots.
+    savefig : bool
+        Whether the figure/canvas needs to be saved. Since there are 4 plots in each figure, this is True for every 4th plot (4th fig_nr).
+    AAIMON_hist_path_prefix : str
+        Path and beginning of filename for histogram figure. (df.homol_base + '_AAIMON_hist')
     Returns
     -------
 

@@ -1,7 +1,46 @@
 import korbinian.mtutils as utils
 import pandas as pd
 
-def slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_homol):
+def slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging):
+    """Slice TMD sequences from homologues and count gaps.
+
+    Slices out the TMD region for each homologue.
+
+    The TMD region is found through a regex match to the query sequence.
+        regex search string (e.g. L.*L.*M.*L.*L.*M.*L.*L.*M.*L.*L.*M.*L.*L.*M.*)
+        If the full TMD is not in the alignment, it will NOT BE FOUND!
+
+    Note the output of the regex search is a list with three components.
+        1) a match (e.g. True),
+        2) the start of the match (e.g. 124),
+        3) the end of the match (e.g. 144)
+
+    This function also slices out the TMD plus surrounding sequence (usually 10 residues each side, depending on the settings file)
+
+    Parameters
+    ----------
+    acc : str
+        Accession number for protein
+    TMD : str
+        String denoting transmembrane domain number (e.g. "TM01")
+    df : pd.DataFrame
+        Dataframe containing the list of proteins for analysis, usually containing data from UniProt, with each row representing a different protein.
+    dfs : pd.Dataframe
+        Dataframe for Sequences (dfs).
+        This is the dataframe containing the full homologue sequences from the BLAST-like data analysis.
+        It is stored in in homol_df_orig_zip, along with the csv containing the pretty version of homologues.
+    set_ : dict
+        Settings dictionary extracted from excel settings file.
+    logging : logging.Logger
+        Logger for printing to console and logfile.
+
+    Returns
+    -------
+    df_TMD : pd.DataFrame
+        Dataframe containing the sliced TMD sequence, and various calculated features related to that TMD, for example, the number of gaps.
+        Will be saved in PROTEIN_NAME_fa_cr_sliced_TMDs.zip as PROTEIN_NAME_TM01_sliced_df.pickle (for TM01, for example)
+        There will be a separate df_TMD, and a separate PROTEIN_NAME_TM01_sliced_df.pickle for each TMD or region.
+    """
     ########################################################################################
     #                                                                                      #
     #                Slice out TMD regions [fasta and AAIMON]                              #
@@ -47,7 +86,6 @@ def slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_ho
     #NOT NECESSARY. DFS WILL NOT BE RETURNED!
     #df_TMD.drop('%s_start_end_list_in_SW_alignment' % TMD, inplace=True, axis=1)
     if number_of_rows_containing_data != 0:
-        n_TMDs_w_homol += 1
         len_query_TMD = len(df.loc[acc, '%s_seq' % TMD])
         # apply the slicing function to the homologues
         # df_TMD = korbinian.cons_ratio.slice_TMD_homol_and_count_gaps(TMD, len_query_TMD, df_TMD,
@@ -93,7 +131,6 @@ def slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_ho
         dfs.loc[dfs['%s_start_in_SW_alignment_plus_surr' % TMD] < 0, '%s_start_in_SW_alignment_plus_surr' % TMD] = 0
         # define the end of the TMD + surrounding sequence. In python slicing, this end can be longer than the sequence.
         dfs['%s_end_in_SW_alignment_plus_surr' % TMD] = dfs['%s_end_in_SW_alignment' % TMD] + n_aa_after_tmd
-
         # select sequences that seem to have a start
         dfs = dfs.loc[dfs['%s_start_in_SW_alignment_plus_surr' % TMD].notnull()]
         # slice out the match seq + the surrounding sequence
@@ -131,8 +168,6 @@ def slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_ho
         df_TMD['%s_perc_sim'%TMD] = df_TMD['%s_SW_num_sim_res'%TMD] / df_TMD['%s_SW_align_len'%TMD]
         # add together to obtain the percentage similar + identical residues
         df_TMD['%s_perc_sim_plus_ident'%TMD] = df_TMD['%s_perc_ident'%TMD] + df_TMD['%s_perc_sim'%TMD]
-        # add to main dataframe
-        df_TMD['%s_perc_ident'%TMD] = df_TMD['%s_perc_ident'%TMD]
         # calculate the average number of gaps per residue in the TMD alignment
         # (number of gaps)/(length of sequence excluding gaps)
         df_TMD['%s_SW_q_gaps_per_q_residue'%TMD] = df_TMD['%s_SW_query_num_gaps'%TMD].dropna() / len_query_TMD
@@ -144,7 +179,42 @@ def slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging, n_TMDs_w_ho
     return df_TMD
 
 def calc_AAIMON(TMD, df_cr, mean_ser, logging):
+    """Calculates the amino acid identity, membranous over nonmembranous (AAIMON) ratio for each homologue, and the average for all homologues of that protein.
 
+    TM01_AAIMON = TM01_perc_ident / nonTMD_perc_ident
+
+    Note that there are several ways of calculating the TM percentage identity, and the nonTMD percentage identity.
+    The number of identical residues is easy:
+        Number of identical residues = number of pipes in markup
+
+    Percentage identity = Number of identical residues / length
+
+    HOWEVER. The LENGTH can be calculated in different ways.
+        - length of query excluding gaps
+        - length of query including gaps
+        - length of match excluding gaps
+        - length of alignment (length of query excluding gaps + number gaps in query + number gaps in match)
+
+    Parameters
+    ----------
+    TMD : str
+        String denoting transmembrane domain number (e.g. "TM01")
+    df_cr : pd.DataFrame
+        Dataframe with conservation ratios for a particular TMD (or region).
+    mean_ser : dict
+        Dictionary containing the mean values for all homologues of a single protein.
+        Will be saved as a csv.
+        The csv files for each protein will be gathered to create a single dataframe.
+    logging : logging.Logger
+        Logger for printing to console and logfile.
+
+    Returns
+    -------
+    mean_ser : dict
+        Returns mean_ser with extra entries
+    df_cr : pd.DataFrame
+        Returns the dataframe with the extra calculated AAIMON ratios.
+    """
     # calculate the Amino Acid Identity : Membranous Over Nonmembranous
     df_cr['%s_AAIMON_ratio'%TMD] = df_cr['%s_perc_ident'%TMD] / df_cr['nonTMD_perc_ident']
     # calculate the Amino Acid Similarity : Membranous Over Nonmembranous (AASMON) (includes similarity + identity based on the matrix used in the SW alignment of SIMAP)

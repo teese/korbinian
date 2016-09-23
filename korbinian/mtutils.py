@@ -1223,7 +1223,7 @@ def save_df_to_csv_zip(df,out_zipfile,open_method="w"):
 
     Parameters
     ----------
-    df : DataFrame
+    df : pd.DataFrame
         pandas dataframe to be saved
     out_zipfile : filepath
         Path of zipfile to be created or added to.
@@ -1262,7 +1262,7 @@ def open_df_from_csv_zip(in_zipfile, filename=None):
 
     Returns
     -------
-    df : DataFrame
+    df : pd.DataFrame
         pandas Dataframe
 
     Note
