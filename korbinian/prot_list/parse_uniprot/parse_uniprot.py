@@ -250,7 +250,8 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
 
         # slicing out the signal peptide sequence
         if analyse_sp == True:
-            dfu['SP01_seq'] = dfu[dfu['SP01_start'].notnull()].apply(utils.slice_uniprot_SP_seg, args=(SP,), axis=1)
+            if 'SP01_start' in dfu.columns:
+                dfu['SP01_seq'] = dfu[dfu['SP01_start'].notnull()].apply(utils.slice_uniprot_SP_seg, args=(SP,), axis=1)
 
         for i in range(1, max_num_TMDs + 1):
             TMD = 'TM%02d' % i
