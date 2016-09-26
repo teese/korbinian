@@ -174,6 +174,13 @@ if __name__ == "__main__":
     if set_["run_retrieve_simap_feature_table_and_homologues_from_list_in_csv"]:
         korbinian.simap.download_homologues_from_simap(pathdict, set_, logging)
 
+    if set_["use_multiprocessing"]:
+        logging = utils.Log_Only_To_Console()
+        multiprocessing_cores = set_["multiprocessing_cores"]
+    else:
+        # leave the logging as it is
+        multiprocessing_cores = 1
+
     if set_["run_parse_simap_to_csv"]:
         #korbinian.simap.parse_SIMAP_to_csv(pathdict, set_, logging)
         logging.info('~~~~~~~~~~~~  starting parse_SIMAP_to_csv  ~~~~~~~~~~~~')
@@ -186,7 +193,7 @@ if __name__ == "__main__":
         with open(pickle_out, "wb") as f:
             pickle.dump(list_p, f)
 
-        with Pool(processes=set_["multiprocessing_cores"]) as pool:
+        with Pool(processes=multiprocessing_cores) as pool:
             #pool.map(print_acc, list_p)
             pool.map(parse_SIMAP_to_csv_singleprotein, list_p)
 
@@ -202,18 +209,25 @@ if __name__ == "__main__":
     ########################################################################################
 
     if set_["slice_TMDs_from_homologues"]:
-        logging = utils.Log_To_Nowhere()
+        logging = utils.Log_Only_To_Console()
         logging.info('~~~~~~~~~~~~       starting slice_TMDs_from_homologues        ~~~~~~~~~~~~')
         list_p = korbinian.mtutils.convert_summary_csv_to_input_list(set_, pathdict)
 
         #korbinian.cons_ratio.slice_TMDs_from_homologues(pathdict, set_, logging)
-        with Pool(processes=set_["multiprocessing_cores"]) as pool:
+        with Pool(processes=multiprocessing_cores) as pool:
             #pool.map(print_acc, list_p)
             pool.map(korbinian.cons_ratio.slice_TMDs_from_homologues, list_p)
         logging.info("~~~~~~~~~~~~     slice_TMDs_from_homologues is finished       ~~~~~~~~~~~~")
 
     if set_["run_create_fasta"]:
-        korbinian.fasta.filter_and_save_fasta(pathdict, set_, logging)
+        logging.info('~~~~~~~~~~~~         starting filter_and_save_fasta           ~~~~~~~~~~~~')
+        list_p = korbinian.mtutils.convert_summary_csv_to_input_list(set_, pathdict)
+
+        #korbinian.cons_ratio.slice_TMDs_from_homologues(pathdict, set_, logging)
+        with Pool(processes=multiprocessing_cores) as pool:
+            #pool.map(print_acc, list_p)
+            pool.map(korbinian.fasta.filter_and_save_fasta, list_p)
+        logging.info('~~~~~~~~~~~~       filter_and_save_fasta is finished          ~~~~~~~~~~~~')
 
     if set_["run_calculate_AAIMON_ratios"]:
         korbinian.cons_ratio.calculate_AAIMON_ratios(pathdict, set_, logging)

@@ -1428,7 +1428,7 @@ def savefig_if_necessary(savefig, fig, fig_nr, base_filepath, tight_layout = Fal
         #close any open figures
         plt.close('all')
 
-class Log_To_Nowhere(object):
+class Log_Only_To_Console(object):
     def __init__(self):
         pass
     def info(self, message):
@@ -1452,7 +1452,7 @@ def convert_summary_csv_to_input_list(set_, pathdict):
     # convert values to list
     list_p = list(df_as_dict.values())
 
-    logging = Log_To_Nowhere()
+    logging = Log_Only_To_Console()
 
     for p in list_p:
         # print("in for loop", p["acc"])
