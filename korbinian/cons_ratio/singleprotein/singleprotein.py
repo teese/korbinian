@@ -1,7 +1,7 @@
 import korbinian.mtutils as utils
 import pandas as pd
 
-def slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging):
+def slice_TMD_homol_and_count_gaps(acc, TMD, query_TMD_sequence, dfs, set_, logging):
     """Slice TMD sequences from homologues and count gaps.
 
     Slices out the TMD region for each homologue.
@@ -51,7 +51,7 @@ def slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging):
     the filters are not applied yet, so the sequences can be viewed in the csv file for analysis
     '''
     # create regex string for each TMD
-    query_TMD_sequence = df.loc[acc, '%s_seq' % TMD]
+    #query_TMD_sequence = df.loc[acc, '%s_seq' % TMD]
     # create TMD regex search string (e.g. L.*L.*M.*L.*L.*M.*L.*L.*M.*L.*L.*M.*L.*L.*M.*)
     TMD_regex_ss = utils.create_regex_string(query_TMD_sequence)
     # select to only include data where the XML contained a SW node, and then apply function for a regex search
@@ -86,7 +86,7 @@ def slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging):
     #NOT NECESSARY. DFS WILL NOT BE RETURNED!
     #df_TMD.drop('%s_start_end_list_in_SW_alignment' % TMD, inplace=True, axis=1)
     if number_of_rows_containing_data != 0:
-        len_query_TMD = len(df.loc[acc, '%s_seq' % TMD])
+        #len_query_TMD = len(df.loc[acc, '%s_seq' % TMD])
         # apply the slicing function to the homologues
         # df_TMD = korbinian.cons_ratio.slice_TMD_homol_and_count_gaps(TMD, len_query_TMD, df_TMD,
         #                                                               set_["cr_max_n_gaps_in_query_TMD"],
@@ -145,6 +145,7 @@ def slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging):
         df_TMD['%s_SW_match_num_gaps'%TMD] = df_TMD['%s_SW_match_seq'%TMD].str.count("-")
         # calculate the length of the match TMD seq excluding gaps
         df_TMD['%s_SW_m_seq_len'%TMD] = df_TMD['%s_SW_match_seq'%TMD].str.len()
+        len_query_TMD = len(query_TMD_sequence)
         # for the alignment length, take the smallest value from the length of query or match
         # this will exclude gaps from the length in the following calculations, preventing false "low conservation" where the query TMD is much longer than the match TMD)
         # note that for most calculations this is somewhat redundant, because the max number of acceptable gaps in sequence is probable ~2
@@ -173,7 +174,7 @@ def slice_TMD_homol_and_count_gaps(acc, TMD, df, dfs, set_, logging):
         df_TMD['%s_SW_q_gaps_per_q_residue'%TMD] = df_TMD['%s_SW_query_num_gaps'%TMD].dropna() / len_query_TMD
     else:
         logging.info('%s does not have any valid homologues for %s. '
-                     'Re-downloading simap homologue XML may be necessary.' % (df.loc[acc,"protein_name"], TMD))
+                     'Re-downloading simap homologue XML may be necessary.' % (acc, TMD))
         df_TMD = pd.DataFrame()
 
     return df_TMD

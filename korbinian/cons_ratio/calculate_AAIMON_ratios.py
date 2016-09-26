@@ -133,8 +133,8 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
 
             # save the nonTMD dataframe
             nonTMD_cr_outfile_pickle = "{}_nonTMD_cr_df.pickle".format(protein_name)
-            with open(nonTMD_cr_outfile_pickle, "wb") as p:
-                pickle.dump(df_nonTMD, p, protocol=pickle.HIGHEST_PROTOCOL)
+            with open(nonTMD_cr_outfile_pickle, "wb") as f:
+                pickle.dump(df_nonTMD, f, protocol=pickle.HIGHEST_PROTOCOL)
             zipout.write(nonTMD_cr_outfile_pickle, arcname=nonTMD_cr_outfile_pickle)
             os.remove(nonTMD_cr_outfile_pickle)
 
@@ -193,8 +193,8 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
 
                 # save the dataframe for that TMD
                 TM_cr_outfile_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
-                with open(TM_cr_outfile_pickle, "wb") as p:
-                    pickle.dump(df_cr, p, protocol=pickle.HIGHEST_PROTOCOL)
+                with open(TM_cr_outfile_pickle, "wb") as f:
+                    pickle.dump(df_cr, f, protocol=pickle.HIGHEST_PROTOCOL)
                 zipout.write(TM_cr_outfile_pickle, arcname=TM_cr_outfile_pickle)
                 os.remove(TM_cr_outfile_pickle)
 

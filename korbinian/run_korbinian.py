@@ -68,8 +68,10 @@ else:
 TM01_perc_sim starts with 0 instead of 1.0. Simply remove column?
  - TM01 plus surr gives a wierd result for O49929 in the uniprot file. Why?
 """
+import argparse
 import os
 import korbinian
+import korbinian.mtutils as utils
 import pandas as pd
 import csv
 from multiprocessing import Pool
@@ -85,19 +87,22 @@ def print_acc(p):
     sleep(randint(1, 5))
     #logging.info(p["acc"])
 
-class Log_To_Nowhere(object):
-    def __init__(self):
-        pass
-    def info(self, message):
-        #sleep(random())
-        print(message)
-    def warning(self, message):
-        print(message)
-    def critical(self, message):
-        print(message)
+# read the command line arguments
+parser = argparse.ArgumentParser()
+# add only a single argument, the path to the settings file.
+parser.add_argument("-s",  # "-settingsfile",
+                    help=r'Full path to your excel settings file.'
+                         r'E.g. "C:\Path\to\your\settingsfile.xlsx"')
+
 
 if __name__ == "__main__":
-    excel_file_with_settings = r"D:\Dropbox\korbinian\korbinian_run_settings_spitfire.xlsx"
+    print(r'\nRun korbinian as follows:\npython "C:\Path\to\run_korbinian.py" "C:\Path\to\your\settingsfile.xlsx"\nTo view the help:\npython korbinian.py -h\n')
+    args = parser.parse_args()
+
+    print(args)
+
+    #excel_file_with_settings = r"D:\Dropbox\korbinian\korbinian_run_settings_spitfire.xlsx"
+    excel_file_with_settings = args.s
     set_ = korbinian.common.create_settingsdict(excel_file_with_settings)
     list_number = set_["uniprot_list"]
 
@@ -172,27 +177,12 @@ if __name__ == "__main__":
     if set_["run_parse_simap_to_csv"]:
         #korbinian.simap.parse_SIMAP_to_csv(pathdict, set_, logging)
         logging.info('~~~~~~~~~~~~  starting parse_SIMAP_to_csv  ~~~~~~~~~~~~')
-        # open dataframe with list of proteins
-        df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
-        # exclude any proteins where there is no list_of_TMDs
-        df = df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan']
-        # add the accession
-        df["acc"] = df.index
-        # convert to dict
-        df_as_dict = df.to_dict(orient="index")
-        # convert values to list
-        list_p = list(df_as_dict.values())
 
-        logging = Log_To_Nowhere()
+        list_p = korbinian.mtutils.convert_summary_csv_to_input_list(set_, pathdict)
 
-        for p in list_p:
-            #print("in for loop", p["acc"])
-            p["set_"] = set_
-            p["pathdict"] = pathdict
-            p["logging"] = logging
-            #korbinian.simap.parse_SIMAP_to_csv_singleprotein(p)
+        #korbinian.simap.parse_SIMAP_to_csv_singleprotein(p)
 
-        pickle_out = "D:\Dropbox\IpythonNotebooks\learning\multiprocessing\pickletest.pickle"
+        pickle_out = "D:\pickletest.pickle"
         with open(pickle_out, "wb") as f:
             pickle.dump(list_p, f)
 
@@ -212,7 +202,15 @@ if __name__ == "__main__":
     ########################################################################################
 
     if set_["slice_TMDs_from_homologues"]:
-        korbinian.cons_ratio.slice_TMDs_from_homologues(pathdict, set_, logging)
+        logging = utils.Log_To_Nowhere()
+        logging.info('~~~~~~~~~~~~       starting slice_TMDs_from_homologues        ~~~~~~~~~~~~')
+        list_p = korbinian.mtutils.convert_summary_csv_to_input_list(set_, pathdict)
+
+        #korbinian.cons_ratio.slice_TMDs_from_homologues(pathdict, set_, logging)
+        with Pool(processes=set_["multiprocessing_cores"]) as pool:
+            #pool.map(print_acc, list_p)
+            pool.map(korbinian.cons_ratio.slice_TMDs_from_homologues, list_p)
+        logging.info("~~~~~~~~~~~~     slice_TMDs_from_homologues is finished       ~~~~~~~~~~~~")
 
     if set_["run_create_fasta"]:
         korbinian.fasta.filter_and_save_fasta(pathdict, set_, logging)

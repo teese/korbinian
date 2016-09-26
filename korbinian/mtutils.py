@@ -1428,3 +1428,36 @@ def savefig_if_necessary(savefig, fig, fig_nr, base_filepath, tight_layout = Fal
         #close any open figures
         plt.close('all')
 
+class Log_To_Nowhere(object):
+    def __init__(self):
+        pass
+    def info(self, message):
+        #sleep(random())
+        print(message)
+    def warning(self, message):
+        print(message)
+    def critical(self, message):
+        print(message)
+
+
+def convert_summary_csv_to_input_list(set_, pathdict):
+    # open dataframe with list of proteins
+    df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    # exclude any proteins where there is no list_of_TMDs
+    df = df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan']
+    # add the accession
+    df["acc"] = df.index
+    # convert to dict
+    df_as_dict = df.to_dict(orient="index")
+    # convert values to list
+    list_p = list(df_as_dict.values())
+
+    logging = Log_To_Nowhere()
+
+    for p in list_p:
+        # print("in for loop", p["acc"])
+        p["set_"] = set_
+        p["pathdict"] = pathdict
+        p["logging"] = logging
+
+    return list_p

@@ -58,17 +58,17 @@ def parse_SIMAP_to_csv_singleprotein(p):
     num_hits_with_SW_align_node = 0
     number_of_hits_missing_smithWatermanAlignment_node = 0
     #number_of_hits_kept_for_statistical_analysis = 0  # number_of_hits
-    protein_name = p[ 'protein_name']
-    ft_xml_path = p[ 'SIMAP_feature_table_XML_path']
-    homol_xml_path = p[ 'SIMAP_homol_XML_path']
-    SIMAP_tar = p[ 'SIMAP_tar']
+    protein_name = p['protein_name']
+    ft_xml_path = p['SIMAP_feature_table_XML_path']
+    homol_xml_path = p['SIMAP_homol_XML_path']
+    SIMAP_tar = p['SIMAP_tar']
     ft_xml_filename = os.path.basename(ft_xml_path)
     homol_xml_filename = os.path.basename(homol_xml_path)
     logging.info('%s' % protein_name)
     #check which files exist
     feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path)
     #check if the feature table and homologue files actually exist
-    if os.path.isfile(p[ 'SIMAP_tar']):
+    if os.path.isfile(p['SIMAP_tar']):
         SIMAP_tarfile_exists = True
     else:
         SIMAP_tarfile_exists = False
@@ -89,27 +89,27 @@ def parse_SIMAP_to_csv_singleprotein(p):
             #file may be corrupted, if script stopped unexpectedly before compression was finished
             logging.info('%s seems to be corrupted.'
                          'File will be deleted, and will need to be re-downloaded next time program is run' %
-                         p[ 'SIMAP_tar'])
+                         p['SIMAP_tar'])
             SIMAP_tarfile_exists = False
             feature_table_in_tarfile = False
             homologues_XML_in_tarfile = False
-            os.remove(p[ 'SIMAP_tar'])
+            os.remove(p['SIMAP_tar'])
     else:
         feature_table_in_tarfile = False
         homologues_XML_in_tarfile = False
 
     # if only one of the files is in the tarfile, it is corrupt and should be deleted:
     if True in [feature_table_in_tarfile, homologues_XML_in_tarfile] and False in [feature_table_in_tarfile, homologues_XML_in_tarfile]:
-        os.remove(p[ 'SIMAP_tar'])
+        os.remove(p['SIMAP_tar'])
         logging.warning("Tarfile containing homologues may be corrupt, contains only one of two XML files. "
-                        "File will be deleted:\n{}".format(p[ 'SIMAP_tar']))
+                        "File will be deleted:\n{}".format(p['SIMAP_tar']))
 
     if all([feature_table_in_tarfile, homologues_XML_in_tarfile]):
         '''get the Phobius and TMHMM predictions from the feature table of the query sequence
         NOT USED, PHOBIUS PRED OFTEN MISSING, in the future the TMD region taken from uniprot record
         '''
         # create subfolders, if they don't exist
-        subfolder = os.path.dirname(p[ 'homol_df_orig_zip'])
+        subfolder = os.path.dirname(p['homol_df_orig_zip'])
         utils.make_sure_path_exists(subfolder)
 
         #if the setting is "False", and you don't want to overwrite the files, skip this section
@@ -117,19 +117,19 @@ def parse_SIMAP_to_csv_singleprotein(p):
             create_homol_csv = True
         else:
             #check if output file already exists
-            if os.path.isfile(p[ 'homol_df_orig_zip']):
+            if os.path.isfile(p['homol_df_orig_zip']):
                 try:
-                    dfs_test = utils.open_df_from_csv_zip(p[ 'homol_df_orig_zip'])
+                    dfs_test = utils.open_df_from_csv_zip(p['homol_df_orig_zip'])
                     description_of_first_hit = dfs_test.loc[1, 'description']
                     logging.info('Protein %s: homologues already converted to csv. (%s)' % (p["acc"], description_of_first_hit))
                     create_homol_csv = False
-                    # with tarfile.open(p[ 'SIMAP_csv_from_XML_tarfile'], 'r:gz') as tar:
+                    # with tarfile.open(p['SIMAP_csv_from_XML_tarfile'], 'r:gz') as tar:
                     #     #create a list of files
                     #     files_in_output_tarball = [t.name for t in tar]
                     #     #check that the analysed files are actually there
-                    #     if p[ 'SIMAP_csv_from_XML'] in files_in_output_tarball:
+                    #     if p['SIMAP_csv_from_XML'] in files_in_output_tarball:
                     #         #read output csv in tarfile
-                    #         dfs = pd.read_csv(tar.extractfile(p[ 'SIMAP_csv_from_XML']), index_col = 0)
+                    #         dfs = pd.read_csv(tar.extractfile(p['SIMAP_csv_from_XML']), index_col = 0)
                     #         description_of_first_hit = dfs.loc[1, 'description']
                     #         logging.info('%s homologues already converted to csv. (%s)' % (acc, description_of_first_hit))
                     #         #filter to include only desired hits
@@ -138,36 +138,36 @@ def parse_SIMAP_to_csv_singleprotein(p):
                     #             'gapped_ident_above_cutoff == True and hit_contains_SW_node == True and disallowed_words_not_in_descr == True')
                     #         #avoid a divide by zero error in the unlikely case that there are no_identical_residues_in_alignment
                     #         dfs_filt_AAIMON = dfs_filt.loc[dfs_filt['nonTMD_perc_ident'] != 0]
-                    #         list_of_TMDs = ast.literal_eval(p[ 'list_of_TMDs'])
+                    #         list_of_TMDs = ast.literal_eval(p['list_of_TMDs'])
                     #         for TMD in list_of_TMDs:
                     #             #following the general filters, filter to only analyse sequences with TMD identity above cutoff,
                     #             #and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
                     #             dfs_filt_AAIMON = dfs_filt_AAIMON.loc[
                     #                 dfs['%s_perc_ident'%TMD] >= set_['min_identity_of_TMD_initial_filter']]
                     #             #add to original dataframe with the list of sequences
-                    #             p[ '%s_AAIMON_ratio_mean'%TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio'%TMD].mean()
-                    #             p[ '%s_AAIMON_ratio_std'%TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio'%TMD].std()
-                    #             logging.info('AIMON MEAN %s: %0.2f' % (TMD, p[ '%s_AAIMON_ratio_mean'%TMD]))
+                    #             p['%s_AAIMON_ratio_mean'%TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio'%TMD].mean()
+                    #             p['%s_AAIMON_ratio_std'%TMD] = dfs_filt_AAIMON['%s_AAIMON_ratio'%TMD].std()
+                    #             logging.info('AIMON MEAN %s: %0.2f' % (TMD, p['%s_AAIMON_ratio_mean'%TMD]))
                     #         '''
                     #     else:
-                    #         logging.info('%s not in output file tarball, tarball will be deleted' % p[ 'SIMAP_csv_from_XML'])
-                    #         os.remove(p[ 'SIMAP_csv_from_XML_tarfile'])
+                    #         logging.info('%s not in output file tarball, tarball will be deleted' % p['SIMAP_csv_from_XML'])
+                    #         os.remove(p['SIMAP_csv_from_XML_tarfile'])
                     #         create_homol_csv = True
                     # logging.info('%s already converted to csv, moving to next sequence' %
-                    #             p[ 'SIMAP_csv_from_XML'])
+                    #             p['SIMAP_csv_from_XML'])
                     # create_homol_csv = False
                 except (EOFError, KeyError):
                     #file may be corrupted, if script stopped unexpectedly before compression was finished
-                    logging.info('%s seems to be corrupted. File will be deleted.' % p[ 'homol_df_orig_zip'])
-                    os.remove(p[ 'homol_df_orig_zip'])
+                    logging.info('%s seems to be corrupted. File will be deleted.' % p['homol_df_orig_zip'])
+                    os.remove(p['homol_df_orig_zip'])
                     create_homol_csv = True
             else:
-                logging.info('%s not found, create_homol_csv = True' % p[ 'homol_df_orig_zip'])
+                logging.info('%s not found, create_homol_csv = True' % p['homol_df_orig_zip'])
                 create_homol_csv = True
         #if the files don't exist, or you want to overwrite them
         if create_homol_csv:
             #extract the tarfile so that it can be read as xml
-            with tarfile.open(p[ 'SIMAP_tar'], 'r:gz') as tar:
+            with tarfile.open(p['SIMAP_tar'], 'r:gz') as tar:
                 SIMAP_homologues_XML_file_extracted = tar.extractfile(homol_xml_filename)
 
                 #parse_uniprot the XML file with elementtree, define the 'root' of the XML file
@@ -175,44 +175,44 @@ def parse_SIMAP_to_csv_singleprotein(p):
                 simap_homologue_root = simap_homologue_tree.getroot()
 
                 try:
-                    p[ 'SIMAP_created'] = simap_homologue_root[0][0][0][0][2][1][0].attrib["created"]
+                    p['SIMAP_created'] = simap_homologue_root[0][0][0][0][2][1][0].attrib["created"]
 
                     #print the simap search details (database, e-value cutoff etc)
                     #dict_with_query_data = print_query_details_from_homologue_XML(simap_homologue_root, dict_with_query_data)
                     for parameters in simap_homologue_root[0][0][0][0].iter('parameters'):
-                        p[ 'SIMAP_input_seq_details_dict'] = str(parameters[0][0].attrib)
+                        p['SIMAP_input_seq_details_dict'] = str(parameters[0][0].attrib)
                         for SIMAP_filter in parameters.iter('filter'):
                             SIMAP_filter_string = SIMAP_filter.text
-                        p[ 'SIMAP_filter_string'] = str(SIMAP_filter_string)
+                        p['SIMAP_filter_string'] = str(SIMAP_filter_string)
                         for resultSpecification in parameters.iter('resultSpecification'):
                             SIMAP_resultSpecification_dict = resultSpecification.attrib
-                        p[ 'SIMAP_resultSpecification_dict'] = '"%s"' % SIMAP_resultSpecification_dict
+                        p['SIMAP_resultSpecification_dict'] = '"%s"' % SIMAP_resultSpecification_dict
                         for databases in parameters.iter('databases'):
                             database_details_dict = databases[0].attrib
-                        p[ 'database_details_dict'] = '"%s"' % database_details_dict
-                        p[ 'simap_version'] = simap_homologue_root[0][0][0][0][0].attrib['version']
-                        p[ 'SIMAP_total_hits'] = int(simap_homologue_root[0][0][0][1][0].attrib['total'])
+                        p['database_details_dict'] = '"%s"' % database_details_dict
+                        p['simap_version'] = simap_homologue_root[0][0][0][0][0].attrib['version']
+                        p['SIMAP_total_hits'] = int(simap_homologue_root[0][0][0][1][0].attrib['total'])
 
-                    if p[ 'simap_version'] != '4.0':
+                    if p['simap_version'] != '4.0':
                         logging.warning('WARNING! Your XML file is simap version %s,'
                                         'however this SIMAP parser was developed for SIMAP version 4.0.' %
-                                         p[ 'simap_version'])
+                                         p['simap_version'])
                     #counter_XML_to_CSV += 1
 
                     query_sequence_node = simap_homologue_root[0][0][0][0][2][0][0]
                     ''' xxxx CURRENTLY THE df is filled with nan values,
                         but that doesn't make sense as the script seems to work
                     '''
-                    p[ 'query_md5'] = query_sequence_node.attrib['md5']
-                    p[ 'seqlen'] = int(query_sequence_node.attrib['length'])
-                    p[ 'query_selfscore'] = query_sequence_node.attrib['selfscore']
-                    p[ 'query_sequenceid'] = query_sequence_node.attrib['sequenceid']
-                    p[ 'total_number_of_simap_hits'] = query_sequence_node[0].attrib['number_hits']
-                    p[ 'query_sequence_from_homologue_XML_file'] = query_sequence_node[0][0].text
-                    p[ 'number_of_hits_in_homologue_XML_file'] = int(
+                    p['query_md5'] = query_sequence_node.attrib['md5']
+                    p['seqlen'] = int(query_sequence_node.attrib['length'])
+                    p['query_selfscore'] = query_sequence_node.attrib['selfscore']
+                    p['query_sequenceid'] = query_sequence_node.attrib['sequenceid']
+                    p['total_number_of_simap_hits'] = query_sequence_node[0].attrib['number_hits']
+                    p['query_sequence_from_homologue_XML_file'] = query_sequence_node[0][0].text
+                    p['number_of_hits_in_homologue_XML_file'] = int(
                         simap_homologue_root[0][0][0][1][0].attrib['total'])
                 except (IndexError, KeyError):
-                    p[ 'homol_XML_damaged'] = True
+                    p['homol_XML_damaged'] = True
                     logging.warning("{} skipped, homologue XML seems to be damaged. Error in reading general query details.".format(protein_name))
                     # skip to the next protein
                     return
@@ -265,7 +265,7 @@ def parse_SIMAP_to_csv_singleprotein(p):
                     #from Bio.SubsMat.MatrixInfo import matrix as matrix_name
 
                     SIMAP_orig_csv = p['homol_df_orig_zip'][:-4] + ".csv"
-                    #fasta_file_path = p[ 'fasta_file_path']
+                    #fasta_file_path = p['fasta_file_path']
 
                     #create an empty file
                     open(SIMAP_orig_csv, 'w').close()
@@ -389,11 +389,11 @@ def parse_SIMAP_to_csv_singleprotein(p):
                                     match_details_dict['align_markup_seq'] = smithWatermanAlignment_node[6].text
                                     match_details_dict['match_align_seq'] = smithWatermanAlignment_node[7].text
                                     #create a list of TMD names to be used in the loops below (TM01, TM02 etc)
-                                    # list_of_TMDs = ast.literal_eval(p[ 'list_of_TMDs'])
+                                    # list_of_TMDs = ast.literal_eval(p['list_of_TMDs'])
                                     # #run the search using the regular expression that will find the TMD even if it contains gaps
                                     # for TMD in list_of_TMDs:
                                     #     #if is_TMD_in_FASTA_alignment:
-                                    #     query_TMD_sequence = p[ '%s_seq'%TMD]
+                                    #     query_TMD_sequence = p['%s_seq'%TMD]
                                 else:
                                     number_of_hits_missing_smithWatermanAlignment_node += 1
                                 if hit_num == 1:
@@ -451,8 +451,8 @@ def parse_SIMAP_to_csv_singleprotein(p):
                     os.remove(p['homol_df_orig_pickle'])
                     return 0
 
-                    # with tarfile.open(p[ 'SIMAP_csv_from_XML_tarfile'], 'w:gz') as tar_SIMAP_out:
-                    #     tar_SIMAP_out.add(SIMAP_orig_csv, arcname=p[ 'SIMAP_csv_from_XML'])
+                    # with tarfile.open(p['SIMAP_csv_from_XML_tarfile'], 'w:gz') as tar_SIMAP_out:
+                    #     tar_SIMAP_out.add(SIMAP_orig_csv, arcname=p['SIMAP_csv_from_XML'])
                     # os.remove(SIMAP_orig_csv)
 
 
