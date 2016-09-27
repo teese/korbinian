@@ -76,7 +76,7 @@ def download_homologues_from_simap(pathdict, set_, logging):
     enough_hard_drive_space = True
     try:
         byteformat = "GB"
-        data_harddrive = set_["data_harddrive"]
+        data_harddrive = os.path.splitdrive(set_["data_dir"])[0]
         size = utils.get_free_space(data_harddrive, byteformat)
         logging.info('Hard disk remaining space = {}'.format(size))
         if size[0] < 5:
@@ -122,20 +122,21 @@ def download_homologues_from_simap(pathdict, set_, logging):
             if SIMAP_tarfile_exists and set_["overwrite_homologue_files"] == False:
                 # skip this protein
                 continue
+            eaSimap_path = os.path.join(set_["data_dir"], "programs", "eaSimap.jar")
             if not feature_table_XML_exists:
                 #download feature table from SIMAP
                 korbinian.simap.download.download.retrieve_simap_feature_table(input_sequence,
                                                                                java_exec_str=java_exec_str,
                                                                                max_memory_allocation=max_memory_allocation,
                                                                                output_file=ft_xml_path,
-                                                                               eaSimap_path=set_["eaSimap_path"])
+                                                                               eaSimap_path=eaSimap_path)
             if not homologues_XML_exists:
                 #download homologue file from SIMAP
                 korbinian.simap.download.download.retrieve_simap_homologues(input_sequence,
                                                                             output_file=homol_xml_path,
                                                                             max_hits=max_hits, java_exec_str=java_exec_str,
                                                                             max_memory_allocation=max_memory_allocation, taxid=taxid,
-                                                                            eaSimap_path=set_["eaSimap_path"])
+                                                                            eaSimap_path=eaSimap_path)
             #now check again if the files exist
             feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path)
             if not homologues_XML_exists or not feature_table_XML_exists:

@@ -28,7 +28,7 @@
     PROTEIN_NAME_HUMAN_SIMAP.tar.gz : gzip file
         e.g. A1A5B4_ANO9_HUMAN_SIMAP.tar.gz
 
-    uniprot_folder_sel : str
+    uniprot_dir_sel : str
         Path to uniprot/selected folder.
     list_number : int
         List number (e.g. 8), determining the input and output files.

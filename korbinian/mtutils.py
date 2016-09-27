@@ -1432,13 +1432,11 @@ class Log_Only_To_Console(object):
     def __init__(self):
         pass
     def info(self, message):
-        #sleep(random())
         print(message)
     def warning(self, message):
         print(message)
     def critical(self, message):
         print(message)
-
 
 def convert_summary_csv_to_input_list(set_, pathdict, logging):
     # open dataframe with list of proteins

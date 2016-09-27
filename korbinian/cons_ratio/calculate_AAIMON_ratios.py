@@ -41,8 +41,8 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
     """
     logging.info('~~~~~~~~~~~~      starting run_calculate_AAIMON_ratios        ~~~~~~~~~~~~')
     df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-    # set current working directory as the homol folder, where temp files will be saved before moving to zip
-    os.chdir(set_["simap_database_dir"])
+    # set current working directory as the data_dir/homol, where temp files will be saved before moving to zip
+    os.chdir(os.path.join(set_["data_dir"], "homol"))
     # iterate over the dataframe for proteins with an existing list_of_TMDs. acc = uniprot accession.
     for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
         protein_name = df.loc[acc, 'protein_name']

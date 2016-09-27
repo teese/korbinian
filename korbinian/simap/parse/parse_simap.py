@@ -52,7 +52,7 @@ def parse_SIMAP_to_csv_singleprotein(p):
     if set_["overwrite_simap_parsed_to_csv"] == False:
         if os.path.isfile(p['homol_df_orig_zip']):
             logging.info("{} skipped, homologues already parsed to csv".format(p['protein_name']))
-            return acc, "simap", False
+            return acc, False
     #set up counters
     number_of_hits_missing_protein_node = 0
     num_hits_with_SW_align_node = 0
@@ -215,7 +215,7 @@ def parse_SIMAP_to_csv_singleprotein(p):
                     p['homol_XML_damaged'] = True
                     logging.warning("{} skipped, homologue XML seems to be damaged. Error in reading general query details.".format(protein_name))
                     # skip to the next protein
-                    return
+                    return acc, False
                 '''
                 Create an updated csv_file_with_uniprot_data to include the data from SIMAP regarding the query
                 '''
@@ -417,7 +417,7 @@ def parse_SIMAP_to_csv_singleprotein(p):
                                         'XML should probably be re-downloaded.\n'
                                         'df_homol["hit_contains_SW_node"].value_counts()\n{}'.format(df_homol["hit_contains_SW_node"].value_counts()))
                         # skip this protein
-                        return
+                        return acc, False
                     # get length of seq. Previously this was a lambda function that needed more filtering
                     df_homol['len_query_align_seq'] = df_homol['query_align_seq'].str.len()
 
@@ -449,7 +449,7 @@ def parse_SIMAP_to_csv_singleprotein(p):
                     os.remove(SIMAP_orig_csv)
                     os.remove(p['SIMAP_align_pretty_csv'])
                     os.remove(p['homol_df_orig_pickle'])
-                    return acc, "simap", True
+                    return acc, True
 
                     # with tarfile.open(p['SIMAP_csv_from_XML_tarfile'], 'w:gz') as tar_SIMAP_out:
                     #     tar_SIMAP_out.add(SIMAP_orig_csv, arcname=p['SIMAP_csv_from_XML'])

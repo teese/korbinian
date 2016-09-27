@@ -98,10 +98,6 @@ parser.add_argument("-s",  # "-settingsfile",
 if __name__ == "__main__":
     print(r'\nRun korbinian as follows:\npython "C:\Path\to\run_korbinian.py" "C:\Path\to\your\settingsfile.xlsx"\nTo view the help:\npython korbinian.py -h\n')
     args = parser.parse_args()
-
-    print(args)
-
-    #excel_file_with_settings = r"D:\Dropbox\korbinian\korbinian_run_settings_spitfire.xlsx"
     excel_file_with_settings = args.s
     set_ = korbinian.common.create_settingsdict(excel_file_with_settings)
     list_number = set_["uniprot_list"]
@@ -109,11 +105,12 @@ if __name__ == "__main__":
     logging = korbinian.common.setup_keyboard_interrupt_and_error_logging(set_, list_number)
     logging.warning("list_number : {}".format(list_number))
 
-    uniprot_folder_sel = os.path.join(set_["uniprot_dir"], 'selected')
-    selected_uniprot_records_flatfile = os.path.join(uniprot_folder_sel, 'List%02d_selected_uniprot_records_flatfile.txt' % list_number)
+    uniprot_dir_sel = os.path.join(set_["data_dir"], 'uniprot', 'selected')
+    selected_uniprot_records_flatfile = os.path.join(uniprot_dir_sel, 'List%02d_selected_uniprot_records_flatfile.txt' % list_number)
 
-    # set a base folder for the summaries, e.g. "D:\Databases\main\summaries\05\List05 [[_summary.csv]]"
-    base_filename_summaries = os.path.join(set_["summaries_dir"], '%02d' % list_number, 'List%02d' % list_number)
+    # set a base folder for the summaries, e.g. "D:\Databases\summaries\05\List05 [[_summary.csv]]"
+    # will create a subfolder "summaries" in the data_dir if necessary
+    base_filename_summaries = os.path.join(set_["data_dir"], "summaries", '%02d' % list_number, 'List%02d' % list_number)
     excelfile_with_uniprot_accessions = os.path.join(base_filename_summaries, '.xlsx')
 
     # create dictionary of paths for output files
@@ -141,11 +138,11 @@ if __name__ == "__main__":
     ########################################################################################
 
     if set_["create_nonred_uniprot_flatfile_via_uniref"] == True:
-        korbinian.prot_list.create_nonred_uniprot_flatfile_via_uniref(set_, uniprot_folder_sel, list_number, selected_uniprot_records_flatfile, logging)
+        korbinian.prot_list.create_nonred_uniprot_flatfile_via_uniref(set_, uniprot_dir_sel, list_number, selected_uniprot_records_flatfile, logging)
 
     if set_["run_parse_large_flatfile_with_list_uniprot_accessions"]:
-        input_accession_list = set_["list_of_uniprot_accessions"]
-        korbinian.prot_list.parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, uniprot_folder_sel, list_number, logging, selected_uniprot_records_flatfile)
+        input_accession_list = os.path.join(set_["data_dir"], "uniprot", "selected", "List{:02d}_uniprot_accessions.txt".format(list_number))
+        korbinian.prot_list.parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, uniprot_dir_sel, list_number, logging, selected_uniprot_records_flatfile)
 
     if set_["run_retrieve_uniprot_data_for_acc_list_in_xlsx_file"]:
         korbinian.prot_list.retrieve_uniprot_data_for_acc_list_in_xlsx_file(excelfile_with_uniprot_accessions, logging, selected_uniprot_records_flatfile)
@@ -174,38 +171,21 @@ if __name__ == "__main__":
     if set_["run_retrieve_simap_feature_table_and_homologues_from_list_in_csv"]:
         korbinian.simap.download_homologues_from_simap(pathdict, set_, logging)
 
-    multiprocessing_cores = set_["multiprocessing_cores"]
-    # if set_["use_multiprocessing"]:
-    #     # clear logging handlers
-    #     logging.getLogger('').handlers
-    #     logging.shutdown()
-    #
-    #     logging = utils.Log_Only_To_Console()
-    #
-    # else:
-    #     # leave the logging as it is
-    #     multiprocessing_cores = 1
-
     if set_["run_parse_simap_to_csv"]:
-
-        #korbinian.simap.parse_SIMAP_to_csv(pathdict, set_, logging)
         logging.info('~~~~~~~~~~~~  starting parse_SIMAP_to_csv  ~~~~~~~~~~~~')
         # if multiprocessing is used, log only to the console
         logger = logging if set_["use_multiprocessing"] != True else utils.Log_Only_To_Console()
         # create list of protein dictionaries to process
         list_p = korbinian.mtutils.convert_summary_csv_to_input_list(set_, pathdict, logger)
 
-        #korbinian.simap.parse_SIMAP_to_csv_singleprotein(p)
         if set_["use_multiprocessing"]:
-            with Pool(processes=multiprocessing_cores) as pool:
-                #pool.map(print_acc, list_p)
+            with Pool(processes=set_["multiprocessing_cores"]) as pool:
                 parse_simap_list = pool.map(parse_SIMAP_to_csv_singleprotein, list_p)
                 # log the list of protein results (e.g. acc, "simap", True) to the actual logfile, not just the console
                 logging.info("parse_simap_list : {}".format(parse_simap_list))
         else:
             for p in list_p:
                 parse_SIMAP_to_csv_singleprotein(p)
-
         # logging.info('{} homologous sequences parsed from SIMAP XML to csv'.format(df.loc[acc, 'SIMAP_total_hits']))
         # logging.info('number_of_hits_missing_smithWatermanAlignment_node: %i' % number_of_hits_missing_smithWatermanAlignment_node)
         # logging.info('number_of_hits_missing_protein_node: %i' % number_of_hits_missing_protein_node)
@@ -226,7 +206,7 @@ if __name__ == "__main__":
 
         #korbinian.simap.parse_SIMAP_to_csv_singleprotein(p)
         if set_["use_multiprocessing"]:
-            with Pool(processes=multiprocessing_cores) as pool:
+            with Pool(processes=set_["multiprocessing_cores"]) as pool:
                 slice_list = pool.map(korbinian.cons_ratio.slice_TMDs_from_homologues, list_p)
                 # log the list of protein results (e.g. acc, "simap", True) to the actual logfile, not just the console
                 logging.info("slice_list : {}".format(slice_list))
@@ -243,7 +223,7 @@ if __name__ == "__main__":
         list_p = korbinian.mtutils.convert_summary_csv_to_input_list(set_, pathdict, logger)
         #korbinian.simap.parse_SIMAP_to_csv_singleprotein(p)
         if set_["use_multiprocessing"]:
-            with Pool(processes=multiprocessing_cores) as pool:
+            with Pool(processes=set_["multiprocessing_cores"]) as pool:
                 fasta_list = pool.map(korbinian.fasta.filter_and_save_fasta, list_p)
                 # log the list of protein results (e.g. acc, "simap", True) to the actual logfile, not just the console
                 logging.info("fasta_list : {}".format(fasta_list))

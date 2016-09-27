@@ -4,7 +4,7 @@ import korbinian
 import numpy as np
 from Bio import SeqIO
 
-def create_nonred_uniprot_flatfile_via_uniref(set_, uniprot_folder_sel, list_number, selected_uniprot_records_flatfile, logging):
+def create_nonred_uniprot_flatfile_via_uniref(set_, uniprot_dir_sel, list_number, selected_uniprot_records_flatfile, logging):
     """ Creates a non-redundant UniProt flatfile from redundant redundant UniProt tab files, redundant flatfiles and UniRef cluster tab file.
 
     The final output is the selected list of flatfiles, in the uniprot/selected folder (E.g. List08_selected_uniprot_records_flatfile.txt)
@@ -13,7 +13,7 @@ def create_nonred_uniprot_flatfile_via_uniref(set_, uniprot_folder_sel, list_num
     ----------
     set_ : dict
         Settings dictionary extracted from excel settings file.
-    uniprot_folder_sel : str
+    uniprot_dir_sel : str
         Path to uniprot/selected folder.
     list_number : int
         List number (e.g. 8), determining the input and output files.
@@ -26,13 +26,13 @@ def create_nonred_uniprot_flatfile_via_uniref(set_, uniprot_folder_sel, list_num
     # load uniref cutoff used (typically 50, for UniRef50)
     uniref_cutoff = set_["uniref_cluster_cutoff"]
     # define path to csv file containing the list of redundant uniprot accessions, e.g. List08_redundant_list_uniprot_acc.tab
-    redundant_uniprot_acc_tab = os.path.join(uniprot_folder_sel, "List%02d_redundant_list_uniprot_acc.tab" % list_number)
+    redundant_uniprot_acc_tab = os.path.join(uniprot_dir_sel, "List%02d_redundant_list_uniprot_acc.tab" % list_number)
     # define path to uniprot flatfile containing the redundant protein records, e.g. List08_redundant_uniprot_flatfile.txt
-    redundant_uniprot_flatfile = os.path.join(uniprot_folder_sel, "List%02d_redundant_uniprot_flatfile.txt" % list_number)
+    redundant_uniprot_flatfile = os.path.join(uniprot_dir_sel, "List%02d_redundant_uniprot_flatfile.txt" % list_number)
     # define path to the csv file containing the relevant uniref clusters applicable to this list of proteins, e.g. List08_UniRef50_clusters.tab
-    uniref_clusters_tab = os.path.join(uniprot_folder_sel, "List%02d_UniRef%02d_clusters.tab" % (list_number, uniref_cutoff))
+    uniref_clusters_tab = os.path.join(uniprot_dir_sel, "List%02d_UniRef%02d_clusters.tab" % (list_number, uniref_cutoff))
     # output uniprot list with redundancy determined
-    nonred_uniprot_acc_csv = os.path.join(uniprot_folder_sel, "List%02d_nonred_list_uniprot_acc.csv" % list_number)
+    nonred_uniprot_acc_csv = os.path.join(uniprot_dir_sel, "List%02d_nonred_list_uniprot_acc.csv" % list_number)
 
     if os.path.isfile(selected_uniprot_records_flatfile) == False or set_["overwrite_selected_ff"] == True:
         korbinian.prot_list.match_list_uniprot_acc_to_uniref_clusters(redundant_uniprot_acc_tab, uniref_clusters_tab, nonred_uniprot_acc_csv, uniref_cutoff, logging)

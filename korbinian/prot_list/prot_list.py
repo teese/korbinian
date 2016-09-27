@@ -3,6 +3,7 @@ import os
 import pandas as pd
 from time import strftime
 import unicodedata
+import korbinian.mtutils as utils
 
 def setup_file_locations_in_df(set_, pathdict):
     """ Sets up the file locations in the DataFrame containing the list of proteins for analysis.
@@ -22,15 +23,6 @@ def setup_file_locations_in_df(set_, pathdict):
 
     """
     df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
-    # if "uniprot_acc" in df.columns:
-    #     df.set_index("uniprot_acc", drop=False, inplace=True)
-    # else:
-    #     df["uniprot_acc"] = df.index
-    # set up a folder to hold the SIMAP BLAST-like output
-    # note that at the moment, files cannot be compressed
-    simap_database_dir = set_['simap_database_dir']
-    homol_dir = set_["homol_dir"]
-
     if "uniprot_entry_name" in df.columns:
         # join the accession and entry name to create a "protein name" for naming files
         df['protein_name'] = df.uniprot_acc + '_' + df.uniprot_entry_name
@@ -100,7 +92,13 @@ def setup_file_locations_in_df(set_, pathdict):
     #                                                                                      #
     ########################################################################################
     df['first_two_letters_of_uniprot_acc'] = df['uniprot_acc'].str[0:2]
-    df['simap_filename_base'] = simap_database_dir + '/' + df.first_two_letters_of_uniprot_acc + '/' + df.protein_name
+
+    simap_dir = os.path.join(set_["data_dir"], "simap")
+    utils.make_sure_path_exists(simap_dir)
+    homol_dir = os.path.join(set_["data_dir"], "homol")
+    utils.make_sure_path_exists(homol_dir)
+
+    df['simap_filename_base'] = simap_dir + '/' + df.first_two_letters_of_uniprot_acc + '/' + df.protein_name
     # normalise path to suit operating system
     df['simap_filename_base'] = df['simap_filename_base'].apply(lambda x: os.path.normpath(x))
 

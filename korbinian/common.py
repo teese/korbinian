@@ -27,12 +27,9 @@ def create_settingsdict(excel_file_with_settings):
         # join dictionaries together
         set_.update(sheet_as_dict)
 
-    list_paths_to_normalise = ["data_folder", "uniprot_folder", "data_harddrive", "eaSimap_path", "logfile_dir",
-                               "summaries_dir", "simap_database_dir", "list_of_uniprot_accessions"]
-    # normalise the paths for selected columns, so that they are appropriate for the operating system
-    for path in list_paths_to_normalise:
-        if path in set_:
-            set_[path] = os.path.normpath(set_[path])
+    list_paths_to_normalise = ["data_dir", "eaSimap_path", "list_of_uniprot_accessions"]
+    # normalise the paths for the data directory
+    set_["data_dir"] = os.path.normpath(set_["data_dir"])
 
     return set_
 
@@ -47,14 +44,9 @@ def setup_keyboard_interrupt_and_error_logging(set_, list_number):
     '''+++++++++++++++LOGGING++++++++++++++++++'''
     date_string = strftime("%Y%m%d_%H_%M_%S")
 
-    # designate the output logfile
-    logfile = os.path.join(set_["logfile_dir"],'List%02d_%s_logfile.log' % (list_number, date_string))
+    # designate the output logfile, within a folder in tha data_dir called "logfiles"
+    logfile = os.path.join(set_["data_dir"],"logfiles",'List%02d_%s_logfile.log' % (list_number, date_string))
 
-    # # if multiprocessing is used, disable logging except for critical messages.
-    # if set_["use_multiprocessing"]:
-    #     level_console = "CRITICAL"
-    #     level_logfile = "CRITICAL"
-    # else:
     level_console = set_["logging_level_console"]
     level_logfile = set_["logging_level_logfile"]
 
@@ -120,6 +112,8 @@ def setup_error_logging(logfile, level_console="DEBUG", level_logfile="DEBUG"):
     config['handlers']['console']['level'] = level_console
     config['handlers']['file']['level'] = level_logfile
 
+    # create folder if necessary
+    utils.make_sure_path_exists(logfile, isfile=True)
     #create a blank logging file
     with open(logfile, 'w') as f:
         pass
