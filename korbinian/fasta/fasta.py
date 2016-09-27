@@ -194,3 +194,4 @@ def filter_and_save_fasta(p):
 
     # close the zipfile
     zipout_fasta.close()
+    return acc, "fasta", True

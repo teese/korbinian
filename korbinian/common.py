@@ -50,13 +50,13 @@ def setup_keyboard_interrupt_and_error_logging(set_, list_number):
     # designate the output logfile
     logfile = os.path.join(set_["logfile_dir"],'List%02d_%s_logfile.log' % (list_number, date_string))
 
-    # if multiprocessing is used, disable logging except for critical messages.
-    if set_["use_multiprocessing"]:
-        level_console = "CRITICAL"
-        level_logfile = "CRITICAL"
-    else:
-        level_console = set_["logging_level_console"]
-        level_logfile = set_["logging_level_logfile"]
+    # # if multiprocessing is used, disable logging except for critical messages.
+    # if set_["use_multiprocessing"]:
+    #     level_console = "CRITICAL"
+    #     level_logfile = "CRITICAL"
+    # else:
+    level_console = set_["logging_level_console"]
+    level_logfile = set_["logging_level_logfile"]
 
     logging = korbinian.common.setup_error_logging(logfile, level_console, level_logfile)
     return logging

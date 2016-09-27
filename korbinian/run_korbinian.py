@@ -174,28 +174,37 @@ if __name__ == "__main__":
     if set_["run_retrieve_simap_feature_table_and_homologues_from_list_in_csv"]:
         korbinian.simap.download_homologues_from_simap(pathdict, set_, logging)
 
-    if set_["use_multiprocessing"]:
-        logging = utils.Log_Only_To_Console()
-        multiprocessing_cores = set_["multiprocessing_cores"]
-    else:
-        # leave the logging as it is
-        multiprocessing_cores = 1
+    multiprocessing_cores = set_["multiprocessing_cores"]
+    # if set_["use_multiprocessing"]:
+    #     # clear logging handlers
+    #     logging.getLogger('').handlers
+    #     logging.shutdown()
+    #
+    #     logging = utils.Log_Only_To_Console()
+    #
+    # else:
+    #     # leave the logging as it is
+    #     multiprocessing_cores = 1
 
     if set_["run_parse_simap_to_csv"]:
+
         #korbinian.simap.parse_SIMAP_to_csv(pathdict, set_, logging)
         logging.info('~~~~~~~~~~~~  starting parse_SIMAP_to_csv  ~~~~~~~~~~~~')
-
-        list_p = korbinian.mtutils.convert_summary_csv_to_input_list(set_, pathdict)
+        # if multiprocessing is used, log only to the console
+        logger = logging if set_["use_multiprocessing"] != True else utils.Log_Only_To_Console()
+        # create list of protein dictionaries to process
+        list_p = korbinian.mtutils.convert_summary_csv_to_input_list(set_, pathdict, logger)
 
         #korbinian.simap.parse_SIMAP_to_csv_singleprotein(p)
-
-        pickle_out = "D:\pickletest.pickle"
-        with open(pickle_out, "wb") as f:
-            pickle.dump(list_p, f)
-
-        with Pool(processes=multiprocessing_cores) as pool:
-            #pool.map(print_acc, list_p)
-            pool.map(parse_SIMAP_to_csv_singleprotein, list_p)
+        if set_["use_multiprocessing"]:
+            with Pool(processes=multiprocessing_cores) as pool:
+                #pool.map(print_acc, list_p)
+                parse_simap_list = pool.map(parse_SIMAP_to_csv_singleprotein, list_p)
+                # log the list of protein results (e.g. acc, "simap", True) to the actual logfile, not just the console
+                logging.info("parse_simap_list : {}".format(parse_simap_list))
+        else:
+            for p in list_p:
+                parse_SIMAP_to_csv_singleprotein(p)
 
         # logging.info('{} homologous sequences parsed from SIMAP XML to csv'.format(df.loc[acc, 'SIMAP_total_hits']))
         # logging.info('number_of_hits_missing_smithWatermanAlignment_node: %i' % number_of_hits_missing_smithWatermanAlignment_node)
@@ -209,24 +218,38 @@ if __name__ == "__main__":
     ########################################################################################
 
     if set_["slice_TMDs_from_homologues"]:
-        logging = utils.Log_Only_To_Console()
         logging.info('~~~~~~~~~~~~       starting slice_TMDs_from_homologues        ~~~~~~~~~~~~')
-        list_p = korbinian.mtutils.convert_summary_csv_to_input_list(set_, pathdict)
+        # if multiprocessing is used, log only to the console
+        logger = logging if set_["use_multiprocessing"] != True else utils.Log_Only_To_Console()
+        # create list of protein dictionaries to process
+        list_p = korbinian.mtutils.convert_summary_csv_to_input_list(set_, pathdict, logger)
 
-        #korbinian.cons_ratio.slice_TMDs_from_homologues(pathdict, set_, logging)
-        with Pool(processes=multiprocessing_cores) as pool:
-            #pool.map(print_acc, list_p)
-            pool.map(korbinian.cons_ratio.slice_TMDs_from_homologues, list_p)
+        #korbinian.simap.parse_SIMAP_to_csv_singleprotein(p)
+        if set_["use_multiprocessing"]:
+            with Pool(processes=multiprocessing_cores) as pool:
+                slice_list = pool.map(korbinian.cons_ratio.slice_TMDs_from_homologues, list_p)
+                # log the list of protein results (e.g. acc, "simap", True) to the actual logfile, not just the console
+                logging.info("slice_list : {}".format(slice_list))
+        else:
+            for p in list_p:
+                korbinian.cons_ratio.slice_TMDs_from_homologues(p)
         logging.info("~~~~~~~~~~~~     slice_TMDs_from_homologues is finished       ~~~~~~~~~~~~")
 
     if set_["run_create_fasta"]:
         logging.info('~~~~~~~~~~~~         starting filter_and_save_fasta           ~~~~~~~~~~~~')
-        list_p = korbinian.mtutils.convert_summary_csv_to_input_list(set_, pathdict)
-
-        #korbinian.cons_ratio.slice_TMDs_from_homologues(pathdict, set_, logging)
-        with Pool(processes=multiprocessing_cores) as pool:
-            #pool.map(print_acc, list_p)
-            pool.map(korbinian.fasta.filter_and_save_fasta, list_p)
+        # if multiprocessing is used, log only to the console
+        logger = logging if set_["use_multiprocessing"] != True else utils.Log_Only_To_Console()
+        # create list of protein dictionaries to process
+        list_p = korbinian.mtutils.convert_summary_csv_to_input_list(set_, pathdict, logger)
+        #korbinian.simap.parse_SIMAP_to_csv_singleprotein(p)
+        if set_["use_multiprocessing"]:
+            with Pool(processes=multiprocessing_cores) as pool:
+                fasta_list = pool.map(korbinian.fasta.filter_and_save_fasta, list_p)
+                # log the list of protein results (e.g. acc, "simap", True) to the actual logfile, not just the console
+                logging.info("fasta_list : {}".format(fasta_list))
+        else:
+            for p in list_p:
+                korbinian.fasta.filter_and_save_fasta(p)
         logging.info('~~~~~~~~~~~~       filter_and_save_fasta is finished          ~~~~~~~~~~~~')
 
     if set_["run_calculate_AAIMON_ratios"]:

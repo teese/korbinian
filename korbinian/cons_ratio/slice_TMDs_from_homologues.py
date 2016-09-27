@@ -18,12 +18,12 @@ def slice_TMDs_from_homologues(p):
     logging.info(protein_name)
     if not os.path.exists(p['homol_df_orig_zip']):
         logging.info("{} Protein skipped. File does not exist".format(p['homol_df_orig_zip']))
-        return
+        return acc, "slice", False
 
     dfs = utils.open_df_from_pickle_zip(p['homol_df_orig_zip'], delete_corrupt=True)
     if dfs.empty:
         logging.info("{} Protein skipped, file deleted as it is possibly corrupt.".format(p['homol_df_orig_zip']))
-        return
+        return acc, "slice", False
 
     if set_["slice_juxtamembrane_regions"]:
         ########################################################################################
@@ -132,9 +132,9 @@ def slice_TMDs_from_homologues(p):
             # delete any existing sliced zipfile
             os.remove(fa_cr_sliced_TMDs_zip)
         else:
-            logging.info("protein skipped, output from slice_TMDs_from_homologues already exists")
+            logging.info("{} skipped, output from slice_TMDs_from_homologues already exists".format(acc))
             # skip this protein
-            return
+            return acc, "slice", False
 
     # open new zipfile (NOTE, it must be closed later!!)
     with zipfile.ZipFile(fa_cr_sliced_TMDs_zip, mode="a", compression=zipfile.ZIP_DEFLATED) as homol_sliced_zip:
@@ -145,7 +145,7 @@ def slice_TMDs_from_homologues(p):
         if "len_query_align_seq" not in dfs.columns:
             logging.info ("len_query_align_seq not in columns, protein skipped for slice_TMDs_from_homologues")
             #skip protein
-            return
+            return acc, "slice", False
 
         # add the FASTA_gapped_identity and length of the alignment sequence from dfs, to act as the "end" of all the nonTMD regions
         df_nonTMD_sliced = dfs[['len_query_align_seq']].copy()
@@ -172,7 +172,8 @@ def slice_TMDs_from_homologues(p):
             #korbinian.cons_ratio.slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs)
         if df_TMD.empty:
             # skip protein, as number_of_rows_containing_data == 0 for at least one TMD (or at least the last TMD)
-            return
+            logging.info("{} skipped, number_of_rows_containing_data == 0 for at least one TMD")
+            acc, "slice", False
 
         df_nonTMD_sliced = korbinian.cons_ratio.slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs)
 
@@ -181,6 +182,7 @@ def slice_TMDs_from_homologues(p):
             pickle.dump(df_nonTMD_sliced, f, protocol=pickle.HIGHEST_PROTOCOL)
         homol_sliced_zip.write(df_nonTMD_temp_pickle, arcname=os.path.basename(df_nonTMD_temp_pickle))
         os.remove(df_nonTMD_temp_pickle)
+        return  acc, "slice", True
 
 
 

@@ -1440,7 +1440,7 @@ class Log_Only_To_Console(object):
         print(message)
 
 
-def convert_summary_csv_to_input_list(set_, pathdict):
+def convert_summary_csv_to_input_list(set_, pathdict, logging):
     # open dataframe with list of proteins
     df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     # exclude any proteins where there is no list_of_TMDs
@@ -1452,7 +1452,7 @@ def convert_summary_csv_to_input_list(set_, pathdict):
     # convert values to list
     list_p = list(df_as_dict.values())
 
-    logging = Log_Only_To_Console()
+    #logging = Log_Only_To_Console()
 
     for p in list_p:
         # print("in for loop", p["acc"])

@@ -47,12 +47,12 @@ def parse_SIMAP_to_csv_singleprotein(p):
     #iterate over the dataframe, excluding any proteins that do not have a list of TMDs
     #for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
     pathdict, set_, logging = p["pathdict"], p["set_"], p["logging"]
-
+    acc = p["acc"]
     # if overwrite_simap_parsed_to_csv is False, skip proteins where the homol_df_orig_zip file exists
     if set_["overwrite_simap_parsed_to_csv"] == False:
         if os.path.isfile(p['homol_df_orig_zip']):
             logging.info("{} skipped, homologues already parsed to csv".format(p['protein_name']))
-            return
+            return acc, "simap", False
     #set up counters
     number_of_hits_missing_protein_node = 0
     num_hits_with_SW_align_node = 0
@@ -449,7 +449,7 @@ def parse_SIMAP_to_csv_singleprotein(p):
                     os.remove(SIMAP_orig_csv)
                     os.remove(p['SIMAP_align_pretty_csv'])
                     os.remove(p['homol_df_orig_pickle'])
-                    return 0
+                    return acc, "simap", True
 
                     # with tarfile.open(p['SIMAP_csv_from_XML_tarfile'], 'w:gz') as tar_SIMAP_out:
                     #     tar_SIMAP_out.add(SIMAP_orig_csv, arcname=p['SIMAP_csv_from_XML'])
