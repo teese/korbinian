@@ -23,12 +23,13 @@ def setup_file_locations_in_df(set_, pathdict):
 
     """
     df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
+    print([col for col in df.columns])
     if "uniprot_entry_name" in df.columns:
         # join the accession and entry name to create a "protein name" for naming files
         df['protein_name'] = df.uniprot_acc + '_' + df.uniprot_entry_name
     else:
         # the list of proteins did not come from UniProt. Simply use the accession to name the files.
-        df['protein_name'] = df.uniprot_acc
+        df['protein_name'] = df.index
 
     if set_["add_user_subseqs"] == True:
         ########################################################################################
@@ -91,7 +92,7 @@ def setup_file_locations_in_df(set_, pathdict):
     #                                     setup file paths                                 #
     #                                                                                      #
     ########################################################################################
-    df['first_two_letters_of_uniprot_acc'] = df['uniprot_acc'].str[0:2]
+    df['first_two_letters_of_uniprot_acc'] = df['protein_name'].str[0:2]
 
     simap_dir = os.path.join(set_["data_dir"], "simap")
     utils.make_sure_path_exists(simap_dir)
