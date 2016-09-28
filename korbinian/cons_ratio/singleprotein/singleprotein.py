@@ -232,10 +232,6 @@ def calc_AAIMON(TMD, df_cr, mean_ser, logging):
     mean_ser['%s_AASMON_ratio_mean'%TMD] = df_cr['%s_AASMON_ratio'%TMD].mean()
     mean_ser['%s_AASMON_ratio_std'%TMD] = df_cr['%s_AASMON_ratio'%TMD].std()
 
-    # add to the dataframe with the SIMAP data for that particular protein
-    df_cr['%s_AAIMON_ratio'%TMD] = df_cr['%s_AAIMON_ratio'%TMD]
-    df_cr['%s_AASMON_ratio'%TMD] = df_cr['%s_AASMON_ratio'%TMD]
-
     df_cr['%s_ratio_length_of_TMD_to_rest_of_alignment'%TMD] = df_cr['%s_SW_query_seq'%TMD].str.len() / df_cr['FASTA_overlap']
     df_cr['%s_ratio_length_of_query_TMD_to_rest_of_match_protein'%TMD] = df_cr['%s_SW_query_seq'%TMD].str.len() / df_cr[ 'len_full_match_seq']
 

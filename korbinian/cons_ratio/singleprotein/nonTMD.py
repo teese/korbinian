@@ -159,7 +159,7 @@ def calc_nonTMD_perc_ident_and_gaps(acc, df_nonTMD, mean_ser, logging):
         df_nonTMD['len_nonTMD_seq_match'] = df_nonTMD['nonTMD_seq_match'].str.len()
 
         # calculate the number aligned sequences, excluding gaps (length of query, or length of match, whichever is shorter)
-        # NOTE, THIS IS CURRENTLY TOO SHORT, GIVING NONTMD IDENTITIES ALWAYS ABOVE 1.0. NEEDS TO BE FIXED.
+        # NOTE, THIS IS NEEDS TO BE CHECKED.
         #df_nonTMD['len_nonTMD_align'] = df_nonTMD[['len_nonTMD_seq_query', 'len_nonTMD_seq_match']].dropna(how='all').min(axis=1)
         df_nonTMD['len_nonTMD_align'] = df_nonTMD['len_nonTMD_seq_query']
 
