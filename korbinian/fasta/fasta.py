@@ -14,7 +14,7 @@ def filter_and_save_fasta(p):
     pathdict, set_, logging = p["pathdict"], p["set_"], p["logging"]
     protein_name = p["protein_name"]
     acc = p["acc"]
-    logging.info(protein_name)
+    print(acc, end=", ", flush=True)
     # if the homol_df_orig_zip file does not exist, skip that protein
     if not os.path.exists(p['homol_df_orig_zip']):
         logging.info("{} Protein skipped, file not found.".format(p['homol_df_orig_zip']))
@@ -194,4 +194,4 @@ def filter_and_save_fasta(p):
 
     # close the zipfile
     zipout_fasta.close()
-    return acc, "fasta", True
+    return acc, True, "0"
