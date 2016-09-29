@@ -286,7 +286,6 @@ def retrieve_simap_homologues(input_sequence, output_file, max_hits, java_exec_s
 #        name = record.name.replace('|', '_')[:30]
 #        accession = 'Acc'
 #        label = '%s_%s' % (accession, name)
-#        print(label)
 #        SIMAP_feature_table_XML_file = r"E:\\Stephis\\Projects\\Programming\\Python\\files\\learning\\simap\\%s_simap_feature_table.xml" % label
 #        list_of_files_with_feature_tables.append(SIMAP_feature_table_XML_file)
 #        SIMAP_homologues_XML_file = r"E:\\Stephis\\Projects\\Programming\\Python\\files\\learning\\simap\\%s_simap_homologues.xml" % label

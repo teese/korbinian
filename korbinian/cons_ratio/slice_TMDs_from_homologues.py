@@ -9,6 +9,36 @@ import zipfile
 import pandas as pd
 
 def slice_TMDs_from_homologues(p):
+    """ Slices TMDs from homologues
+
+    Parameters
+    ----------
+    p : dict
+        Protein Dictionary. Contains all input settings, sequences and filepaths related to a single protein.
+        Protein-specific data is extracted from one row of the the list summary, e.g. List05_summary.csv, which is read as df.
+        p also contains the GENERAL korbinian settings and filepaths for that list (pathdict, set_, logging)
+
+
+        Components
+        ----------
+        pathdict : dict
+            Dictionary of the key paths and files associated with that List number.
+        set_ : dict
+            Settings dictionary extracted from excel settings file.
+        logging : logging.Logger
+            Logger for printing to console and/or logfile.
+            If multiprocessing == True, logging.info etc will only print to console.
+        p : protein-specific dictionary components
+            acc, list_of_TMDs, description, TM01_seq, etc
+    Returns
+    -------
+    In all cases, a tuple (str, bool, str) is returned.
+
+    if sucessful:
+        return acc, True, "0"
+    if not successful:
+        return acc, False, "specific warning or reason why protein failed"
+    """
     pathdict, set_, logging = p["pathdict"], p["set_"], p["logging"]
     acc = p["acc"]
     # df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
@@ -157,10 +187,11 @@ def slice_TMDs_from_homologues(p):
         df_TMD = pd.DataFrame()
         for TMD in list_of_TMDs:
             query_TMD_sequence = p['%s_seq' % TMD]
-            if isinstance(query_TMD_sequence, float):
-                warning = "{} {} query_TMD_sequence is a float ({}), probably np.nan.".format(acc, TMD, query_TMD_sequence)
-                logging.warning(warning)
-                return acc, False, warning
+            ## SHOULD NOT BE NECESSARY. OMPdb DATABASE NOW FIXED TO AVOID NAN VALUES IN TM_SEQ
+            # if isinstance(query_TMD_sequence, float):
+            #     warning = "{} {} query_TMD_sequence is a float ({}), probably np.nan.".format(acc, TMD, query_TMD_sequence)
+            #     logging.warning(warning)
+            #     return acc, False, warning
             df_TMD = korbinian.cons_ratio.slice_TMD_homol_and_count_gaps(acc, TMD, query_TMD_sequence, dfs, set_, logging)
             if df_TMD.empty:
                 warning = "{} {} df_TMD.empty, probably number_of_rows_containing_data == 0".format(acc, TMD, query_TMD_sequence)

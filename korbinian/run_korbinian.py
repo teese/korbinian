@@ -81,12 +81,6 @@ from time import sleep
 import pickle
 from numpy.random import random
 
-def print_acc(p):
-    #pathdict, set_, logging = p["pathdict"], p["set_"], p["logging"]
-    print(p["acc"])
-    sleep(randint(1, 5))
-    #logging.info(p["acc"])
-
 # read the command line arguments
 parser = argparse.ArgumentParser()
 # add only a single argument, the path to the settings file.
@@ -96,7 +90,7 @@ parser.add_argument("-s",  # "-settingsfile",
 
 
 if __name__ == "__main__":
-    print(r'\nRun korbinian as follows:\npython "C:\Path\to\run_korbinian.py" "C:\Path\to\your\settingsfile.xlsx"\nTo view the help:\npython korbinian.py -h\n')
+    print('\nRun korbinian as follows:\npython "C:\Path\to\run_korbinian.py" "C:\Path\to\your\settingsfile.xlsx"\nTo view the help:\npython korbinian.py -h\n')
     args = parser.parse_args()
     excel_file_with_settings = args.s
     set_ = korbinian.common.create_settingsdict(excel_file_with_settings)
@@ -123,13 +117,20 @@ if __name__ == "__main__":
     ########################################################################################
 
     if set_["OMPdb_extract_omp_IDs_from_nr_fasta"]:
-        korbinian.prot_list.extract_omp_IDs_from_nr_fasta(set_["omp_nr_fasta"], set_["omp_ID_nr_txt"], logging)
+        ListXX_OMPdb_nr_fasta = os.path.join(set_["data_dir"], "OMPdb", "List{:02d}_OMPdb_nr_fasta.txt".format(list_number))
+        ListXX_OMPdb_nr_acc = os.path.join(set_["data_dir"], "OMPdb", "List{:02d}_OMPdb_nr_acc.txt".format(list_number))
+        korbinian.prot_list.extract_omp_IDs_from_nr_fasta(ListXX_OMPdb_nr_fasta, ListXX_OMPdb_nr_acc, logging)
 
     if set_["OMPdb_parse_OMPdb_all_selected_to_csv"]:
-        korbinian.prot_list.parse_OMPdb_all_selected_to_csv(set_["omp_ID_nr_txt"], set_["OMPdb_all_flatfile"], set_["OMPdb_summary_nr_csv"], logging)
+        ListXX_OMPdb_nr_acc = os.path.join(set_["data_dir"], "OMPdb", "List{:02d}_OMPdb_nr_acc.txt".format(list_number))
+        ListXX_OMPdb_redundant_flatfile = os.path.join(set_["data_dir"], "OMPdb", "List{:02d}_OMPdb_redundant_flatfile.flat".format(list_number))
+        OMPdb_list_summary_csv = os.path.join(set_["data_dir"], "OMPdb", "List{:02d}_OMPdb_summary.csv".format(list_number))
+        korbinian.prot_list.parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_flatfile, OMPdb_list_summary_csv, logging)
 
     if set_["OMPdb_get_omp_TM_indices_and_slice_from_summary_table"]:
-        korbinian.prot_list.get_omp_TM_indices_and_slice_from_summary_table(set_["OMPdb_summary_nr_csv"], set_["OMPdb_summary_csv_with_TM_seqs"], logging)
+        OMPdb_list_summary_csv = os.path.join(set_["data_dir"], "OMPdb", "List{:02d}_OMPdb_summary.csv".format(list_number))
+        list_summary_csv = pathdict["list_summary_csv"]
+        korbinian.prot_list.get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list_summary_csv, logging)
 
     ########################################################################################
     #                                                                                      #

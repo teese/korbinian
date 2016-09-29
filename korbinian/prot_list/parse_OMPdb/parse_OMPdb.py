@@ -5,31 +5,36 @@ import pandas as pd
 import numpy as np
 
 # # location of unzipped fasta seqs from OMPdb, nonredundant(e.g. to 30% aa identity)
-# #omp_nr_fasta = r"D:\Databases\OMPdb\OMPdb.30"
-# omp_nr_fasta = r"D:\Databases\OMPdb\20160819_OMPdb.30"
-# omp_ID_nr_txt = omp_nr_fasta + "_IDS.txt"
-# #omp_ID_nr_txt = r"D:\Databases\OMPdb\test_list_IDs.txt"
-# #OMPdb_all_flatfile = r"D:\Databases\OMPdb\OMPdb.flat"
-# OMPdb_all_flatfile = r"D:\Databases\OMPdb\20160819_OMPdb.flat"
-# #OMPdb_all_flatfile = r"D:\Databases\OMPdb\OMPdbsmaller.txt"
-# #OMPdb_summary_nr_csv = omp_nr_fasta + "_flatfiles_nr.csv"
-# OMPdb_summary_nr_csv = r"D:\Databases\OMPdb\rimma_orig\OMPdb_Selected_by_potential_IDs.csv"
-# OMPdb_summary_csv_with_TM_seqs = OMPdb_summary_nr_csv[:-4] + "_with_seqs.csv"
+# #ListXX_OMPdb_nr_fasta = r"D:\Databases\OMPdb\OMPdb.30"
+# ListXX_OMPdb_nr_fasta = r"D:\Databases\OMPdb\20160819_OMPdb.30"
+# ListXX_OMPdb_nr_acc = ListXX_OMPdb_nr_fasta + "_IDS.txt"
+# #ListXX_OMPdb_nr_acc = r"D:\Databases\OMPdb\test_list_IDs.txt"
+# #ListXX_OMPdb_redundant_flatfile = r"D:\Databases\OMPdb\OMPdb.flat"
+# ListXX_OMPdb_redundant_flatfile = r"D:\Databases\OMPdb\20160819_OMPdb.flat"
+# #ListXX_OMPdb_redundant_flatfile = r"D:\Databases\OMPdb\OMPdbsmaller.txt"
+# #OMPdb_list_summary_csv = ListXX_OMPdb_nr_fasta + "_flatfiles_nr.csv"
+# OMPdb_list_summary_csv = r"D:\Databases\OMPdb\rimma_orig\OMPdb_Selected_by_potential_IDs.csv"
+# list_summary_csv = OMPdb_list_summary_csv[:-4] + "_with_seqs.csv"
 
-def extract_omp_IDs_from_nr_fasta(omp_nr_fasta, omp_ID_nr_txt, logging):
+def extract_omp_IDs_from_nr_fasta(ListXX_OMPdb_nr_fasta, ListXX_OMPdb_nr_acc, logging):
     """Takes the OMP non-redundant list of fasta sequences, and extracts the protein IDs (fasta names).
 
     Parameters
     ----------
-    omp_nr_fasta : str
+    ListXX_OMPdb_nr_fasta : str
         Path to OMPdb non-redundant list of fasta sequences
-    omp_ID_nr_txt : str
+    ListXX_OMPdb_nr_acc : str
         Path to output file, with list of OMPdb accessions.
     logging : logging.Logger
         Logger for printing to console and logfile.
+
+    Saved Files
+    -----------
+    ListXX_OMPdb_nr_acc : txt
+        Contains list of non-redundant omp IDs, each on a new line.
     """
-    with open(omp_ID_nr_txt, "w") as s:
-        with open(omp_nr_fasta) as f:
+    with open(ListXX_OMPdb_nr_acc, "w") as s:
+        with open(ListXX_OMPdb_nr_fasta) as f:
             # extract the fasta header (ID)
             ID_list = [lines.strip()[1:] for lines in f.readlines() if ">" in lines]
             # write to text file
@@ -37,17 +42,24 @@ def extract_omp_IDs_from_nr_fasta(omp_nr_fasta, omp_ID_nr_txt, logging):
                 s.write("%s\n" % ID)
     logging.info("extract_omp_IDs_from_nr_fasta is completed")
 
-def parse_OMPdb_all_selected_to_csv(omp_ID_nr_txt, OMPdb_all_flatfile, OMPdb_summary_nr_csv, logging):
+def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_flatfile, OMPdb_list_summary_csv, logging):
     """ Extracts ID, seq and topology data from the full OMPdb flatfile, saves to csv.
 
     Parameters
     ----------
-    omp_ID_nr_txt : str
+    ListXX_OMPdb_nr_acc : str
         Path to OMPdb list of non-redundant IDs, textfile.
-    OMPdb_all_flatfile : str
+    ListXX_OMPdb_redundant_flatfile : str
         Path to full OMPdb flatfile, all proteins, unzipped.
-    OMPdb_summary_nr_csv : str
+    OMPdb_list_summary_csv : str
         Path to output csv file.
+
+    Saved Files
+    -----------
+    OMPdb_list_summary_csv : csv
+        csv file derived from dfKW
+        contains a row for each protein
+        contains indices for TM regions
 
     Notes
     -----
@@ -70,13 +82,14 @@ def parse_OMPdb_all_selected_to_csv(omp_ID_nr_txt, OMPdb_all_flatfile, OMPdb_sum
     ID_list = []
 
     # Extracts IDs out of file
-    with open(omp_ID_nr_txt) as source:
+    with open(ListXX_OMPdb_nr_acc) as source:
         for line in source:
             line = line.strip()
             ID_list.append(line)
 
-    # Checking OMPdb_all_flatfile(complete OMPdb in very unfriendly formatting)for IDs(which are stored in list of Potential IDs) and extracting information
-    with open(OMPdb_all_flatfile) as data_file:
+    # Checking ListXX_OMPdb_redundant_flatfile(complete OMPdb in very unfriendly formatting)for IDs(which are stored in list of Potential IDs) and extracting information
+    with open(ListXX_OMPdb_redundant_flatfile) as data_file:
+        counter = 0
         for line in data_file:
             line = line.strip().split(" ")
             # Further settings which are changed every loop
@@ -86,6 +99,9 @@ def parse_OMPdb_all_selected_to_csv(omp_ID_nr_txt, OMPdb_all_flatfile, OMPdb_sum
             if "UNIPROT" in line and line[-1] in ID_list:
                 keywords["Uniprot"].append(line[-1])
                 take_ID = True
+                counter += 1
+                if counter % 100 == 0:
+                    print(". ", end="", flush=True)
             if "FAMILY" in line and take_ID == True:
                 keywords["Family"].append(" ".join(line[9:]))
             if "GENE_NAME" in line and take_ID == True:
@@ -136,30 +152,30 @@ def parse_OMPdb_all_selected_to_csv(omp_ID_nr_txt, OMPdb_all_flatfile, OMPdb_sum
 
     # Creating Dataframe and saving it as csv
     dfKW = pd.DataFrame(keywords)
-    dfKW.to_csv(OMPdb_summary_nr_csv,index=False)
+    # set the uniprot_acc as the index
+    dfKW.set_index("Uniprot", inplace=True, drop=False)
+    dfKW.index.name = "acc"
+    utils.make_sure_path_exists(OMPdb_list_summary_csv, isfile=True)
+    dfKW.to_csv(OMPdb_list_summary_csv)
     logging.info("parse_OMPdb_all_selected_to_csv is completed. Dataframe shape = {}".format(dfKW.shape))
 
-def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_summary_nr_csv, OMPdb_summary_csv_with_TM_seqs, logging):
+
+def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list_summary_csv, logging):
     """ Take a csv parsed from OMPdb, get the TM indices and slice the TMDs for each protein
 
     Parameters:
     -----------
-    OMPdb_summary_nr_csv : str
+    OMPdb_list_summary_csv : str
         Path to input csv with OMP sequences and membrane annotation
-    OMPdb_summary_csv_with_TM_seqs : str
+    list_summary_csv : str
         Path to output csv with the sliced TM sequences
     logging : logging.Logger
         Logger for printing to console and logfile.
     """
-    df_KW = pd.read_csv(OMPdb_summary_nr_csv)
+    df_KW = pd.read_csv(OMPdb_list_summary_csv, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
 
     # get sequence length
     df_KW["seqlen"] = df_KW["Sequence"].str.len()
-
-    # Function which returns list of all M-indices
-    def getting_membrane_indices(Topo_data):
-        m_list = [i for i, topology in enumerate(Topo_data) if topology == "M"]  # find(Topo_data)
-        return m_list
 
     # Creating new column M_indices, which contains the indices of Ms
     df_KW["M_indices"] = df_KW.Topology.apply(getting_membrane_indices)
@@ -183,27 +199,23 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_summary_nr_csv, OMPdb_
     # Creating new list (nested list)
     nested_list_of_membrane_borders = []
 
-    # Function which filters out start and end-points
-    def check_for_border(m_indices):
-        for n in range(0, len(m_indices) - 1):
-            if m_indices[n] + 1 != m_indices[n + 1]:
-                m_borders.append(m_indices[n])
-                m_borders.append(m_indices[n + 1])
-
     # Filling nest with lists of start and end-points
     for n in df_KW.M_indices:
         m_borders = []
         m_borders.append(n[0])
-        check_for_border(n)
+        m_borders = check_for_border(n, m_borders)
         m_borders.append(n[-1])
         nested_list_of_membrane_borders.append(m_borders)
 
     array_membrane_borders = np.array(nested_list_of_membrane_borders)
+    array_membrane_borders_corrected = []
     for subarray in array_membrane_borders:
         # logging.info(subarray[::2] = subarray[::2]*10)
         subarray = np.array(subarray)
         subarray[1::2] = subarray[1::2] + 1
-    nested_list_of_membrane_borders_python_indexstyle = array_membrane_borders.tolist()
+        array_membrane_borders_corrected.append(list(subarray))
+
+    nested_list_of_membrane_borders_python_indexstyle = array_membrane_borders_corrected
 
     # Creating new column, which contains start and end-points
     df_KW["Membrane_Borders"] = nested_list_of_membrane_borders_python_indexstyle
@@ -234,7 +246,7 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_summary_nr_csv, OMPdb_
     df_KW["list_of_TMDs"] = ""
     df_KW["list_of_TMDs"].astype(object)
 
-    for row in df_KW.index:
+    for row_nr, row in enumerate(df_KW.index):
         # get nested tuple of TMDs
         nested_tup_TMs = df_KW.loc[row, "TM_indices"]
         # slice long list of TMD names to get an appropriate list for that protein [TM01, TM02, TM03, etc.
@@ -247,14 +259,16 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_summary_nr_csv, OMPdb_
         # topology = df_KW.loc[row, "Topology"]
         # iterate through all the TMDs of that protein, slicing out the sequences
         for i in range(len(list_of_TMDs)):
-            if i % 10 == 0:
-                print(".", end="")
             TMD = list_of_TMDs[i]
             tup = nested_tup_TMs[i]
             df_KW.loc[row, TMD + "_start"] = tup[0]
             df_KW.loc[row, TMD + "_end"] = tup[1]
             df_KW.loc[row, TMD + "_seq"] = utils.slice_with_listlike(full_seq, tup)
             # df_KW.loc[row, TMD + "_top"] = utils.slice_with_listlike(topology, tup)
+        if row_nr % 50 == 0:
+            print(".", end="", flush=True)
+            if row_nr % 1000 == 0:
+                print("", flush=True)
 
     max_num_TMDs = df_KW["number_of_TMDs"].max()
 
@@ -271,20 +285,50 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_summary_nr_csv, OMPdb_
     # rename columns to match protein lists from uniprot
     dict_ = {"Sequence": "full_seq", "Organism": "organism", "Uniprot": "uniprot_acc", "Gene_Name": "gene_name",
              "Topology_Reli": "topology_reliability"}
-    to_drop = ["len_Sequence"]
     df_KW["betabarrel"] = True
     df_KW["multipass"] = True
     df_KW["singlepass"] = False
     df_KW.rename(columns=dict_, inplace=True)
+    df_KW["acc"] = df_KW["uniprot_acc"]
     df_KW["protein_name"] = df_KW["uniprot_acc"]
 
     # reset the index to match the numer of sequences
-    df_KW.index = range(df_KW.shape[0])
+    #df_KW.index = range(df_KW.shape[0])
     # save to csv (presumably in summaries folder as a list number, so it is accessible by the rest of the scripts)
-    df_KW.to_csv(OMPdb_summary_csv_with_TM_seqs, sep=",", quoting=csv.QUOTE_NONNUMERIC)
+    utils.make_sure_path_exists(list_summary_csv, isfile=True)
+    df_KW.to_csv(list_summary_csv, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     logging.info("\nnum_proteins_BEFORE_dropping_those_without_mem_indices : {}".format(num_proteins_BEFORE_dropping_those_without_mem_indices))
     logging.info("num_proteins_AFTER_dropping_those_without_mem_indices : {}".format(num_proteins_AFTER_dropping_those_without_mem_indices))
     logging.info("num_proteins_AFTER_dropping_those_with_coverage_below_85 : {}".format(num_proteins_AFTER_dropping_those_with_coverage_below_85))
     logging.info("num_proteins_AFTER_dropping_those_without_TMs_between_8_and_24 : {}".format(num_proteins_AFTER_dropping_those_without_TMs_between_8_and_24))
     logging.info("num_proteins_AFTER_dropping_those_with_topology_reliability_below_90 : {}".format(num_proteins_AFTER_dropping_those_with_topology_reliability_below_90))
+
+
+# Function which returns list of all M-indices
+def getting_membrane_indices(Topo_data):
+    m_list = [i for i, topology in enumerate(Topo_data) if topology == "M"]  # find(Topo_data)
+    return m_list
+
+# Function which filters out start and end-points
+def check_for_border(m_indices, m_borders):
+    """ Checks for the borders of membrane regions, from M indices.
+
+    Parameters
+    ----------
+    m_indices : list
+        List of membrane region indices, extracted from the flatfile, (e.g. IIIMMMMMMMMMOOOO for Inside, Membrane and Outside),
+        giving the list of M indices (e.g. [28, 29, 30, 31, 32, 33, 34, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 72, 73, 74, 75, 76]
+    m_borders : list
+        List of borders, where the membrane regions start and stop.
+
+    Returns
+    -------
+    m_borders : list
+        Updated list of borders
+    """
+    for n in range(0, len(m_indices) - 1):
+        if m_indices[n] + 1 != m_indices[n + 1]:
+            m_borders.append(m_indices[n])
+            m_borders.append(m_indices[n + 1])
+    return m_borders

@@ -8,6 +8,11 @@
     logging : logging.Logger
         Logger for printing to console and logfile.
 
+        logging : logging.Logger
+            Logger for printing to console and/or logfile.
+            If multiprocessing == True, logging.info etc will only print to console.
+
+
 
     selected_uniprot_records_flatfile : str
         Path to UniProt flatfile containing selected records for analysis.
@@ -28,6 +33,43 @@
     PROTEIN_NAME_HUMAN_SIMAP.tar.gz : gzip file
         e.g. A1A5B4_ANO9_HUMAN_SIMAP.tar.gz
 
+
+
+    Parameters
+    ----------
+    p : dict
+        Protein Dictionary. Contains all input settings, sequences and filepaths related to a single protein.
+        Protein-specific data is extracted from one row of the the list summary, e.g. List05_summary.csv, which is read as df.
+        p also contains the GENERAL korbinian settings and filepaths for that list (pathdict, set_, logging)
+
+
+        Components
+        ----------
+        pathdict : dict
+            Dictionary of the key paths and files associated with that List number.
+        set_ : dict
+            Settings dictionary extracted from excel settings file.
+        logging : logging.Logger
+            Logger for printing to console and/or logfile.
+            If multiprocessing == True, logging.info etc will only print to console.
+        p : protein-specific dictionary components
+            acc, list_of_TMDs, description, TM01_seq, etc
+    Returns
+    -------
+    In all cases, a tuple (str, bool, str) is returned.
+
+    if sucessful:
+        return acc, True, "0"
+    if not successful:
+        return acc, False, "specific warning or reason why protein failed"
+
+
+
+
+
+
+
+
     uniprot_dir_sel : str
         Path to uniprot/selected folder.
     list_number : int
@@ -36,9 +78,9 @@
         Path to output UniProt flatfile of selected records. E.g. List08_selected_uniprot_records_flatfile.txt
     logging : logging.Logger
         Logger for printing to console and logfile.
-    OMPdb_summary_nr_csv : str
+    OMPdb_list_summary_csv : str
         Path to input csv with OMP sequences and membrane annotation
-    OMPdb_summary_csv_with_TM_seqs : str
+    list_summary_csv : str
         Path to output csv with the sliced TM sequences
     input_accession_list : list
         List of accessions.
