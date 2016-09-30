@@ -133,7 +133,7 @@ def download_homologues_from_simap(pathdict, set_, logging):
             #download feature table from SIMAP
             korbinian.simap.download.retrieve_simap_feature_table(input_sequence,
                                                                   java_exec_str=java_exec_str,
-                                                                  max_memory_allocation=max_memory_allocation,
+                                                                  max_memory_allocation=500,
                                                                   output_file=ft_xml_path,
                                                                   eaSimap_path=eaSimap_path)
             utils.sleep_x_seconds(60)

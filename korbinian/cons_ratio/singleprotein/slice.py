@@ -316,7 +316,6 @@ def slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs):
         
         return df_nonTMD_sliced
 
-
 def slice_TMDs_from_homologues(p):
     """ Slices TMDs from homologues
 
@@ -526,7 +525,7 @@ def slice_TMDs_from_homologues(p):
             logging.info(warning)
             return acc, False, warning
 
-        df_nonTMD_sliced = korbinian.cons_ratio.slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs)
+        df_nonTMD_sliced = korbinian.cons_ratio.singleprotein.slice.slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs)
 
         df_nonTMD_temp_pickle = os.path.join(homol_dir, "{}_nonTMD_sliced_df.pickle".format(protein_name))
         with open(df_nonTMD_temp_pickle, "wb") as f:

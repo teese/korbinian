@@ -9,33 +9,7 @@ import korbinian.utils as utils
 import zipfile
 from multiprocessing import Pool
 
-def parse_SIMAP_to_csv(pathdict, set_, logging):
-    counter_XML_to_CSV = 0
-    logging.info('~~~~~~~~~~~~  starting parse_SIMAP_to_csv  ~~~~~~~~~~~~')
-    # open dataframe with list of proteins
-    df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
-    utils.aaa(df)
-    # exclude any proteins where there is no list_of_TMDs
-    df = df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan']
-    # convert to dict
-    df_as_dict = df.to_dict(orient="index")
-    # convert values to list
-    list_p = list(df_as_dict.values())
-    for p in list_p:
-        p["set_"] = set_
-        p["pathdict"] = pathdict
-        p["logging"] = logging
-        parse_SIMAP_to_csv_singleprotein(p)
-    #with Pool(processes=set_["multiprocessing_cores"]) as pool:
-    #    pool.map(parse_SIMAP_to_csv_singleprotein, p)
-
-    # logging.info('{} homologous sequences parsed from SIMAP XML to csv'.format(df.loc[acc, 'SIMAP_total_hits']))
-    # logging.info('number_of_hits_missing_smithWatermanAlignment_node: %i' % number_of_hits_missing_smithWatermanAlignment_node)
-    # logging.info('number_of_hits_missing_protein_node: %i' % number_of_hits_missing_protein_node)
-    logging.info('****parse_SIMAP_to_csv finished!!****\n%g files parsed from SIMAP XML to csv' % counter_XML_to_CSV)
-
-
-def parse_SIMAP_to_csv_singleprotein(p):
+def parse_SIMAP_to_csv(p):
     # if "uniprot_acc" in df.columns:
     #     df.set_index("uniprot_acc", drop=False, inplace=True)
     # else:

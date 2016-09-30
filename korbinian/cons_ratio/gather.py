@@ -1,12 +1,8 @@
-import ast
-import numpy as np
+
 import csv
 import os
-import pickle
-import korbinian
 import korbinian.utils as utils
 import pandas as pd
-import zipfile
 
 def gather_AAIMON_ratios(pathdict, logging):
     logging.info("~~~~~~~~~~~~         starting gather_AAIMON_ratios           ~~~~~~~~~~~~")

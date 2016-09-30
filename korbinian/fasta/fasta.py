@@ -6,25 +6,64 @@ import korbinian.utils as utils
 import zipfile
 
 def filter_and_save_fasta(p):
+    """Filters homologues obtained for each TMD, and saves as an unaligned FastA file.
 
-    # df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-    # #iterate over the dataframe for proteins with an existing list_of_TMDs. acc = uniprot accession.
-    # for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
+    First filters based on homol hit properties (non-TMD-specific, e.g. percentage identity of full protein)
+    For each TMD:
+        Filters based on properties of each TMD (for example number of gaps in TMD sequence)
 
+
+    Parameters
+    ----------
+    p : dict
+        Protein Dictionary. Contains all input settings, sequences and filepaths related to a single protein.
+        Protein-specific data is extracted from one row of the the list summary, e.g. List05_summary.csv, which is read as df.
+        p also contains the GENERAL korbinian settings and filepaths for that list (pathdict, set_, logging)
+
+
+        Components
+        ----------
+        pathdict : dict
+            Dictionary of the key paths and files associated with that List number.
+        set_ : dict
+            Settings dictionary extracted from excel settings file.
+        logging : logging.Logger
+            Logger for printing to console and/or logfile.
+            If multiprocessing == True, logging.info etc will only print to console.
+        p : protein-specific dictionary components
+            acc, list_of_TMDs, description, TM01_seq, etc
+
+    Returns
+    -------
+    In all cases, a tuple (str, bool, str) is returned.
+
+    if sucessful:
+        return acc, True, "0"
+    if not successful:
+        return acc, False, "specific warning or reason why protein failed"
+
+    Saved Files and Figures
+    -----------------------
+    PROTEIN_NAME_fa_fasta.zip (in homol folder, subfolder first two letters of accession)
+        PROTEIN_NAME_homol_seq_TM01.fas
+        PROTEIN_NAME_homol_seq_plus_surr_TM01.fas
+    """
     pathdict, set_, logging = p["pathdict"], p["set_"], p["logging"]
     protein_name = p["protein_name"]
     acc = p["acc"]
     print(acc, end=", ", flush=True)
     # if the homol_df_orig_zip file does not exist, skip that protein
-    if not os.path.exists(p['homol_df_orig_zip']):
-        logging.info("{} Protein skipped, file not found.".format(p['homol_df_orig_zip']))
-        return
+    if not os.path.exists(p['fa_cr_sliced_TMDs_zip']):
+        message = "{} skipped, fa_cr_sliced_TMDs_zip not found.".format(acc)
+        logging.info(message)
+        return acc, False, message
     # open the dataframe containing the "match_align_seq" etc for each hit in the homologues
     dfh = utils.open_df_from_pickle_zip(p['homol_df_orig_zip'], filename=os.path.basename(p['homol_df_orig_pickle']), delete_corrupt=True)
     # skip the protein if the file was corrupt
     if dfh.empty:
-        logging.info("{} Protein skipped, file deleted as it is possibly corrupt.".format(p['homol_df_orig_zip']))
-        return
+        message = "{} Protein skipped, file deleted as it is possibly corrupt.".format(p['homol_df_orig_zip'])
+        logging.info(message)
+        return acc, False, message
     #list_of_TMDs = p['list_of_TMDs'].strip("[']").split(", ")
     list_of_TMDs = ast.literal_eval(p['list_of_TMDs'])
 
@@ -48,10 +87,30 @@ def filter_and_save_fasta(p):
 
     # filter based on the query string
     dfh.query(fa_homol_query_str, inplace=True)
+    # if none of the homologues match this filter, skip the protein
+    if dfh.empty:
+        message = "{} skipped. No homologues left after filtering based on FASTA_gapped_identity, etc.".format(acc)
+        logging.warning(message)
+        return acc, False, message
 
     for TMD in list_of_TMDs:
         # open the dataframe containing the sequences, gap counts, etc for that TMD only
         df_fa = utils.open_df_from_pickle_zip(p['fa_cr_sliced_TMDs_zip'], filename="{}_{}_sliced_df.pickle".format(protein_name, TMD), delete_corrupt=True)
+        if df_fa.empty:
+            message = "{} skipped. df_fa of {} is an empty dataframe, due to lack of homologues or improper zipfile.".format(acc, TMD)
+            logging.warning(message)
+            # skip protein
+            return acc, False, message
+        # check if dataframes share any indices
+        # isdisjoint will return True if two sets have a null intersection.
+        no_common_hits = set(dfh.index).isdisjoint(set(df_fa.index))
+        if no_common_hits == True:
+            # there are no common elements in the homologues filtered for general properties (e.g. %ID of full prot)
+            # and the TMD-specific properties (E.g. n_gaps in TMD). SKIP THIS TMD.
+            message = "{} {} skipped. df_fa and dfh share no common homologues.".format(acc, TMD)
+            logging.warning(message)
+            # skip this TMD (other TMDs might be okay??)
+            continue
         # filter based on dfh above, for general homologue settings (e.g. % identity of full protein)
         df_fa = df_fa.loc[dfh.index,:]
 
@@ -60,10 +119,6 @@ def filter_and_save_fasta(p):
         #           Filter and create FastA files with TMDs from homologues                    #
         #                                                                                      #
         ########################################################################################
-
-        list_fasta_cols = ['fa_ident_above_cutoff', 'FASTA_gapped_identity', "fa_min_identity_of_full_protein", "X_in_match_seq",
-                           "match_align_seq", "disallowed_words_not_in_descr", "hit_contains_SW_node"]
-        list_fasta_cols_TMD = ['%s_SW_match_seq'%TMD, '%s_start_in_SW_alignment_plus_surr'%TMD, '%s_end_in_SW_alignment_plus_surr'%TMD, '%s_SW_query_num_gaps'%TMD]
 
         # if "X" is allowed in the full sequence, check if X is in the selected sequence
         if set_["fa_X_allowed_in_full_seq"] == True:
@@ -110,11 +165,7 @@ def filter_and_save_fasta(p):
         # df_fa['%s_SW_match_seq_plus_surr'%TMD] = df_fa_fa[df_fa_fa['%s_start_in_SW_alignment_plus_surr'%TMD].notnull()].apply(
         #     utils.slice_SW_match_TMD_seq_plus_surr, args=(TMD,), axis=1)
 
-        # start with the same dataframe copy that has filtered for gapped identity, etc (the AAIMAN ratio is not necessary for the FastA saving)
-        # remove hits lacking sequence and also remove hits with too many gaps in TMD from either query or match
-        #df_fa_filt_FastA = df_fa_filt.loc[df_fa['%s_SW_match_seq'%TMD].notnull()].loc[df_fa['%s_cr_SW_query_acceptable_n_gaps'%TMD]].loc[df_fa['%s_cr_SW_match_acceptable_n_gaps'%TMD]]
         # setup the file names again. Note that the file should already exist, and the query sequence included.
-
         if set_["save_fasta_plus_surr"] == True:
             # setup extension string for fastA plus surrounding sequence (interfacial region)
             fasta_savelist = ["", "_plus_surr"]
@@ -172,25 +223,6 @@ def filter_and_save_fasta(p):
             os.remove(fasta_file_path)
             n_fa_saved = int(nr_dfs_fa.shape[0])
             logging.info("{} {}{} saved to fasta, {} sequences.".format(acc, TMD, s, n_fa_saved))
-
-                # if s == "":
-                #     fasta_file_path = r"D:\Schweris\Projects\Xiao\20160728 SIMAP vs HHBLITS fasta" + "\\" + '%s_10gap.fas' % p['protein_name']
-                #     with open(fasta_file_path, 'w') as f:
-                #         # add the query sequence, if desired
-                #         if set_["add_query_seq"]:
-                #             # add original query seq to fasta file. Note that the first SIMAP hit is excluded below.
-                #             f.write('>00_%s_%s_uniprot_query%s\n%s\n' % (p['protein_name'], TMD, s, p['%s_seq%s' % (TMD, s)]))
-                #         if set_["remove_redundant_seqs"]:
-                #             # select the non-redundant sequences by using the pandas duplicated function
-                #             nr_dfs_fa = df_fa.loc[~df_fa['%s_SW_match_seq%s' % (TMD, s)].duplicated()]
-                #         else:
-                #             nr_dfs_fa = df_fa
-                #
-                #         for row in nr_dfs_fa.index:  # formerly excluding the first hit
-                #             # add the original query seq
-                #             f.write('>%04d_%s_%s\n%s\n' % (row, str(dfs.loc[row, 'organism'])[:30],
-                #                                            str(dfs.loc[row, 'description'])[:30],
-                #                                            dfs.loc[row, '%s_SW_match_seq%s' % (TMD, s)]))
 
     # close the zipfile
     zipout_fasta.close()

@@ -4,18 +4,6 @@ import korbinian.prot_list.prot_list
 import pandas as pd
 import numpy as np
 
-# # location of unzipped fasta seqs from OMPdb, nonredundant(e.g. to 30% aa identity)
-# #ListXX_OMPdb_nr_fasta = r"D:\Databases\OMPdb\OMPdb.30"
-# ListXX_OMPdb_nr_fasta = r"D:\Databases\OMPdb\20160819_OMPdb.30"
-# ListXX_OMPdb_nr_acc = ListXX_OMPdb_nr_fasta + "_IDS.txt"
-# #ListXX_OMPdb_nr_acc = r"D:\Databases\OMPdb\test_list_IDs.txt"
-# #ListXX_OMPdb_redundant_flatfile = r"D:\Databases\OMPdb\OMPdb.flat"
-# ListXX_OMPdb_redundant_flatfile = r"D:\Databases\OMPdb\20160819_OMPdb.flat"
-# #ListXX_OMPdb_redundant_flatfile = r"D:\Databases\OMPdb\OMPdbsmaller.txt"
-# #OMPdb_list_summary_csv = ListXX_OMPdb_nr_fasta + "_flatfiles_nr.csv"
-# OMPdb_list_summary_csv = r"D:\Databases\OMPdb\rimma_orig\OMPdb_Selected_by_potential_IDs.csv"
-# list_summary_csv = OMPdb_list_summary_csv[:-4] + "_with_seqs.csv"
-
 def extract_omp_IDs_from_nr_fasta(ListXX_OMPdb_nr_fasta, ListXX_OMPdb_nr_acc, logging):
     """Takes the OMP non-redundant list of fasta sequences, and extracts the protein IDs (fasta names).
 
@@ -137,18 +125,6 @@ def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_
         Topos = "".join(Raw_Topos).split(";")
         Topos.remove("")
         keywords["Topology"] = Topos
-
-    # # Checking if keywords-lists are equally long
-    # logging.info(len(keywords["Uniprot"])
-    #       , len(keywords["Family"])
-    #       , len(keywords["Gene_Name"])
-    #       , len(keywords["Organism"])
-    #       , len(keywords["NCBI_TaxID"])
-    #       , len(keywords["Coverage(%)"])
-    #       , len(keywords["Sequence"])
-    #       , len(keywords["len_Sequence"])
-    #       , len(keywords["Topology_Reli"])
-    #       , len(keywords["Topology"]))
 
     # Creating Dataframe and saving it as csv
     dfKW = pd.DataFrame(keywords)
@@ -282,9 +258,9 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list
         TMD = 'TM%02d' % i
         df_KW = korbinian.prot_list.prot_list.get_indices_TMD_plus_surr_for_summary_file(df_KW, TMD, n_aa_before_tmd, n_aa_after_tmd)
 
-    # rename columns to match protein lists from uniprot
+    # rename columns to match protein lists from uniprot (Note that Family is currently translated as prot_descr)
     dict_ = {"Sequence": "full_seq", "Organism": "organism", "Uniprot": "uniprot_acc", "Gene_Name": "gene_name",
-             "Topology_Reli": "topology_reliability"}
+             "Topology_Reli": "topology_reliability", "Family" : "prot_descr"}
     df_KW["betabarrel"] = True
     df_KW["multipass"] = True
     df_KW["singlepass"] = False
@@ -292,8 +268,6 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list
     df_KW["acc"] = df_KW["uniprot_acc"]
     df_KW["protein_name"] = df_KW["uniprot_acc"]
 
-    # reset the index to match the numer of sequences
-    #df_KW.index = range(df_KW.shape[0])
     # save to csv (presumably in summaries folder as a list number, so it is accessible by the rest of the scripts)
     utils.make_sure_path_exists(list_summary_csv, isfile=True)
     df_KW.to_csv(list_summary_csv, sep=",", quoting=csv.QUOTE_NONNUMERIC)

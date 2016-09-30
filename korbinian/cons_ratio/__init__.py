@@ -11,7 +11,3 @@ import korbinian.cons_ratio.compare_lists
 import korbinian.cons_ratio.figs
 import korbinian.cons_ratio.gather
 import korbinian.cons_ratio.singleprotein
-import korbinian.cons_ratio.singleprotein.calc
-import korbinian.cons_ratio.singleprotein.histogram
-import korbinian.cons_ratio.singleprotein.slice
-import korbinian.cons_ratio.singleprotein.ssr

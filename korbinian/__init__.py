@@ -4,4 +4,3 @@ import korbinian.fasta
 import korbinian.gap
 import korbinian.simap
 import korbinian.prot_list
-import korbinian.old

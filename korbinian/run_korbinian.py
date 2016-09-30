@@ -73,7 +73,7 @@ import os
 import korbinian
 import korbinian.utils as utils
 from multiprocessing import Pool
-from korbinian.simap.parse_simap import parse_SIMAP_to_csv_singleprotein
+from korbinian.simap.parse_simap import parse_SIMAP_to_csv
 
 # read the command line arguments
 parser = argparse.ArgumentParser()
@@ -82,9 +82,11 @@ parser.add_argument("-s",  # "-settingsfile",
                     help=r'Full path to your excel settings file.'
                          r'E.g. "C:\Path\to\your\settingsfile.xlsx"')
 
-
 if __name__ == "__main__":
-    print('\nRun korbinian as follows:\npython "C:\Path\to\run_korbinian.py" "C:\Path\to\your\settingsfile.xlsx"\nTo view the help:\npython korbinian.py -h\n')
+    print('\nRun korbinian as follows:')
+    print(r'python "C:\Path\to\run_korbinian.py" "C:\Path\to\your\settingsfile.xlsx"')
+    print('To view the help:')
+    print(r'python "C:\Path\to\run_korbinian.py" -h', end="\n\n")
     args = parser.parse_args()
     excel_file_with_settings = args.s
     set_ = korbinian.common.create_settingsdict(excel_file_with_settings)
@@ -113,18 +115,18 @@ if __name__ == "__main__":
     if set_["OMPdb_extract_omp_IDs_from_nr_fasta"]:
         ListXX_OMPdb_nr_fasta = os.path.join(set_["data_dir"], "OMPdb", "List{:02d}_OMPdb_nr_fasta.txt".format(list_number))
         ListXX_OMPdb_nr_acc = os.path.join(set_["data_dir"], "OMPdb", "List{:02d}_OMPdb_nr_acc.txt".format(list_number))
-        korbinian.prot_list.extract_omp_IDs_from_nr_fasta(ListXX_OMPdb_nr_fasta, ListXX_OMPdb_nr_acc, logging)
+        korbinian.prot_list.OMPdb.parse_OMPdb.extract_omp_IDs_from_nr_fasta(ListXX_OMPdb_nr_fasta, ListXX_OMPdb_nr_acc, logging)
 
     if set_["OMPdb_parse_OMPdb_all_selected_to_csv"]:
         ListXX_OMPdb_nr_acc = os.path.join(set_["data_dir"], "OMPdb", "List{:02d}_OMPdb_nr_acc.txt".format(list_number))
         ListXX_OMPdb_redundant_flatfile = os.path.join(set_["data_dir"], "OMPdb", "List{:02d}_OMPdb_redundant_flatfile.flat".format(list_number))
         OMPdb_list_summary_csv = os.path.join(set_["data_dir"], "OMPdb", "List{:02d}_OMPdb_summary.csv".format(list_number))
-        korbinian.prot_list.parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_flatfile, OMPdb_list_summary_csv, logging)
+        korbinian.prot_list.OMPdb.parse_OMPdb.parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_flatfile, OMPdb_list_summary_csv, logging)
 
     if set_["OMPdb_get_omp_TM_indices_and_slice_from_summary_table"]:
         OMPdb_list_summary_csv = os.path.join(set_["data_dir"], "OMPdb", "List{:02d}_OMPdb_summary.csv".format(list_number))
         list_summary_csv = pathdict["list_summary_csv"]
-        korbinian.prot_list.get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list_summary_csv, logging)
+        korbinian.prot_list.OMPdb.parse_OMPdb.get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list_summary_csv, logging)
 
     ########################################################################################
     #                                                                                      #
@@ -133,21 +135,21 @@ if __name__ == "__main__":
     ########################################################################################
 
     if set_["create_nonred_uniprot_flatfile_via_uniref"] == True:
-        korbinian.prot_list.create_nonred_uniprot_flatfile_via_uniref(set_, uniprot_dir_sel, list_number, selected_uniprot_records_flatfile, logging)
+        korbinian.prot_list.uniprot.nonredundant.create_nonred_uniprot_flatfile_via_uniref(set_, uniprot_dir_sel, list_number, selected_uniprot_records_flatfile, logging)
 
     if set_["run_parse_large_flatfile_with_list_uniprot_accessions"]:
         input_accession_list = os.path.join(set_["data_dir"], "uniprot", "selected", "List{:02d}_uniprot_accessions.txt".format(list_number))
-        korbinian.prot_list.parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, uniprot_dir_sel, list_number, logging, selected_uniprot_records_flatfile)
+        korbinian.prot_list.uniprot.retrieve.parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, uniprot_dir_sel, list_number, logging, selected_uniprot_records_flatfile)
 
     if set_["run_retrieve_uniprot_data_for_acc_list_in_xlsx_file"]:
-        korbinian.prot_list.retrieve_uniprot_data_for_acc_list_in_xlsx_file(excelfile_with_uniprot_accessions, logging, selected_uniprot_records_flatfile)
+        korbinian.prot_list.uniprot.retrieve.retrieve_uniprot_data_for_acc_list_in_xlsx_file(excelfile_with_uniprot_accessions, logging, selected_uniprot_records_flatfile)
 
     if set_["run_create_csv_from_uniprot_flatfile"]:
         ''' ~~ DETERMINE START AND STOP INDICES FOR TMD PLUS SURROUNDING SEQ ~~ '''
         n_aa_before_tmd = set_["n_aa_before_tmd"]
         n_aa_after_tmd = set_["n_aa_after_tmd"]
         list_summary_csv_path = pathdict["list_summary_csv"]
-        korbinian.prot_list.create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, set_['analyse_signal_peptides'], logging, list_summary_csv_path)
+        korbinian.prot_list.uniprot.parse_uniprot.create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, set_['analyse_signal_peptides'], logging, list_summary_csv_path)
     ########################################################################################
     #                                                                                      #
     #                            run_setup_df_file_locations                               #
@@ -155,7 +157,7 @@ if __name__ == "__main__":
     ########################################################################################
 
     if set_["run_setup_df_file_locations"]:
-        korbinian.prot_list.setup_file_locations_in_df(set_, pathdict)
+        korbinian.prot_list.prot_list.setup_file_locations_in_df(set_, pathdict)
 
     ########################################################################################
     #                                                                                      #
@@ -175,12 +177,12 @@ if __name__ == "__main__":
 
         if set_["use_multiprocessing"]:
             with Pool(processes=set_["multiprocessing_cores"]) as pool:
-                parse_simap_list = pool.map(parse_SIMAP_to_csv_singleprotein, list_p)
+                parse_simap_list = pool.map(parse_SIMAP_to_csv, list_p)
                 # log the list of protein results (e.g. acc, "simap", True) to the actual logfile, not just the console
                 logging.info("parse_simap_list : {}".format(parse_simap_list))
         else:
             for p in list_p:
-                parse_SIMAP_to_csv_singleprotein(p)
+                parse_SIMAP_to_csv(p)
         # logging.info('{} homologous sequences parsed from SIMAP XML to csv'.format(df.loc[acc, 'SIMAP_total_hits']))
         # logging.info('number_of_hits_missing_smithWatermanAlignment_node: %i' % number_of_hits_missing_smithWatermanAlignment_node)
         # logging.info('number_of_hits_missing_protein_node: %i' % number_of_hits_missing_protein_node)
@@ -199,15 +201,15 @@ if __name__ == "__main__":
         # create list of protein dictionaries to process
         list_p = korbinian.utils.convert_summary_csv_to_input_list(set_, pathdict, logger)
 
-        #korbinian.simap.parse_SIMAP_to_csv_singleprotein(p)
+        #korbinian.simap.parse_SIMAP_to_csv(p)
         if set_["use_multiprocessing"]:
             with Pool(processes=set_["multiprocessing_cores"]) as pool:
-                slice_list = pool.map(korbinian.cons_ratio.slice_TMDs_from_homologues, list_p)
+                slice_list = pool.map( korbinian.cons_ratio.singleprotein.slice.slice_TMDs_from_homologues, list_p)
                 # log the list of protein results (e.g. acc, "simap", True) to the actual logfile, not just the console
                 logging.info("slice_list : {}".format(slice_list))
         else:
             for p in list_p:
-                korbinian.cons_ratio.slice_TMDs_from_homologues(p)
+                korbinian.cons_ratio.singleprotein.slice.slice_TMDs_from_homologues(p)
         logging.info("~~~~~~~~~~~~     slice_TMDs_from_homologues is finished       ~~~~~~~~~~~~")
 
     if set_["run_create_fasta"]:
@@ -216,22 +218,22 @@ if __name__ == "__main__":
         logger = logging if set_["use_multiprocessing"] != True else utils.Log_Only_To_Console()
         # create list of protein dictionaries to process
         list_p = korbinian.utils.convert_summary_csv_to_input_list(set_, pathdict, logger)
-        #korbinian.simap.parse_SIMAP_to_csv_singleprotein(p)
+        #korbinian.simap.parse_SIMAP_to_csv(p)
         if set_["use_multiprocessing"]:
             with Pool(processes=set_["multiprocessing_cores"]) as pool:
-                fasta_list = pool.map(korbinian.fasta.filter_and_save_fasta, list_p)
+                fasta_list = pool.map(korbinian.fasta.fasta.filter_and_save_fasta, list_p)
                 # log the list of protein results (e.g. acc, "simap", True) to the actual logfile, not just the console
                 logging.info("fasta_list : {}".format(fasta_list))
         else:
             for p in list_p:
-                korbinian.fasta.filter_and_save_fasta(p)
+                korbinian.fasta.fasta.filter_and_save_fasta(p)
         logging.info('~~~~~~~~~~~~       filter_and_save_fasta is finished          ~~~~~~~~~~~~')
 
     if set_["run_calculate_AAIMON_ratios"]:
-        korbinian.cons_ratio.cons_ratio(pathdict, set_, logging)
+        korbinian.cons_ratio.cons_ratio.calculate_AAIMON_ratios(pathdict, set_, logging)
 
     if set_["run_gather_AAIMON_ratios"]:
-        korbinian.cons_ratio.gather_AAIMON_ratios(pathdict, logging)
+        korbinian.cons_ratio.gather.gather_AAIMON_ratios(pathdict, logging)
 
     ########################################################################################
     #                                                                                      #
@@ -253,30 +255,8 @@ if __name__ == "__main__":
 
     '''+++++++++++++++ Summary figures describing the conservation ratios of proteins in the list ++++++++++++++++++'''
     if set_["run_save_figures_describing_proteins_in_list"]:
-        korbinian.cons_ratio.save_figures_describing_proteins_in_list(pathdict, set_, logging)
+        korbinian.cons_ratio.figs.save_figures_describing_proteins_in_list(pathdict, set_, logging)
 
     '''+++++++++++++++ Summary figures describing the conservation ratios of proteins in the list ++++++++++++++++++'''
     if set_["run_compare_lists"]:
-        korbinian.cons_ratio.compare_rel_con_lists(pathdict, set_, logging)
-
-    ########################################################################################
-    #                                                                                      #
-    #                                     old stuff                                        #
-    #                                                                                      #
-    ########################################################################################
-
-    '''+++++++++++++++TMD CONSERVATION (OLD)++++++++++++++++++'''
-    if set_["old_calculate_TMD_conservation"]:
-        korbinian.old.OLD_calculate_TMD_conservation(pathdict, set_, logging)
-
-    '''The gapped identity analysis gives the average TMD mem/nonmem conservation for homologues at different levels of similarity (eg. close homologues vs far homologues)
-    This is a funny system. The dictionary keys are the 5000 hits. This would be much more efficient and simple to re-write in pandas style.
-    '''
-    if set_["old_calculate_TMD_conservation_by_gappedIdentity"]:
-        korbinian.old.OLD_calculate_TMD_conservation_by_gappedIdentity(pathdict, set_, logging, list_number)
-
-    if set_["old_run_stat_analysis_sim_ratios_in_dfout05"]:
-        korbinian.old.old_run_stat_analysis_sim_ratios_in_dfout05(pathdict, set_, logging)
-
-    if set_["old_fix_dfout05_simapcsv_by_adding_query_md5"]:
-        korbinian.old.OLD_fix_dfout05_simapcsv_by_adding_query_md5(pathdict, logging)
+        korbinian.cons_ratio.compare_lists.compare_rel_con_lists(pathdict, set_, logging)
