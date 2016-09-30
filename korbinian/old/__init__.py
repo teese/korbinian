@@ -1,3 +1,0 @@
-from korbinian.old.OLD_TMD_cons import OLD_calculate_TMD_conservation
-from korbinian.old.OLD_TMD_cons_gap_ID import OLD_calculate_TMD_conservation_by_gappedIdentity
-from korbinian.old.OLD_sim_ratios import old_run_stat_analysis_sim_ratios_in_dfout05, OLD_fix_dfout05_simapcsv_by_adding_query_md5

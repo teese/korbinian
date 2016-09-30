@@ -1,7 +1,7 @@
 from time import strftime
 import json
 import korbinian
-import korbinian.mtutils as utils
+import korbinian.utils as utils
 import logging
 import os
 import pandas as pd

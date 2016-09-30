@@ -3,7 +3,7 @@
 """
 Author:         Mark Teese
 Created:        Fri Oct 25 17:45:09 2013
-Dependencies:   utilities file with many small functions "E:/Stephis/Projects/Programming/Python/scripts/mtutils.py"
+Dependencies:   utilities file with many small functions "E:/Stephis/Projects/Programming/Python/scripts/utils.py"
                 Python 3.x
                 numpy
                 Biopython.
@@ -71,15 +71,9 @@ TM01_perc_sim starts with 0 instead of 1.0. Simply remove column?
 import argparse
 import os
 import korbinian
-import korbinian.mtutils as utils
-import pandas as pd
-import csv
+import korbinian.utils as utils
 from multiprocessing import Pool
-from korbinian.simap import parse_SIMAP_to_csv_singleprotein
-from random import randint
-from time import sleep
-import pickle
-from numpy.random import random
+from korbinian.simap.parse_simap import parse_SIMAP_to_csv_singleprotein
 
 # read the command line arguments
 parser = argparse.ArgumentParser()
@@ -170,14 +164,14 @@ if __name__ == "__main__":
     ########################################################################################
 
     if set_["run_retrieve_simap_feature_table_and_homologues_from_list_in_csv"]:
-        korbinian.simap.download_homologues_from_simap(pathdict, set_, logging)
+        korbinian.simap.download.download_homologues_from_simap(pathdict, set_, logging)
 
     if set_["run_parse_simap_to_csv"]:
         logging.info('~~~~~~~~~~~~  starting parse_SIMAP_to_csv  ~~~~~~~~~~~~')
         # if multiprocessing is used, log only to the console
         logger = logging if set_["use_multiprocessing"] != True else utils.Log_Only_To_Console()
         # create list of protein dictionaries to process
-        list_p = korbinian.mtutils.convert_summary_csv_to_input_list(set_, pathdict, logger)
+        list_p = korbinian.utils.convert_summary_csv_to_input_list(set_, pathdict, logger)
 
         if set_["use_multiprocessing"]:
             with Pool(processes=set_["multiprocessing_cores"]) as pool:
@@ -203,7 +197,7 @@ if __name__ == "__main__":
         # if multiprocessing is used, log only to the console
         logger = logging if set_["use_multiprocessing"] != True else utils.Log_Only_To_Console()
         # create list of protein dictionaries to process
-        list_p = korbinian.mtutils.convert_summary_csv_to_input_list(set_, pathdict, logger)
+        list_p = korbinian.utils.convert_summary_csv_to_input_list(set_, pathdict, logger)
 
         #korbinian.simap.parse_SIMAP_to_csv_singleprotein(p)
         if set_["use_multiprocessing"]:
@@ -221,7 +215,7 @@ if __name__ == "__main__":
         # if multiprocessing is used, log only to the console
         logger = logging if set_["use_multiprocessing"] != True else utils.Log_Only_To_Console()
         # create list of protein dictionaries to process
-        list_p = korbinian.mtutils.convert_summary_csv_to_input_list(set_, pathdict, logger)
+        list_p = korbinian.utils.convert_summary_csv_to_input_list(set_, pathdict, logger)
         #korbinian.simap.parse_SIMAP_to_csv_singleprotein(p)
         if set_["use_multiprocessing"]:
             with Pool(processes=set_["multiprocessing_cores"]) as pool:
@@ -234,7 +228,7 @@ if __name__ == "__main__":
         logging.info('~~~~~~~~~~~~       filter_and_save_fasta is finished          ~~~~~~~~~~~~')
 
     if set_["run_calculate_AAIMON_ratios"]:
-        korbinian.cons_ratio.calculate_AAIMON_ratios(pathdict, set_, logging)
+        korbinian.cons_ratio.cons_ratio(pathdict, set_, logging)
 
     if set_["run_gather_AAIMON_ratios"]:
         korbinian.cons_ratio.gather_AAIMON_ratios(pathdict, logging)

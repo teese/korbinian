@@ -5,7 +5,7 @@ import csv
 import os
 import re
 import tarfile
-import korbinian.mtutils as utils
+import korbinian.utils as utils
 import zipfile
 
 def calculate_gap_densities(pathdict, set_, logging):
@@ -79,7 +79,6 @@ def calculate_gap_densities(pathdict, set_, logging):
 
             # for each TMD in the proteins, creates new lists which will contain gappositions, lists are saved in a column and created again for each tmd
             for tmd in list_of_TMDs:
-                print(tmd)
                 tmd_int = int(tmd[-2:]) # Integer of TMD number
                 len_of_query = len(analysed_df["%s_SW_query_seq"%tmd][1]) # Length of first query sequence, which does (usually) not contain any gaps
                 len_of_query_reversed= ((1/len_of_query)+1) # Reversed length, important if TMD needs to be reversed afterwards

@@ -2,7 +2,7 @@ from scipy.stats import ttest_ind
 import ast
 import csv
 import itertools
-import korbinian.mtutils as utils
+import korbinian.utils as utils
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -483,11 +483,8 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
         data_max = percentile_95 + extra_xaxis_range  # hist_data.max()
         # create bins using the min and max
         binlist = np.linspace(data_min, data_max, num_bins)
-        # print(binlist)
         # use numpy to create a histogram
         freq_counts_I, bin_array_I = np.histogram(hist_data, bins=binlist)
-        # print(freq_counts_I)
-        # print(bin_array_I)
         # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
         col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
         # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
@@ -566,11 +563,8 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
         data_max = percentile_95 + extra_xaxis_range  # hist_data.max()
         # create bins using the min and max
         binlist = np.linspace(data_min, data_max, num_bins)
-        # print(binlist)
         # use numpy to create a histogram
         freq_counts_I, bin_array_I = np.histogram(hist_data, bins=binlist)
-        # print(freq_counts_I)
-        # print(bin_array_I)
         # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
         col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
         # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
@@ -653,11 +647,8 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
             data_max = percentile_95 + extra_xaxis_range  # hist_data.max()
             # create bins using the min and max
             binlist = np.linspace(data_min, data_max, num_bins)
-            # print(binlist)
             # use numpy to create a histogram
             freq_counts_I, bin_array_I = np.histogram(hist_data, bins=binlist)
-            # print(freq_counts_I)
-            # print(bin_array_I)
             # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
             col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
             # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
@@ -737,11 +728,8 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
             data_max = percentile_95 + extra_xaxis_range  # hist_data.max()
             # create bins using the min and max
             binlist = np.linspace(data_min, data_max, num_bins)
-            # print(binlist)
             # use numpy to create a histogram
             freq_counts_I, bin_array_I = np.histogram(hist_data, bins=binlist)
-            # print(freq_counts_I)
-            # print(bin_array_I)
             # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
             col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
             # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
@@ -824,11 +812,8 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
             data_max = percentile_95 + extra_xaxis_range  # hist_data.max()
             # create bins using the min and max
             binlist = np.linspace(data_min, data_max, num_bins)
-            # print(binlist)
             # use numpy to create a histogram
             freq_counts_I, bin_array_I = np.histogram(hist_data, bins=binlist)
-            # print(freq_counts_I)
-            # print(bin_array_I)
             # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
             col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
             # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
@@ -908,7 +893,6 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
             data_max = percentile_95 + extra_xaxis_range  # hist_data.max()
             # create bins using the min and max
             binlist = np.linspace(data_min, data_max, num_bins)
-            # print(binlist)
             # use numpy to create a histogram
             freq_counts_I, bin_array_I = np.histogram(hist_data, bins=binlist)
             # normalize the frequency counts
@@ -990,7 +974,6 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
             data_max = percentile_95 + extra_xaxis_range  # hist_data.max()
             # create bins using the min and max
             binlist = np.linspace(data_min, data_max, num_bins)
-            # print(binlist)
             # use numpy to create a histogram
             freq_counts_I, bin_array_I = np.histogram(hist_data, bins=binlist)
             # normalize the frequency counts
@@ -1082,11 +1065,8 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
                 data_max = percentile_95 + extra_xaxis_range  # hist_data.max()
                 # create bins using the min and max
                 binlist = np.linspace(data_min, data_max, num_bins)
-                # print(binlist)
                 # use numpy to create a histogram
                 freq_counts_I, bin_array_I = np.histogram(hist_data, bins=binlist)
-                # print(freq_counts_I)
-                # print(bin_array_I)
                 # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
                 col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
                 # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
@@ -1960,7 +1940,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
             Enzymes vs NonEnzymes
             '''
             Fig_Nr = Fig_Nr + 1
-            print("Enzymes vs NonEnzymes Fig_Nr = %i" % Fig_Nr)
+            logging.info("Enzymes vs NonEnzymes Fig_Nr = %i" % Fig_Nr)
             # add non-functional "if" line to aid document navigation in some IDEs (e.g. Spyder)
             if fig_title == "Enzymes vs NonEnzymes":
                 pass
@@ -2089,7 +2069,7 @@ def save_figures_describing_proteins_in_list(pathdict, set_, logging):
                 sys.stdout.write(str(Fig_Nr) + ', ')
 
                 newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
-                print("Enzymes vs NonEnzymes fig_nr = %i" % fig_nr)
+                logging.info("Enzymes vs NonEnzymes fig_nr = %i" % fig_nr)
                 # if a new figure should be created (either because the orig is full, or the last TMD is analysed)
                 fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig,
                                                                dpi=300)

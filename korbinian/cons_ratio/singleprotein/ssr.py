@@ -1,5 +1,5 @@
 import ast
-import korbinian.mtutils as utils
+import korbinian.utils as utils
 
 def conduct_ssr_ratio_calculations(dfs, list_of_TMDs, set_, list_of_aa_sub_matrices):
 

@@ -5,7 +5,7 @@ import pandas as pd
 import pickle
 import tarfile
 import xml.etree.ElementTree as ET
-import korbinian.mtutils as utils
+import korbinian.utils as utils
 import zipfile
 from multiprocessing import Pool
 

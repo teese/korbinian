@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import csv
 import korbinian
-import korbinian.mtutils as utils
+import korbinian.utils as utils
 
 def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_sp, logging, list_summary_csv_path):
     """ Parses a flatfile of UniProt records to csv.
@@ -189,7 +189,6 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
                                 variant_description = record.features[list_of_variant_locations[v]][3]
                                 variant_feature_identifier = record.features[list_of_variant_locations[v]][4]
                                 # check if the variant is in the tmd
-                                #print("str" in type(output_dict['%s_end'%TMD])[0])
                                 start_of_variant_is_after_start_of_tmd = True if start_of_variant_in_seq > output_dict['%s_start'%TMD] else False
                                 end_of_variant_is_before_end_of_tmd = True if end_of_variant_in_seq < output_dict['%s_end'%TMD] else False
                                 variant_is_in_tmd = True if all([start_of_variant_is_after_start_of_tmd, end_of_variant_is_before_end_of_tmd]) else False

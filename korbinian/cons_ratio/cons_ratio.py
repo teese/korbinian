@@ -1,11 +1,13 @@
 import ast
+
+import korbinian.cons_ratio.singleprotein.calc
 import numpy as np
 import csv
 import matplotlib.pyplot as plt
 import os
 import pickle
 import korbinian
-import korbinian.mtutils as utils
+import korbinian.utils as utils
 import pandas as pd
 import zipfile
 
@@ -127,7 +129,7 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
         #                 Calculate the nonTMD percentage identity and gaps                    #
         #                                                                                      #
         ########################################################################################
-        mean_ser, df_nonTMD = korbinian.cons_ratio.calc_nonTMD_perc_ident_and_gaps(acc, df_nonTMD, mean_ser, logging)
+        mean_ser, df_nonTMD = korbinian.cons_ratio.singleprotein.calc.calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser)
 
         with zipfile.ZipFile(homol_cr_ratios_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
 
@@ -162,8 +164,7 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
             fig, axarr = None, None
 
             for TMD_Nr, TMD in enumerate(list_of_TMDs):
-                #TMD_Nr = TMD_Nr + 1
-                # # find the TMD number (starting from 1)
+                # find the TMD number (starting from 1)
                 TMD_Nr = list_of_TMDs.index(TMD) + 1
                 ########################################################################################
                 #                                                                                      #
@@ -186,7 +187,7 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
                 #                       Calculate AAIMON, AASMON for each TMD                          #
                 #                                                                                      #
                 ########################################################################################
-                mean_ser, df_cr = korbinian.cons_ratio.calc_AAIMON(TMD, df_cr, mean_ser, logging)
+                mean_ser, df_cr = korbinian.cons_ratio.calc_AAIMON(TMD, df_cr, mean_ser)
 
                 logging.info('%s AAIMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean' % TMD]))
                 # logging.info('%s AASMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AASMON_ratio_mean'%TMD]))
@@ -218,27 +219,12 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
                 ########################################################################################
                 korbinian.cons_ratio.save_hist_AAIMON_ratio_single_protein(fig_nr, fig, axarr, df_cr, set_, TMD, binlist, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix)
 
-            # # remove columns to make output csv smaller
-            # if set_['drop_columns_to_reduce_csv_filesize']:
-            #     list_cols_to_drop = ['match_align_seq', 'query_align_seq', 'align_markup_seq',
-            #                          'nonTMD_seq_query', 'nonTMD_markup']
-            #     for col in list_cols_to_drop:
-            #         if col in df_cr.columns:
-            #             df_cr.drop(col, axis=1, inplace=True)
-            #df_cr.to_csv(df.loc[acc, 'SIMAP_csv_analysed_path'], sep=",", quoting=csv.QUOTE_NONNUMERIC)
-            # save df_cr with homologues for a single protein, as a single zipped csv
-            #utils.save_df_to_csv_zip(df_cr, mean_ser['homol_df_orig_zip'], open_method="w")
-
             value_counts_hit_contains_SW_node = dfh['hit_contains_SW_node'].value_counts()
             if True in value_counts_hit_contains_SW_node:
                 mean_ser['num_hits_with_SW_align_node'] = value_counts_hit_contains_SW_node[True]
             else:
                 logging.warning("{} num_hits_with_SW_align_node = 0".format(protein_name))
                 mean_ser['num_hits_with_SW_align_node'] = 0
-            #logging.info('num_hits_with_SW_align_node: %s' % mean_ser['num_hits_with_SW_align_node'])
-
-            # save to csv after each protein is analysed, incrementally adding the extra data
-            #df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
             # save the pandas series with the means to a csv in the cr_ratios zip file
             mean_ser.to_csv(mean_ser_filename)
             zipout.write(mean_ser_filename, arcname=mean_ser_filename)

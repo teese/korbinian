@@ -3,7 +3,7 @@ import os
 import pandas as pd
 from time import strftime
 import unicodedata
-import korbinian.mtutils as utils
+import korbinian.utils as utils
 
 def setup_file_locations_in_df(set_, pathdict):
     """ Sets up the file locations in the DataFrame containing the list of proteins for analysis.
@@ -23,7 +23,6 @@ def setup_file_locations_in_df(set_, pathdict):
 
     """
     df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
-    print([col for col in df.columns])
     if "uniprot_entry_name" in df.columns:
         # join the accession and entry name to create a "protein name" for naming files
         df['protein_name'] = df.uniprot_acc + '_' + df.uniprot_entry_name

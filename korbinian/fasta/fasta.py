@@ -2,7 +2,7 @@ import ast
 import csv
 import os
 import pandas as pd
-import korbinian.mtutils as utils
+import korbinian.utils as utils
 import zipfile
 
 def filter_and_save_fasta(p):

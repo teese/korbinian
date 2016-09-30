@@ -1173,7 +1173,7 @@ def calc_hydrophob(seq):
 
     Usage:
     ------
-    from korbinian.mtutils import calc_hydrophob
+    from korbinian.utils import calc_hydrophob
     # for a single sequence
     s = "SAESVGEVYIKSTETGQYLAG"
     calc_hydrophob(s)

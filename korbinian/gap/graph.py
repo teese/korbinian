@@ -1,7 +1,7 @@
 import ast
 import csv
 import itertools
-import korbinian.mtutils as utils
+import korbinian.utils as utils
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -27,7 +27,7 @@ def create_graph_of_gap_density(pathdict, set_, logging):
     not_flipped = []
 
     for acc in df.index:
-        print(acc)
+        logging.info(acc)
 
         for num_TMD in range(1, int(df.loc[acc, "number_of_TMDs"]) + 1, 2):
 
@@ -41,14 +41,10 @@ def create_graph_of_gap_density(pathdict, set_, logging):
                     if df.loc[acc, "n_term_ec"] == True:
                         flipped.append(num_of_bins_in_tmd_region - (
                         (n / (len(df.loc[acc, "TM%.2d_seq" % num_TMD]) - 1)) * num_of_bins_in_tmd_region))
-                        # print ((n/(df.loc[acc,"TM%.2d_len"%num_TMD]-1))*10)
 
         for num_TMD in range(2, int(df.loc[acc, "number_of_TMDs"]) + 1, 2):
-            # print(num_TMD)
             if not utils.isNaN(df.loc[acc, "TM%.2d_occuring_gaps" % num_TMD]):
                 for n in ast.literal_eval(df.loc[acc, "TM%.2d_occuring_gaps" % num_TMD]):
-                    # print(n)
-                    # print(df.loc[acc,"TM%.2d_len"%num_TMD])
 
                     # m = np.prod(df.loc[acc,"TM%.2d_len"%num_TMD]*float(n))
 
@@ -119,7 +115,7 @@ def create_graph_of_gap_density(pathdict, set_, logging):
 
         for acc in df.index:
             if df.loc[acc, "gaps_analysed"] == True:
-                print(acc)
+                logging.info(acc)
                 if df.loc[acc, "n_term_ec"] == True:
                     for n in TMD_range_plus_1:
                         list_of_positionfrequency_extra.append(df.loc[acc, 'len_juxta_before_TM%.2d' % n].tolist())

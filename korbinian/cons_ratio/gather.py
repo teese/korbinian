@@ -4,7 +4,7 @@ import csv
 import os
 import pickle
 import korbinian
-import korbinian.mtutils as utils
+import korbinian.utils as utils
 import pandas as pd
 import zipfile
 

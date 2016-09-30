@@ -1,12 +1,14 @@
-import logging
-from time import strftime
 import csv
-import pandas as pd
-import korbinian.mtutils as utils
-import platform
+import logging
 import os
+import platform
 import tarfile
+from time import strftime
+
 import korbinian
+import korbinian.utils as utils
+import pandas as pd
+
 
 def download_homologues_from_simap(pathdict, set_, logging):
     """From the list of proteins in csv format, begins downloading homologues from the SIMAP database.
@@ -129,18 +131,21 @@ def download_homologues_from_simap(pathdict, set_, logging):
         eaSimap_path = os.path.join(set_["data_dir"], "programs", "eaSimap.jar")
         if not feature_table_XML_exists:
             #download feature table from SIMAP
-            korbinian.simap.download.download.retrieve_simap_feature_table(input_sequence,
-                                                                           java_exec_str=java_exec_str,
-                                                                           max_memory_allocation=max_memory_allocation,
-                                                                           output_file=ft_xml_path,
-                                                                           eaSimap_path=eaSimap_path)
+            korbinian.simap.download.retrieve_simap_feature_table(input_sequence,
+                                                                  java_exec_str=java_exec_str,
+                                                                  max_memory_allocation=max_memory_allocation,
+                                                                  output_file=ft_xml_path,
+                                                                  eaSimap_path=eaSimap_path)
+            utils.sleep_x_seconds(60)
         if not homologues_XML_exists:
             #download homologue file from SIMAP
-            korbinian.simap.download.download.retrieve_simap_homologues(input_sequence,
-                                                                        output_file=homol_xml_path,
-                                                                        max_hits=max_hits, java_exec_str=java_exec_str,
-                                                                        max_memory_allocation=max_memory_allocation, taxid=taxid,
-                                                                        eaSimap_path=eaSimap_path)
+            korbinian.simap.download.retrieve_simap_homologues(input_sequence,
+                                                               output_file=homol_xml_path,
+                                                               max_hits=max_hits, java_exec_str=java_exec_str,
+                                                               max_memory_allocation=max_memory_allocation, taxid=taxid,
+                                                               eaSimap_path=eaSimap_path)
+            # sometimes the SIMAP server seems to like a little rest in between downloads?
+            utils.sleep_x_seconds(120)
         #now check again if the files exist
         feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path)
         if not homologues_XML_exists or not feature_table_XML_exists:
@@ -161,7 +166,6 @@ def download_homologues_from_simap(pathdict, set_, logging):
             #if download is successful or file exists, the SIMAP server must be working,
             #therefore reset the number_of_files_not_found
             number_of_files_not_found = 0
-
         # create an empty text file with the download date
         date = strftime("%Y%m%d")
         with open(date_file_path, "w") as f:
@@ -182,9 +186,6 @@ def download_homologues_from_simap(pathdict, set_, logging):
                 os.remove(date_file_path)
             except FileNotFoundError:
                 pass
-        # sometimes the SIMAP server seems to like a little rest in between downloads?
-        utils.sleep_x_seconds(30)
-
     logging.info('retrieve_simap_feature_table_and_homologues_from_list_in_csv is finished')
 
 
@@ -219,8 +220,7 @@ def retrieve_simap_feature_table(input_sequence, java_exec_str, max_memory_alloc
     logging.info(command_str)
     command = utils.Command(command_str)
     command.run(timeout=500)
-    logging.info("Output file:     %s\n" % output_file),
-    utils.sleep_x_seconds(5)
+    logging.info("Output file:     %s\n" % output_file)
     if not os.path.exists(output_file):
         logging.info('********************SIMAP download failed for : %s***************' % output_file)
 

@@ -1,5 +1,5 @@
 import csv
-import korbinian.mtutils as utils
+import korbinian.utils as utils
 import korbinian.prot_list.prot_list
 import pandas as pd
 import numpy as np

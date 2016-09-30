@@ -1,6 +1,6 @@
 import ast
 import csv
-import korbinian.mtutils as utils
+import korbinian.utils as utils
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
