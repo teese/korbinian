@@ -166,13 +166,13 @@ def download_homologues_from_simap(pathdict, set_, logging):
             #if download is successful or file exists, the SIMAP server must be working,
             #therefore reset the number_of_files_not_found
             number_of_files_not_found = 0
-        # create an empty text file with the download date
-        date = strftime("%Y%m%d")
-        with open(date_file_path, "w") as f:
-            f.write("{}\nEmpty file with the date.\nHave a nice day!".format(date))
         # since we can't add files to the compressed tarfile, only when both the feature table
         #and xml file are downloaded should we pack and compress them
         if feature_table_XML_exists and homologues_XML_exists:
+            # create an empty text file with the download date
+            date = strftime("%Y%m%d")
+            with open(date_file_path, "w") as f:
+                f.write("{}\nEmpty file with the date.\nHave a nice day!".format(date))
             with tarfile.open(SIMAP_tar, mode='w:gz') as tar:
                 #add the files to the compressed tarfile
                 logging.info('%s XML files will be moved into the tarball, original XML files deleted' % protein_name)
@@ -187,7 +187,6 @@ def download_homologues_from_simap(pathdict, set_, logging):
             except FileNotFoundError:
                 pass
     logging.info('retrieve_simap_feature_table_and_homologues_from_list_in_csv is finished')
-
 
 def retrieve_simap_feature_table(input_sequence, java_exec_str, max_memory_allocation, output_file, eaSimap_path):
     """ Runs eaSimap.jar from the command line, to download the feature table XML from SIMAP.

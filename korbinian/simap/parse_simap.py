@@ -10,16 +10,6 @@ import zipfile
 from multiprocessing import Pool
 
 def parse_SIMAP_to_csv(p):
-    # if "uniprot_acc" in df.columns:
-    #     df.set_index("uniprot_acc", drop=False, inplace=True)
-    # else:
-    #     df["uniprot_acc"] = df.index
-    # #filter to remove sequences where no TMDs are found
-    # df = df.loc[df['list_of_TMDs'].notnull()]
-    # #filter to remove sequences where no TMDs are found (if string)
-    # df = df.loc[df['list_of_TMDs'] != 'nan']
-    #iterate over the dataframe, excluding any proteins that do not have a list of TMDs
-    #for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
     pathdict, set_, logging = p["pathdict"], p["set_"], p["logging"]
     acc = p["acc"]
     print(acc, end=", ", flush=True)

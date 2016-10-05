@@ -47,7 +47,7 @@ def calculate_AAIMON_ratios(pathdict, set_, logging):
     os.chdir(os.path.join(set_["data_dir"], "homol"))
     # iterate over the dataframe for proteins with an existing list_of_TMDs. acc = uniprot accession.
     for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
-        protein_name = df.loc[acc, 'protein_name']
+        protein_name = p['protein_name']
         logging.info(protein_name)
         if not os.path.exists(df.loc[acc, 'fa_cr_sliced_TMDs_zip']):
             logging.info("{} Protein skipped. File does not exist".format(df.loc[acc, 'fa_cr_sliced_TMDs_zip']))

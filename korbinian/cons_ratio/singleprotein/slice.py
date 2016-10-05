@@ -171,6 +171,9 @@ def slice_TMD_homol_and_count_gaps(acc, TMD, query_TMD_sequence, dfs, set_, logg
 
         # the percentage identity of that TMD is defined as the number of identical residues (pipes in markup) divided by the length of the the aligned residues (excluding gaps, based on the length of the shortest TMD, either match or query)
         # note that the nonTMD percentage identity is calculated the same way
+
+
+
         df_TMD['%s_perc_ident'%TMD] = df_TMD['%s_SW_num_ident_res'%TMD] / df_TMD['%s_SW_align_len'%TMD]
         # calculate percentage similar residues
         df_TMD['%s_perc_sim'%TMD] = df_TMD['%s_SW_num_sim_res'%TMD] / df_TMD['%s_SW_align_len'%TMD]

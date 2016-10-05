@@ -175,6 +175,9 @@ if __name__ == "__main__":
         # create list of protein dictionaries to process
         list_p = korbinian.utils.convert_summary_csv_to_input_list(set_, pathdict, logger)
 
+        for p in list_p:
+            list_of_TMDs = p["list_of_TMDs"]
+
         if set_["use_multiprocessing"]:
             with Pool(processes=set_["multiprocessing_cores"]) as pool:
                 parse_simap_list = pool.map(parse_SIMAP_to_csv, list_p)
