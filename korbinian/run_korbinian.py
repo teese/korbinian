@@ -233,7 +233,16 @@ if __name__ == "__main__":
         logging.info('~~~~~~~~~~~~       filter_and_save_fasta is finished          ~~~~~~~~~~~~')
 
     if set_["run_calculate_AAIMON_ratios"]:
+        logging.info('~~~~~~~~~~~~      starting run_calculate_AAIMON_ratios        ~~~~~~~~~~~~')
+
+
+        # set current working directory as the data_dir/homol, where temp files will be saved before moving to zip
+        os.chdir(os.path.join(set_["data_dir"], "homol"))
+
+
         korbinian.cons_ratio.cons_ratio.calculate_AAIMON_ratios(pathdict, set_, logging)
+
+        logging.info("~~~~~~~~~~~~     run_calculate_AAIMON_ratios is finished      ~~~~~~~~~~~~")
 
     if set_["run_gather_AAIMON_ratios"]:
         korbinian.cons_ratio.gather.gather_AAIMON_ratios(pathdict, logging)
