@@ -223,7 +223,7 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
         # currently the loop is run for each TMD, based on the sequence with the most TMDs
         for i in range(1, max_num_TMDs + 1):
             TMD = 'TM%02d' % i
-            dfu = korbinian.prot_list.get_indices_TMD_plus_surr_for_summary_file(dfu, TMD, n_aa_before_tmd, n_aa_after_tmd)
+            dfu = korbinian.prot_list.prot_list.get_indices_TMD_plus_surr_for_summary_file(dfu, TMD, n_aa_before_tmd, n_aa_after_tmd)
 
             # # instead of integers showing the start or end of the TMD, some people write strings into the
             # # UniProt database, such as "<5" or "?"

@@ -17,12 +17,11 @@ def download_homologues_from_simap(pathdict, set_, logging):
      - opens or creates a text file with the list of failed downloads
      - checks if there is enough hard-drive space
      - checks what files currently exist (feature table, homologue, zip)
-     - tries to download feature table
+     - tries to download feature table (if download_feature_tables listed as TRUE in settings)
      - tries to download homologues
      - if both feature table and homologues exist, compresses both into a tarball and deletes original files
      - counts the number of failed downloads. Assumes most failed downloads are due to server errors on the SIMAP side.
      With more and more failed downloads, sleeps for longer and longer.
-
 
     Parameters
     ----------
@@ -52,10 +51,6 @@ def download_homologues_from_simap(pathdict, set_, logging):
         determines whether the previously failed downloads will be re-attempted.
     """
     df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
-    # if "uniprot_acc" in df.columns:
-    #     df.set_index("uniprot_acc", drop=False, inplace=True)
-    # else:
-    #     df["uniprot_acc"] = df.index
     acc_list_failed_downloads = []
     if os.path.isfile(pathdict["failed_downloads_txt"]):
         # Extracts accession numbers out of file
@@ -129,7 +124,7 @@ def download_homologues_from_simap(pathdict, set_, logging):
             logging.info("{} SIMAP_tarfile_exists, download skipped.".format(acc))
             continue
         eaSimap_path = os.path.join(set_["data_dir"], "programs", "eaSimap.jar")
-        if not feature_table_XML_exists:
+        if not feature_table_XML_exists and set_["download_feature_tables"] == True:
             #download feature table from SIMAP
             korbinian.simap.download.retrieve_simap_feature_table(input_sequence,
                                                                   java_exec_str=java_exec_str,
@@ -148,7 +143,7 @@ def download_homologues_from_simap(pathdict, set_, logging):
             utils.sleep_x_seconds(120)
         #now check again if the files exist
         feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path)
-        if not homologues_XML_exists or not feature_table_XML_exists:
+        if not homologues_XML_exists:
             # add accession number to the list of failed downloads
             with open(pathdict["failed_downloads_txt"], "a") as source:
                 source.write("\n{}".format(acc))
@@ -166,9 +161,9 @@ def download_homologues_from_simap(pathdict, set_, logging):
             #if download is successful or file exists, the SIMAP server must be working,
             #therefore reset the number_of_files_not_found
             number_of_files_not_found = 0
-        # since we can't add files to the compressed tarfile, only when both the feature table
-        #and xml file are downloaded should we pack and compress them
-        if feature_table_XML_exists and homologues_XML_exists:
+            # since we can't add files to the compressed tarfile, only when both the feature table
+            #and xml file are downloaded should we pack and compress them
+            #if feature_table_XML_exists and homologues_XML_exists:
             # create an empty text file with the download date
             date = strftime("%Y%m%d")
             with open(date_file_path, "w") as f:
@@ -176,14 +171,16 @@ def download_homologues_from_simap(pathdict, set_, logging):
             with tarfile.open(SIMAP_tar, mode='w:gz') as tar:
                 #add the files to the compressed tarfile
                 logging.info('%s XML files will be moved into the tarball, original XML files deleted' % protein_name)
-                tar.add(ft_xml_path,arcname=os.path.basename(ft_xml_path))
-                tar.add(homol_xml_path,arcname=os.path.basename(homol_xml_path))
+                tar.add(homol_xml_path, arcname=os.path.basename(homol_xml_path))
                 tar.add(date_file_path, arcname=os.path.basename(date_file_path))
+                if feature_table_XML_exists:
+                    tar.add(ft_xml_path, arcname=os.path.basename(ft_xml_path))
             #delete the original files
             try:
-                os.remove(ft_xml_path)
                 os.remove(homol_xml_path)
                 os.remove(date_file_path)
+                if feature_table_XML_exists:
+                    os.remove(ft_xml_path)
             except FileNotFoundError:
                 pass
     logging.info('retrieve_simap_feature_table_and_homologues_from_list_in_csv is finished')
@@ -218,7 +215,7 @@ def retrieve_simap_feature_table(input_sequence, java_exec_str, max_memory_alloc
                                       mma=max_memory_allocation, esp=eaSimap_path, s=input_sequence,o=output_file)
     logging.info(command_str)
     command = utils.Command(command_str)
-    command.run(timeout=500)
+    command.run(timeout=1500)
     logging.info("Output file:     %s\n" % output_file)
     if not os.path.exists(output_file):
         logging.info('********************SIMAP download failed for : %s***************' % output_file)
@@ -268,8 +265,9 @@ def retrieve_simap_homologues(input_sequence, output_file, max_hits, java_exec_s
     logging.info(command_str)
     command = utils.Command(command_str)
     #timeout = max_hits/5 if max_hits > 500 else 100
-    timeout = 3000
-    command.run(timeout=timeout) #give 1000 for 5000 hits to download?
+    # set the timeout for 1000 seconds. This has never been reached, usually a Java error is returned much earlier.
+    timeout = 1000
+    command.run(timeout=timeout)
     logging.info("Output file:     %s\n'file saved'" % output_file)
     #sleep_x_seconds(30)
     if not os.path.exists(output_file):
