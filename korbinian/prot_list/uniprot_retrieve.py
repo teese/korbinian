@@ -40,7 +40,7 @@ def parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, unip
             except KeyError:
                 logging.info("No SwissProt record found in %s for %s." % (input_uniprot_flatfile, acc))
 
-def retrieve_uniprot_data_for_acc_list_in_xlsx_file(excelfile_with_uniprot_accessions, uniprot_flatfile_all_human_membrane_compressed, logging, selected_uniprot_records_flatfile):
+def retrieve_uniprot_data_for_acc_list_in_xlsx_file(excelfile_with_uniprot_accessions, input_uniprot_flatfile, selected_uniprot_records_flatfile, logging):
     """ From a list of uniprot accessions in excel, select out desired records from a large UniProt flatfile.
 
     Parameters
@@ -55,7 +55,6 @@ def retrieve_uniprot_data_for_acc_list_in_xlsx_file(excelfile_with_uniprot_acces
     """
     logging.info('~~~~~~~~~~~~  starting retrieve_uniprot_data_for_acc_list_in_xlsx_file   ~~~~~~~~~~~~')
     # take list of acc, search in default uniprot flatfile. If missing, download from uniprot server.
-    input_uniprot_flatfile = uniprot_flatfile_all_human_membrane_compressed
     df_uniprot_accessions = pd.read_excel(excelfile_with_uniprot_accessions, sheetname='uniprot_numbers')
     # remove proteins that are marked as 'not included in analysis'
     df_uniprot_accessions = df_uniprot_accessions[df_uniprot_accessions['include_in_analysis'] == True]

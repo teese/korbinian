@@ -4,14 +4,14 @@ import korbinian
 import numpy as np
 from Bio import SeqIO
 
-def create_nonred_uniprot_flatfile_via_uniref(set_, uniprot_dir_sel, list_number, selected_uniprot_records_flatfile, logging):
+def create_nonred_uniprot_flatfile_via_uniref(s, uniprot_dir_sel, list_number, selected_uniprot_records_flatfile, logging):
     """ Creates a non-redundant UniProt flatfile from redundant redundant UniProt tab files, redundant flatfiles and UniRef cluster tab file.
 
     The final output is the selected list of flatfiles, in the uniprot/selected folder (E.g. List08_selected_uniprot_records_flatfile.txt)
 
     Parameters
     ----------
-    set_ : dict
+    s : dict
         Settings dictionary extracted from excel settings file.
     uniprot_dir_sel : str
         Path to uniprot/selected folder.
@@ -24,7 +24,7 @@ def create_nonred_uniprot_flatfile_via_uniref(set_, uniprot_dir_sel, list_number
     """
     logging.info('~~~~~~~~~~~~starting create_nonred_uniprot_flatfile_via_uniref~~~~~~~~~~~~')
     # load uniref cutoff used (typically 50, for UniRef50)
-    uniref_cutoff = set_["uniref_cluster_cutoff"]
+    uniref_cutoff = s["uniref_cluster_cutoff"]
     # define path to csv file containing the list of redundant uniprot accessions, e.g. List08_redundant_list_uniprot_acc.tab
     redundant_uniprot_acc_tab = os.path.join(uniprot_dir_sel, "List%02d_redundant_list_uniprot_acc.tab" % list_number)
     # define path to uniprot flatfile containing the redundant protein records, e.g. List08_redundant_uniprot_flatfile.txt
@@ -34,7 +34,7 @@ def create_nonred_uniprot_flatfile_via_uniref(set_, uniprot_dir_sel, list_number
     # output uniprot list with redundancy determined
     nonred_uniprot_acc_csv = os.path.join(uniprot_dir_sel, "List%02d_nonred_list_uniprot_acc.csv" % list_number)
 
-    if os.path.isfile(selected_uniprot_records_flatfile) == False or set_["overwrite_selected_ff"] == True:
+    if os.path.isfile(selected_uniprot_records_flatfile) == False or s["overwrite_selected_ff"] == True:
         korbinian.prot_list.match_list_uniprot_acc_to_uniref_clusters(redundant_uniprot_acc_tab, uniref_clusters_tab, nonred_uniprot_acc_csv, uniref_cutoff, logging)
         # reopen output file
         dfu = pd.read_csv(nonred_uniprot_acc_csv, index_col=0)

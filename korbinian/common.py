@@ -11,8 +11,21 @@ import signal
 import sys
 
 def create_settingsdict(excel_file_with_settings):
+    """Creates a python dictionary from an excel file with various user settings.
+
+    Parameters
+    ----------
+    excel_file_with_settings : str
+        Path to excel file containing the settings for the korbinian module.
+
+    Returns
+    -------
+    s : dict
+        Dictionary derived from the settings file, with the "parameter" column as keys,
+        and the "value" column as values. Notes are excluded.
+    """
     sheetnames = ["run_settings", "file_locations", "variables"]
-    set_ = {}
+    s = {}
     for sheetname in sheetnames:
         # open excel file as pandas dataframe
         dfset = pd.read_excel(excel_file_with_settings, sheetname=sheetname)
@@ -25,18 +38,29 @@ def create_settingsdict(excel_file_with_settings):
         # convert to dictionary
         sheet_as_dict = dfset.to_dict()["value"]
         # join dictionaries together
-        set_.update(sheet_as_dict)
+        s.update(sheet_as_dict)
 
-    list_paths_to_normalise = ["data_dir", "eaSimap_path", "list_of_uniprot_accessions"]
     # normalise the paths for the data directory
-    set_["data_dir"] = os.path.normpath(set_["data_dir"])
+    s["data_dir"] = os.path.normpath(s["data_dir"])
 
-    return set_
+    return s
 
-def setup_keyboard_interrupt_and_error_logging(set_, list_number):
-    ''' -------Setup keyboard interrupt----------
-    '''
-    # import arcgisscripting
+def setup_keyboard_interrupt_and_error_logging(s, list_number):
+    """Sets up keyboard interrupt (in unavailable) and error logging.
+
+    Parameters
+    ----------
+    s : dict
+        Dictionary derived from the settings file, with the "parameter" column as keys,
+        and the "value" column as values. Notes are excluded.
+    list_number : int
+        Number describing the list of proteins.
+        Used to defines the input and output files, E.g. 8 for List08_selected_uniprot_records_flatfile.txt
+    Returns
+    -------
+    logging : logging.Logger
+        Logging object, for printing to console and logfile
+    """
 
     def ctrlc(sig, frame):
         raise KeyboardInterrupt("CTRL-C!")
@@ -45,10 +69,10 @@ def setup_keyboard_interrupt_and_error_logging(set_, list_number):
     date_string = strftime("%Y%m%d_%H_%M_%S")
 
     # designate the output logfile, within a folder in tha data_dir called "logfiles"
-    logfile = os.path.join(set_["data_dir"],"logfiles",'List%02d_%s_logfile.log' % (list_number, date_string))
+    logfile = os.path.join(s["data_dir"],"logfiles",'List%02d_%s_logfile.log' % (list_number, date_string))
 
-    level_console = set_["logging_level_console"]
-    level_logfile = set_["logging_level_logfile"]
+    level_console = s["logging_level_console"]
+    level_logfile = s["logging_level_logfile"]
 
     logging = korbinian.common.setup_error_logging(logfile, level_console, level_logfile)
     return logging
@@ -57,14 +81,19 @@ def setup_keyboard_interrupt_and_error_logging(set_, list_number):
 def setup_error_logging(logfile, level_console="DEBUG", level_logfile="DEBUG"):
     """ Sets up error logging, and logs a number of system settings.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     logfile : str
         Path to output logfile. If size exceeds limit set below in JSON settings, path.1, path.2 etc will be created.
     level_console : str
         Logging level for printing to console. DEBUG, WARNING or CRITICAL
     level_logfile : str
         Logging level for printing to logfile. DEBUG, WARNING or CRITICAL
+
+    Returns
+    -------
+    logging : logging.Logger
+        Logging object, for printing to console and logfile
     """
     # load the log settings in json format
     logsettings = json.dumps({
@@ -163,30 +192,17 @@ def create_pathdict(base_filename_summaries):
     pathdict["list_cr_summary_csv"] = '%s_cr_summary.csv' % base_filename_summaries
     # for SIMAP or BLAST downloads, gives a list of accessions that failed
     pathdict["failed_downloads_txt"] = '%s_failed_downloads.txt' % base_filename_summaries
+    # for SIMAP or BLAST, a list of accessions not found in the homologue database
+    pathdict["acc_not_in_homol_db_txt"] = '%s_acc_not_in_homol_db.txt' % base_filename_summaries
     # add the base path for the sub-sequences (SE01, SE02, etc) added by the user
     pathdict["list_user_subseqs_csv"] = '%s_user_subseqs.csv' % base_filename_summaries
     pathdict["list_user_subseqs_xlsx"] = '%s_user_subseqs.xlsx' % base_filename_summaries
 
 
-
-    pathdict["dfout01_uniprotcsv"] = '%s_uniprot.csv' % base_filename_summaries
-    pathdict["dfout02_uniprotTcsv"] = '%s_uniprotT.csv' % base_filename_summaries
-    pathdict["dfout03_uniprotxlsx"] = '%s_uniprot.xlsx' % base_filename_summaries
-    pathdict["dfout04_uniprotcsv_incl_paths"] = '%s_uniprot_incl_paths.csv' % base_filename_summaries
-    #pathdict["dfout05_simapcsv"] = '%s_simap.csv' % base_filename_summaries
-    pathdict["dfout06_simapxlsx"] = '%s_simap.xlsx' % base_filename_summaries
-    pathdict["dfout07_simapnonred"] = '%s_simapnonred.csv' % base_filename_summaries
+    """OUTPUT FILES FOR OLD SCRIPTS"""
     pathdict["dfout08_simap_AAIMON"] = '%s_simap_AAIMON.csv' % base_filename_summaries
     pathdict["dfout09_simap_AAIMON_02"] = '%s_simap_AAIMON_02.csv' % base_filename_summaries
     pathdict["dfout10_uniprot_gaps"] = '%s_gap_densities.csv' % base_filename_summaries
     pathdict["dfout11_gap_test_out_png"] = '%s_gap_test_out.png' % base_filename_summaries
-    pathdict["dfout12"] = 0
-    pathdict["dfout13"] = 0
-    pathdict["csv_file_with_histogram_data"] = '%s_histogram.csv' % base_filename_summaries
-    pathdict["csv_file_with_histogram_data_normalised"] = '%s_histogram_normalised.csv' % base_filename_summaries
-    pathdict["csv_file_with_histogram_data_normalised_redundant_removed"] = '%s_histogram_normalised_redundant_removed.csv' % base_filename_summaries
-    pathdict["csv_file_with_md5_for_each_query_sequence"] = '%s_query_md5_checksums.csv' % base_filename_summaries
-    pathdict["csv_av_cons_ratio_all_proteins"] = '%s_cons_ratios_nonred_av.csv' % base_filename_summaries
-    pathdict["csv_std_cons_ratio_all_proteins"] = '%s_cons_ratios_nonred_std.csv' % base_filename_summaries
     pathdict["create_graph_of_gap_density_png"] = '%s_create_graph_of_gap_density.png' % base_filename_summaries
     return pathdict

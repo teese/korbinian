@@ -8,17 +8,17 @@ import tarfile
 import korbinian.utils as utils
 import zipfile
 
-def calculate_gap_densities(pathdict, set_, logging):
+def calculate_gap_densities(pathdict, s, logging):
     logging.info('~~~~~~~~~~~~starting calculate_gap_densities~~~~~~~~~~~~')
 
     # If script previously has been run, continues with proteins not being processed yet, or overwrites previous gap analysis
-    overwrite_previous_gap_analysis = set_["overwrite_previous_gap_analysis"]
+    overwrite_previous_gap_analysis = s["overwrite_previous_gap_analysis"]
 
     # Maximum number of gaps for tmds to be considered
-    allowed_gaps_per_tmd = set_["allowed_gaps_per_tmd"]
+    allowed_gaps_per_tmd = s["allowed_gaps_per_tmd"]
 
     # 24 for beta barrel proteins, can be altered if only several TMDs to consider
-    max_number_of_tmds = set_["max_number_of_tmds"]
+    max_number_of_tmds = s["max_number_of_tmds"]
 
     # if os.path.isfile(pathdict["dfout10_uniprot_gaps"]):
     #     df = pd.read_csv(pathdict["dfout10_uniprot_gaps"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])

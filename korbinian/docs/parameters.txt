@@ -24,7 +24,7 @@
     TMD : str
         String denoting transmembrane domain number (e.g. "TM01")
 
-    set_ : dict
+    s : dict
         Settings dictionary extracted from excel settings file.
 
     pathdict : dict
@@ -34,20 +34,19 @@
         e.g. A1A5B4_ANO9_HUMAN_SIMAP.tar.gz
 
 
-
     Parameters
     ----------
     p : dict
         Protein Dictionary. Contains all input settings, sequences and filepaths related to a single protein.
         Protein-specific data is extracted from one row of the the list summary, e.g. List05_summary.csv, which is read as df.
-        p also contains the GENERAL korbinian settings and filepaths for that list (pathdict, set_, logging)
+        p also contains the GENERAL korbinian settings and filepaths for that list (pathdict, s, logging)
 
 
         Components
         ----------
         pathdict : dict
             Dictionary of the key paths and files associated with that List number.
-        set_ : dict
+        s : dict
             Settings dictionary extracted from excel settings file.
         logging : logging.Logger
             Logger for printing to console and/or logfile.
@@ -58,14 +57,20 @@
     -------
     In all cases, a tuple (str, bool, str) is returned.
 
-    if sucessful:
+    if successful:
         return acc, True, "0"
     if not successful:
         return acc, False, "specific warning or reason why protein failed"
 
 
 
-
+    homol_df_orig_zip : zipfile
+        Zipfile containing the following:
+            SIMAP_align_pretty_csv : csv
+                CSV file containing the hit_number protein description and the pretty alignment for each homologue
+            homol_df_orig_pickle : pickled pd.DataFrame
+                Dataframe containing all sequence extracted from the XML file.
+                This can be large, as it contains the full query, markup and match sequences
 
 
 
@@ -112,3 +117,7 @@
         Fontsize in plots.
     savefig : bool
         Whether the figure/canvas needs to be saved. Since there are 4 plots in each figure, this is True for every 4th plot (4th fig_nr).
+    acc_not_in_homol_db_txt : txt
+        List of uniprot accessions that ar not in the homologue database (e.g. SIMAP)
+        Any XML files with "Query failed: could not find the query sequence (check your query parameters)"
+        will be added to this list

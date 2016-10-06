@@ -4,13 +4,12 @@ import os
 import platform
 import tarfile
 from time import strftime
-
 import korbinian
 import korbinian.utils as utils
 import pandas as pd
 
 
-def download_homologues_from_simap(pathdict, set_, logging):
+def download_homologues_from_simap(pathdict, s, logging):
     """From the list of proteins in csv format, begins downloading homologues from the SIMAP database.
 
      - opens the csv file containing the list of proteins
@@ -27,7 +26,7 @@ def download_homologues_from_simap(pathdict, set_, logging):
     ----------
     pathdict : dict
         Dictionary of the key paths and files associated with that List number.
-    set_ : dict
+    s : dict
         Settings dictionary extracted from excel settings file.
     logging : logging.Logger
         Logger for printing to console and logfile.
@@ -36,6 +35,7 @@ def download_homologues_from_simap(pathdict, set_, logging):
     -----------------------
     PROTEIN_NAME_SIMAP.tar.gz : gzip file
         (e.g. A1A5B4_ANO9_HUMAN_SIMAP.tar.gz)
+
         Contains
         --------
         PROTEIN_NAME_feature_table.xml (e.g. A1A5B4_ANO9_HUMAN_feature_table.xml)
@@ -59,20 +59,21 @@ def download_homologues_from_simap(pathdict, set_, logging):
                 line = line.strip()
                 acc_list_failed_downloads.append(line)
 
-    #def retrieve_simap_feature_table_and_homologues_from_list_in_csv(input_file, list_of_keys, settings):
-    '''
-    First prepare the csv file from the uniprot record.
-    Run this to save the files based on their domain.
-    '''
-    #global list_of_files_with_feature_tables, list_of_files_with_homologues
-    #The SIMAP download settings can be altered as desired, using the json settings file
-    max_hits = set_["max_hits"]
-    java_exec_str = set_["java_exec_str"]
-    max_memory_allocation = set_["java_max_RAM_memory_allocated_to_simap_download"]
-    taxid = set_["taxid"]  # eg.'7227' for Drosophila melanogaster
-    enough_hard_drive_space = True
+    if os.path.isfile(pathdict["acc_not_in_homol_db_txt"]):
+        # Extracts accession numbers out of file
+        with open(pathdict["acc_not_in_homol_db_txt"], "r") as source:
+            for line in source:
+                line = line.strip()
+                acc_list_failed_downloads.append(line)
+    # remove any redundant acc
+    acc_list_failed_downloads = list(set(acc_list_failed_downloads))
+
+    max_hits = s["max_hits"]
+    java_exec_str = s["java_exec_str"]
+    max_memory_allocation = s["java_max_RAM_memory_allocated_to_simap_download"]
+    taxid = s["taxid"]  # eg.'7227' for Drosophila melanogaster
     byteformat = "GB"
-    data_harddrive = os.path.splitdrive(set_["data_dir"])[0]
+    data_harddrive = os.path.splitdrive(s["data_dir"])[0]
     # print initial hard-drive space
     size = utils.get_free_space(data_harddrive, byteformat)
     logging.info('Hard disk remaining space = {}'.format(size))
@@ -94,7 +95,7 @@ def download_homologues_from_simap(pathdict, set_, logging):
         ft_xml_path = df.loc[acc, 'SIMAP_feature_table_XML_path']
         homol_xml_path = df.loc[acc, 'SIMAP_homol_XML_path']
         date_file_path = df.loc[acc, 'SIMAP_download_date_file_path']
-        if set_["attempt_prev_failed_downloads"] == False:
+        if s["attempt_prev_failed_downloads"] == False:
             if acc in acc_list_failed_downloads:
                 logging.info("{} is in list of previously failed downloads. Will be skipped.".format(protein_name))
                 continue
@@ -102,39 +103,36 @@ def download_homologues_from_simap(pathdict, set_, logging):
         # create directories to hold file, if necessary
         utils.make_sure_path_exists(homol_xml_path, isfile=True)
 
-        #check which files exist. This is useful, because it is not possible to open the tarfile as 'a:gz',
-        #therefore you cannot add files to an existing tarfile)
-        feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path)
-
-        ''' windows has a character limit in the command prompt in theory of 8191 characters,
-        but the command line java command seems to cause errors with sequences above 3000 amino acids.
-        Assume that this problem only applies to Windows,
-        therefore in Windows systems limit the java string to proteins less than 3000 amino acids.
-        The character limit can be adjusted in the settings file
+        #check which files exist and delete corrupt tarballs
+        ft_XML_exists, homol_XML_exists, SIMAP_tar_exists, ff, hh = utils.check_SIMAP_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path,
+                                                                                                               acc, logging, delete_corrupt=True)
+        ''' Windows command prompt accepts only 8191 characters.
+            Limit protein length according to settings (typically max length = 3000)
         '''
         if 'Windows' in str(platform.system()):
-            if seqlen > set_["max_query_sequence_length"]:
+            if seqlen > s["max_query_sequence_length"]:
                 logging.warning('%s homologue download will be skipped. It cannot be processed into a java command in windows OS,'
-                                'as the sequence is longer than %i characters (%i). Moving to next sequence' % (protein_name, set_["max_query_sequence_length"],seqlen))
+                                'as the sequence is longer than %i characters (%i). Moving to next sequence' % (protein_name, s["max_query_sequence_length"],seqlen))
                 # skip this protein
                 continue
 
-        if SIMAP_tarfile_exists and set_["overwrite_homologue_files"] == False:
+        if SIMAP_tar_exists and s["overwrite_homologue_files"] == False:
             # skip this protein
-            logging.info("{} SIMAP_tarfile_exists, download skipped.".format(acc))
+            logging.info("{} SIMAP_tar_exists, download skipped.".format(acc))
             continue
-        eaSimap_path = os.path.join(set_["data_dir"], "programs", "eaSimap.jar")
-        if not feature_table_XML_exists and set_["download_feature_tables"] == True:
+        eaSimap_path = os.path.join(s["data_dir"], "programs", "eaSimap.jar")
+        # NOTE: DOWNLOADING FEATURE TABLES IS NO LONGER CONSIDERED NECESSARY.
+        if not ft_XML_exists and s["download_feature_tables"] == True:
             #download feature table from SIMAP
-            korbinian.simap.download.retrieve_simap_feature_table(input_sequence,
+            korbinian.simap_download.retrieve_simap_feature_table(input_sequence,
                                                                   java_exec_str=java_exec_str,
                                                                   max_memory_allocation=500,
                                                                   output_file=ft_xml_path,
                                                                   eaSimap_path=eaSimap_path)
             utils.sleep_x_seconds(60)
-        if not homologues_XML_exists:
+        if not homol_XML_exists:
             #download homologue file from SIMAP
-            korbinian.simap.download.retrieve_simap_homologues(input_sequence,
+            korbinian.simap_download.retrieve_simap_homologues(input_sequence,
                                                                output_file=homol_xml_path,
                                                                max_hits=max_hits, java_exec_str=java_exec_str,
                                                                max_memory_allocation=max_memory_allocation, taxid=taxid,
@@ -142,15 +140,16 @@ def download_homologues_from_simap(pathdict, set_, logging):
             # sometimes the SIMAP server seems to like a little rest in between downloads?
             utils.sleep_x_seconds(120)
         #now check again if the files exist
-        feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists = utils.check_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path)
-        if not homologues_XML_exists:
+        ft_XML_exists, homol_XML_exists, SIMAP_tar_exists, ff, hh = utils.check_SIMAP_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path,
+                                                                                                               acc, logging)
+        if not homol_XML_exists:
             # add accession number to the list of failed downloads
             with open(pathdict["failed_downloads_txt"], "a") as source:
                 source.write("\n{}".format(acc))
             #add one to the list of consecutive failed downloads.
             number_of_files_not_found += 1
-            #if a large number of downloads failed, then the SIMAP server is probably not working.
-            #Wait some time and try again later.
+            # if a large number of downloads failed, then the SIMAP server is probably not working.
+            # Wait some time and try again later.
             if number_of_files_not_found > 30:
                 utils.sleep_x_hours(24)
             if number_of_files_not_found == 20:
@@ -158,12 +157,9 @@ def download_homologues_from_simap(pathdict, set_, logging):
             if number_of_files_not_found == 15:
                 utils.sleep_x_hours(6)
         else:
-            #if download is successful or file exists, the SIMAP server must be working,
-            #therefore reset the number_of_files_not_found
+            # if download is successful or file exists, the SIMAP server must be working,
+            # therefore reset the number_of_files_not_found
             number_of_files_not_found = 0
-            # since we can't add files to the compressed tarfile, only when both the feature table
-            #and xml file are downloaded should we pack and compress them
-            #if feature_table_XML_exists and homologues_XML_exists:
             # create an empty text file with the download date
             date = strftime("%Y%m%d")
             with open(date_file_path, "w") as f:
@@ -173,17 +169,17 @@ def download_homologues_from_simap(pathdict, set_, logging):
                 logging.info('%s XML files will be moved into the tarball, original XML files deleted' % protein_name)
                 tar.add(homol_xml_path, arcname=os.path.basename(homol_xml_path))
                 tar.add(date_file_path, arcname=os.path.basename(date_file_path))
-                if feature_table_XML_exists:
+                if ft_XML_exists:
                     tar.add(ft_xml_path, arcname=os.path.basename(ft_xml_path))
             #delete the original files
             try:
                 os.remove(homol_xml_path)
                 os.remove(date_file_path)
-                if feature_table_XML_exists:
+                if ft_XML_exists:
                     os.remove(ft_xml_path)
             except FileNotFoundError:
                 pass
-    logging.info('retrieve_simap_feature_table_and_homologues_from_list_in_csv is finished')
+    logging.info('download_homologues is finished')
 
 def retrieve_simap_feature_table(input_sequence, java_exec_str, max_memory_allocation, output_file, eaSimap_path):
     """ Runs eaSimap.jar from the command line, to download the feature table XML from SIMAP.
@@ -210,7 +206,6 @@ def retrieve_simap_feature_table(input_sequence, java_exec_str, max_memory_alloc
 
     """
     #prepare input sequence and settings as a "command_str", and run command
-    # command_str = '%s -Xmx%im -jar %s -s %s -o %s -f' % (java_exec_str, max_memory_allocation, eaSimap_path, input_sequence, output_file)
     command_str = '{jes} -Xmx{mma:d}m -jar {esp} -s {s} -o {o} -f'.format(jes=java_exec_str,
                                       mma=max_memory_allocation, esp=eaSimap_path, s=input_sequence,o=output_file)
     logging.info(command_str)
@@ -255,11 +250,6 @@ def retrieve_simap_homologues(input_sequence, output_file, max_hits, java_exec_s
     # database selection is currently not working for download. Can be filtered later from all results.
     #database_dictionary = {313: 'uniprot_swissprot', 314: 'uniprot_trembl', 595: 'refseq', 721: 'Escherichia coli', 1296: 'Homo sapiens', 4250: 'Hot springs metagenome'}
     taxid_search_string = '' if taxid == '""' else '-i %s' % taxid
-    #note that windows has a character limit in the command prompt in theory of 8191 characters, but the command line java command seems to cause errors with sequences above 3000 amino acids.
-    #the 3000 character limit is currently applied in the main_simap script, rather than here
-    #run command
-    # command_str = '%s -Xmx%im -jar %s -s %s -m %s -o %s -x %s%s' % (java_exec_str, max_memory_allocation, eaSimap_path, input_sequence,
-    #                                                                 max_hits, output_file, taxid_search_string)
     command_str = '{jes} -Xmx{mma:d}m -jar {esp} -s {s} -m {m} -o {o} -x{tss}'.format(jes=java_exec_str, mma=max_memory_allocation, esp=eaSimap_path, s=input_sequence,
                                                                     m=max_hits, o=output_file, tss=taxid_search_string)
     logging.info(command_str)
@@ -268,8 +258,6 @@ def retrieve_simap_homologues(input_sequence, output_file, max_hits, java_exec_s
     # set the timeout for 1000 seconds. This has never been reached, usually a Java error is returned much earlier.
     timeout = 1000
     command.run(timeout=timeout)
-    logging.info("Output file:     %s\n'file saved'" % output_file)
-    #sleep_x_seconds(30)
     if not os.path.exists(output_file):
         logging.info('********************SIMAP download failed for : %s***************' % output_file)
 

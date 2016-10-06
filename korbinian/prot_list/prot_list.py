@@ -5,12 +5,12 @@ from time import strftime
 import unicodedata
 import korbinian.utils as utils
 
-def setup_file_locations_in_df(set_, pathdict):
+def setup_file_locations_in_df(s, pathdict):
     """ Sets up the file locations in the DataFrame containing the list of proteins for analysis.
 
     Parameters
     ----------
-    set_ : dict
+    s : dict
         Dictionary of settings derived from settings excel file.
         Columns "Parameter" and "Value" are converted to key/value in the dictionary, respectively.
     pathdict : dict
@@ -30,7 +30,7 @@ def setup_file_locations_in_df(set_, pathdict):
         # the list of proteins did not come from UniProt. Simply use the accession to name the files.
         df['protein_name'] = df.index
 
-    if set_["add_user_subseqs"] == True:
+    if s["add_user_subseqs"] == True:
         ########################################################################################
         #                                                                                      #
         #      Add user-selected sequences from csv or excel("SE01", "SE02" etc)               #
@@ -93,9 +93,9 @@ def setup_file_locations_in_df(set_, pathdict):
     ########################################################################################
     df['first_two_letters_of_uniprot_acc'] = df['protein_name'].str[0:2]
 
-    simap_dir = os.path.join(set_["data_dir"], "simap")
+    simap_dir = os.path.join(s["data_dir"], "simap")
     utils.make_sure_path_exists(simap_dir)
-    homol_dir = os.path.join(set_["data_dir"], "homol")
+    homol_dir = os.path.join(s["data_dir"], "homol")
     utils.make_sure_path_exists(homol_dir)
 
     df['simap_filename_base'] = simap_dir + '/' + df.first_two_letters_of_uniprot_acc + '/' + df.protein_name
@@ -110,7 +110,7 @@ def setup_file_locations_in_df(set_, pathdict):
     df['SIMAP_tar'] = df.simap_filename_base + '_SIMAP.tar.gz'
     df['SIMAP_feature_table_XML_path'] = df.simap_filename_base + '_feature_table.xml'
     df['SIMAP_homol_XML_path'] = df.simap_filename_base + '_homologues.xml'
-    your_name = unicodedata.normalize('NFKD', set_["your_name"][:20]).encode('ascii', 'ignore').decode("utf-8")
+    your_name = unicodedata.normalize('NFKD', s["your_name"][:20]).encode('ascii', 'ignore').decode("utf-8")
     df['SIMAP_download_date_file_path'] = df.simap_filename_base + '--{}--{}.txt'.format(strftime("%Y%m%d"), your_name)
 
     # ORIG: create filename for csv parsed from homologue XML file, stored temp as file, then zipped and pickled

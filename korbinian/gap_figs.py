@@ -7,7 +7,7 @@ import numpy as np
 import os
 import pandas as pd
 
-def create_graph_of_gap_density(pathdict, set_, logging):
+def create_graph_of_gap_density(pathdict, s, logging):
     logging.info('~~~~~~~~~~~~starting creating graphs of gap density~~~~~~~~~~~~')
     # # test if the dataframe has already been created, otherwise re-open from uniprot csv file
     # if os.path.isfile(pathdict["dfout10_uniprot_gaps"]):
@@ -19,7 +19,7 @@ def create_graph_of_gap_density(pathdict, set_, logging):
     #             "dfout10_uniprot_gaps"])
     df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
 
-    num_of_bins_in_tmd_region = set_["variables"]["plot.create_graph_of_gap_density.num_of_bins_in_tmd_region"]
+    num_of_bins_in_tmd_region = s["variables"]["plot.create_graph_of_gap_density.num_of_bins_in_tmd_region"]
     # find the maximum number of TMDs amongst the proteins
     n_TMDs_max = df["number_of_TMDs"].max()
 

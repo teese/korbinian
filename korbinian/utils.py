@@ -519,8 +519,8 @@ def create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_
         return fig, axarr
 
 
-def check_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path):
-    '''
+def check_SIMAP_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path, acc, logging, delete_corrupt=False):
+    ''' Checs
     Checks the tarball that contains the SIMAP output. 
     Looks to see if the tarball exists, if it is corrupted, if it contains the feature table and homologues from simap.
     '''
@@ -529,36 +529,36 @@ def check_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path):
     homol_xml_filename = os.path.basename(homol_xml_path)
 
     if os.path.isfile(ft_xml_path):
-        feature_table_XML_exists = True
+        ft_XML_exists = True
     else:
-        feature_table_XML_exists = False
+        ft_XML_exists = False
     if os.path.isfile(homol_xml_path):
-        homologues_XML_exists = True
+        homol_XML_exists = True
     else:
-        homologues_XML_exists = False
+        homol_XML_exists = False
     if os.path.isfile(SIMAP_tar):
-        SIMAP_tarfile_exists = True
+        SIMAP_tar_exists = True
     else:
-        SIMAP_tarfile_exists = False                
-    #at the moment, we'll only create the tarfile if both the feature table and homologue XML files downloaded successfully, but this might change depending on preference
-    #feature_table_in_tarfile = False
-    #homologues_XML_in_tarfile = False
-    if SIMAP_tarfile_exists:
+        SIMAP_tar_exists = False
+    # check if feature table and homologues XML files are in the simap tarball
+    ft_in_tar = False
+    homol_in_tar = False
+    if SIMAP_tar_exists:
         try:
             with tarfile.open(SIMAP_tar, mode = 'r:gz') as tar:
                 if ft_xml_filename in [tarinfo.name for tarinfo in tar]:
-                    feature_table_in_tarfile = True
-                #else:
-                #    feature_table_in_tarfile = False
+                    ft_in_tar = True
                 if homol_xml_filename in [tarinfo.name for tarinfo in tar]:
-                    homologues_XML_in_tarfile = True
-                #else:
-                #    homologues_XML_in_tarfile = False 
+                    homol_in_tar = True
         except EOFError:
-            SIMAP_tarfile_exists = False 
-    return feature_table_XML_exists, homologues_XML_exists, SIMAP_tarfile_exists
+            if delete_corrupt == True:
+                logging.info("{} SIMAP_tar seems corrupt, will be deleted.".format(acc))
+                os.remove(SIMAP_tar)
+            else:
+                SIMAP_tar_exists = False
+                logging.info("{} SIMAP_tar seems corrupt.".format(acc))
+    return ft_XML_exists, homol_XML_exists, SIMAP_tar_exists, ft_in_tar, homol_in_tar
 
-# VERKSOIK
 def score_pairwise(seq1, seq2, matrix, gap_open_penalty, gap_extension_penalty, prev_site_contained_gap = True):
     '''
     Calculates a score between two aligned sequences, based on the gap penalties and matrix applied. 
@@ -605,7 +605,6 @@ def score_pairwise_gapless(seq1, seq2, matrix):
             yield matrix[(tuple(reversed(pair)))]
         else:
             yield matrix[pair]
-
 
 #def create_list_of_files_from_csv_with_uniprot_data(input_file, list_of_keys):
 #    '''
@@ -1445,13 +1444,20 @@ class Log_Only_To_Console(object):
     def critical(self, message):
         print(message)
 
-def convert_summary_csv_to_input_list(set_, pathdict, logging):
+def convert_summary_csv_to_input_list(s, pathdict, logging, list_excluded_acc=None):
     # open dataframe with list of proteins
     df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     # exclude any proteins where there is no list_of_TMDs
     df = df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan']
     # add the accession
     df["acc"] = df.index
+
+    if list_excluded_acc != None:
+        # remove any excluded acc from index
+        non_excluded = set(df.index) - set(list_excluded_acc)
+        # redefine df, skipping excluded acc
+        df = df.loc[non_excluded, :]
+
     # convert to dict
     df_as_dict = df.to_dict(orient="index")
     # convert values to list
@@ -1459,7 +1465,7 @@ def convert_summary_csv_to_input_list(set_, pathdict, logging):
 
     for p in list_p:
         # print("in for loop", p["acc"])
-        p["set_"] = set_
+        p["s"] = s
         p["pathdict"] = pathdict
         p["logging"] = logging
 
