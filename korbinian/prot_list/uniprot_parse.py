@@ -24,6 +24,19 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
         Logger for printing to console and logfile.
     list_summary_csv_path : str
         Path to output csv file containing the list of proteins for analysis.
+
+    Dataframes
+    ----------
+    dfu
+        Dataframe for Uniprot
+        index = acc for each protein
+        columns = 'uniprot_acc', 'prot_descr', 'full_seq', etc
+
+    Saved Files and Figures
+    -----------------------
+    list_summary_csv : csv
+        CSV from dfu, with info for a protein on each row.
+
     """
     logging.info('~~~~~~~~~~~~    starting create_csv_from_uniprot_flatfile     ~~~~~~~~~~~~')
     uniprot_dict_all_proteins = {}

@@ -21,15 +21,10 @@ import tarfile
 import threading
 import time
 import zipfile
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
-
-'''
-************************************************************The uniprot functions start here.***************************************************************
-'''
 
 def aaa(df_or_series):
     """ Function for use in debugging.
