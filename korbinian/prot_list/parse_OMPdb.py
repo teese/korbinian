@@ -21,13 +21,13 @@ def extract_omp_IDs_from_nr_fasta(ListXX_OMPdb_nr_fasta, ListXX_OMPdb_nr_acc, lo
     ListXX_OMPdb_nr_acc : txt
         Contains list of non-redundant omp IDs, each on a new line.
     """
-    with open(ListXX_OMPdb_nr_acc, "w") as s:
+    with open(ListXX_OMPdb_nr_acc, "w") as f_out:
         with open(ListXX_OMPdb_nr_fasta) as f:
             # extract the fasta header (ID)
             ID_list = [lines.strip()[1:] for lines in f.readlines() if ">" in lines]
             # write to text file
             for ID in ID_list:
-                s.write("%s\n" % ID)
+                f_out.write("%s\n" % ID)
     logging.info("extract_omp_IDs_from_nr_fasta is completed")
 
 def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_flatfile, OMPdb_list_summary_csv, logging):
@@ -248,8 +248,8 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list
 
     max_num_TMDs = df_KW["number_of_TMDs"].max()
 
-    # n_aa_before_tmd = set_["n_aa_before_tmd"]
-    # n_aa_after_tmd = set_["n_aa_after_tmd"]
+    # n_aa_before_tmd = s["n_aa_before_tmd"]
+    # n_aa_after_tmd = s["n_aa_after_tmd"]
     n_aa_before_tmd = 10
     n_aa_after_tmd = 10
 

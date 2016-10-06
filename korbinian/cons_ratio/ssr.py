@@ -1,7 +1,7 @@
 import ast
 import korbinian.utils as utils
 
-def conduct_ssr_ratio_calculations(dfs, list_of_TMDs, set_, list_of_aa_sub_matrices):
+def conduct_ssr_ratio_calculations(dfs, list_of_TMDs, s, list_of_aa_sub_matrices):
 
     def calc_score_ss_qTMD(dfs):
        score = sum(utils.score_pairwise(seq1=dfs['%s_SW_query_seq'%TMD], seq2=dfs['%s_SW_query_seq'%TMD],
@@ -45,7 +45,7 @@ def conduct_ssr_ratio_calculations(dfs, list_of_TMDs, set_, list_of_aa_sub_matri
                                     gap_extension_penalty=gap_extension_penalty))
        return(score)
 
-    for gap_open_penalty in range(set_["gap_open_penalty_max"], set_["gap_open_penalty_increment"]):
+    for gap_open_penalty in range(s["gap_open_penalty_max"], s["gap_open_penalty_increment"]):
        #print(gap_open_penalty)
        #for simplicity, give the gap open and gap extend the same value
        gap_extension_penalty = gap_open_penalty

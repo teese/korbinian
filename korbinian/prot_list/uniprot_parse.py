@@ -24,7 +24,6 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
         Logger for printing to console and logfile.
     list_summary_csv_path : str
         Path to output csv file containing the list of proteins for analysis.
-
     """
     logging.info('~~~~~~~~~~~~    starting create_csv_from_uniprot_flatfile     ~~~~~~~~~~~~')
     uniprot_dict_all_proteins = {}
@@ -225,33 +224,14 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
             TMD = 'TM%02d' % i
             dfu = korbinian.prot_list.prot_list.get_indices_TMD_plus_surr_for_summary_file(dfu, TMD, n_aa_before_tmd, n_aa_after_tmd)
 
-            # # instead of integers showing the start or end of the TMD, some people write strings into the
-            # # UniProt database, such as "<5" or "?"
-            # # to avoid the bugs that this introduces, it is necessary to convert all strings to np.nan (as floats),
-            # # using the convert objects function. The numbers can then be converted back from floats to integers.
-            # dfu['%s_start'%TMD] = pd.to_numeric(dfu['%s_start'%TMD]).dropna().astype('int64')
-            # dfu['%s_end'%TMD] = pd.to_numeric(dfu['%s_end'%TMD]).dropna().astype('int64')
-            # # determine the position of the start of the surrounding sequence
-            # dfu['%s_start_plus_surr'%TMD] = dfu['%s_start'%TMD] - n_aa_before_tmd
-            # # replace negative values with zero. (slicing method was replaced with lambda function to avoid CopyWithSetting warning)
-            # dfu['%s_start_plus_surr'%TMD] = dfu['%s_start_plus_surr'%TMD].apply(lambda x: x if x > 0 else 0)
-            # dfu['%s_end_plus_surr'%TMD] = dfu['%s_end'%TMD] + n_aa_after_tmd
-            # # create a boolean series, describing whether the end_surrounding_seq_in_query is longer than the protein seq
-            # series_indices_longer_than_prot_seq = dfu.apply(utils.find_indices_longer_than_prot_seq, args=(TMD,), axis=1)
-            # # obtain the indices of proteins in the series
-            # indices_longer_than_prot_seq = series_indices_longer_than_prot_seq[series_indices_longer_than_prot_seq].index
-            # # use indices to select the main dataframe, and convert these end_surrounding_seq_in_query values to the seqlen value
-            # dfu.loc[indices_longer_than_prot_seq, '%s_end_plus_surr'%TMD] = dfu.loc[indices_longer_than_prot_seq, 'seqlen']
-
-        ''' ~~   SLICE TMDS FROM UNIPROT SEQ    ~~ '''
-        # iterate through each TMD, slicing out the relevant sequence.
-        # If there is no TMD, the cells will contain np.nan
-
         # slicing out the signal peptide sequence
         if analyse_sp == True:
             if 'SP01_start' in dfu.columns:
                 dfu['SP01_seq'] = dfu[dfu['SP01_start'].notnull()].apply(utils.slice_uniprot_SP_seg, args=(SP,), axis=1)
 
+        ''' ~~   SLICE TMDS FROM UNIPROT SEQ    ~~ '''
+        # iterate through each TMD, slicing out the relevant sequence.
+        # If there is no TMD, the cells will contain np.nan
         for i in range(1, max_num_TMDs + 1):
             TMD = 'TM%02d' % i
             # slice TMD
@@ -272,7 +252,7 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
         utils.make_sure_path_exists(list_summary_csv_path, isfile=True)
         dfu.to_csv(list_summary_csv_path, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
-    logging.info('%i uniprot records parsed to csv\n~~~~~~~~~~~~   create_csv_from_uniprot_flatfile is finished   ~~~~~~~~~~~~' % (count_of_uniprot_records_added_to_csv))
+    logging.info('%i uniprot records parsed to csv\n~~~~~~~~~~~~   create_csv_from_uniprot_flatfile is finished   ~~~~~~~~~~~~' % count_of_uniprot_records_added_to_csv)
 
 
 def create_dictionary_of_comments(uniprot_record_handle):
@@ -413,7 +393,7 @@ def create_dict_of_data_from_uniprot_record(record):
                        #check if the variant is in the tmd
                         start_of_variant_is_after_start_of_tmd = True if start_of_variant_in_seq > output_dict['uniprot_TMD_start'] else False
                         end_of_variant_is_before_end_of_tmd = True if end_of_variant_in_seq < output_dict['uniprot_TMD_end'] else False
-                        variant_is_in_tmd = True if all(start_of_variant_is_after_start_of_tmd and end_of_variant_is_before_end_of_tmd) else False
+                        variant_is_in_tmd = True if all([start_of_variant_is_after_start_of_tmd and end_of_variant_is_before_end_of_tmd]) else False
 
                         #add to numpy array that contains all the variants in the tmd region
                         if variant_is_in_tmd:

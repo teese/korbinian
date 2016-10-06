@@ -1,2 +1,0 @@
-from korbinian.gap.gap import calculate_gap_densities
-from korbinian.gap.graph import create_graph_of_gap_density

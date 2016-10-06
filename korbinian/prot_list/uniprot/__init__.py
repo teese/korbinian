@@ -1,3 +1,0 @@
-import korbinian.prot_list.uniprot.nonredundant
-import korbinian.prot_list.uniprot.parse_uniprot
-import korbinian.prot_list.uniprot.retrieve

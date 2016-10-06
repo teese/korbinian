@@ -1,15 +1,36 @@
 import ast
-
-import korbinian.cons_ratio.singleprotein.calc
-import numpy as np
-import csv
-import matplotlib.pyplot as plt
 import os
 import pickle
-import korbinian
-import korbinian.utils as utils
-import pandas as pd
 import zipfile
+
+import korbinian
+import korbinian.cons_ratio.calc
+import korbinian.utils as utils
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from multiprocessing import Pool
+
+def run_calculate_AAIMON_ratios(pathdict, s, logging):
+    logging.info('~~~~~~~~~~~~      starting run_calculate_AAIMON_ratios        ~~~~~~~~~~~~')
+    # if multiprocessing is used, log only to the console
+    p_dict_logging = logging if s["use_multiprocessing"] != True else utils.Log_Only_To_Console()
+    # set current working directory as the data_dir/homol, where temp files will be saved before moving to zip
+    os.chdir(os.path.join(s["data_dir"], "homol"))
+    # create list of protein dictionaries to process
+    list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging)
+    # number of processes is the number the settings, or the number of proteins, whichever is smallest
+    n_processes = s["multiprocessing_cores"] if s["multiprocessing_cores"] < len(list_p) else len(list_p)
+
+    if s["use_multiprocessing"]:
+        with Pool(processes=n_processes) as pool:
+            calc_AAIMON_list = pool.map(korbinian.cons_ratio.cons_ratio.calculate_AAIMON_ratios, list_p)
+            # log the list of protein results (e.g. acc, "simap", True) to the actual logfile, not just the console
+            logging.info("calc_AAIMON_list : {}".format(calc_AAIMON_list))
+    else:
+        for p in list_p:
+            korbinian.cons_ratio.cons_ratio.calculate_AAIMON_ratios(p)
+    logging.info("~~~~~~~~~~~~     run_calculate_AAIMON_ratios is finished      ~~~~~~~~~~~~")
 
 def calculate_AAIMON_ratios(p):
     """Calculate the AAIMON ratios for a particular protein
@@ -18,7 +39,7 @@ def calculate_AAIMON_ratios(p):
     ----------
     pathdict : dict
         Dictionary of the key paths and files associated with that List number.
-    set_ : dict
+    s : dict
         Settings dictionary extracted from excel settings file.
     logging : logging.Logger
         Logger for printing to console and logfile.
@@ -41,7 +62,7 @@ def calculate_AAIMON_ratios(p):
         A6BM72_MEG11_HUMAN_TM01_cr_df.pickle
             Dataframe containing the percentage_identity etc for that particular TMD/region (in this case, TM01).
     """
-    pathdict, set_, logging = p["pathdict"], p["set_"], p["logging"]
+    pathdict, s, logging = p["pathdict"], p["s"], p["logging"]
     acc = p["acc"]
     protein_name = p["protein_name"]
     if not os.path.exists(p['fa_cr_sliced_TMDs_zip']):
@@ -74,7 +95,7 @@ def calculate_AAIMON_ratios(p):
 
     #assume af first that there is no previous data, and that the calculations can be re-run
     prev_calc_AAIMON_ratio_for_this_protein_exists = False
-    if set_["overwrite_prev_calculated_AAIMON_ratios"] == False:
+    if s["overwrite_prev_calculated_AAIMON_ratios"] == False:
         if os.path.isfile(homol_cr_ratios_zip):
             with zipfile.ZipFile(homol_cr_ratios_zip, mode="r", compression=zipfile.ZIP_DEFLATED) as zip:
                 if mean_ser_filename in zip.namelist():
@@ -89,13 +110,13 @@ def calculate_AAIMON_ratios(p):
     #                                                                                      #
     ########################################################################################
 
-    fa_X_filt_full_str = " and X_in_match_seq == False" if set_["fa_X_allowed_in_full_seq"] == False else ""
+    fa_X_filt_full_str = " and X_in_match_seq == False" if s["fa_X_allowed_in_full_seq"] == False else ""
 
     fa_homol_query_str = 'FASTA_gapped_identity > {min_ident} and ' \
                         'FASTA_gapped_identity < {max_ident} and ' \
                         'hit_contains_SW_node == True and ' \
                         'disallowed_words_not_in_descr == True' \
-                        '{Xfull}'.format(Xfull=fa_X_filt_full_str, min_ident=set_["cr_min_identity_of_full_protein"], max_ident=set_["cr_max_identity_of_full_protein"])
+                        '{Xfull}'.format(Xfull=fa_X_filt_full_str, min_ident=s["cr_min_identity_of_full_protein"], max_ident=s["cr_max_identity_of_full_protein"])
 
     # filter based on the query string
     dfh.query(fa_homol_query_str, inplace=True)
@@ -131,7 +152,7 @@ def calculate_AAIMON_ratios(p):
     #                 Calculate the nonTMD percentage identity and gaps                    #
     #                                                                                      #
     ########################################################################################
-    mean_ser, df_nonTMD = korbinian.cons_ratio.singleprotein.calc.calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser)
+    mean_ser, df_nonTMD = korbinian.cons_ratio.calc.calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser)
 
     with zipfile.ZipFile(homol_cr_ratios_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
 
@@ -145,12 +166,12 @@ def calculate_AAIMON_ratios(p):
         # filter nonTMD dataframe to only contain entries where nonTMD_perc_ident is not zero
         df_nonTMD = df_nonTMD.loc[df_nonTMD['nonTMD_perc_ident'] != 0]
 
-        linspace_binlist = np.linspace(set_["1p_smallest_bin"],
-                                       set_["1p_largest_bin"],
-                                       set_["1p_number_of_bins"])
+        linspace_binlist = np.linspace(s["1p_smallest_bin"],
+                                       s["1p_largest_bin"],
+                                       s["1p_number_of_bins"])
         # add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
         binlist = np.append(linspace_binlist,
-                            set_["1p_final_highest_bin"])
+                            s["1p_final_highest_bin"])
 
         # se default font size for text in the plot
         fontsize = 4
@@ -183,13 +204,13 @@ def calculate_AAIMON_ratios(p):
             # filter based on dfh above, for general homologue settings (e.g. % identity of full protein), and df_nonTMD (for nonTMD_perc_ident is not zero, etc)
             df_cr = df_cr.loc[df_nonTMD.index,:]
             # following the general filters, filter to only analyse sequences with TMD identity above cutoff, and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
-            df_cr = df_cr.loc[df_cr['%s_perc_ident' % TMD] >= set_['cr_min_identity_of_TMD_initial_filter']]
+            df_cr = df_cr.loc[df_cr['%s_perc_ident' % TMD] >= s['cr_min_identity_of_TMD_initial_filter']]
             ########################################################################################
             #                                                                                      #
             #                       Calculate AAIMON, AASMON for each TMD                          #
             #                                                                                      #
             ########################################################################################
-            mean_ser, df_cr = korbinian.cons_ratio.calc_AAIMON(TMD, df_cr, mean_ser)
+            mean_ser, df_cr = korbinian.cons_ratio.calc.calc_AAIMON(TMD, df_cr, mean_ser)
 
             logging.info('%s AAIMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean' % TMD]))
             # logging.info('%s AASMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AASMON_ratio_mean'%TMD]))
@@ -219,7 +240,7 @@ def calculate_AAIMON_ratios(p):
             #       Save histograms for each TMD of that protein, with relative conservation       #
             #                                                                                      #
             ########################################################################################
-            korbinian.cons_ratio.save_hist_AAIMON_ratio_single_protein(fig_nr, fig, axarr, df_cr, set_, TMD, binlist, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix)
+            korbinian.cons_ratio.histogram.save_hist_AAIMON_ratio_single_protein(fig_nr, fig, axarr, df_cr, s, TMD, binlist, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix)
 
         value_counts_hit_contains_SW_node = dfh['hit_contains_SW_node'].value_counts()
         if True in value_counts_hit_contains_SW_node:

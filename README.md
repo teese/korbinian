@@ -1,6 +1,6 @@
 # README #
 
-The korbinian module contains Mark's code for the analysis of TMD conservation, primarily using uniprot and simap data.
+The korbinian module is used for the analysis of TMD conservation, primarily using uniprot, OMPdb and simap data.
 
 ### What is this repository for? ###
 
@@ -13,9 +13,9 @@ The korbinian module contains Mark's code for the analysis of TMD conservation, 
 
 ### Contribution guidelines ###
 
-* Mark is the main contributor here. Please contact before making major changes.
+* Pull requests are welcome. 
+* Backwards compatibility is not so important. Focus on readability, flexibility and speed.
 
 ### Who do I talk to? ###
 
 * Mark Teese
-* Rimma Jenske
