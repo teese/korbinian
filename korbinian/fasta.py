@@ -71,9 +71,14 @@ def filter_and_save_fasta(p):
     protein_name = p["protein_name"]
     acc = p["acc"]
     print(acc, end=", ", flush=True)
-    # if the homol_df_orig_zip file does not exist, skip that protein
+    # if the fa_cr_sliced_TMDs_zip file does not exist, skip that protein
     if not os.path.exists(p['fa_cr_sliced_TMDs_zip']):
         message = "{} skipped, fa_cr_sliced_TMDs_zip not found.".format(acc)
+        logging.info(message)
+        return acc, False, message
+    # if the homol_df_orig_zip file does not exist, skip that protein
+    if not os.path.exists(p['homol_df_orig_zip']):
+        message = "{} skipped, homol_df_orig_zip not found.".format(acc)
         logging.info(message)
         return acc, False, message
     # open the dataframe containing the "match_align_seq" etc for each hit in the homologues
@@ -148,11 +153,15 @@ def filter_and_save_fasta(p):
             fa_X_filt_sel_str = ""
 
         # create a boolean column that allows filtering by the accepted number of gaps, according to the settings file
-        df_fa['%s_fa_SW_query_acceptable_n_gaps'%TMD] = df_fa['%s_SW_query_num_gaps'%TMD] <= s["fa_max_n_gaps_in_query_TMD"]
-        df_fa['%s_fa_SW_match_acceptable_n_gaps'%TMD] = df_fa['%s_SW_match_num_gaps'%TMD] <= s["fa_max_n_gaps_in_match_TMD"]
+        #df_fa['%s_fa_SW_query_acceptable_n_gaps'%TMD] = df_fa['%s_SW_query_num_gaps'%TMD] <= s["fa_max_n_gaps_in_query_TMD"]
+       # df_fa['%s_fa_SW_match_acceptable_n_gaps'%TMD] = df_fa['%s_SW_match_num_gaps'%TMD] <= s["fa_max_n_gaps_in_match_TMD"]
         # measure the hydrophobicity of each TMD
         # %timeit 46.6 ms per loop for 325 homologues
         df_fa['%s_SW_match_seq_hydro' % TMD] = df_fa['%s_SW_match_seq'%TMD].dropna().apply(lambda x: utils.calc_hydrophob(x))
+
+        """shouldn't be necessary due to improved OMPdb TM segment slicing"""
+        ## %s_SW_m_seq_len calculate the length of the match TMD seq (including gaps)
+        #df_fa['%s_SW_m_seq_len' % TMD] = df_fa['%s_SW_match_seq' % TMD].str.len()
 
         '''re-filter the original dataframe to create another copy with the desired sequences
         note that some values were added after filtering in the last round,
@@ -162,17 +171,17 @@ def filter_and_save_fasta(p):
                             'fa_ident_below_cutoff == True and '\ # aa identity below cutoff
                              'hit_contains_SW_node == True and '\ # homologue file is not missing data
                              'disallowed_words_not_in_descr == True'\ # not a patent
-                             '{TMD}_fa_SW_query_acceptable_n_gaps == True' \ # not too many gaps in query
-                             '{TMD}_fa_SW_match_acceptable_n_gaps == True' \ # not too many gaps in match
+                             '{TMD}_SW_query_num_gaps <= {fa_max_n_gaps_in_query_TMD}' and \ # not too many gaps in query
+                             '{TMD}_SW_match_num_gaps <= {fa_max_n_gaps_in_match_TMD}' \ # not too many gaps in match
                              '{TMD}_SW_m_seq_len > 1' \ # smith waterman match sequence length longer than 1
                              '{Xfull}' \ # acceptable number of X in full protein
                              '{Xsel} # acceptable number of X in selection region of protein
         '''
 
-        fa_query_filt_str = '{TMD}_fa_SW_query_acceptable_n_gaps == True and ' \
-                             '{TMD}_fa_SW_match_acceptable_n_gaps == True and ' \
-                             '{TMD}_SW_m_seq_len > 1' \
-                             '{Xsel}'.format(TMD=TMD, Xsel=fa_X_filt_sel_str)
+        fa_query_filt_str =  '{TMD}_SW_query_num_gaps <= {fa_max_n_gaps_in_query_TMD} and ' \
+                             '{TMD}_SW_match_num_gaps <= {fa_max_n_gaps_in_match_TMD}' \
+                             '{Xsel}'.format(TMD=TMD, Xsel=fa_X_filt_sel_str, fa_max_n_gaps_in_query_TMD=s["fa_max_n_gaps_in_query_TMD"],
+                                             fa_max_n_gaps_in_match_TMD=s["fa_max_n_gaps_in_match_TMD"])
 
         df_fa.query(fa_query_filt_str, inplace=True)
 
