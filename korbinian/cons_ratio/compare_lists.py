@@ -143,7 +143,7 @@ def compare_rel_con_lists(pathdict, s, logging):
                                       ylabel=ylabel, legend=protein_list_names
                                       )
     Fig_Nr = 3
-    title = 'len_nonTMD_seq_match_mean'
+    title = 'nonTMD_SW_align_len_excl_gaps_mean'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     # if the plot is the last one, the figure should be saved
     # if a new figure should be created (either because the orig is full, or the last TMD is analysed)
@@ -154,7 +154,7 @@ def compare_rel_con_lists(pathdict, s, logging):
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
 
     for n, dfl in enumerate(df_list):
-        data_column = 'len_nonTMD_seq_match_mean'
+        data_column = 'nonTMD_SW_align_len_excl_gaps_mean'
         color = TUM_colours_list_with_greys[n + 2]  # "#0489B1"
         alpha = 0.7
         col_width_value = 0.95
@@ -173,7 +173,7 @@ def compare_rel_con_lists(pathdict, s, logging):
                                                         ylabel=ylabel, legend=protein_list_names
                                                         )
     Fig_Nr = 4
-    title = 'len_nonTMD_align_mean'
+    title = 'nonTMD_SW_align_len_mean'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     # if the plot is the last one, the figure should be saved
     # if a new figure should be created (either because the orig is full, or the last TMD is analysed)
@@ -184,7 +184,7 @@ def compare_rel_con_lists(pathdict, s, logging):
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
 
     for n, dfl in enumerate(df_list):
-        data_column = 'len_nonTMD_align_mean'
+        data_column = 'nonTMD_SW_align_len_mean'
         color = TUM_colours_list_with_greys[n + 2]  # "#0489B1"
         alpha = 0.7
         col_width_value = 0.95
@@ -332,7 +332,7 @@ def compare_rel_con_lists(pathdict, s, logging):
                                                         )
 
     Fig_Nr = Fig_Nr + 1
-    title = 'nonTMD_qm_gaps_per_q_residue_mean'
+    title = 'perc_gaps_nonTMD_SW_align_mean'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     # if the plot is the last one, the figure should be saved
     # if a new figure should be created (either because the orig is full, or the last TMD is analysed)
@@ -343,7 +343,7 @@ def compare_rel_con_lists(pathdict, s, logging):
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
 
     for n, dfl in enumerate(df_list):
-        data_column = 'nonTMD_qm_gaps_per_q_residue_mean'
+        data_column = 'perc_gaps_nonTMD_SW_align_mean'
         color = TUM_colours_list_with_greys[n + 2]  # "#0489B1"
         alpha = 0.7
         col_width_value = 0.95

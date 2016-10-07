@@ -362,7 +362,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     utils.improve_ggplot_for_4_plots(axarr, row_nr, col_nr, backgroundcolour, legend_obj)
 
     '''
-    Fig07: Scattergram comparing len_nonTMD_align_mean with mean AAIMON
+    Fig07: Scattergram comparing nonTMD_SW_align_len_mean with mean AAIMON
     '''
     Fig_Nr = 7
     sys.stdout.write(str(Fig_Nr) + ', ')
@@ -371,7 +371,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # if a new figure should be created (either because the orig is full, or the last TMD is analysed)
     fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi=300)
     # pylab.rcParams['figure.figsize'] = (100.0, 80.0)
-    x = np.array(df['len_nonTMD_align_mean'])
+    x = np.array(df['nonTMD_SW_align_len_mean'])
     y = np.array(df['AAIMON_ratio_mean_all_TMDs'])
     scattercontainer_AAIMON_AASMON_std = axarr[row_nr, col_nr].scatter(x=x, y=y, color="#0489B1", alpha=alpha,
                                                                        s=datapointsize)

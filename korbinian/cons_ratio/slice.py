@@ -413,42 +413,16 @@ def slice_1_TMD_from_homol(acc, TMD, query_TMD_sequence, dfs, s, logging):
         # NOT DEEMED NECESSARY. WHY WOULD YOU NEED TO SLICE QUERY OR MARKUP + SURROUNDING?
         # df_TMD['%s_SW_query_seq_plus_surr'%TMD] = dfs.apply(utils.slice_SW_query_TMD_seq_plus_surr, args=(TMD,), axis=1)
         # df_TMD['%s_SW_markup_seq_plus_surr'%TMD] = dfs.apply(utils.slice_SW_markup_TMD_plus_surr, args=(TMD,), axis=1)
-
+        ########################################################################################
+        #                                                                                      #
+        #        count number of gaps in the query and match TMD aligned sequence              #
+        #                                                                                      #
+        ########################################################################################
+        """This is used as a filter in filter_and_save_fasta, therefore is conducted earlier in the slicing function. """
         # count the number of gaps in the query and match sequences
-        df_TMD['%s_SW_query_num_gaps'%TMD] = df_TMD['%s_SW_query_seq'%TMD].str.count("-")
-        df_TMD['%s_SW_match_num_gaps'%TMD] = df_TMD['%s_SW_match_seq'%TMD].str.count("-")
-        # calculate the length of the match TMD seq excluding gaps
-        df_TMD['%s_SW_m_seq_len'%TMD] = df_TMD['%s_SW_match_seq'%TMD].str.len()
-        len_query_TMD = len(query_TMD_sequence)
-        # for the alignment length, take the smallest value from the length of query or match
-        # this will exclude gaps from the length in the following calculations, preventing false "low conservation" where the query TMD is much longer than the match TMD)
-        # note that for most calculations this is somewhat redundant, because the max number of acceptable gaps in sequence is probable ~2
-        # use the mask function (faster than a lambda function) to replace any lengths larger than the query, with the query
-        df_TMD['%s_SW_align_len' % TMD] = df_TMD['%s_SW_m_seq_len' % TMD].mask(df_TMD['%s_SW_m_seq_len' % TMD] > len_query_TMD, len_query_TMD)
-        # create a boolean column that allows filtering by the accepted number of gaps, according to the settings file
-        df_TMD['%s_cr_SW_query_acceptable_n_gaps'%TMD] = df_TMD['%s_SW_query_num_gaps'%TMD] <= s["cr_max_n_gaps_in_query_TMD"]
-        df_TMD['%s_cr_SW_match_acceptable_n_gaps'%TMD] = df_TMD['%s_SW_match_num_gaps'%TMD] <= s["cr_max_n_gaps_in_match_TMD"]
-        # count identical residues between query and match TMDs by counting the number of pipes in the markup string
-        # NOTE THAT df_TMD['%s_SW_markup_seq'%TMD].str.count('|') DOES NOT WORK, as "|" has a function in regex and needs to be escaped
-        df_TMD['%s_SW_num_ident_res'%TMD] = df_TMD['%s_SW_markup_seq'%TMD].str.count('\|')
-        df_TMD['%s_SW_num_sim_res'%TMD] = df_TMD['%s_SW_markup_seq'%TMD].str.count(':')
-        # check that the TMD seq in match is not just 100% gaps!
-        df_TMD['%s_in_SW_align_match'%TMD] = df_TMD['%s_SW_num_ident_res'%TMD].dropna() != 0
-        df_TMD['%s_in_SW_align_match'%TMD].fillna(value=False)
+        df_TMD['%s_SW_query_num_gaps' % TMD] = df_TMD['%s_SW_query_seq' % TMD].str.count("-")
+        df_TMD['%s_SW_match_num_gaps' % TMD] = df_TMD['%s_SW_match_seq' % TMD].str.count("-")
 
-        # the percentage identity of that TMD is defined as the number of identical residues (pipes in markup) divided by the length of the the aligned residues (excluding gaps, based on the length of the shortest TMD, either match or query)
-        # note that the nonTMD percentage identity is calculated the same way
-
-
-
-        df_TMD['%s_perc_ident'%TMD] = df_TMD['%s_SW_num_ident_res'%TMD] / df_TMD['%s_SW_align_len'%TMD]
-        # calculate percentage similar residues
-        df_TMD['%s_perc_sim'%TMD] = df_TMD['%s_SW_num_sim_res'%TMD] / df_TMD['%s_SW_align_len'%TMD]
-        # add together to obtain the percentage similar + identical residues
-        df_TMD['%s_perc_sim_plus_ident'%TMD] = df_TMD['%s_perc_ident'%TMD] + df_TMD['%s_perc_sim'%TMD]
-        # calculate the average number of gaps per residue in the TMD alignment
-        # (number of gaps)/(length of sequence excluding gaps)
-        df_TMD['%s_SW_q_gaps_per_q_residue'%TMD] = df_TMD['%s_SW_query_num_gaps'%TMD].dropna() / len_query_TMD
     else:
         logging.info('%s does not have any valid homologues for %s. '
                      'Re-downloading simap homologue XML may be necessary.' % (acc, TMD))

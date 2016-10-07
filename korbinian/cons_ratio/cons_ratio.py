@@ -2,7 +2,6 @@ import ast
 import os
 import pickle
 import zipfile
-
 import korbinian
 import korbinian.cons_ratio.calc
 import korbinian.utils as utils
@@ -37,38 +36,43 @@ def calculate_AAIMON_ratios(p):
 
     Parameters
     ----------
-    pathdict : dict
-        Dictionary of the key paths and files associated with that List number.
-    s : dict
-        Settings dictionary extracted from excel settings file.
-    logging : logging.Logger
-        Logger for printing to console and logfile.
+    p : dict
+        Protein Dictionary. Contains all input settings, sequences and filepaths related to a single protein.
+        Protein-specific data is extracted from one row of the the list summary, e.g. List05_summary.csv, which is read as df.
+        p also contains the GENERAL korbinian settings and filepaths for that list (pathdict, s, logging)
+
+        Contains:
+            pathdict : dict
+                Dictionary of the key paths and files associated with that List number.
+            s : dict
+                Settings dictionary extracted from excel settings file.
+            logging : logging.Logger
+                Logger for printing to console and logfile.
 
     Saved Files and Figures
     -----------------------
-    homol_cr_ratios_zip : zipfile
+    homol_cr_ratios_zip(zipfile)
         PROTEIN_NAME_cr_ratios.zip (E.g. A6BM72_MEG11_HUMAN_cr_ratios.zip)
-        Contains
-        --------
-        A6BM72_MEG11_HUMAN_AAIMON_hist_0.png : png
-            Histograms of AAIMON ratios for homologues of each TMD.
-        A6BM72_MEG11_HUMAN_cr_mean.csv : csv
-            Summary file for that protein. Contains conservation ratios means.
-            Will be gathered for all proteins by the gather_AAIMON_ratios function.
-        A6BM72_MEG11_HUMAN_nonTMD_cr_df.pickle : pickled pd.DataFrame
-            Dataframe containing the percentage_identity etc for sliced nonTMD region.
-        A6BM72_MEG11_HUMAN_SP01_cr_df.pickle : pickled pd.DataFrame
-            Dataframe containing the percentage_identity etc for that particular TMD/region (in this case, the signal peptide).
-        A6BM72_MEG11_HUMAN_TM01_cr_df.pickle
-            Dataframe containing the percentage_identity etc for that particular TMD/region (in this case, TM01).
+            A6BM72_MEG11_HUMAN_AAIMON_hist_0.png : png
+                Histograms of AAIMON ratios for homologues of each TMD.
+            A6BM72_MEG11_HUMAN_cr_mean.csv : csv
+                Summary file for that protein. Contains conservation ratios means.
+                Will be gathered for all proteins by the gather_AAIMON_ratios function.
+            A6BM72_MEG11_HUMAN_nonTMD_cr_df.pickle : pickled pd.DataFrame
+                Dataframe containing the percentage_identity etc for sliced nonTMD region.
+            A6BM72_MEG11_HUMAN_SP01_cr_df.pickle : pickled pd.DataFrame
+                Dataframe containing the percentage_identity etc for that particular TMD/region (in this case, the signal peptide).
+            A6BM72_MEG11_HUMAN_TM01_cr_df.pickle
+                Dataframe containing the percentage_identity etc for that particular TMD/region (in this case, TM01).
     """
     pathdict, s, logging = p["pathdict"], p["s"], p["logging"]
     acc = p["acc"]
     protein_name = p["protein_name"]
-    if not os.path.exists(p['fa_cr_sliced_TMDs_zip']):
-        message = "{} Protein skipped. File does not exist".format(p['fa_cr_sliced_TMDs_zip'])
+    if not os.path.exists(p['homol_df_orig_zip']):
+        message = "{} Protein skipped. File does not exist".format(p['homol_df_orig_zip'])
         logging.info(message)
         return acc, False, message
+
     dfh = utils.open_df_from_pickle_zip(p['homol_df_orig_zip'],filename=os.path.basename(p['homol_df_orig_pickle']), delete_corrupt=True)
     if dfh.empty:
         message = "{} Protein skipped, file deleted as it is possibly corrupt.".format(p['homol_df_orig_zip'])
@@ -94,11 +98,10 @@ def calculate_AAIMON_ratios(p):
     mean_ser_filename = "{}_cr_mean.csv".format(protein_name)
 
     #assume af first that there is no previous data, and that the calculations can be re-run
-    prev_calc_AAIMON_ratio_for_this_protein_exists = False
     if s["overwrite_prev_calculated_AAIMON_ratios"] == False:
         if os.path.isfile(homol_cr_ratios_zip):
-            with zipfile.ZipFile(homol_cr_ratios_zip, mode="r", compression=zipfile.ZIP_DEFLATED) as zip:
-                if mean_ser_filename in zip.namelist():
+            with zipfile.ZipFile(homol_cr_ratios_zip, mode="r", compression=zipfile.ZIP_DEFLATED) as cr_zip:
+                if mean_ser_filename in cr_zip.namelist():
                     # if the means are saved as a csv in the homol cr_ratios zipfile, skip this protein
                     message = '{} AAIMON_ratios skipped, file with mean AAIMON ratios exists (in settings, overwrite_prev_calculated_AAIMON_ratios = True)'.format(acc)
                     logging.info(message)
@@ -121,14 +124,17 @@ def calculate_AAIMON_ratios(p):
     # filter based on the query string
     dfh.query(fa_homol_query_str, inplace=True)
 
-    '''Calculate average values, add to original dataframe.
-       1) values associated with the FASTA output of SIMAP
-    '''
-    # fasta identity
+    #Calculate fasta values, add to mean_ser output series for each protein.
+    # The mean fasta identity of homologues should almost always be around the centre of the min and max in the settings.
     mean_ser['FASTA_ident_mean'] = float('%0.2f' % dfh['FASTA_identity'].mean())
-    # number of identical residues in FASTA alignment
-    dfh['FASTA_num_ident_res'] = dfh['FASTA_identity'] / 100 * dfh['FASTA_overlap']
-    mean_ser['FASTA_num_ident_res'] = float('%0.2f' % dfh['FASTA_identity'].mean())
+    # number of identical residues in each FASTA alignment can be calculated from identity and overlap
+    dfh['FASTA_num_ident_res'] = dfh['FASTA_identity'] * dfh['FASTA_overlap']
+    mean_ser['FASTA_num_ident_res_mean'] = float('%0.2f' % dfh['FASTA_num_ident_res'].mean())
+
+    if not os.path.exists(p['fa_cr_sliced_TMDs_zip']):
+        message = "{} Protein skipped. File does not exist".format(p['fa_cr_sliced_TMDs_zip'])
+        logging.info(message)
+        return acc, False, message
 
     nonTMD_pickle_name = "{}_nonTMD_sliced_df.pickle".format(protein_name)
     df_nonTMD = utils.open_df_from_pickle_zip(p['fa_cr_sliced_TMDs_zip'], filename=nonTMD_pickle_name, delete_corrupt=True)
@@ -152,7 +158,7 @@ def calculate_AAIMON_ratios(p):
     #                 Calculate the nonTMD percentage identity and gaps                    #
     #                                                                                      #
     ########################################################################################
-    mean_ser, df_nonTMD = korbinian.cons_ratio.calc.calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser)
+    df_nonTMD, mean_ser = korbinian.cons_ratio.calc.calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser)
 
     with zipfile.ZipFile(homol_cr_ratios_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
 
@@ -199,18 +205,20 @@ def calculate_AAIMON_ratios(p):
             # add the nonTMD percentage identity, etc. NOTE THAT THE INDEX SHOULD STILL BE COMPATIBLE, as the hit_num!
             df_cr['nonTMD_perc_ident'] = df_nonTMD['nonTMD_perc_ident']
             df_cr['nonTMD_perc_sim_plus_ident'] = df_nonTMD['nonTMD_perc_sim_plus_ident']
-            df_cr['FASTA_overlap'] = dfh['FASTA_overlap']
-            df_cr['len_full_match_seq'] = dfh[ 'len_full_match_seq']
+            df_cr['nonTMD_SW_align_len_excl_gaps'] = df_nonTMD['nonTMD_SW_align_len_excl_gaps']
+            df_cr['len_full_match_seq'] = dfh['len_full_match_seq']
             # filter based on dfh above, for general homologue settings (e.g. % identity of full protein), and df_nonTMD (for nonTMD_perc_ident is not zero, etc)
             df_cr = df_cr.loc[df_nonTMD.index,:]
-            # following the general filters, filter to only analyse sequences with TMD identity above cutoff, and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
-            df_cr = df_cr.loc[df_cr['%s_perc_ident' % TMD] >= s['cr_min_identity_of_TMD_initial_filter']]
+            """FILTERING BY TMD IDENTITY HERE SHOULD NO LONGER BE NECESSARY. DIVIDE BY 0 AVOIDED WITH THE REPLACE FUNCTION LATER"""
+            ## following the general filters, filter to only analyse sequences with TMD identity above cutoff, and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
+            #df_cr = df_cr.loc[df_cr['%s_perc_ident' % TMD] >= s['cr_min_identity_of_TMD_initial_filter']]
             ########################################################################################
             #                                                                                      #
             #                       Calculate AAIMON, AASMON for each TMD                          #
             #                                                                                      #
             ########################################################################################
-            mean_ser, df_cr = korbinian.cons_ratio.calc.calc_AAIMON(TMD, df_cr, mean_ser)
+            len_query_TMD = p["%s_end"%TMD] - p["%s_start"%TMD]
+            df_cr, mean_ser = korbinian.cons_ratio.calc.calc_AAIMON(TMD, df_cr, len_query_TMD, mean_ser)
 
             logging.info('%s AAIMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean' % TMD]))
             # logging.info('%s AASMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AASMON_ratio_mean'%TMD]))
