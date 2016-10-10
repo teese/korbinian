@@ -72,20 +72,22 @@ def download_homologues_from_simap(pathdict, s, logging):
     java_exec_str = s["java_exec_str"]
     max_memory_allocation = s["java_max_RAM_memory_allocated_to_simap_download"]
     taxid = s["taxid"]  # eg.'7227' for Drosophila melanogaster
-    # HARD_DRIVE STUFF GIVES AN ERROR IN MAC
-    byteformat = "GB"
-    data_harddrive = os.path.splitdrive(s["data_dir"])[0]
+    statvfs = os.statvfs(s["simap_dir"])
+    available_space = statvfs.f_frsize * statvfs.f_bavail
+    size = available_space / 1073741824
     # print initial hard-drive space
-    size = utils.get_free_space(data_harddrive, byteformat)
-    logging.info('Hard disk remaining space = {}'.format(size))
+    logging.info('Hard disk remaining space = {:.2f} GB'.format(size))
+
 
     #iterate over each uniprot record contained in the dataframe. note that acc = uniprot accession number
     number_of_files_not_found = 0
     for acc in df.index:
         # check hand-drive space before each download
         try:
-            size = utils.get_free_space(data_harddrive, byteformat)
-            if size[0] < 5:
+            statvfs = os.statvfs(s["simap_dir"])
+            available_space = statvfs.f_frsize * statvfs.f_bavail
+            size = available_space / 1073741824
+            if size < 5:
                 raise utils.HardDriveSpaceException("Hard drive space limit reached, there is only %s %s space left." % (size[0], size[1]))
         except utils.HardDriveSpaceException as e:
             logging.warning(e)
