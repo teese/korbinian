@@ -93,7 +93,7 @@ def setup_file_locations_in_df(s, pathdict):
     ########################################################################################
     df['first_two_letters_of_uniprot_acc'] = df['protein_name'].str[0:2]
 
-    simap_dir = os.path.join(s["data_dir"], "simap")
+    simap_dir = s["simap_dir"]
     utils.make_sure_path_exists(simap_dir)
     homol_dir = os.path.join(s["data_dir"], "homol")
     utils.make_sure_path_exists(homol_dir)
