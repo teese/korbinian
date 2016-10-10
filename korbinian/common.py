@@ -3,6 +3,7 @@ import json
 import korbinian
 import korbinian.utils as utils
 import logging
+import logging.config # not a duplicate, avoids logging error.
 import os
 import pandas as pd
 import platform
