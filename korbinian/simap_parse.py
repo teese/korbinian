@@ -62,23 +62,27 @@ def run_parse_simap_to_csv(pathdict, s, logging):
         with Pool(processes=n_processes) as pool:
             parse_simap_list = pool.map(parse_SIMAP_to_csv, list_p)
         # log the list of protein results to the actual logfile, not just the console
-        df_parsed = pd.DataFrame(parse_simap_list)
-        df_parsed.set_index(0, inplace=True)
-        df_parsed.index.name = "acc"
-        df_parsed.columns = ["finished", "error"]
-        not_finished_df = df_parsed.loc[df_parsed.finished == False]
-        finished_df = df_parsed.loc[df_parsed.finished == True]
-        if not not_finished_df.empty:
-            logging.info("\nparse_SIMAP_to_csv proteins not finished :\n\n{}\n".format(df_parsed.loc[df_parsed.finished == False]))
-        if not finished_df.empty:
-            logging.info("\nparse_SIMAP_to_csv proteins finished correctly:\n\n{}\n".format(df_parsed.loc[df_parsed.finished == True]))
-        df_parsed["not_in_database"] = df_parsed.error.str.contains("not in simap database")
-        new_acc_not_in_db_list = list(df_parsed.loc[df_parsed["not_in_database"]].index)
-        new_acc_not_in_db_nr_set = set(new_acc_not_in_db_list) - set(acc_not_in_homol_db)
-        # add accession number to the list of failed downloads
-        with open(pathdict["acc_not_in_homol_db_txt"], "a") as source:
-            for acc in new_acc_not_in_db_nr_set:
-                source.write("\n{}".format(acc))
+        try:
+            df_parsed = pd.DataFrame(parse_simap_list)
+            df_parsed.set_index(0, inplace=True)
+            df_parsed.index.name = "acc"
+            df_parsed.columns = ["finished", "error"]
+            not_finished_df = df_parsed.loc[df_parsed.finished == False]
+            finished_df = df_parsed.loc[df_parsed.finished == True]
+            if not not_finished_df.empty:
+                logging.info("\nparse_SIMAP_to_csv proteins not finished :\n\n{}\n".format(df_parsed.loc[df_parsed.finished == False]))
+            if not finished_df.empty:
+                logging.info("\nparse_SIMAP_to_csv proteins finished correctly:\n\n{}\n".format(df_parsed.loc[df_parsed.finished == True]))
+            df_parsed["not_in_database"] = df_parsed.error.str.contains("not in simap database")
+            new_acc_not_in_db_list = list(df_parsed.loc[df_parsed["not_in_database"]].index)
+            new_acc_not_in_db_nr_set = set(new_acc_not_in_db_list) - set(acc_not_in_homol_db)
+            # add accession number to the list of failed downloads
+            with open(pathdict["acc_not_in_homol_db_txt"], "a") as source:
+                for acc in new_acc_not_in_db_nr_set:
+                    source.write("\n{}".format(acc))
+        except TypeError:
+            logging.info(parse_simap_list)
+            print("TypeError, parse_simap_list is not a list of 3-item tuples for some reason.")
     else:
         for p in list_p:
             parse_SIMAP_to_csv(p)
@@ -295,8 +299,7 @@ def parse_SIMAP_to_csv(p):
                             except IndexError:
                                 hit_contains_protein_node = False
                                 number_of_hits_missing_protein_node += 1
-                                logging.warning('%s hit %s contains no protein node' % (protein_name,
-                                                                                        match_details_dict['md5']))
+                                logging.warning('%s hit %s contains no protein node' % (protein_name, match_details_dict['md5']))
                             if hit_contains_protein_node:
                                 try:
                                     smithWatermanAlignment_node = hit[0][0][14]
