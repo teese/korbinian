@@ -72,6 +72,7 @@ def download_homologues_from_simap(pathdict, s, logging):
     java_exec_str = s["java_exec_str"]
     max_memory_allocation = s["java_max_RAM_memory_allocated_to_simap_download"]
     taxid = s["taxid"]  # eg.'7227' for Drosophila melanogaster
+    # HARD_DRIVE STUFF GIVES AN ERROR IN MAC
     byteformat = "GB"
     data_harddrive = os.path.splitdrive(s["data_dir"])[0]
     # print initial hard-drive space
