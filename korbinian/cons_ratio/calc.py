@@ -109,6 +109,8 @@ def calc_AAIMON(TMD, df_cr, len_query_TMD, mean_ser):
     mean_ser['%s_AAIMON_ratio_std' % TMD] = df_cr['%s_AAIMON_ratio' % TMD].std()
     mean_ser['%s_AASMON_ratio_mean' % TMD] = df_cr['%s_AASMON_ratio' % TMD].mean()
     mean_ser['%s_AASMON_ratio_std' % TMD] = df_cr['%s_AASMON_ratio' % TMD].std()
+    # calculate the number of homologues used to measure the AAIMON ratio
+    mean_ser['%s_AAIMON_n_homol' % TMD] = df_cr['%s_AAIMON_ratio' % TMD].dropna().shape[0]
 
     ########################################################################################
     #                                                                                      #

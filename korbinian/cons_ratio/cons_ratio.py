@@ -261,5 +261,3 @@ def calculate_AAIMON_ratios(p):
         zipout.write(mean_ser_filename, arcname=mean_ser_filename)
         os.remove(mean_ser_filename)
         return acc, True, "0"
-
-
