@@ -53,8 +53,6 @@ def run_parse_simap_to_csv(pathdict, s, logging):
     # create list of protein dictionaries to process
     list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging, list_excluded_acc=acc_not_in_homol_db)
 
-    for p in list_p:
-        list_of_TMDs = p["list_of_TMDs"]
     # number of processes is the number the settings, or the number of proteins, whichever is smallest
     n_processes = s["multiprocessing_cores"] if s["multiprocessing_cores"] < len(list_p) else len(list_p)
 
