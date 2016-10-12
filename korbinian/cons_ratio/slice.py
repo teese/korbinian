@@ -112,7 +112,7 @@ def slice_TMD_1_prot_from_homol(p):
     """
     pathdict, s, logging = p["pathdict"], p["s"], p["logging"]
     acc = p["acc"]
-    sys.stdout.write("{}, ".format(acc))
+    sys.stdout.write("{} ".format(acc))
     sys.stdout.flush()
     protein_name = p['protein_name']
     if not os.path.exists(p['homol_df_orig_zip']):
@@ -267,6 +267,11 @@ def slice_TMD_1_prot_from_homol(p):
             return acc, False, warning
 
         df_nonTMD_sliced = korbinian.cons_ratio.slice.slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs)
+        if df_nonTMD_sliced.empty:
+            warning = "{} df_nonTMD_sliced is empty, probably this means no homologues contain all TMDs".format(acc)
+            logging.warning(warning)
+            #skip protein
+            return acc, False, warning
 
         df_nonTMD_temp_pickle = os.path.join(homol_dir, "{}_nonTMD_sliced_df.pickle".format(protein_name))
         with open(df_nonTMD_temp_pickle, "wb") as f:
@@ -463,6 +468,11 @@ def slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs):
 
         # drop any homologues where not all TMDs were fould in the match
         df_nonTMD_sliced.query('all_tmds_in_SW_alignment == True', inplace=True)
+        if df_nonTMD_sliced.empty:
+            # there are no homologues with all TMDs in the Smith Waterman alignment
+            # return an empty dataframe
+            return pd.DataFrame()
+
         # filter to contain only hits where the index for the TMD is present
         first_TMD_start_index = '%s_start_in_SW_alignment' % list_of_TMDs[0]
 
