@@ -44,6 +44,7 @@ def calculate_gap_densities(pathdict, s, logging):
 
     # iterate through each protein that has a list_of_TMDs
     for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
+        protein_name = df.loc[acc, "protein_name"]
 
         # The next steps (the main analysis) is only executed, if previous analysis can be overwritten or no analysis has yet been done
         if (overwrite_previous_gap_analysis == True) or (df.loc[acc,"gaps_analysed"] != True):
@@ -54,7 +55,10 @@ def calculate_gap_densities(pathdict, s, logging):
             #if os.path.exists(df.loc[acc,'output_tarfile_path']):
             #if os.path.exists(df.loc[acc, 'homol_gap_nums_zip']):
 
-            analysed_df = utils.open_df_from_csv_zip(df.loc[acc,'homol_df_orig_zip'])
+
+
+            #analysed_df = utils.open_df_from_csv_zip(df.loc[acc,'homol_df_orig_zip'])
+            analysed_df = utils.open_df_from_pickle_zip(df.loc[acc, 'homol_df_orig_zip'], filename=os.path.basename(df.loc[acc, 'homol_df_orig_pickle']), delete_corrupt=True)
 
             ## opens the analysed csv for each protein and loads it into a dataframe
             #    #with tarfile.open(df.loc[acc,'output_tarfile_path'], mode= 'r:gz')as tar:
@@ -79,8 +83,12 @@ def calculate_gap_densities(pathdict, s, logging):
 
             # for each TMD in the proteins, creates new lists which will contain gappositions, lists are saved in a column and created again for each tmd
             for tmd in list_of_TMDs:
-                tmd_int = int(tmd[-2:]) # Integer of TMD number
-                len_of_query = len(analysed_df["%s_SW_query_seq"%tmd][1]) # Length of first query sequence, which does (usually) not contain any gaps
+                # open the dataframe containing the sequences, gap counts, etc for that TMD only
+                df_s1 = utils.open_df_from_pickle_zip(df.loc[acc, 'fa_cr_sliced_TMDs_zip'], filename="{}_{}_sliced_df.pickle".format(protein_name, tmd), delete_corrupt=True)
+
+                #len_of_query = len(df_s1["%s_SW_query_seq"%tmd][1]) # Length of first query sequence, which does (usually) not contain any gaps
+                # Length of query TM sequence
+                len_of_query = len(df.loc[acc, "%s_seq" % tmd])
                 len_of_query_reversed= ((1/len_of_query)+1) # Reversed length, important if TMD needs to be reversed afterwards
                 list_of_gaps_in_tmd = []
                 list_of_gaps_intracellular = []
@@ -97,8 +105,8 @@ def calculate_gap_densities(pathdict, s, logging):
                     # if two gaps occur one after another: only one position (between two amino acids is considered)
 
                     # Filter to make sure, that there are 1 or 2 gaps in the query sequence and up to the max allowed gaps in the match
-                    if (analysed_df.loc[hit,"%s_SW_query_num_gaps"%tmd] != 0.0) and (analysed_df.loc[hit,"%s_SW_query_num_gaps"%tmd] <= 2.0)\
-                        and (analysed_df.loc[hit,"%s_SW_match_num_gaps"%tmd] <= int("%s"%allowed_gaps_per_tmd)):
+                    if (df_s1.loc[hit,"%s_SW_query_num_gaps"%tmd] != 0.0) and (df_s1.loc[hit,"%s_SW_query_num_gaps"%tmd] <= 2.0)\
+                        and (df_s1.loc[hit,"%s_SW_match_num_gaps"%tmd] <= int("%s"%allowed_gaps_per_tmd)):
 
                         # Stores the endpoints in a temp list; endpoints are used, to switch from python indices to numbers
                         list_of_gaps_per_hit_in_query = [m.start() for m in re.finditer("-",analysed_df.loc[hit,"%s_SW_query_seq"%tmd]) if m.start()]
@@ -130,12 +138,12 @@ def calculate_gap_densities(pathdict, s, logging):
 
 
                     # Filter to make sure, that there are 1 or 2 gaps in the match sequence and up to the max allowed gaps in the query
-                    if (analysed_df.loc[hit,"%s_SW_query_num_gaps"%tmd] <=2.0) and (analysed_df.loc[hit,"%s_SW_match_num_gaps"%tmd] <= 2.0)\
-                        and (analysed_df.loc[hit,"%s_SW_match_num_gaps"%tmd] != 0.0):
+                    if (df_s1.loc[hit,"%s_SW_query_num_gaps"%tmd] <=2.0) and (df_s1.loc[hit,"%s_SW_match_num_gaps"%tmd] <= 2.0)\
+                        and (df_s1.loc[hit,"%s_SW_match_num_gaps"%tmd] != 0.0):
 
                         # It's not sure that the list of hits in query was already determined, maybe there were no gaps, anyway here it is important how many
-                        list_of_gaps_per_hit_in_query = [m.start() for m in re.finditer("-",analysed_df.loc[hit,"%s_SW_query_seq"%tmd]) if m.start()]
-                        list_of_gaps_per_hit_in_match = [m.start() for m in re.finditer("-",analysed_df.loc[hit,"%s_SW_match_seq"%tmd])if m.start()]
+                        list_of_gaps_per_hit_in_query = [m.start() for m in re.finditer("-",df_s1.loc[hit,"%s_SW_query_seq"%tmd]) if m.start()]
+                        list_of_gaps_per_hit_in_match = [m.start() for m in re.finditer("-",df_s1.loc[hit,"%s_SW_match_seq"%tmd])if m.start()]
                         #print (list_of_gaps_per_hit_in_query)
                         #print (list_of_gaps_per_hit_in_match)
 
@@ -154,15 +162,20 @@ def calculate_gap_densities(pathdict, s, logging):
                     ### The data will already be flipped in order to align extracellular and intracellular parts, extracellular: + , intracellular: -
 
                     # juxta before_odd_TMDs:
+                    if "SP01" in list_of_TMDs:
+                        return ValueError ("The gap analysis is not currently designed for proteins with signal peptides.")
 
-                    if utils.isOdd(tmd_int)==True:  # also für 1 , 3 ...
+                    tmd_int = int(tmd[-2:])  # Integer of TMD number
+                    if utils.isOdd(tmd_int) == True:  # also für 1 , 3 ...
 
-
+                        # list of gap indices
+                        print("seq_juxta_before_%s_in_query" % tmd)
+                        print("seq_juxta_before_%s_in_query" % tmd)
                         # makes sure that the search is done in a string
-                        if type(analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int])== str:
+                        if type(df_s1.loc[hit,"seq_juxta_before_%s_in_query"%tmd]) == str:
 
-                            # list of gap indices
-                            list_of_gaps_in_query_before_odd = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int][::-1])if m.start()+0.5 < 31]
+
+                            list_of_gaps_in_query_before_odd = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_%s_in_query"%tmd][::-1])if m.start()+0.5 < 31]
 
                             # if one gap is found, code checks location and appends it
                             if len (list_of_gaps_in_query_before_odd)==1:
@@ -194,11 +207,11 @@ def calculate_gap_densities(pathdict, s, logging):
                                             rev_value = n
 
 
-                            if type(analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_match"%tmd_int])== str:
+                            if type(analysed_df.loc[hit,"seq_juxta_before_%s_in_match"%tmd])== str:
                             # Makes a list of gaps of the match of the odd juxta before the TMD
-                                list_of_gaps_in_query_before_odd = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int][::-1])if m.start() < 32]
+                                list_of_gaps_in_query_before_odd = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_%s_in_query"%tmd][::-1])if m.start() < 32]
 
-                                list_of_gaps_in_match_before_odd = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_match"%tmd_int][::-1])if m.start() < 32]
+                                list_of_gaps_in_match_before_odd = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_%s_in_match"%tmd][::-1])if m.start() < 32]
                                 # This step is essential, to control, if there is a gap before, in the query region
                                 for n in list(reversed(list_of_gaps_in_match_before_odd)):
                                     greater_values = sum(i< n for i in list_of_gaps_in_query_before_odd)
@@ -210,9 +223,9 @@ def calculate_gap_densities(pathdict, s, logging):
 
                             # juxta after odd TMDs:
 
-                            if type(analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int])== str:
+                            if type(analysed_df.loc[hit,"seq_juxta_after_%s_in_query"%tmd])== str:
 
-                                list_of_gaps_in_query_after_odd = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int])if m.start()+0.5 < 31]
+                                list_of_gaps_in_query_after_odd = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_%s_in_query"%tmd])if m.start()+0.5 < 31]
 
                                 # if one gap is found, code checks location and appends it
                                 if len (list_of_gaps_in_query_after_odd)==1:
@@ -278,10 +291,10 @@ def calculate_gap_densities(pathdict, s, logging):
                         # juxta before even TMDs:
 
                         # makes sure that the search is done in a string
-                            if type(analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int])== str:
+                            if type(analysed_df.loc[hit,"seq_juxta_before_%s_in_query"%tmd])== str:
 
                                 # list of gap indices
-                                list_of_gaps_in_query_before_even = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int])if m.start()+0.5 < 31]
+                                list_of_gaps_in_query_before_even = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_%s_in_query"%tmd])if m.start()+0.5 < 31]
 
                                 # if one gap is found, code checks location and appends it
                                 if len (list_of_gaps_in_query_before_even)==1:
@@ -312,11 +325,11 @@ def calculate_gap_densities(pathdict, s, logging):
                                                 following_gap = following_gap+1
                                                 rev_value = n
 
-                            if type(analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_match"%tmd_int])== str:
+                            if type(analysed_df.loc[hit,"seq_juxta_before_%s_in_match"%tmd])== str:
                             # Makes a list of gaps of the match of the odd juxta before the TMD
-                                list_of_gaps_in_query_before_even = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_query"%tmd_int])if m.start()+0.5 < 31]
+                                list_of_gaps_in_query_before_even = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_%s_in_query"%tmd])if m.start()+0.5 < 31]
 
-                                list_of_gaps_in_match_before_even = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_TM%.2d_in_match"%tmd_int])if m.start() < 31]
+                                list_of_gaps_in_match_before_even = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_before_%s_in_match"%tmd])if m.start() < 31]
 
                                 for n in list(reversed(list_of_gaps_in_match_before_even)):
                                     greater_values = sum(i< n for i in list_of_gaps_in_query_before_even)
@@ -329,9 +342,9 @@ def calculate_gap_densities(pathdict, s, logging):
 
                             # juxta after even TMDs:
 
-                            if type(analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int])== str:
+                            if type(analysed_df.loc[hit,"seq_juxta_after_%s_in_query"%tmd])== str:
 
-                                list_of_gaps_in_query_after_even = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int][::-1]) if m.start()+0.5 < 31]
+                                list_of_gaps_in_query_after_even = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_%s_in_query"%tmd][::-1]) if m.start()+0.5 < 31]
 
                                 # if one gap is found, code checks location and appends it
                                 if len (list_of_gaps_in_query_after_even)==1:
@@ -364,10 +377,10 @@ def calculate_gap_densities(pathdict, s, logging):
 
                                            # Makes a list of gaps of the match of the odd juxta before the TMD
 
-                            if type(analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_match"%tmd_int])== str and type(analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int])==str:
+                            if type(analysed_df.loc[hit,"seq_juxta_after_%s_in_match"%tmd])== str and type(analysed_df.loc[hit,"seq_juxta_after_%s_in_query"%tmd])==str:
 
-                                list_of_gaps_in_query_after_even = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_query"%tmd_int][::-1])if m.start()+0.5 < 31]
-                                list_of_gaps_in_match_after_even = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_TM%.2d_in_match"%tmd_int][::-1])if m.start() < 31]
+                                list_of_gaps_in_query_after_even = [m.start()+0.5 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_%s_in_query"%tmd][::-1])if m.start()+0.5 < 31]
+                                list_of_gaps_in_match_after_even = [m.start()+1 for m in re.finditer("-",analysed_df.loc[hit,"seq_juxta_after_%s_in_match"%tmd][::-1])if m.start() < 31]
 
                                 for n in list(reversed(list_of_gaps_in_match_after_even)):
                                     greater_values = sum(i< n for i in list_of_gaps_in_query_after_even)
