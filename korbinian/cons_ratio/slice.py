@@ -234,6 +234,11 @@ def slice_TMD_1_prot_from_homol(p):
         df_TMD = pd.DataFrame()
         for TMD in list_of_TMDs:
             query_TMD_sequence = p['%s_seq' % TMD]
+            if type(query_TMD_sequence) == float:
+                warning = "{} {} query_TMD_sequence is np.nan! skipping protein.".format(acc, TMD)
+                logging.warning(warning)
+                # skip protein
+                return acc, False, warning
             ## SHOULD NOT BE NECESSARY. OMPdb DATABASE NOW FIXED TO AVOID NAN VALUES IN TM_SEQ
             # if isinstance(query_TMD_sequence, float):
             #     warning = "{} {} query_TMD_sequence is a float ({}), probably np.nan.".format(acc, TMD, query_TMD_sequence)
