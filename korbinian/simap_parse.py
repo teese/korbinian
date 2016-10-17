@@ -422,7 +422,7 @@ def parse_SIMAP_to_csv(p):
                     df_homol['disallowed_words_not_in_descr'] = df_homol['list_disallowed_words_in_descr'] == '[]'
 
                     # check if there are non-IUPAC amino acids in the sequence (frequently large gaps from NG sequencing data)
-                    df_homol['X_in_match_seq'] = 'X' in df_homol['match_align_seq']
+                    df_homol['X_in_match_seq'] = df_homol['match_align_seq'].str.contains("X")
 
                     # restrict to just a few columns including the align_pretty that might be useful to check manually
                     df_pretty = df_homol[["FASTA_gapped_identity", "organism", "description", "align_pretty"]]

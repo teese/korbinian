@@ -83,8 +83,8 @@ if __name__ == "__main__":
         korbinian.prot_list.uniprot_nonredundant.create_nonred_uniprot_flatfile_via_uniref(s, uniprot_dir_sel, list_number, selected_uniprot_records_flatfile, logging)
 
     if s["run_parse_large_flatfile_with_list_uniprot_accessions"]:
-        input_accession_list = os.path.join(s["data_dir"], "uniprot", "selected", "List{:02d}_uniprot_accessions.txt".format(list_number))
-        korbinian.prot_list.uniprot_retrieve.parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, uniprot_dir_sel, list_number, logging, selected_uniprot_records_flatfile)
+        input_accession_list_path = os.path.join(s["data_dir"], "uniprot", "selected", "List{:02d}_uniprot_accessions.txt".format(list_number))
+        korbinian.prot_list.uniprot_retrieve.parse_large_flatfile_with_list_uniprot_accessions(input_accession_list_path, uniprot_dir_sel, list_number, logging, selected_uniprot_records_flatfile)
 
     if s["run_retrieve_uniprot_data_for_acc_list_in_xlsx_file"]:
         input_uniprot_flatfile = "needs to be defined if you use this function!"
