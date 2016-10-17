@@ -2493,9 +2493,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
 
     # add a column indicating that save_figures_describing_proteins_in_list has been run
-    df["save_figures_describing_proteins_in_list"] = True
+    # df["save_figures_describing_proteins_in_list"] = True
     '''
     save the updated dataframe, containing the various extra columns used for the figure
     '''
-    df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+    # df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
     logging.info('run_save_figures_describing_proteins_in_list is finished')
