@@ -1,5 +1,6 @@
-
+import ast
 import csv
+import numpy as np
 import os
 import korbinian.utils as utils
 import pandas as pd
@@ -21,6 +22,13 @@ def gather_AAIMON_ratios(pathdict, logging):
         mean_ser_filename = "{}_cr_mean.csv".format(protein_name)
         mean_ser = utils.open_df_from_csv_zip(df.loc[acc, 'homol_cr_ratios_zip'], filename=mean_ser_filename)
         dfg = pd.concat([dfg,mean_ser], axis=1)
+
+    # iterate through the proteins that have a list of TMDs
+    for acc in df.loc[df['list_of_TMDs'].notnull()].df.loc[df['list_of_TMDs'] != 'nan'].index:
+        dict_AAIMON_ratio_mean = {}
+        for TMD in ast.literal_eval(df.loc[acc, 'list_of_TMDs']):
+            dict_AAIMON_ratio_mean[TMD] = df.loc[acc, '%s_AAIMON_ratio_mean' % TMD]
+        df.loc[acc, 'AAIMON_ratio_mean_all_TMDs'] = np.mean(list(dict_AAIMON_ratio_mean.values()))
 
     dfg.T.to_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
     logging.info("~~~~~~~~~~~~        gather_AAIMON_ratios is finished         ~~~~~~~~~~~~")
