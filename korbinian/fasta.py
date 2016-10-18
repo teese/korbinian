@@ -146,7 +146,7 @@ def filter_and_save_fasta(p):
 
         # if "X" is allowed in the full sequence, check if X is in the selected sequence
         if s["fa_X_allowed_in_full_seq"] == True:
-            df_fa['X_in_%s'%TMD] = 'X' in df_fa['%s_SW_match_seq'%TMD]
+            df_fa['X_in_%s'%TMD] = df_fa['%s_SW_match_seq'%TMD].str.contains("X")
             fa_X_allowed_in_sel_seq = s["fa_X_allowed_in_sel_seq"]
             fa_X_filt_sel_str = " and X_in_%s == False"%TMD if fa_X_allowed_in_sel_seq == False else ""
         else:
