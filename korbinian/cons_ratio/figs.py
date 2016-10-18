@@ -31,7 +31,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     '''
     Prepare data for following figures
     '''
-    df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
+    df = pd.read_csv(pathdict["list_cr_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
     # if "uniprot_acc" in df.columns:
     #     df.set_index("uniprot_acc", drop=False, inplace=True)
     # else:
@@ -53,7 +53,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     All these are excluded from the dataset (and all following graphs). Note that it would be better to exactly count the valid homologues, rather than exclude them afterwards like this.
     '''
     # iterate through the proteins that have a list of TMDs
-    for acc in df.loc[df['list_of_TMDs'].notnull()].df.loc[df['list_of_TMDs'] != 'nan'].index:
+    for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
         dict_AAIMON_ratio_mean = {}
         dict_AAIMON_ratio_std = {}
         dict_AASMON_ratio_mean = {}
@@ -301,10 +301,12 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # if a new figure should be created (either because the orig is full, or the last TMD is analysed)
     fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi=300)
     # for backwards compatibility, check for old name.
-    if 'number_of_TMDs' in df.columns:
-        x = np.array(df['number_of_TMDs'])
-    else:
-        x = np.array(df['number_of_TMDs'])
+    # commented out by MO - assumed that it is not needed
+    # if 'number_of_TMDs' in df.columns:
+    #     x = np.array(df['number_of_TMDs'])
+    # else:
+    #     x = np.array(df['number_of_TMDs'])
+    x = np.array(df['number_of_TMDs'])
     y = np.array(df['AAIMON_ratio_mean_all_TMDs'])
     scattercontainer_AAIMON_AASMON_std = axarr[row_nr, col_nr].scatter(x=x, y=y, color="#0489B1", alpha=alpha,
                                                                        s=datapointsize)
@@ -404,8 +406,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # if a new figure should be created (either because the orig is full, or the last TMD is analysed)
     fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi=300)
     # pylab.rcParams['figure.figsize'] = (100.0, 80.0)
-    x = np.array(df['total_number_of_simap_hits'])
-    y = np.array(df['AAIMON_ratio_mean_all_TMDs'])
+    # commented out as data for total_number_of_simap_hits is currently not available
+    # x = np.array(df['total_number_of_simap_hits'])
+    # y = np.array(df['AAIMON_ratio_mean_all_TMDs'])
     scattercontainer_AAIMON_AASMON_std = axarr[row_nr, col_nr].scatter(x=x, y=y, color="#0489B1", alpha=alpha,
                                                                        s=datapointsize)
     # label the x-axis for each plot, based on the TMD
@@ -2493,9 +2496,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # save the figure if necessary (i.e., if the maximum number of plots per figure has been obtained)
 
     # add a column indicating that save_figures_describing_proteins_in_list has been run
-    df["save_figures_describing_proteins_in_list"] = True
+    # df["save_figures_describing_proteins_in_list"] = True
     '''
     save the updated dataframe, containing the various extra columns used for the figure
     '''
-    df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+    # df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
     logging.info('run_save_figures_describing_proteins_in_list is finished')

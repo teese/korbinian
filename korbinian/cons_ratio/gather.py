@@ -1,5 +1,6 @@
-
+import ast
 import csv
+import numpy as np
 import os
 import korbinian.utils as utils
 import pandas as pd
@@ -22,6 +23,26 @@ def gather_AAIMON_ratios(pathdict, logging):
         mean_ser = utils.open_df_from_csv_zip(df.loc[acc, 'homol_cr_ratios_zip'], filename=mean_ser_filename)
         dfg = pd.concat([dfg,mean_ser], axis=1)
 
-    dfg.T.to_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+    # transpose dataframe dfg
+    dfg = dfg.T
+
+    # iterate through the proteins that have a list of TMDs
+    for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
+        dict_AAIMON_ratio_mean = {}
+        for TMD in ast.literal_eval(dfg.loc[acc, 'list_of_TMDs']):
+            dict_AAIMON_ratio_mean[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_mean' % TMD]
+        dfg.loc[acc, 'AAIMON_ratio_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_mean.values()))))
+
+    # count the number of TMDs for each protein
+    for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
+        dfg.loc[acc, 'number_of_TMDs'] = len(dfg.loc[acc, 'list_of_TMDs'].split(','))
+
+    # add sequence length to dfg
+    for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
+        dfg.loc[acc, 'seqlen'] = df.loc[acc, 'seqlen']
+
+
+
+    dfg.to_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
     logging.info("~~~~~~~~~~~~        gather_AAIMON_ratios is finished         ~~~~~~~~~~~~")
 

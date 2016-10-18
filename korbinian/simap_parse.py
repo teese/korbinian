@@ -53,8 +53,6 @@ def run_parse_simap_to_csv(pathdict, s, logging):
     # create list of protein dictionaries to process
     list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging, list_excluded_acc=acc_not_in_homol_db)
 
-    for p in list_p:
-        list_of_TMDs = p["list_of_TMDs"]
     # number of processes is the number the settings, or the number of proteins, whichever is smallest
     n_processes = s["multiprocessing_cores"] if s["multiprocessing_cores"] < len(list_p) else len(list_p)
 
@@ -62,6 +60,7 @@ def run_parse_simap_to_csv(pathdict, s, logging):
         with Pool(processes=n_processes) as pool:
             parse_simap_list = pool.map(parse_SIMAP_to_csv, list_p)
         # log the list of protein results to the actual logfile, not just the console
+        logging.info(parse_simap_list)
         try:
             df_parsed = pd.DataFrame(parse_simap_list)
             df_parsed.set_index(0, inplace=True)
@@ -80,9 +79,9 @@ def run_parse_simap_to_csv(pathdict, s, logging):
             with open(pathdict["acc_not_in_homol_db_txt"], "a") as source:
                 for acc in new_acc_not_in_db_nr_set:
                     source.write("\n{}".format(acc))
-        except TypeError:
+        except (TypeError, IndexError):
             logging.info(parse_simap_list)
-            print("TypeError, parse_simap_list is not a list of 3-item tuples for some reason.")
+            print("TypeError, IndexError, parse_simap_list is not a list of 3-item tuples for some reason.")
     else:
         for p in list_p:
             parse_SIMAP_to_csv(p)
@@ -196,7 +195,10 @@ def parse_SIMAP_to_csv(p):
                         logging.info(message)
                         return acc, False, message
                 except:
-                    pass
+                    message = "{} XML could not be opened".format(acc)
+                    logging.info(message)
+                    return acc, False, message
+
                 try:
                     p['SIMAP_created'] = simap_homologue_root[0][0][0][0][2][1][0].attrib["created"]
 
@@ -424,7 +426,7 @@ def parse_SIMAP_to_csv(p):
                     df_homol['disallowed_words_not_in_descr'] = df_homol['list_disallowed_words_in_descr'] == '[]'
 
                     # check if there are non-IUPAC amino acids in the sequence (frequently large gaps from NG sequencing data)
-                    df_homol['X_in_match_seq'] = 'X' in df_homol['match_align_seq']
+                    df_homol['X_in_match_seq'] = df_homol['match_align_seq'].str.contains("X")
 
                     # restrict to just a few columns including the align_pretty that might be useful to check manually
                     df_pretty = df_homol[["FASTA_gapped_identity", "organism", "description", "align_pretty"]]
