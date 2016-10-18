@@ -60,6 +60,7 @@ def run_parse_simap_to_csv(pathdict, s, logging):
         with Pool(processes=n_processes) as pool:
             parse_simap_list = pool.map(parse_SIMAP_to_csv, list_p)
         # log the list of protein results to the actual logfile, not just the console
+        logging.info(parse_simap_list)
         try:
             df_parsed = pd.DataFrame(parse_simap_list)
             df_parsed.set_index(0, inplace=True)
@@ -78,9 +79,9 @@ def run_parse_simap_to_csv(pathdict, s, logging):
             with open(pathdict["acc_not_in_homol_db_txt"], "a") as source:
                 for acc in new_acc_not_in_db_nr_set:
                     source.write("\n{}".format(acc))
-        except TypeError:
+        except (TypeError, IndexError):
             logging.info(parse_simap_list)
-            print("TypeError, parse_simap_list is not a list of 3-item tuples for some reason.")
+            print("TypeError, IndexError, parse_simap_list is not a list of 3-item tuples for some reason.")
     else:
         for p in list_p:
             parse_SIMAP_to_csv(p)
@@ -194,7 +195,10 @@ def parse_SIMAP_to_csv(p):
                         logging.info(message)
                         return acc, False, message
                 except:
-                    pass
+                    message = "{} XML could not be opened".format(acc)
+                    logging.info(message)
+                    return acc, False, message
+
                 try:
                     p['SIMAP_created'] = simap_homologue_root[0][0][0][0][2][1][0].attrib["created"]
 
