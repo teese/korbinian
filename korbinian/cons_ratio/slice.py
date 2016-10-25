@@ -128,6 +128,12 @@ def slice_TMD_1_prot_from_homol(p):
 
     list_of_TMDs = ast.literal_eval(p['list_of_TMDs'])
 
+    # create a boolean "p_is_multipass" to show whether protein is multipass (>1TMD) or singlepass (1TMD)
+    if "TM02" in list_of_TMDs:
+        p_is_multipass = True
+    else:
+        p_is_multipass = False
+
     # create counter for number of TMDs with some homologue data
     n_TMDs_w_homol = 0
     fa_cr_sliced_TMDs_zip = p['fa_cr_sliced_TMDs_zip']
@@ -155,6 +161,7 @@ def slice_TMD_1_prot_from_homol(p):
 
         # add the FASTA_gapped_identity and length of the alignment sequence from dfs, to act as the "end" of all the nonTMD regions
         df_nonTMD_sliced = dfs[['len_query_align_seq']].copy()
+
         # start with an empty dataframe, that will be replaced if there is any data to analyse
         df_TMD = pd.DataFrame()
         for TMD in list_of_TMDs:
@@ -175,7 +182,7 @@ def slice_TMD_1_prot_from_homol(p):
                 logging.warning(warning)
                 # skip TMD, as number_of_rows_containing_data == 0
                 # here I really should skip the protein too. It's tempting to use goto :). "from goto import goto" (http://entrian.com/goto/)
-                continue
+                return acc, False, warning
             n_TMDs_w_homol += 1
             # transfer the columns with indices across to the df_nonTMD_sliced
             cols = ['%s_in_SW_alignment' % TMD, '%s_start_in_SW_alignment' % TMD, '%s_end_in_SW_alignment' % TMD]
@@ -190,7 +197,21 @@ def slice_TMD_1_prot_from_homol(p):
             sys.stdout.write(".")
             sys.stdout.flush()
 
-            if s["slice_juxtamembrane_regions"]:
+        if df_TMD.empty:
+            # skip protein, as number_of_rows_containing_data == 0 for at least one TMD (or at least the last TMD)
+            warning = "{} skipped, number_of_rows_containing_data == 0 for at least one TMD".format(acc)
+            logging.info(warning)
+            return acc, False, warning
+
+        df_nonTMD_sliced = korbinian.cons_ratio.slice.slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs)
+        if df_nonTMD_sliced.empty:
+            warning = "{} df_nonTMD_sliced is empty, probably this means no homologues contain all TMDs".format(acc)
+            logging.warning(warning)
+            #skip protein
+            return acc, False, warning
+
+        if s["slice_juxtamembrane_regions"]:
+            for TMD in list_of_TMDs:
                 ########################################################################################
                 #                                                                                      #
                 #        Define juxtamembrane regions associated with each TMD  [AAIMON]               #
@@ -198,6 +219,13 @@ def slice_TMD_1_prot_from_homol(p):
                 ########################################################################################
                 # convert the tuple of (True, 32, 53) into separate dataframes.
                 # http://stackoverflow.com/questions/29550414/how-to-split-column-of-tuples-in-pandas-dataframe
+
+                if p_is_multipass:
+                    next_TMD = "TM{}".format(int(TMD[2:]) + 1)
+                    prev_TMD = "TM{}".format(int(TMD[2:]) - 1)
+                    #df_next_TMD = df_TMD = korbinian.cons_ratio.slice.slice_1_TMD_from_homol(acc, next_TMD, query_TMD_sequence, dfs, s, logging)
+                    #if TMD != "TM01":
+                    #    df_prev_TMD = df_TMD = korbinian.cons_ratio.slice.slice_1_TMD_from_homol(acc, prev_TMD, query_TMD_sequence, dfs, s, logging)
 
                 last_TMD_of_acc = list_of_TMDs[-1]
 
@@ -213,13 +241,7 @@ def slice_TMD_1_prot_from_homol(p):
                         # if there is only one TMD (search for TM02 rather than measuring length of list, in case of signal peptides)
                         print(list_of_TMDs)
                         print(df_TMD.columns)
-                        if "TM02" not in list_of_TMDs:
-                            # if there is only one TMD, TM01 == last_TMD_of_acc
-                            # @RJ replace with dfs['end_juxta_after_TM01'] = dfs['len_query_align_seq'] and use dropna to avoid nans later?
-                            dfs['end_juxta_after_TM01'] = np.where(utils.isNaN(dfs['start_juxta_after_TM01']) == True, np.nan, dfs['len_query_align_seq'])
-                        else:
-                            next_TM = "TM{}".format(int(TMD[2:]) + 1)
-                            prev_TM = "TM{}".format(int(TMD[2:]) - 1)
+                        if p_is_multipass:
                             # open up the dataframes of the next and previous TMD
 
                             utils.aaa(dfs)
@@ -229,11 +251,16 @@ def slice_TMD_1_prot_from_homol(p):
 
                             # RJ original
                             ## problem('dfs["TM02_start_in_SW_alignment"] cannot exist yet, because the script iterates through the TMDs one at a time')
-                            #dfs['end_juxta_after_TM01'] = dfs["TM01_end_in_SW_alignment"] + ((dfs["TM02_start_in_SW_alignment"] - dfs["TM01_end_in_SW_alignment"]) / 2).apply(lambda x: int(x) if not np.isnan(x) else np.nan)
+                            # dfs['end_juxta_after_TM01'] = dfs["TM01_end_in_SW_alignment"] + ((dfs["TM02_start_in_SW_alignment"] - dfs["TM01_end_in_SW_alignment"]) / 2).apply(lambda x: int(x) if not np.isnan(x) else np.nan)
 
                             # RJ commented out
                             # dfs['seq_juxta_after_TM01_in_query'] = dfs[dfs['start_juxta_after_TM01'].notnull()].apply(utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
                             # dfs['seq_juxta_after_TM01_in_match'] = dfs[dfs['end_juxta_after_TM01'].notnull()].apply(utils.slice_juxta_after_TMD_in_match, args = (TMD,), axis=1)
+
+                        else:
+                            # if there is only one TMD, TM01 == last_TMD_of_acc
+                            # @RJ replace with dfs['end_juxta_after_TM01'] = dfs['len_query_align_seq'] and use dropna to avoid nans later?
+                            dfs['end_juxta_after_TM01'] = np.where(utils.isNaN(dfs['start_juxta_after_TM01']) == True, np.nan, dfs['len_query_align_seq'])
 
                     # the analysis is slow, so don't repeat TM01 if there is only one TM helix in the protein
                     if "TM02" in list_of_TMDs:
@@ -283,18 +310,7 @@ def slice_TMD_1_prot_from_homol(p):
                                                                                     int(dfs.loc[hit, "start_juxta_after_%s" % TMD]):int(
                                                                                         dfs.loc[hit, "end_juxta_after_%s" % TMD])]
 
-        if df_TMD.empty:
-            # skip protein, as number_of_rows_containing_data == 0 for at least one TMD (or at least the last TMD)
-            warning = "{} skipped, number_of_rows_containing_data == 0 for at least one TMD".format(acc)
-            logging.info(warning)
-            return acc, False, warning
 
-        df_nonTMD_sliced = korbinian.cons_ratio.slice.slice_nonTMD_seqs(dfs, df_nonTMD_sliced, list_of_TMDs)
-        if df_nonTMD_sliced.empty:
-            warning = "{} df_nonTMD_sliced is empty, probably this means no homologues contain all TMDs".format(acc)
-            logging.warning(warning)
-            #skip protein
-            return acc, False, warning
 
         df_nonTMD_temp_pickle = os.path.join(homol_dir, "{}_nonTMD_sliced_df.pickle".format(protein_name))
         with open(df_nonTMD_temp_pickle, "wb") as f:
