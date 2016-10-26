@@ -101,11 +101,11 @@ def filter_and_save_fasta(p):
     #                                                                                      #
     ########################################################################################
 
-    fa_X_filt_full_str = " and X_in_match_seq == False" if s["fa_X_allowed_in_full_seq"] == False else ""
+    fa_X_filt_full_str = " & X_in_match_seq == False" if s["fa_X_allowed_in_full_seq"] == False else ""
 
-    fa_homol_query_str = 'FASTA_gapped_identity > {min_ident} and ' \
-                        'FASTA_gapped_identity < {max_ident} and ' \
-                        'hit_contains_SW_node == True and ' \
+    fa_homol_query_str = 'FASTA_gapped_identity > {min_ident} & ' \
+                        'FASTA_gapped_identity < {max_ident} & ' \
+                        'hit_contains_SW_node == True & ' \
                         'disallowed_words_not_in_descr == True' \
                         '{Xfull}'.format(Xfull=fa_X_filt_full_str, min_ident=s["fa_min_identity_of_full_protein"], max_ident=s["fa_max_identity_of_full_protein"])
 
@@ -148,7 +148,7 @@ def filter_and_save_fasta(p):
         if s["fa_X_allowed_in_full_seq"] == True:
             df_fa['X_in_%s'%TMD] = df_fa['%s_SW_match_seq'%TMD].str.contains("X")
             fa_X_allowed_in_sel_seq = s["fa_X_allowed_in_sel_seq"]
-            fa_X_filt_sel_str = " and X_in_%s == False"%TMD if fa_X_allowed_in_sel_seq == False else ""
+            fa_X_filt_sel_str = " & X_in_%s == False"%TMD if fa_X_allowed_in_sel_seq == False else ""
         else:
             fa_X_filt_sel_str = ""
 
@@ -163,35 +163,13 @@ def filter_and_save_fasta(p):
         ## %s_SW_m_seq_len calculate the length of the match TMD seq (including gaps)
         #df_fa['%s_SW_m_seq_len' % TMD] = df_fa['%s_SW_match_seq' % TMD].str.len()
 
-        '''re-filter the original dataframe to create another copy with the desired sequences
-        note that some values were added after filtering in the last round,
-        but all were added to the dataframe df_fa, not the copy df_fa_filt
-
-        fa_query_filt_str = 'fa_ident_above_cutoff == True and ' \ # aa identity above cutoff
-                            'fa_ident_below_cutoff == True and '\ # aa identity below cutoff
-                             'hit_contains_SW_node == True and '\ # homologue file is not missing data
-                             'disallowed_words_not_in_descr == True'\ # not a patent
-                             '{TMD}_SW_query_num_gaps <= {fa_max_n_gaps_in_query_TMD}' and \ # not too many gaps in query
-                             '{TMD}_SW_match_num_gaps <= {fa_max_n_gaps_in_match_TMD}' \ # not too many gaps in match
-                             '{TMD}_SW_m_seq_len > 1' \ # smith waterman match sequence length longer than 1
-                             '{Xfull}' \ # acceptable number of X in full protein
-                             '{Xsel} # acceptable number of X in selection region of protein
-        '''
-
-        fa_query_filt_str =  '{TMD}_SW_query_num_gaps <= {fa_max_n_gaps_in_query_TMD} and ' \
+        # create string for the pandas.query syntax
+        fa_query_filt_str =  '{TMD}_SW_query_num_gaps <= {fa_max_n_gaps_in_query_TMD} & ' \
                              '{TMD}_SW_match_num_gaps <= {fa_max_n_gaps_in_match_TMD}' \
                              '{Xsel}'.format(TMD=TMD, Xsel=fa_X_filt_sel_str, fa_max_n_gaps_in_query_TMD=s["fa_max_n_gaps_in_query_TMD"],
                                              fa_max_n_gaps_in_match_TMD=s["fa_max_n_gaps_in_match_TMD"])
-
+        # filter based on TMD-specific features
         df_fa.query(fa_query_filt_str, inplace=True)
-
-        # # and the same for the TMD + surrounding sequence, useful to examine the TMD interface
-        # df_fa['%s_SW_query_seq_plus_surr'%TMD] = df_fa_fa[df_fa_fa['%s_start_in_SW_alignment_plus_surr'%TMD].notnull()].apply(
-        #     utils.slice_SW_query_TMD_seq_plus_surr, args=(TMD,), axis=1)
-        # df_fa['%s_SW_markup_seq_plus_surr'%TMD] = df_fa_fa[df_fa_fa['%s_start_in_SW_alignment_plus_surr'%TMD].notnull()].apply(
-        #     utils.slice_SW_markup_TMD_plus_surr, args=(TMD,), axis=1)
-        # df_fa['%s_SW_match_seq_plus_surr'%TMD] = df_fa_fa[df_fa_fa['%s_start_in_SW_alignment_plus_surr'%TMD].notnull()].apply(
-        #     utils.slice_SW_match_TMD_seq_plus_surr, args=(TMD,), axis=1)
 
         # setup the file names again. Note that the file should already exist, and the query sequence included.
         if s["save_fasta_plus_surr"] == True:
