@@ -128,6 +128,12 @@ def slice_TMD_1_prot_from_homol(p):
 
     list_of_TMDs = ast.literal_eval(p['list_of_TMDs'])
 
+    # create a boolean "p_is_multipass" to show whether protein is multipass (>1TMD) or singlepass (1TMD)
+    if "TM02" in list_of_TMDs:
+        p_is_multipass = True
+    else:
+        p_is_multipass = False
+
     # create counter for number of TMDs with some homologue data
     n_TMDs_w_homol = 0
     fa_cr_sliced_TMDs_zip = p['fa_cr_sliced_TMDs_zip']
@@ -155,6 +161,7 @@ def slice_TMD_1_prot_from_homol(p):
 
         # add the FASTA_gapped_identity and length of the alignment sequence from dfs, to act as the "end" of all the nonTMD regions
         df_nonTMD_sliced = dfs[['len_query_align_seq']].copy()
+
         # start with an empty dataframe, that will be replaced if there is any data to analyse
         df_TMD = pd.DataFrame()
         for TMD in list_of_TMDs:
@@ -175,7 +182,7 @@ def slice_TMD_1_prot_from_homol(p):
                 logging.warning(warning)
                 # skip TMD, as number_of_rows_containing_data == 0
                 # here I really should skip the protein too. It's tempting to use goto :). "from goto import goto" (http://entrian.com/goto/)
-                continue
+                return acc, False, warning
             n_TMDs_w_homol += 1
             # transfer the columns with indices across to the df_nonTMD_sliced
             cols = ['%s_in_SW_alignment' % TMD, '%s_start_in_SW_alignment' % TMD, '%s_end_in_SW_alignment' % TMD]
@@ -190,99 +197,6 @@ def slice_TMD_1_prot_from_homol(p):
             sys.stdout.write(".")
             sys.stdout.flush()
 
-            if s["slice_juxtamembrane_regions"]:
-                ########################################################################################
-                #                                                                                      #
-                #        Define juxtamembrane regions associated with each TMD  [AAIMON]               #
-                #                                                                                      #
-                ########################################################################################
-                # convert the tuple of (True, 32, 53) into separate dataframes.
-                # http://stackoverflow.com/questions/29550414/how-to-split-column-of-tuples-in-pandas-dataframe
-
-                last_TMD_of_acc = list_of_TMDs[-1]
-
-                if s["slice_juxtamembrane_regions"] == True:
-                    if TMD == "TM01":
-                        # np.where syntax: np.where(boolean_query, value_if_query_true, value_if_query_false)
-                        # @RJ, If TM01_start_in_SW_alignment is not an integer above 0, replaces with np.nan?
-                        dfs['start_juxta_before_TM01'] = np.where(dfs['TM01_start_in_SW_alignment'] > 0, 0, np.nan)
-                        # if the TM01_start_in_SW_alignment is 0, there is no JM region N-terminal to the TMD, therefore replace end_juxta_before_TM01 with np.nan, otherwise use TM01_start_in_SW_alignment
-                        dfs['end_juxta_before_TM01'] = np.where(dfs['TM01_start_in_SW_alignment'] == 0, np.nan, dfs['TM01_start_in_SW_alignment'])
-                        # set the start of the juxta as the end of the TMD
-                        dfs['start_juxta_after_TM01'] = dfs['TM01_end_in_SW_alignment']
-                        # if there is only one TMD (search for TM02 rather than measuring length of list, in case of signal peptides)
-                        print(list_of_TMDs)
-                        print(df_TMD.columns)
-                        if "TM02" not in list_of_TMDs:
-                            # if there is only one TMD, TM01 == last_TMD_of_acc
-                            # @RJ replace with dfs['end_juxta_after_TM01'] = dfs['len_query_align_seq'] and use dropna to avoid nans later?
-                            dfs['end_juxta_after_TM01'] = np.where(utils.isNaN(dfs['start_juxta_after_TM01']) == True, np.nan, dfs['len_query_align_seq'])
-                        else:
-                            next_TM = "TM{}".format(int(TMD[2:]) + 1)
-                            prev_TM = "TM{}".format(int(TMD[2:]) - 1)
-                            # open up the dataframes of the next and previous TMD
-
-                            utils.aaa(dfs)
-                            # define the end_juxta_after_TM01 as the TM01 end + half of the TM01_to_TM02 JM region
-                            # NOTE, due to np.nan this is a float. will be converted to integers later
-                            dfs['end_juxta_after_TM01'] = dfs["TM01_end_in_SW_alignment"] + ((dfs["TM02_start_in_SW_alignment"] - dfs["TM01_end_in_SW_alignment"]) / 2)
-
-                            # RJ original
-                            ## problem('dfs["TM02_start_in_SW_alignment"] cannot exist yet, because the script iterates through the TMDs one at a time')
-                            #dfs['end_juxta_after_TM01'] = dfs["TM01_end_in_SW_alignment"] + ((dfs["TM02_start_in_SW_alignment"] - dfs["TM01_end_in_SW_alignment"]) / 2).apply(lambda x: int(x) if not np.isnan(x) else np.nan)
-
-                            # RJ commented out
-                            # dfs['seq_juxta_after_TM01_in_query'] = dfs[dfs['start_juxta_after_TM01'].notnull()].apply(utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
-                            # dfs['seq_juxta_after_TM01_in_match'] = dfs[dfs['end_juxta_after_TM01'].notnull()].apply(utils.slice_juxta_after_TMD_in_match, args = (TMD,), axis=1)
-
-                    # the analysis is slow, so don't repeat TM01 if there is only one TM helix in the protein
-                    if "TM02" in list_of_TMDs:
-                        if not TMD == "TM01" and not TMD == last_TMD_of_acc:
-                            utils.aaa(dfs)
-                            aoeio
-                            dfs = juxta_function_1(dfs, TMD)
-                            # dfs['start_juxta_after_%s'%TMD] = np.where(utils.isNaN(dfs['TM%.2d_start_in_SW_alignment'%(int(TMD[2:])+1)])==True,np.nan,dfs['%s_end_in_SW_alignment'%TMD])
-                            # dfs['end_juxta_before_%s'%TMD] = np.where(dfs["%s_start_in_SW_alignment"%TMD]!=0,dfs["%s_start_in_SW_alignment"%TMD],np.nan)
-                            # dfs['end_juxta_after_%s'%TMD] = dfs["%s_end_in_SW_alignment"%TMD]+((dfs["TM%.2d_start_in_SW_alignment"%(int(TMD[2:])+1)]-dfs["%s_end_in_SW_alignment"%TMD])/2).apply(lambda x :int(x) if not np.isnan(x) else np.nan)
-                            # dfs['start_juxta_before_%s'%TMD] = np.where(dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)] == dfs['end_juxta_before_%s'%TMD] ,dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)],dfs["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)])
-                            # dfs['seq_juxta_after_%s_in_query'%TMD] = dfs[dfs['start_juxta_after_%s'%TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
-                            # dfs['seq_juxta_after_%s_in_match'%TMD] = dfs[dfs['end_juxta_after_%s'%TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_match, args = (TMD,), axis=1)
-
-                        if TMD == last_TMD_of_acc:
-                            dfs['start_juxta_before_%s' % TMD] = dfs['end_juxta_after_TM%.2d' % (int(TMD[2:]) - 1)]
-                            dfs['end_juxta_before_%s' % TMD] = dfs['%s_start_in_SW_alignment' % TMD]
-                            dfs['start_juxta_after_%s' % TMD] = np.where(
-                                dfs['%s_end_in_SW_alignment' % TMD] == dfs['len_query_align_seq'], np.nan,
-                                dfs['%s_end_in_SW_alignment' % TMD])
-                            dfs['end_juxta_after_%s' % TMD] = np.where(utils.isNaN(dfs['start_juxta_after_%s' % TMD]) == True, np.nan,
-                                                                       dfs['len_query_align_seq'])
-                            # dfs['seq_juxta_after_%s_in_query'%TMD] = dfs[dfs['start_juxta_after_%s'%TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
-                            # dfs['seq_juxta_after_%s_in_query'%TMD] = dfs.query_align_seq[int(dfs['start_juxta_after_TM10']):int(dfs['end_juxta_after_TM10'])]
-                            # dfs['seq_juxta_after_%s_in_match'%TMD] =
-
-                    last_TMD_of_acc = list_of_TMDs[-1]
-                    dfs['seq_juxta_before_%s_in_query' % TMD] = dfs[dfs['start_juxta_before_%s' % TMD].notnull()].apply(
-                        utils.slice_juxta_before_TMD_in_query, args=(TMD,), axis=1)
-                    dfs['seq_juxta_before_%s_in_match' % TMD] = dfs[dfs['start_juxta_before_%s' % TMD].notnull()].apply(
-                        utils.slice_juxta_before_TMD_in_match, args=(TMD,), axis=1)
-                    if not TMD == last_TMD_of_acc:
-                        dfs['seq_juxta_after_%s_in_query' % TMD] = dfs[dfs['end_juxta_after_%s' % TMD].notnull()].apply(
-                            utils.slice_juxta_after_TMD_in_query, args=(TMD,), axis=1)
-                        dfs['seq_juxta_after_%s_in_match' % TMD] = dfs[dfs['end_juxta_after_%s' % TMD].notnull()].apply(
-                            utils.slice_juxta_after_TMD_in_match, args=(TMD,), axis=1)
-                    else:
-                        dfs['seq_juxta_after_%s_in_query' % TMD] = np.nan
-                        dfs['seq_juxta_after_%s_in_match' % TMD] = np.nan
-                        for hit in dfs.index:
-                            if not utils.isNaN(dfs['start_juxta_after_%s' % TMD])[hit]:
-                                # altered to .loc rather than ['seq_juxta_after_%s_in_match'%TMD][hit] after SettingWithCopyWarning
-                                dfs.loc[hit, 'seq_juxta_after_%s_in_match' % TMD] = dfs.match_align_seq[hit][
-                                                                                    int(dfs.loc[hit, "start_juxta_after_%s" % TMD]):int(
-                                                                                        dfs.loc[hit, "end_juxta_after_%s" % TMD])]
-                                dfs.loc[hit, 'seq_juxta_after_%s_in_query' % TMD] = dfs.query_align_seq[hit][
-                                                                                    int(dfs.loc[hit, "start_juxta_after_%s" % TMD]):int(
-                                                                                        dfs.loc[hit, "end_juxta_after_%s" % TMD])]
-
         if df_TMD.empty:
             # skip protein, as number_of_rows_containing_data == 0 for at least one TMD (or at least the last TMD)
             warning = "{} skipped, number_of_rows_containing_data == 0 for at least one TMD".format(acc)
@@ -295,6 +209,122 @@ def slice_TMD_1_prot_from_homol(p):
             logging.warning(warning)
             #skip protein
             return acc, False, warning
+
+        if s["slice_juxtamembrane_regions"] == True:
+            for TMD in list_of_TMDs:
+                ########################################################################################
+                #                                                                                      #
+                #        Define juxtamembrane regions associated with each TMD  [AAIMON]               #
+                #                                                                                      #
+                ########################################################################################
+                # convert the tuple of (True, 32, 53) into separate dataframes.
+                # http://stackoverflow.com/questions/29550414/how-to-split-column-of-tuples-in-pandas-dataframe
+
+                if p_is_multipass:
+                    next_TMD = "TM{}".format(int(TMD[2:]) + 1)
+                    prev_TMD = "TM{}".format(int(TMD[2:]) - 1)
+                    #df_next_TMD = df_TMD = korbinian.cons_ratio.slice.slice_1_TMD_from_homol(acc, next_TMD, query_TMD_sequence, dfs, s, logging)
+                    #if TMD != "TM01":
+                    #    df_prev_TMD = df_TMD = korbinian.cons_ratio.slice.slice_1_TMD_from_homol(acc, prev_TMD, query_TMD_sequence, dfs, s, logging)
+
+                last_TMD_of_acc = list_of_TMDs[-1]
+
+                if TMD == "TM01":
+                    # np.where syntax: np.where(boolean_query, value_if_query_true, value_if_query_false)
+                    # @RJ, If TM01_start_in_SW_alignment is not an integer above 0, replaces with np.nan?
+                    df_nonTMD_sliced['start_juxta_before_TM01'] = np.where(df_nonTMD_sliced['TM01_start_in_SW_alignment'] > 0, 0, np.nan)
+                    # if the TM01_start_in_SW_alignment is 0, there is no JM region N-terminal to the TMD, therefore replace end_juxta_before_TM01 with np.nan, otherwise use TM01_start_in_SW_alignment
+                    df_nonTMD_sliced['end_juxta_before_TM01'] = np.where(df_nonTMD_sliced['TM01_start_in_SW_alignment'] == 0, np.nan, df_nonTMD_sliced['TM01_start_in_SW_alignment'])
+                    # set the start of the juxta as the end of the TMD
+                    df_nonTMD_sliced['start_juxta_after_TM01'] = df_nonTMD_sliced['TM01_end_in_SW_alignment']
+                    # if there is only one TMD (search for TM02 rather than measuring length of list, in case of signal peptides)
+                    if p_is_multipass:
+                        # open up the dataframes of the next and previous TMD
+                        # define the end_juxta_after_TM01 as the TM01 end + half of the TM01_to_TM02 JM region
+                        # NOTE, due to np.nan this is a float. will be converted to integers later
+                        df_nonTMD_sliced['end_juxta_after_TM01'] = df_nonTMD_sliced["TM01_end_in_SW_alignment"] + ((df_nonTMD_sliced["TM02_start_in_SW_alignment"] - df_nonTMD_sliced["TM01_end_in_SW_alignment"]) / 2)
+
+                        # RJ original
+                        ## problem('df_nonTMD_sliced["TM02_start_in_SW_alignment"] cannot exist yet, because the script iterates through the TMDs one at a time')
+                        # df_nonTMD_sliced['end_juxta_after_TM01'] = df_nonTMD_sliced["TM01_end_in_SW_alignment"] + ((df_nonTMD_sliced["TM02_start_in_SW_alignment"] - df_nonTMD_sliced["TM01_end_in_SW_alignment"]) / 2).apply(lambda x: int(x) if not np.isnan(x) else np.nan)
+
+                        # RJ commented out
+                        # df_nonTMD_sliced['seq_juxta_after_TM01_in_query'] = df_nonTMD_sliced[df_nonTMD_sliced['start_juxta_after_TM01'].notnull()].apply(utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
+                        # df_nonTMD_sliced['seq_juxta_after_TM01_in_match'] = df_nonTMD_sliced[df_nonTMD_sliced['end_juxta_after_TM01'].notnull()].apply(utils.slice_juxta_after_TMD_in_match, args = (TMD,), axis=1)
+
+                    else:
+                        # if there is only one TMD, TM01 == last_TMD_of_acc
+                        # @RJ replace with df_nonTMD_sliced['end_juxta_after_TM01'] = df_nonTMD_sliced['len_query_align_seq'] and use dropna to avoid nans later?
+                        df_nonTMD_sliced['end_juxta_after_TM01'] = np.where(utils.isNaN(df_nonTMD_sliced['start_juxta_after_TM01']) == True, np.nan, df_nonTMD_sliced['len_query_align_seq'])
+
+                # the analysis is slow, so don't repeat TM01 if there is only one TM helix in the protein
+                if "TM02" in list_of_TMDs:
+                    if not TMD == "TM01" and not TMD == last_TMD_of_acc:
+                        utils.aaa(df_nonTMD_sliced)
+                        df_nonTMD_sliced = juxta_function_1(df_nonTMD_sliced, TMD)
+                        # df_nonTMD_sliced['start_juxta_after_%s'%TMD] = np.where(utils.isNaN(df_nonTMD_sliced['TM%.2d_start_in_SW_alignment'%(int(TMD[2:])+1)])==True,np.nan,df_nonTMD_sliced['%s_end_in_SW_alignment'%TMD])
+                        # df_nonTMD_sliced['end_juxta_before_%s'%TMD] = np.where(df_nonTMD_sliced["%s_start_in_SW_alignment"%TMD]!=0,df_nonTMD_sliced["%s_start_in_SW_alignment"%TMD],np.nan)
+                        # df_nonTMD_sliced['end_juxta_after_%s'%TMD] = df_nonTMD_sliced["%s_end_in_SW_alignment"%TMD]+((df_nonTMD_sliced["TM%.2d_start_in_SW_alignment"%(int(TMD[2:])+1)]-df_nonTMD_sliced["%s_end_in_SW_alignment"%TMD])/2).apply(lambda x :int(x) if not np.isnan(x) else np.nan)
+                        # df_nonTMD_sliced['start_juxta_before_%s'%TMD] = np.where(df_nonTMD_sliced["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)] == df_nonTMD_sliced['end_juxta_before_%s'%TMD] ,df_nonTMD_sliced["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)],df_nonTMD_sliced["end_juxta_after_TM%.2d"%(int(TMD[2:])-1)])
+                        # df_nonTMD_sliced['seq_juxta_after_%s_in_query'%TMD] = df_nonTMD_sliced[df_nonTMD_sliced['start_juxta_after_%s'%TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
+                        # df_nonTMD_sliced['seq_juxta_after_%s_in_match'%TMD] = df_nonTMD_sliced[df_nonTMD_sliced['end_juxta_after_%s'%TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_match, args = (TMD,), axis=1)
+
+                    if TMD == last_TMD_of_acc:
+                        df_nonTMD_sliced['start_juxta_before_%s' % TMD] = df_nonTMD_sliced['end_juxta_after_TM%.2d' % (int(TMD[2:]) - 1)]
+                        df_nonTMD_sliced['end_juxta_before_%s' % TMD] = df_nonTMD_sliced['%s_start_in_SW_alignment' % TMD]
+                        df_nonTMD_sliced['start_juxta_after_%s' % TMD] = np.where(
+                            df_nonTMD_sliced['%s_end_in_SW_alignment' % TMD] == df_nonTMD_sliced['len_query_align_seq'], np.nan,
+                            df_nonTMD_sliced['%s_end_in_SW_alignment' % TMD])
+                        df_nonTMD_sliced['end_juxta_after_%s' % TMD] = np.where(utils.isNaN(df_nonTMD_sliced['start_juxta_after_%s' % TMD]) == True, np.nan,
+                                                                   df_nonTMD_sliced['len_query_align_seq'])
+                        # df_nonTMD_sliced['seq_juxta_after_%s_in_query'%TMD] = df_nonTMD_sliced[df_nonTMD_sliced['start_juxta_after_%s'%TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
+                        # df_nonTMD_sliced['seq_juxta_after_%s_in_query'%TMD] = df_nonTMD_sliced.query_align_seq[int(df_nonTMD_sliced['start_juxta_after_TM10']):int(df_nonTMD_sliced['end_juxta_after_TM10'])]
+                        # df_nonTMD_sliced['seq_juxta_after_%s_in_match'%TMD] =
+
+                last_TMD_of_acc = list_of_TMDs[-1]
+                index_juxta = df_nonTMD_sliced['start_juxta_before_%s' % TMD].notnull().index
+                q = np.array(dfs.loc[index_juxta, "query_align_seq"])
+                st = np.array(df_nonTMD_sliced.loc[index_juxta, 'start_juxta_before_%s' % TMD])
+                st = st.astype(int)
+                en = np.array(df_nonTMD_sliced.loc[index_juxta, 'end_juxta_before_%s' % TMD])
+                en = en.astype(int)
+                q_sliced = [q[i][st[i]:en[i]] for i in range(len(q))]
+                df_nonTMD_sliced['seq_juxta_before_%s_in_query' % TMD] = pd.Series(q_sliced, index=index_juxta)
+                m = np.array(dfs.loc[index_juxta, "match_align_seq"])
+                m_sliced = [m[i][st[i]:en[i]] for i in range(len(m))]
+                df_nonTMD_sliced['seq_juxta_before_%s_in_match' % TMD] = pd.Series(m_sliced, index=index_juxta)
+
+                #df_nonTMD_sliced['seq_juxta_before_%s_in_query' % TMD] = df_nonTMD_sliced[df_nonTMD_sliced['start_juxta_before_%s' % TMD].notnull()].apply(utils.slice_juxta_before_TMD_in_query, args=(TMD,), axis=1)
+                #df_nonTMD_sliced['seq_juxta_before_%s_in_match' % TMD] = df_nonTMD_sliced[df_nonTMD_sliced['start_juxta_before_%s' % TMD].notnull()].apply(utils.slice_juxta_before_TMD_in_match, args=(TMD,), axis=1)
+                if not TMD == last_TMD_of_acc:
+                    index_juxta = df_nonTMD_sliced['end_juxta_after_%s' % TMD].notnull().index
+                    st = np.array(df_nonTMD_sliced.loc[index_juxta, 'start_juxta_after_%s' % TMD])
+                    st = st.astype(int)
+                    en = np.array(df_nonTMD_sliced.loc[index_juxta, 'end_juxta_after_%s' % TMD])
+                    en = en.astype(int)
+                    q_sliced = [q[i][st[i]:en[i]] for i in range(len(q))]
+                    df_nonTMD_sliced['seq_juxta_after_%s_in_query' % TMD] = pd.Series(q_sliced, index=index_juxta)
+                    m_sliced = [m[i][st[i]:en[i]] for i in range(len(m))]
+                    df_nonTMD_sliced['seq_juxta_after_%s_in_match' % TMD] = pd.Series(m_sliced, index=index_juxta)
+                    #df_nonTMD_sliced['seq_juxta_after_%s_in_query' % TMD] = df_nonTMD_sliced[df_nonTMD_sliced['end_juxta_after_%s' % TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_query, args=(TMD,), axis=1)
+                    #df_nonTMD_sliced['seq_juxta_after_%s_in_match' % TMD] = df_nonTMD_sliced[df_nonTMD_sliced['end_juxta_after_%s' % TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_match, args=(TMD,), axis=1)
+                else:
+                    index_juxta = df_nonTMD_sliced['start_juxta_after_%s' % TMD].notnull().index
+                    st = np.array(df_nonTMD_sliced.loc[index_juxta, 'start_juxta_after_%s' % TMD])
+                    st = st.astype(int)
+                    en = np.array(df_nonTMD_sliced.loc[index_juxta, 'end_juxta_after_%s' % TMD])
+                    en = en.astype(int)
+                    q_sliced = [q[i][st[i]:en[i]] for i in range(len(q))]
+                    df_nonTMD_sliced['seq_juxta_after_%s_in_query' % TMD] = pd.Series(q_sliced, index=index_juxta)
+                    m_sliced = [m[i][st[i]:en[i]] for i in range(len(m))]
+                    df_nonTMD_sliced['seq_juxta_after_%s_in_match' % TMD] = pd.Series(m_sliced, index=index_juxta)
+                    # df_nonTMD_sliced['seq_juxta_after_%s_in_query' % TMD] = np.nan
+                    # df_nonTMD_sliced['seq_juxta_after_%s_in_match' % TMD] = np.nan
+                    # for hit in df_nonTMD_sliced.index:
+                    #     if not utils.isNaN(df_nonTMD_sliced['start_juxta_after_%s' % TMD])[hit]:
+                    #         # altered to .loc rather than ['seq_juxta_after_%s_in_match'%TMD][hit] after SettingWithCopyWarning
+                    #         df_nonTMD_sliced.loc[hit, 'seq_juxta_after_%s_in_match' % TMD] = df_nonTMD_sliced.match_align_seq[hit][int(df_nonTMD_sliced.loc[hit, "start_juxta_after_%s" % TMD]):int(df_nonTMD_sliced.loc[hit, "end_juxta_after_%s" % TMD])]
+                    #         df_nonTMD_sliced.loc[hit, 'seq_juxta_after_%s_in_query' % TMD] = df_nonTMD_sliced.query_align_seq[hit][int(df_nonTMD_sliced.loc[hit, "start_juxta_after_%s" % TMD]):int(df_nonTMD_sliced.loc[hit, "end_juxta_after_%s" % TMD])]
 
         df_nonTMD_temp_pickle = os.path.join(homol_dir, "{}_nonTMD_sliced_df.pickle".format(protein_name))
         with open(df_nonTMD_temp_pickle, "wb") as f:
@@ -606,8 +636,8 @@ def juxta_function_1(dfs, TMD):
     -------
 
     """
-    next_TM = "TM{}".format(int(TMD[2:]) + 1)
-    prev_TM = "TM{}".format(int(TMD[2:])-1)
+    next_TM = "TM{:02d}".format(int(TMD[2:]) + 1)
+    prev_TM = "TM{:02d}".format(int(TMD[2:])-1)
 
     dfs['start_juxta_after_%s'%TMD] = np.where(utils.isNaN(dfs['{}_start_in_SW_alignment'.format(next_TM)]) == True, np.nan, dfs['%s_end_in_SW_alignment'%TMD])
 
