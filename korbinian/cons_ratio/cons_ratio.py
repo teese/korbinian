@@ -114,16 +114,16 @@ def calculate_AAIMON_ratios(p):
     #                                                                                      #
     ########################################################################################
 
-    fa_X_filt_full_str = " and X_in_match_seq == False" if s["fa_X_allowed_in_full_seq"] == False else ""
+    fa_X_filt_full_str = " & X_in_match_seq == False" if s["fa_X_allowed_in_full_seq"] == False else ""
 
-    fa_homol_query_str = 'FASTA_gapped_identity > {min_ident} and ' \
-                        'FASTA_gapped_identity < {max_ident} and ' \
-                        'hit_contains_SW_node == True and ' \
+    cr_homol_query_str = 'FASTA_gapped_identity > {min_ident} & ' \
+                        'FASTA_gapped_identity < {max_ident} & ' \
+                        'hit_contains_SW_node == True & ' \
                         'disallowed_words_not_in_descr == True' \
                         '{Xfull}'.format(Xfull=fa_X_filt_full_str, min_ident=s["cr_min_identity_of_full_protein"], max_ident=s["cr_max_identity_of_full_protein"])
 
     # filter based on the query string
-    dfh.query(fa_homol_query_str, inplace=True)
+    dfh.query(cr_homol_query_str, inplace=True)
 
     #Calculate fasta values, add to mean_ser output series for each protein.
     # The mean fasta identity of homologues should almost always be around the centre of the min and max in the settings.
