@@ -4,6 +4,7 @@ import pickle
 import zipfile
 import korbinian
 import korbinian.cons_ratio.calc
+import korbinian.cons_ratio.norm
 import korbinian.utils as utils
 import matplotlib.pyplot as plt
 import numpy as np
@@ -159,6 +160,14 @@ def calculate_AAIMON_ratios(p):
     #                                                                                      #
     ########################################################################################
     df_nonTMD, mean_ser = korbinian.cons_ratio.calc.calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser)
+
+    ########################################################################################
+    #                                                                                      #
+    #                        normalize AAIMON ratio for far homologues                     #
+    #                                                                                      #
+    ########################################################################################
+    dfh['norm_factor'] = dfh['FASTA_gapped_identity'].apply(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor, args=())
+    print(acc, dfh.columns)
 
     with zipfile.ZipFile(homol_cr_ratios_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
 
