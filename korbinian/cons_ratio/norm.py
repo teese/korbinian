@@ -46,7 +46,7 @@ def create_graph_for_norm_factor():
     ser = pd.Series(arr)
     norms = calc_AAIMON_aa_prop_norm_factor(ser)
 
-    fig, ax = plt.subplots()
+#    fig, ax = plt.subplots()
 #    ax.plot(norms)
 #    ax.set_xticklabels(arr, fontsize=10)
 
@@ -64,7 +64,7 @@ def create_graph_for_norm_factor():
     layout = go.Layout(
         autosize=True,
         yaxis=dict(
-            title='Normalization factor',
+            title='normalization factor',
             titlefont=dict(
                 size=20,
                 color='black'
@@ -91,4 +91,11 @@ def create_graph_for_norm_factor():
 #create_graph_for_norm_factor()
 
 
-# def create_graph_for_normalized_AAIMON():
+def create_graph_for_normalized_AAIMON(acc, norm_AAIMON, per_ident):
+    fig, ax = plt.subplots()
+    ax.plot(norm_AAIMON)
+#    ax.set_xticklabels(per_ident, rotation=45)
+    ax.set_ylabel('normalized AAIMON', fontsize=14)
+    pylab.ylim([0.6, 1.5])
+    fig.savefig(r'C:\Users\coffee oder tee\Dropbox\Thesis Shenger\my_documents\plot_folder\%s_normalized_AAIMON.png' % acc,
+                format="png", dpi=200)
