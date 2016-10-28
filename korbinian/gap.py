@@ -44,8 +44,6 @@ def calculate_gap_densities(p):
 
     df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
 
-    print("n_term_ec in columns = ", "n_term_ec" in df.columns)
-
     # # iterate through each protein that has a list_of_TMDs
     # for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
     protein_name = p["protein_name"]
@@ -86,11 +84,35 @@ def calculate_gap_densities(p):
         # filter based on dfh above, for general homologue settings (e.g. % identity of full protein)
         dfnon = dfnon.loc[dfh_filt_index, :]
 
-        if p["n_term_ec"] == False:
-            reverse_tmd = False
-        else:
-            reverse_tmd = True
-        print (reverse_tmd)
+        """ Current code in uniprot_parse
+         # information about location of first non-tmd (extracellular or periplasmic/cytoplasmic)
+            if len(location_of_non_tmds_in_feature_list) > 0:
+                output_dict['loc_start'] = record.features[location_of_non_tmds_in_feature_list[0]][3]
+                output_dict['n_term_ec'] = "Extracellular" in output_dict["loc_start"]
+            else:
+                output_dict['loc_start'] = np.nan
+                output_dict['n_term_ec'] = np.nan
+        """
+
+        # A0A0N0JV36 skipped, D:\Databases\homol\A0\A0A0N0JV36_homol_orig_table.zip not found.
+        # "D:\Schweris\Projects\Programming\Python\scripts\Pycharm_Projects\korbinian\korbinian\gap.py", line
+        # 89, in calculate_gap_densities
+        # if p["n_term_ec"] == False:
+        #     KeyError: 'n_term_ec'
+
+        if "n_term_ec" not in p:
+            if "Topology" in p:
+                # if the first residue is labelled as "inside, I", or "membrane, M"
+                if p["Topology"][0] in ["I", "M"]:
+                    p["n_term_ec"] = False
+                elif p["Topology"][0] == "O":
+                    p["n_term_ec"] = True
+                else:
+                    raise ValueError('p["Topology"][0] not recognized')
+            else:
+                raise ValueError('n_term_ec not available')
+
+        n_term_ec = False if p["n_term_ec"] == False else True
 
         # for each TMD in the proteins, creates new lists which will contain gappositions, lists are saved in a column and created again for each tmd
         for tmd in list_of_TMDs:
@@ -126,7 +148,6 @@ def calculate_gap_densities(p):
 
             df_s1["%s_n_gaps_q_and_m" % tmd] = df_s1["%s_SW_query_num_gaps" % tmd] + df_s1["%s_SW_match_num_gaps" % tmd]
 
-            print(df_s1["%s_SW_query_num_gaps" % tmd].sum(), df_s1["%s_SW_match_num_gaps" % tmd].sum(), df_s1["%s_n_gaps_q_and_m" % tmd].sum())
             min_n_gaps_in_TMD = s["gap_min_n_gaps_in_TMD"]
             max_n_gaps_in_TMD = s["gap_max_n_gaps_in_TMD"]
             # the ax number gaps is  the max number for query or match, x2.
@@ -182,8 +203,6 @@ def calculate_gap_densities(p):
                         # It's not sure that the list of hits in query was already determined, maybe there were no gaps, anyway here it is important how many
                         list_of_gaps_per_hit_in_query = [m.start() for m in re.finditer("-", df_s1.loc[hit, "%s_SW_query_seq" % tmd]) if m.start()]
                         list_of_gaps_per_hit_in_match = [m.start() for m in re.finditer("-", df_s1.loc[hit, "%s_SW_match_seq" % tmd]) if m.start()]
-                        # print (list_of_gaps_per_hit_in_query)
-                        # print (list_of_gaps_per_hit_in_match)
 
                         if len(list_of_gaps_per_hit_in_match) > 0:
                             for n in list(reversed(list_of_gaps_per_hit_in_match)):
@@ -219,7 +238,7 @@ def calculate_gap_densities(p):
 
                         # if one gap is found, code checks location and appends it
                         if len (list_of_gaps_in_query_before_odd)==1:
-                            if reverse_tmd == False:
+                            if n_term_ec == False:
                                 list_of_gaps_intracellular.append(list_of_gaps_in_query_before_odd[0])
                             else:
                                 list_of_gaps_extracellular.append(list_of_gaps_in_query_before_odd[0])
@@ -229,7 +248,7 @@ def calculate_gap_densities(p):
                             rev_value = list_of_gaps_in_query_before_odd[0]
                             for n in list_of_gaps_in_query_before_odd:
                                 if n-following_gap == rev_value:
-                                    if reverse_tmd == False:
+                                    if n_term_ec == False:
                                         list_of_gaps_intracellular.append(n-following_gap)
 
                                         following_gap = following_gap+1
@@ -237,7 +256,7 @@ def calculate_gap_densities(p):
                                         list_of_gaps_extracellular.append(n-following_gap)
                                         following_gap = following_gap+1
                                 else:
-                                    if reverse_tmd == False:
+                                    if n_term_ec == False:
                                         list_of_gaps_intracellular.append(n-following_gap)
                                         following_gap = following_gap+1
                                         rev_value = n
@@ -255,7 +274,7 @@ def calculate_gap_densities(p):
                             # This step is essential, to control, if there is a gap before, in the query region
                             for n in list(reversed(list_of_gaps_in_match_before_odd)):
                                 greater_values = sum(i< n for i in list_of_gaps_in_query_before_odd)
-                                if reverse_tmd== False:
+                                if n_term_ec== False:
                                     list_of_gaps_intracellular.append(n-greater_values)
 
                                 else:
@@ -269,7 +288,7 @@ def calculate_gap_densities(p):
 
                             # if one gap is found, code checks location and appends it
                             if len (list_of_gaps_in_query_after_odd)==1:
-                                if reverse_tmd == False:
+                                if n_term_ec == False:
                                     list_of_gaps_extracellular.append(list_of_gaps_in_query_after_odd[0])
                                 else:
                                     list_of_gaps_intracellular.append(list_of_gaps_in_query_after_odd[0])
@@ -280,14 +299,14 @@ def calculate_gap_densities(p):
                                 rev_value = list_of_gaps_in_query_after_odd[0]
                                 for n in list_of_gaps_in_query_after_odd:
                                     if n+following_gap == rev_value:
-                                        if reverse_tmd == False:
+                                        if n_term_ec == False:
                                             list_of_gaps_extracellular.append(n-following_gap)
                                             following_gap = following_gap+1
                                         else:
                                             list_of_gaps_intracellular.append(n-following_gap)
                                             following_gap = following_gap+1
                                     else:
-                                        if reverse_tmd == False:
+                                        if n_term_ec == False:
                                             list_of_gaps_extracellular.append(n-following_gap)
                                             following_gap = following_gap+1
                                             rev_value = n
@@ -301,7 +320,7 @@ def calculate_gap_densities(p):
                             #
                             #     #if one gap is found, code checks location and appends it
                             #     if len (list_of_gaps_in_query_after_odd)==1:
-                            #        if reverse_tmd == False:
+                            #        if n_term_ec == False:
                             #            list_of_gaps_extracellular.append(list_of_gaps_in_query_after_odd[0])
                             #        else:
                             #            list_of_gaps_intracellular.append(list_of_gaps_in_query_after_odd[0])
@@ -311,14 +330,14 @@ def calculate_gap_densities(p):
                             #        rev_value = list_of_gaps_in_query_after_odd[0]
                             #        for n in list_of_gaps_in_query_after_odd:
                             #            if n+following_gap == rev_value:
-                            #                if reverse_tmd == False:
+                            #                if n_term_ec == False:
                             #     #list_of_gaps_extracellular.append(n-following_gap)
                             #                    following_gap = following_gap+1
                             #                else:
                             #                    list_of_gaps_intracellular.append(n-following_gap)
                             #                    following_gap = following_gap+1
                             #            else:
-                            #                if reverse_tmd == False:
+                            #                if n_term_ec == False:
                             #                    list_of_gaps_extracellular.append(n-following_gap)
                             #                    following_gap = following_gap+1
                             #                    rev_value = n
@@ -338,7 +357,7 @@ def calculate_gap_densities(p):
 
                             # if one gap is found, code checks location and appends it
                             if len (list_of_gaps_in_query_before_even)==1:
-                                if reverse_tmd == False:
+                                if n_term_ec == False:
                                     list_of_gaps_extracellular.append(list_of_gaps_in_query_before_even[0])
                                 else:
                                     list_of_gaps_intracellular.append(list_of_gaps_in_query_before_even[0])
@@ -349,14 +368,14 @@ def calculate_gap_densities(p):
                                 rev_value = list_of_gaps_in_query_before_even[0]
                                 for n in list_of_gaps_in_query_before_even:
                                     if n+following_gap == rev_value:
-                                        if reverse_tmd == False:
+                                        if n_term_ec == False:
                                             list_of_gaps_extracellular.append(n-following_gap)
                                             following_gap = following_gap+1
                                         else:
                                             list_of_gaps_intracellular.append(n-following_gap)
                                             following_gap = following_gap+1
                                     else:
-                                        if reverse_tmd == False:
+                                        if n_term_ec == False:
                                             list_of_gaps_extracellular.append(n-following_gap)
                                             following_gap = following_gap+1
                                             rev_value = n
@@ -373,7 +392,7 @@ def calculate_gap_densities(p):
 
                             for n in list(reversed(list_of_gaps_in_match_before_even)):
                                 greater_values = sum(i< n for i in list_of_gaps_in_query_before_even)
-                                if reverse_tmd== False:
+                                if n_term_ec== False:
                                     list_of_gaps_extracellular.append(n-greater_values)
                                 else:
                                     list_of_gaps_intracellular.append(n-greater_values)
@@ -386,7 +405,7 @@ def calculate_gap_densities(p):
 
                             # if one gap is found, code checks location and appends it
                             if len (list_of_gaps_in_query_after_even)==1:
-                                if reverse_tmd == False:
+                                if n_term_ec == False:
                                     list_of_gaps_intracellular.append(list_of_gaps_in_query_after_even[0])
                                 else:
                                     list_of_gaps_extracellular.append(list_of_gaps_in_query_after_even[0])
@@ -397,14 +416,14 @@ def calculate_gap_densities(p):
                                 rev_value = list_of_gaps_in_query_after_even[0]
                                 for n in list_of_gaps_in_query_after_even:
                                     if n-following_gap == rev_value:
-                                        if reverse_tmd == False:
+                                        if n_term_ec == False:
                                             list_of_gaps_intracellular.append(n-following_gap)
                                             following_gap = following_gap+1
                                         else:
                                             list_of_gaps_extracellular.append(n-following_gap)
                                             following_gap = following_gap+1
                                     else:
-                                        if reverse_tmd == False:
+                                        if n_term_ec == False:
                                             list_of_gaps_intracellular.append(n-following_gap)
                                             following_gap = following_gap+1
                                             rev_value = n
@@ -422,7 +441,7 @@ def calculate_gap_densities(p):
 
                             for n in list(reversed(list_of_gaps_in_match_after_even)):
                                 greater_values = sum(i< n for i in list_of_gaps_in_query_after_even)
-                                if reverse_tmd== False:
+                                if n_term_ec== False:
                                     list_of_gaps_intracellular.append(n-greater_values)
 
                                 else:
@@ -441,9 +460,11 @@ def calculate_gap_densities(p):
             outdict['juxta_%s_extracellular_possible_gappositions'%tmd] = str(unique_list_of_gaps_extracellular)
             outdict['juxta_%s_intracellular_num_gaps'%tmd] = len(unique_list_of_gaps_intracellular)
             outdict['juxta_%s_exracellular_num_gaps'%tmd] = len(unique_list_of_gaps_extracellular)
-            sys.stdout.write("{} outdict is not saved.".format(tmd))
-            sys.stdout.flush()
-            # # At the end, sets analysed to true, this is important to not overwrite
-            # outdict["gaps_analysed"] = "True"
-            # # save to csv
-            # df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+            # sys.stdout.write("{} outdict is not saved.".format(tmd))
+            # sys.stdout.flush()
+
+    return acc, True, "0"
+    # # At the end, sets analysed to true, this is important to not overwrite
+    # outdict["gaps_analysed"] = "True"
+    # # save to csv
+    # df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)

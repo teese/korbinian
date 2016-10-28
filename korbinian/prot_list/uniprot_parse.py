@@ -144,7 +144,7 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
             # count the number of "TRANSMEM" TMDs listed in the feature-list
             output_dict['number_of_TMDs'] = len(location_of_tmds_in_feature_list)
 
-            # information about location of first non-tmd (extracellular or perplasmic/cytoplasmic)
+            # information about location of first non-tmd (extracellular or periplasmic/cytoplasmic)
             if len(location_of_non_tmds_in_feature_list) > 0:
                 output_dict['loc_start'] = record.features[location_of_non_tmds_in_feature_list[0]][3]
                 output_dict['n_term_ec'] = "Extracellular" in output_dict["loc_start"]
