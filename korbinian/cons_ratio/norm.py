@@ -93,7 +93,7 @@ def create_graph_for_norm_factor():
 
 def create_graph_for_normalized_AAIMON(acc, norm_AAIMON, per_ident):
     fig, ax = plt.subplots()
-    ax.plot(norm_AAIMON)
+    ax.scatter(per_ident, norm_AAIMON)
 #    ax.set_xticklabels(per_ident, rotation=45)
     ax.set_ylabel('normalized AAIMON', fontsize=14)
     pylab.ylim([0.6, 1.5])

@@ -271,7 +271,7 @@ def calculate_AAIMON_ratios(p):
         df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs'] = df_list_AAIMON_all_TMD.mean(axis=1)
         df_list_AAIMON_all_TMD['gapped_ident'] = dfh['FASTA_gapped_identity'].loc[df_list_AAIMON_all_TMD.index]
         df_list_AAIMON_all_TMD['norm_factor'] = dfh['norm_factor'].loc[df_list_AAIMON_all_TMD.index]
-        df_list_AAIMON_all_TMD['AAIMON_normalized'] = df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs'] * df_list_AAIMON_all_TMD['norm_factor']
+        df_list_AAIMON_all_TMD['AAIMON_normalized'] = df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs'] / df_list_AAIMON_all_TMD['norm_factor']
         print(df_list_AAIMON_all_TMD)
         korbinian.cons_ratio.norm.create_graph_for_normalized_AAIMON(acc, df_list_AAIMON_all_TMD['AAIMON_normalized'],
                                                                      df_list_AAIMON_all_TMD['gapped_ident'])
