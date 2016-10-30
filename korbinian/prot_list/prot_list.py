@@ -102,6 +102,8 @@ def setup_file_locations_in_df(s, pathdict):
     # normalise path to suit operating system
     df['simap_filename_base'] = df['simap_filename_base'].apply(lambda x: os.path.normpath(x))
 
+    # create the homologue basename, e.g. "D:\Databases\homol\P0\P0A334_KCSA_STRLI"
+    # note that because UniProt protein names change, this should at some stage be changed from protein_name to acc alone
     df['homol_base'] = homol_dir + '/' + df.first_two_letters_of_uniprot_acc + '/' + df.protein_name
     # normalise path to suit operating system
     df['homol_base'] = df['homol_base'].apply(lambda x : os.path.normpath(x))
