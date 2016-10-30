@@ -31,8 +31,8 @@ def create_graph_of_gap_density(pathdict, s, logging):
 
         for num_TMD in range(1, int(df.loc[acc, "number_of_TMDs"]) + 1, 2):
 
-            if not utils.isNaN(df.loc[acc, "TM%.2d_occuring_gaps" % num_TMD]):
-                for n in ast.literal_eval(df.loc[acc, "TM%.2d_occuring_gaps" % num_TMD]):
+            if not utils.isNaN(df.loc[acc, "TM%.2d_occurring_gaps" % num_TMD]):
+                for n in ast.literal_eval(df.loc[acc, "TM%.2d_occurring_gaps" % num_TMD]):
                     # print (n)
                     # print ((df.loc[acc,"TM%.2d_len"%num_TMD]-1) )
 
@@ -43,8 +43,8 @@ def create_graph_of_gap_density(pathdict, s, logging):
                         (n / (len(df.loc[acc, "TM%.2d_seq" % num_TMD]) - 1)) * num_of_bins_in_tmd_region))
 
         for num_TMD in range(2, int(df.loc[acc, "number_of_TMDs"]) + 1, 2):
-            if not utils.isNaN(df.loc[acc, "TM%.2d_occuring_gaps" % num_TMD]):
-                for n in ast.literal_eval(df.loc[acc, "TM%.2d_occuring_gaps" % num_TMD]):
+            if not utils.isNaN(df.loc[acc, "TM%.2d_occurring_gaps" % num_TMD]):
+                for n in ast.literal_eval(df.loc[acc, "TM%.2d_occurring_gaps" % num_TMD]):
 
                     # m = np.prod(df.loc[acc,"TM%.2d_len"%num_TMD]*float(n))
 
@@ -88,9 +88,9 @@ def create_graph_of_gap_density(pathdict, s, logging):
         TMD_range_plus_1 = range(1, n_TMDs_max + 2)
         TMD_range_2nd = range(1, n_TMDs_max + 1, 2)
 
-        # nested_list_of_gaps_intracellular = [ast.literal_eval(m) for n in range (1,25) for m in df['juxta_TM%.2d_intracellular_possible_gappositions'%n].dropna().tolist()]
+        # nested_list_of_gaps_intracellular = [ast.literal_eval(m) for n in range (1,25) for m in df['juxta_TM%.2d_intracellular_possible_gap_positions'%n].dropna().tolist()]
         nested_list_of_gaps_intracellular = [ast.literal_eval(m) for n in TMD_range for m in
-                                             df['juxta_TM%.2d_intracellular_possible_gappositions' % n].dropna().tolist()]
+                                             df['juxta_TM%.2d_intracellular_possible_gap_positions' % n].dropna().tolist()]
 
         hist_data_juxta_intracellular = np.array(list(itertools.chain(*nested_list_of_gaps_intracellular)))
 
@@ -99,7 +99,7 @@ def create_graph_of_gap_density(pathdict, s, logging):
 
         # data for extracellular part --> right
         nested_list_of_gaps_extracellular = [ast.literal_eval(m) for n in TMD_range for m in
-                                             df['juxta_TM%.2d_extracellular_possible_gappositions' % n].dropna().tolist()]
+                                             df['juxta_TM%.2d_extracellular_possible_gap_positions' % n].dropna().tolist()]
         hist_data_juxta_extracellular = np.array(list(itertools.chain(*nested_list_of_gaps_extracellular)))
 
         # data for tmd --> middle
