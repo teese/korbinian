@@ -54,9 +54,12 @@ def create_graph_of_gap_density(pathdict, s, logging):
 
     logging.info('~~~~~~~~~~~~starting extraction of JM regions ~~~~~~~~~~~~')
 
-    for acc in mp.index:
+    for acc_nr, acc in enumerate(mp.index):
         sys.stdout.write("{} ".format(acc))
+        if acc_nr != 0 and acc_nr % 50 == 0:
+            sys.stdout.write("\n")
         sys.stdout.flush()
+
         list_of_TMDs = df.loc[acc, "list_of_TMDs"]
         last_TMD_of_acc = list_of_TMDs[-1]
         for TMD in list_of_TMDs:
@@ -203,10 +206,8 @@ def create_graph_of_gap_density(pathdict, s, logging):
     fig.savefig(pathdict["dfout11_gap_test_out_png"], format='png', dpi=200)
 
     TMD_range = range(1, n_TMDs_max + 1)
-    TMD_range_plus_1 = range(1, n_TMDs_max + 2)
+    #TMD_range_plus_1 = range(1, n_TMDs_max + 2)
     TMD_range_2nd = range(1, n_TMDs_max + 1, 2)
-
-    utils.aaa(df)
 
     ######################################################################################################################
     #                                                                                                                    #
@@ -252,7 +253,7 @@ def create_graph_of_gap_density(pathdict, s, logging):
         total_amount_of_TMDs_in_protein += len_list_of_TMDs
 
     #total_amount_of_TMDs_in_protein = len([TMD for acc in df.index for TMD in ast.literal_eval(df.loc[acc,"list_of_TMDs"])if (df.loc[acc,"gaps_analysed"]==True)and(utils.isNaN(df.loc[acc,"list_of_TMDs"]))])*2
-    print("total_amount_of_TMDs_in_protein", total_amount_of_TMDs_in_protein)
+    logging.info("total_amount_of_TMDs_in_protein {}".format(total_amount_of_TMDs_in_protein))
 
     list_of_positionfrequency_extra = []
     list_of_positionfrequency_intra = []
@@ -281,12 +282,6 @@ def create_graph_of_gap_density(pathdict, s, logging):
                 list_of_positionfrequency_extra.append(df.loc[acc, 'len_juxta_before_TM%.2d' % n].tolist())
                 list_of_positionfrequency_intra.append(df.loc[acc, 'len_juxta_after_TM%.2d' % n].tolist())
     logging.info('~~~~~~~~~~~~ finished list_of_positionfrequency_xxxx ~~~~~~~~~~~~')
-
-    def positionfreq_in_list_extra(position):
-        return (len([n for n in list_of_positionfrequency_extra if n >= position]) * 2)
-
-    def positionfreq_in_list_intra(position):
-        return (len([n for n in list_of_positionfrequency_intra if n >= position]) * 2)
 
     fig, ax = plt.subplots()
 
@@ -318,15 +313,15 @@ def create_graph_of_gap_density(pathdict, s, logging):
 
     centre_of_bar_in_x_axis_I = np.append(centre_of_bar_in_x_axis_I, centre_of_bar_in_x_axis_I[-1] + bar_width_I)
 
-    range_TMs = range(0, n_TMDs_max)
+    #range_TMs = range(0, n_TMDs_max)
     v_list_I = []
     for n in range(hist_data_juxta_intracellular_ceil):
         f = freq_counts_I[n]
-        p = positionfreq_in_list_intra(n)
+        p = positionfreq_in_list_intra(list_of_positionfrequency_intra, n)
         v = f/p
         v_list_I.append(v)
 
-    ax.bar(left=centre_of_bar_in_x_axis_I, height=[(freq_counts_I.tolist()[n] / (positionfreq_in_list_intra(n))) for n in range(0, n_TMDs_max)], width=0.4, color="mediumblue", linewidth=0, zorder=3)  # edgecolor='black',
+    #ax.bar(left=centre_of_bar_in_x_axis_I, height=[(freq_counts_I.tolist()[n] / (positionfreq_in_list_intra(n))) for n in range(0, n_TMDs_max)], width=0.4, color="mediumblue", linewidth=0, zorder=3)  # edgecolor='black',
     ax.bar(left=centre_of_bar_in_x_axis_I, height=v_list_I, width=0.4, color="mediumblue", linewidth=0, zorder=3)
 
     ######### TMD
@@ -339,9 +334,7 @@ def create_graph_of_gap_density(pathdict, s, logging):
 
     centre_of_bar_in_x_axis_TM = np.append(centre_of_bar_in_x_axis_TM, centre_of_bar_in_x_axis_TM[-1] + bar_width_TM)
 
-    ax.bar(left=centre_of_bar_in_x_axis_TM,
-              height=[n / total_amount_of_TMDs_in_protein for n in freq_counts_TM.tolist()], align='center', width=0.5,
-              color="blue", linewidth=0, zorder=3)  # edgecolor='black',
+    ax.bar(left=centre_of_bar_in_x_axis_TM,height=[n / total_amount_of_TMDs_in_protein for n in freq_counts_TM.tolist()], align='center', width=0.5, color="blue", linewidth=0, zorder=3)  # edgecolor='black',
 
     freq_counts_E, bin_array_E = np.histogram(hist_data_juxta_extracellular, bins=hist_data_juxta_extracellular_ceil)
     # NO IDEA WHY bins=hist_data_juxta_intracellular.max()
@@ -352,7 +345,7 @@ def create_graph_of_gap_density(pathdict, s, logging):
     v_list_E = []
     for n in range(hist_data_juxta_extracellular_ceil):
         f = freq_counts_E[n]
-        p = positionfreq_in_list_extra(n)
+        p = positionfreq_in_list_extra(list_of_positionfrequency_extra, n)
         v = f/p
         v_list_E.append(v)
 
@@ -443,6 +436,14 @@ def create_graph_of_gap_density(pathdict, s, logging):
     # rcParams['savefig.dpi'] = 200
     #fig.savefig("/nas/teeselab/students/rimma/omp/summaries/Test234.png", format='png', dpi=200)
     fig.savefig(pathdict["gap_density_fig_path"], format='png', dpi=200)
+
+
+def positionfreq_in_list_extra(list_of_positionfrequency_extra, position):
+    return (len([n for n in list_of_positionfrequency_extra if n >= position]) * 2)
+
+
+def positionfreq_in_list_intra(list_of_positionfrequency_intra, position):
+    return (len([n for n in list_of_positionfrequency_intra if n >= position]) * 2)
 
 def juxta_function_orig(df, TMD):
     """
