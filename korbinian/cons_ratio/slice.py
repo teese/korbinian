@@ -260,7 +260,6 @@ def slice_TMD_1_prot_from_homol(p):
                 # the analysis is slow, so don't repeat TM01 if there is only one TM helix in the protein
                 if "TM02" in list_of_TMDs:
                     if not TMD == "TM01" and not TMD == last_TMD_of_acc:
-                        utils.aaa(df_nonTMD_sliced)
                         df_nonTMD_sliced = juxta_function_1(df_nonTMD_sliced, TMD)
                         # df_nonTMD_sliced['start_juxta_after_%s'%TMD] = np.where(utils.isNaN(df_nonTMD_sliced['TM%.2d_start_in_SW_alignment'%(int(TMD[2:])+1)])==True,np.nan,df_nonTMD_sliced['%s_end_in_SW_alignment'%TMD])
                         # df_nonTMD_sliced['end_juxta_before_%s'%TMD] = np.where(df_nonTMD_sliced["%s_start_in_SW_alignment"%TMD]!=0,df_nonTMD_sliced["%s_start_in_SW_alignment"%TMD],np.nan)

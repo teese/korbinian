@@ -144,8 +144,11 @@ if __name__ == "__main__":
     if s["run_calculate_gap_densities"]:
         korbinian.gap.run_calculate_gap_densities(pathdict, s, logging)
 
+    if s["run_gather_gap_densities"]:
+        korbinian.gap.gather_gap_densities(pathdict, logging)
+
     if s["run_create_graph_of_gap_density"]:
-        korbinian.gap.calculate_gap_densities(pathdict, s, logging)
+        korbinian.gap_figs.create_graph_of_gap_density(pathdict, s, logging)
 
     ########################################################################################
     #                                                                                      #
