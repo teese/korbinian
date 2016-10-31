@@ -191,6 +191,8 @@ def create_pathdict(base_filename_summaries):
     pathdict["list_summary_csv"] = '%s_summary.csv' % base_filename_summaries
     # define path for csv with conservation ratios(mean AAIMON) (output from the gather_AAIMON_ratios function)
     pathdict["list_cr_summary_csv"] = '%s_cr_summary.csv' % base_filename_summaries
+    # define path for csv with gap densities (from gather_gap_densities)
+    pathdict["list_gap_summary_csv"] = '%s_gap_summary.csv' % base_filename_summaries
     # for SIMAP or BLAST downloads, gives a list of accessions that failed
     pathdict["failed_downloads_txt"] = '%s_failed_downloads.txt' % base_filename_summaries
     # for SIMAP or BLAST, a list of accessions not found in the homologue database
@@ -198,12 +200,12 @@ def create_pathdict(base_filename_summaries):
     # add the base path for the sub-sequences (SE01, SE02, etc) added by the user
     pathdict["list_user_subseqs_csv"] = '%s_user_subseqs.csv' % base_filename_summaries
     pathdict["list_user_subseqs_xlsx"] = '%s_user_subseqs.xlsx' % base_filename_summaries
-
+    # create output png from gap analysis
+    pathdict["gap_density_fig_path"] = '%s_create_graph_of_gap_density.png' % base_filename_summaries
 
     """OUTPUT FILES FOR OLD SCRIPTS"""
     pathdict["dfout08_simap_AAIMON"] = '%s_simap_AAIMON.csv' % base_filename_summaries
     pathdict["dfout09_simap_AAIMON_02"] = '%s_simap_AAIMON_02.csv' % base_filename_summaries
     pathdict["dfout10_uniprot_gaps"] = '%s_gap_densities.csv' % base_filename_summaries
     pathdict["dfout11_gap_test_out_png"] = '%s_gap_test_out.png' % base_filename_summaries
-    pathdict["create_graph_of_gap_density_png"] = '%s_create_graph_of_gap_density.png' % base_filename_summaries
     return pathdict

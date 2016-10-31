@@ -984,7 +984,6 @@ def create_regex_string_for_juxta(inputseq):
         search_string += letter_with_underscore
     return "-*" + search_string
 
-
 def get_end_juxta_before_TMD(x, input_TMD):
     TM_int = int(input_TMD[2:])
     if input_TMD == "TM01":
@@ -992,7 +991,6 @@ def get_end_juxta_before_TMD(x, input_TMD):
                                                                  x['%s_start_in_SW_alignment' % input_TMD] - 1)
     else:
         x["end_juxta_before_%s_in_query" % input_TMD] = x["%s_start_in_SW_alignment" % input_TMD] - 1
-
 
 def get_end_juxta_after_TMD(x, input_TMD, list_of_tmds):
     # list_of_tmds was missing from this function! added by MT 20.07.2016

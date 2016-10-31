@@ -1,13 +1,11 @@
 import ast
 import pandas as pd
-import numpy as np
 import csv
 import korbinian
 import os
 import re
 import sys
 import korbinian.utils as utils
-import zipfile
 from multiprocessing import Pool
 
 def run_calculate_gap_densities(pathdict, s, logging):
@@ -127,6 +125,9 @@ def calculate_gap_densities(p):
             raise ValueError('n_term_ec not available')
 
     n_term_ec = False if p["n_term_ec"] == False else True
+
+    # create empty output dict, to contain all of the lists of gap positions
+    gapout_dict = {}
 
     # for each TMD in the proteins, creates new lists which will contain gap_positions, lists are saved in a column and created again for each tmd
     for tmd in list_of_TMDs:
@@ -465,7 +466,6 @@ def calculate_gap_densities(p):
         unique_list_of_gaps_intracellular = list(set(list_of_gaps_intracellular))
         unique_list_of_gaps_extracellular = list(set(list_of_gaps_extracellular))
 
-        gapout_dict = {}
         # Saves the calculated lists into cells in the columns
         gapout_dict["%s_occurring_gaps"%tmd]=str(unique_list_of_gaps_in_tmd)
         gapout_dict["%s_amount_possible_gap_positions"%tmd]=len(unique_list_of_gaps_in_tmd)
@@ -475,12 +475,45 @@ def calculate_gap_densities(p):
         gapout_dict['juxta_%s_intracellular_num_gaps'%tmd] = len(unique_list_of_gaps_intracellular)
         gapout_dict['juxta_%s_exracellular_num_gaps'%tmd] = len(unique_list_of_gaps_extracellular)
 
-        pd.Series(gapout_dict).to_csv(gapout_csv_path)
-        # sys.stdout.write("{} gapout_dict is not saved.".format(tmd))
-        # sys.stdout.flush()
+    pd.Series(gapout_dict).to_csv(gapout_csv_path)
+    # sys.stdout.write("{} gapout_dict is not saved.".format(tmd))
+    # sys.stdout.flush()
 
     return acc, True, "0"
     # # At the end, sets analysed to true, this is important to not overwrite
     # gapout_dict["gaps_analysed"] = "True"
     # # save to csv
     # df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+
+
+def gather_gap_densities(pathdict, logging):
+    logging.info("~~~~~~~~~~~~         starting gather_gap_densities           ~~~~~~~~~~~~")
+    df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    # create an empty dataframe for gathering the various output files
+    dfg = pd.DataFrame()
+
+    # iterate over the dataframe for proteins with an existing list_of_TMDs. acc = uniprot accession.
+    for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
+        protein_name = df.loc[acc, 'protein_name']
+        sys.stdout.write(" {}".format(protein_name))
+        sys.stdout.flush()
+        # define gap output file path
+        gapout_csv_path = "{}_gapout.csv".format(df.loc[acc,'homol_base'])
+
+        if not os.path.exists(gapout_csv_path):
+            logging.info("{} {} Protein skipped. File does not exist".format(acc, gapout_csv_path))
+            continue
+        # open csv as pandas dataframe (note, it was originally a series, and contains only one column and an index)
+        gapout_df = pd.read_csv(gapout_csv_path, index_col=0)
+        gapout_df.columns = ["value"]
+        gapout_df.loc["acc", "value"] = acc
+        gapout_df.loc["list_of_TMDs", "value"] = df.loc[acc, "list_of_TMDs"]
+        dfg = pd.concat([dfg,gapout_df], axis=1)
+
+    # transpose dataframe dfg
+    dfg = dfg.T
+    dfg.set_index("acc", inplace=True)
+
+    dfg.to_csv(pathdict["list_gap_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+    logging.info("~~~~~~~~~~~~        gather_gap_densities is finished         ~~~~~~~~~~~~")
+
