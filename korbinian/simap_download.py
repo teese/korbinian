@@ -8,7 +8,6 @@ import korbinian
 import korbinian.utils as utils
 import pandas as pd
 
-
 def download_homologues_from_simap(pathdict, s, logging):
     """From the list of proteins in csv format, begins downloading homologues from the SIMAP database.
 
@@ -51,22 +50,16 @@ def download_homologues_from_simap(pathdict, s, logging):
         determines whether the previously failed downloads will be re-attempted.
     """
     df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
-    acc_list_failed_downloads = []
-    if os.path.isfile(pathdict["failed_downloads_txt"]):
-        # Extracts accession numbers out of file
-        with open(pathdict["failed_downloads_txt"], "r") as source:
-            for line in source:
-                line = line.strip()
-                acc_list_failed_downloads.append(line)
 
-    if os.path.isfile(pathdict["acc_not_in_homol_db_txt"]):
-        # Extracts accession numbers out of file
-        with open(pathdict["acc_not_in_homol_db_txt"], "r") as source:
-            for line in source:
-                line = line.strip()
-                acc_list_failed_downloads.append(line)
-    # remove any redundant acc
-    acc_list_failed_downloads = list(set(acc_list_failed_downloads))
+    if s["attempt_prev_failed_downloads"] == False:
+        # get list of accessions that could not be downloaded, and can immediately be excluded
+        acc_list_failed_downloads = utils.get_list_failed_downloads(pathdict)
+        not_in_homol_db = utils.get_list_not_in_homol_db(pathdict)
+        acc_excluded_list = acc_list_failed_downloads + not_in_homol_db
+        # the list of desired proteins = total_list - excluded
+        acc_not_excluded = list(set(df.index) - set(acc_excluded_list))
+        # filter dataframe to only contain the desired proteins, which have not been excluded
+        df = df.loc[acc_not_excluded, :]
 
     max_hits = s["max_hits"]
     java_exec_str = s["java_exec_str"]
@@ -114,10 +107,6 @@ def download_homologues_from_simap(pathdict, s, logging):
         ft_xml_path = df.loc[acc, 'SIMAP_feature_table_XML_path']
         homol_xml_path = df.loc[acc, 'SIMAP_homol_XML_path']
         date_file_path = df.loc[acc, 'SIMAP_download_date_file_path']
-        if s["attempt_prev_failed_downloads"] == False:
-            if acc in acc_list_failed_downloads:
-                logging.info("{} is in list of previously failed downloads. Will be skipped.".format(protein_name))
-                continue
 
         # create directories to hold file, if necessary
         utils.make_sure_path_exists(homol_xml_path, isfile=True)

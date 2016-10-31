@@ -1463,3 +1463,24 @@ def convert_summary_csv_to_input_list(s, pathdict, logging, list_excluded_acc=No
         p["logging"] = logging
 
     return list_p
+
+
+def get_list_not_in_homol_db(pathdict):
+    not_in_homol_db = []
+    if os.path.isfile(pathdict["acc_not_in_homol_db_txt"]):
+        # Extracts accession numbers out of file
+        with open(pathdict["acc_not_in_homol_db_txt"], "r") as source:
+            for line in source:
+                line = line.strip()
+                not_in_homol_db.append(line)
+    return not_in_homol_db
+
+def get_list_failed_downloads(pathdict):
+    acc_list_failed_downloads = []
+    if os.path.isfile(pathdict["failed_downloads_txt"]):
+        # Extracts accession numbers out of file
+        with open(pathdict["failed_downloads_txt"], "r") as source:
+            for line in source:
+                line = line.strip()
+                acc_list_failed_downloads.append(line)
+    return acc_list_failed_downloads

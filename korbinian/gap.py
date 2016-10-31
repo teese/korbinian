@@ -14,8 +14,11 @@ def run_calculate_gap_densities(pathdict, s, logging):
     p_dict_logging = logging if s["use_multiprocessing"] != True else utils.Log_Only_To_Console()
     # set current working directory as the data_dir/homol, where temp files will be saved before moving to zip
     os.chdir(os.path.join(s["data_dir"], "homol"))
+
+    not_in_homol_db = utils.get_list_not_in_homol_db(pathdict)
+
     # create list of protein dictionaries to process
-    list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging)
+    list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging, list_excluded_acc=not_in_homol_db)
     # number of processes is the number the settings, or the number of proteins, whichever is smallest
     n_processes = s["multiprocessing_cores"] if s["multiprocessing_cores"] < len(list_p) else len(list_p)
 
@@ -80,7 +83,7 @@ def calculate_gap_densities(p):
     # filter based on the query string
     dfh.query(gap_homol_query_str, inplace=True)
     if dfh.empty:
-        message = "{} skipped, filtering by gap_homol_query_str did not leave any valid homologues."
+        message = "{} skipped, filtering by gap_homol_query_str did not leave any valid homologues.".format(acc)
         logging.info(message)
         return acc, False, message
 
