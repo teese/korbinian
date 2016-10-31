@@ -264,6 +264,9 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list
     df_KW["betabarrel"] = True
     df_KW["multipass"] = True
     df_KW["singlepass"] = False
+    # since all beta-barrel proteins have the N-terminus in the periplasm, "N-term is Extracellular" is False
+    # you could make 100% sure of this by checking that the first letter of "Topology" is "I", but it is not really necessary
+    df_KW["n_term_ec"] = False
     df_KW.rename(columns=dict_, inplace=True)
     df_KW["acc"] = df_KW["uniprot_acc"]
     df_KW["protein_name"] = df_KW["uniprot_acc"]
