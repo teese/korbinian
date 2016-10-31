@@ -1,8 +1,11 @@
 import ast
 import pandas as pd
 import csv
+import itertools
 import korbinian
+import numpy as np
 import os
+import pickle
 import re
 import sys
 import korbinian.utils as utils
@@ -489,20 +492,25 @@ def calculate_gap_densities(p):
     # df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
 
-def gather_gap_densities(pathdict, logging):
+def gather_gap_densities(pathdict, s, logging):
     logging.info("~~~~~~~~~~~~         starting gather_gap_densities           ~~~~~~~~~~~~")
     df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    # get list of accessions that could not be downloaded, and can immediately be excluded
+    not_in_homol_db = utils.get_list_not_in_homol_db(pathdict)
+    acc_kept = set(df.index) - set(not_in_homol_db)
+    # filter to remove proteins not in the homologue database
+    df = df.loc[acc_kept, :]
+    # remove any proteins from list that do not have a list of TMDs
+    df = df.loc[df.list_of_TMDs.notnull()]
     # create an empty dataframe for gathering the various output files
-    dfg = pd.DataFrame()
-
+    df_gap = pd.DataFrame()
     # iterate over the dataframe for proteins with an existing list_of_TMDs. acc = uniprot accession.
-    for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
+    for acc in df.index:
         protein_name = df.loc[acc, 'protein_name']
         sys.stdout.write(" {}".format(protein_name))
         sys.stdout.flush()
         # define gap output file path
         gapout_csv_path = "{}_gapout.csv".format(df.loc[acc,'homol_base'])
-
         if not os.path.exists(gapout_csv_path):
             logging.info("{} {} Protein skipped. File does not exist".format(acc, gapout_csv_path))
             continue
@@ -511,12 +519,256 @@ def gather_gap_densities(pathdict, logging):
         gapout_df.columns = ["value"]
         gapout_df.loc["acc", "value"] = acc
         gapout_df.loc["list_of_TMDs", "value"] = df.loc[acc, "list_of_TMDs"]
-        dfg = pd.concat([dfg,gapout_df], axis=1)
+        df_gap = pd.concat([df_gap,gapout_df], axis=1)
 
-    # transpose dataframe dfg
-    dfg = dfg.T
-    dfg.set_index("acc", inplace=True)
+    # transpose dataframe df_gap
+    df_gap = df_gap.T
+    df_gap.set_index("acc", inplace=True)
 
-    dfg.to_csv(pathdict["list_gap_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+    df_gap.to_csv(pathdict["list_gap_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+
+    logging.info('~~~~~~~~~~~~starting analysis of gap density~~~~~~~~~~~~')
+    # # test if the dataframe has already been created, otherwise re-open from uniprot csv file
+    # if os.path.isfile(pathdict["dfout10_uniprot_gaps"]):
+    #     df = pd.read_csv(pathdict["dfout10_uniprot_gaps"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=[0])
+    #     logging.info('df loaded from %s' % pathdict["dfout10_uniprot_gaps"])
+    # else:
+    #     raise FileNotFoundError(
+    #         'No gap analysis has been done yet. %s is not found. Please run calculate calculate_gap_densities' % pathdict[
+    #             "dfout10_uniprot_gaps"])
+
+    #df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
+
+    ######################################################################################################################
+    #                                                                                                                    #
+    #               Get juxtamembrane regions from all proteins. Code is modified from slice_TMD_1_prot_from_homol,      #
+    #                                where all homologues were sliced for a particular protein                           #
+    #                                                                                                                    #
+    ######################################################################################################################
+
+    df["list_of_TMDs"] = df.list_of_TMDs.apply(ast.literal_eval)
+    df["len_list_of_TMDs"] = df["list_of_TMDs"].apply(lambda x : len(x))
+    index_longest_list_TMDs = df["len_list_of_TMDs"].idxmax()
+    longest_list_TMDs = df.loc[index_longest_list_TMDs, "list_of_TMDs"]
+
+    df["is_multipass"] = df.list_of_TMDs.apply(lambda x: "TM02" in x)
+    # np.where syntax: np.where(boolean_query, value_if_query_true, value_if_query_false)
+    # @RJ, If TM01_start_in_SW_alignment is not an integer above 0, replaces with np.nan?
+    df['start_juxta_before_TM01'] = np.where(df['TM01_start'] > 0, 0, np.nan)
+    # if the TM01_start_in_SW_alignment is 0, there is no JM region N-terminal to the TMD, therefore replace end_juxta_before_TM01 with np.nan, otherwise use TM01_start_in_SW_alignment
+    df['end_juxta_before_TM01'] = np.where(df['TM01_start'] == 0, np.nan, df['TM01_start'])
+    # the start of the juxtamembrane region after TM01 is the end of TM01
+    df['start_juxta_after_TM01'] = df['TM01_end']
+
+    # divide into single-pass (sp) and multipass (mp)
+    sp = df.loc[df["is_multipass"] == False]
+    mp = df.loc[df["is_multipass"]]
+    mp_end_juxta_after_TM01 = mp["TM01_end"] + ((mp["TM02_start"] - mp["TM01_end"]) / 2)
+    sp_end_juxta_after_TM01 = sp['seqlen']
+    df['end_juxta_after_TM01'] = pd.concat([mp_end_juxta_after_TM01, sp_end_juxta_after_TM01]).astype(int)
+
+    logging.info('~~~~~~~~~~~~starting extraction of JM regions ~~~~~~~~~~~~')
+
+    for acc_nr, acc in enumerate(mp.index):
+        sys.stdout.write("{} ".format(acc))
+        if acc_nr != 0 and acc_nr % 50 == 0:
+            sys.stdout.write("\n")
+        sys.stdout.flush()
+
+        list_of_TMDs = df.loc[acc, "list_of_TMDs"]
+        last_TMD_of_acc = list_of_TMDs[-1]
+        for TMD in list_of_TMDs:
+            if TMD == "TM01":
+                # skip, it's already done
+                continue
+
+            next_TM = "TM{:02d}".format(int(TMD[2:]) + 1)
+            prev_TM = "TM{:02d}".format(int(TMD[2:])-1)
+
+            """2222222222222nnnnnnnnn|NNNNNNNNN333333333333333aaaaaaaaaaaaaaaaaZ
+            2222222222222 = TM02
+            333333333333333 = TM03
+            nnnnnnnnn = juxta after TM02
+            NNNNNNNNN = juxta before TM03
+            aaaaaaaaa = juxta after TM03, the last TMD
+            Z = final aa, length of sequence, "seqlen"
+            """
+            # start_juxta_before_TM02 = |
+            df.loc[acc, 'start_juxta_before_%s'%TMD] = df.loc[acc, "end_juxta_after_{}".format(prev_TM)]
+            # end_juxta_before_TM02 = TM02_start
+            df.loc[acc, 'end_juxta_before_%s'%TMD] = df.loc[acc, "%s_start"%TMD]
+            # start_juxta_after_TM02 = TM02_end
+            df.loc[acc, 'start_juxta_after_%s'%TMD] = df.loc[acc, '%s_end'%TMD]
+            if not TMD == last_TMD_of_acc:
+                # end_juxta_after_TM02 = halfway between TM02_end and TM03_start = TM02_end + ((TM03_start - TM02_end) / 2)
+                df.loc[acc, 'end_juxta_after_%s' % TMD] = df.loc[acc, "%s_end" % TMD] + ((df.loc[acc, "{}_start".format(next_TM)] - df.loc[acc, "%s_end" % TMD]) / 2)
+            elif TMD == last_TMD_of_acc:
+                # if TM02 is the last TMD
+                # end_juxta_after_TM02 = seqlen
+                df.loc[acc, 'end_juxta_after_%s' % TMD] = df.loc[acc, "seqlen"]
+        for TMD in list_of_TMDs:
+            df.loc[acc, 'len_juxta_before_{}'.format(TMD)] = df.loc[acc, 'end_juxta_before_%s'%TMD] - df.loc[acc, 'start_juxta_before_%s'%TMD]
+            df.loc[acc, 'len_juxta_after_{}'.format(TMD)] = df.loc[acc, 'end_juxta_after_%s'%TMD] - df.loc[acc, 'start_juxta_after_%s'%TMD]
+
+        logging.info('~~~~~~~~~~~~finished extraction of JM regions ~~~~~~~~~~~~')
+
+    # if TMD == "TM01":
+    #     # np.where syntax: np.where(boolean_query, value_if_query_true, value_if_query_false)
+    #     # @RJ, If TM01_start_in_SW_alignment is not an integer above 0, replaces with np.nan?
+    #     df['start_juxta_before_TM01'] = np.where(df['TM01_start'] > 0, 0, np.nan)
+    #     # if the TM01_start_in_SW_alignment is 0, there is no JM region N-terminal to the TMD, therefore replace end_juxta_before_TM01 with np.nan, otherwise use TM01_start_in_SW_alignment
+    #     df['end_juxta_before_TM01'] = np.where(df['TM01_start'] == 0, np.nan, df['TM01_start'])
+    #     if df.loc[acc, "is_multipass"]:
+    #         df['end_juxta_after_TM01'] = df["TM01_end"] + ((df["TM02_start"] - df["TM01_end"]) / 2)
+    #     else:
+    #         df['end_juxta_after_TM01'] = np.where(utils.isNaN(df['start_juxta_after_TM01']) == True, np.nan, df['len_query_align_seq'])
+    # if df.loc[acc, "is_multipass"]:
+    #     if not TMD == "TM01" and not TMD == last_TMD_of_acc:
+    #         df = juxta_function_orig(df, TMD)
+    #
+    #     if TMD == last_TMD_of_acc:
+    #         df['start_juxta_before_%s' % TMD] = df['end_juxta_after_TM%.2d' % (int(TMD[2:]) - 1)]
+    #         df['end_juxta_before_%s' % TMD] = df['%s_start_in_SW_alignment' % TMD]
+    #         df['start_juxta_after_%s' % TMD] = np.where(
+    #             df['%s_end_in_SW_alignment' % TMD] == df['len_query_align_seq'], np.nan,
+    #             df['%s_end_in_SW_alignment' % TMD])
+    #         df['end_juxta_after_%s' % TMD] = np.where(utils.isNaN(df['start_juxta_after_%s' % TMD]) == True, np.nan, df['len_query_align_seq'])
+
+
+    #df_gap = pd.read_csv(pathdict["list_gap_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
+
+    ######################################################################################################################
+    #                                                                                                                    #
+    #                      Remove proteins with no gap info. NOTE, this converts any "number of gaps"                    #
+    #                     to NaN, and therefore may excludes some real data (i.e. proteins with no gaps)                 #
+    #                                                                                                                    #
+    ######################################################################################################################
+
+    init_n_proteins = df_gap.shape[0]
+    df_gap.replace(["[]", 0.0], np.nan, inplace=True)
+    df_gap.dropna(how="all", axis=0, inplace=True)
+    n_proteins_with_gap_info = df_gap.shape[0]
+    n_proteins_excluded = init_n_proteins - n_proteins_with_gap_info
+    logging.info("init_n_proteins, n_proteins_with_gap_info, n_proteins_excluded = {}, {}, {}".format(init_n_proteins, n_proteins_with_gap_info, n_proteins_excluded))
+
+    num_of_bins_in_tmd_region = s["num_of_bins_in_tmd_region"]
+    # find the maximum number of TMDs amongst the proteins
+    n_TMDs_max = int(df["number_of_TMDs"].max())
+
+    flipped = []
+    not_flipped = []
+
+    # times 2, because TMDs in gap and in query are considered! --> double amount
+    #total_amount_of_TMDs_in_protein = df.loc[df.gaps_analysed == True, "number_of_TMDs"].sum() * 2
+    df_gap["list_of_TMDs"] = df_gap["list_of_TMDs"].apply(ast.literal_eval)
+    # SHOULDNT THIS BE total_amount_of_TMDs_in_all_proteinS?
+    #total_amount_of_TMDs_in_protein = 0
+    # not sure why TMDs were counted, and not added, as here
+    total_n_TMDs = 0
+
+    logging.info('~~~~~~~~~~~~ starting flip ~~~~~~~~~~~~')
+    total_amount_of_TMDs_in_protein = 0
+    for acc in df_gap.index:
+        # count the total number of TMDs in all proteins in list, with gap data
+        len_list_of_TMDs = len(df_gap.loc[acc,"list_of_TMDs"])
+        total_amount_of_TMDs_in_protein += len_list_of_TMDs
+
+        # get number of TMDs for that protein
+        n_TMDs = int(df.loc[acc, "number_of_TMDs"])
+        total_n_TMDs += n_TMDs
+
+        for num_TMD in range(1, n_TMDs + 1, 2):
+
+            if not utils.isNaN(df_gap.loc[acc, "TM%.2d_occurring_gaps" % num_TMD]):
+                for n in ast.literal_eval(df_gap.loc[acc, "TM%.2d_occurring_gaps" % num_TMD]):
+                    # print (n)
+                    # print ((df.loc[acc,"TM%.2d_len"%num_TMD]-1) )
+
+                    if df.loc[acc, "n_term_ec"] == False:
+                        not_flipped.append((n / (len(df.loc[acc, "TM%.2d_seq" % num_TMD]) - 1)) * num_of_bins_in_tmd_region)
+                    if df.loc[acc, "n_term_ec"] == True:
+                        flipped.append(num_of_bins_in_tmd_region - ((n / (len(df.loc[acc, "TM%.2d_seq" % num_TMD]) - 1)) * num_of_bins_in_tmd_region))
+
+        for num_TMD in range(2, int(df.loc[acc, "number_of_TMDs"]) + 1, 2):
+            if not utils.isNaN(df_gap.loc[acc, "TM%.2d_occurring_gaps" % num_TMD]):
+                for n in ast.literal_eval(df_gap.loc[acc, "TM%.2d_occurring_gaps" % num_TMD]):
+                    # m = np.prod(df.loc[acc,"TM%.2d_len"%num_TMD]*float(n))
+                    if df.loc[acc, "n_term_ec"] == False:
+                        flipped.append(num_of_bins_in_tmd_region - ((n / (len(df.loc[acc, "TM%.2d_seq" % num_TMD]) - 1)) * num_of_bins_in_tmd_region))
+
+                    if df.loc[acc, "n_term_ec"] == True:
+                        not_flipped.append((n / (len(df.loc[acc, "TM%.2d_seq" % num_TMD]) - 1)) * num_of_bins_in_tmd_region)
+    logging.info('~~~~~~~~~~~~ finished flip ~~~~~~~~~~~~')
+
+    TMD_range = range(1, n_TMDs_max + 1)
+    #TMD_range_plus_1 = range(1, n_TMDs_max + 2)
+    TMD_range_2nd = range(1, n_TMDs_max + 1, 2)
+
+    ######################################################################################################################
+    #                                                                                                                    #
+    #           Extract all lists of gap positions. Note that this was orig a single line, but since it is fast,         #
+    #                          it is better to split it up and make the code more readable.                              #
+    #                                                                                                                    #
+    ######################################################################################################################
+
+    nested_list_of_gaps_intracellular = []
+    nested_list_of_gaps_extracellular = []
+    for TMD_nr in TMD_range:
+        # for the list of proteins, create a long list of the intracellular gap positions for that TMD (e.g. TM01)
+        intracell_gap_pos_ser = df_gap['juxta_TM{:02d}_intracellular_possible_gap_positions'.format(TMD_nr)].dropna().apply(ast.literal_eval)
+        extracell_gap_pos_ser = df_gap['juxta_TM{:02d}_extracellular_possible_gap_positions'.format(TMD_nr)].dropna().apply(ast.literal_eval)
+        # append as a list, rather than a series
+        nested_list_of_gaps_intracellular.append(list(itertools.chain(*intracell_gap_pos_ser.tolist())))
+        nested_list_of_gaps_extracellular.append(list(itertools.chain(*extracell_gap_pos_ser.tolist())))
+
+    """ ORIGINAL LIST COMPREHENSION CODE"""
+    # nested_list_of_gaps_intracellular = [ast.literal_eval(m) for n in range (1,25) for m in df['juxta_TM%.2d_intracellular_possible_gap_positions'%n].dropna().tolist()]
+    #nested_list_of_gaps_intracellular = [ast.literal_eval(m) for n in TMD_range for m in df['juxta_TM%.2d_intracellular_possible_gap_positions' % n].dropna().tolist()]
+    # data for extracellular part --> right
+    #nested_list_of_gaps_extracellular = [ast.literal_eval(m) for n in TMD_range for m in df['juxta_TM%.2d_extracellular_possible_gap_positions' % n].dropna().tolist()]
+
+    # join all values in all lists together to make a single list of floats, so they can be used to make a histogram
+    hist_data_juxta_intracellular = np.array(list(itertools.chain(*nested_list_of_gaps_intracellular)))
+    hist_data_juxta_extracellular = np.array(list(itertools.chain(*nested_list_of_gaps_extracellular)))
+
+    min_value = int(abs(hist_data_juxta_intracellular.min()))
+    # y-axis_intracell = [(freq_counts_I.tolist()[::-1][n]/frequency_of_position_intracellular(n)) for n in range (1,int(min_value))]
+
+    #total_amount_of_TMDs_in_protein = len([TMD for acc in df.index for TMD in ast.literal_eval(df.loc[acc,"list_of_TMDs"])if (df.loc[acc,"gaps_analysed"]==True)and(utils.isNaN(df.loc[acc,"list_of_TMDs"]))])*2
+    logging.info("total_amount_of_TMDs_in_protein {}".format(total_amount_of_TMDs_in_protein))
+
+    list_of_positionfrequency_extra = []
+    list_of_positionfrequency_intra = []
+
+    logging.info('~~~~~~~~~~~~ starting list_of_positionfrequency_xxxx ~~~~~~~~~~~~')
+    for acc in df.index:
+        #if df.loc[acc, "gaps_analysed"] == True:
+        logging.info(acc)
+        if df.loc[acc, "n_term_ec"] == True:
+            # no idea why the TMD range should be larger than the actual number of TMDs!! strange. Changed!
+            #for n in TMD_range_plus_1:
+            for n in TMD_range:
+                list_of_positionfrequency_extra.append(df.loc[acc, 'len_juxta_before_TM%.2d' % n].tolist())
+                list_of_positionfrequency_intra.append(df.loc[acc, 'len_juxta_after_TM%.2d' % n].tolist())
+            for n in TMD_range_2nd:
+                list_of_positionfrequency_extra.append(df.loc[acc, 'len_juxta_after_TM%.2d' % n].tolist())
+                list_of_positionfrequency_intra.append(df.loc[acc, 'len_juxta_before_TM%.2d' % n].tolist())
+
+        if df.loc[acc, "n_term_ec"] == False:
+            # no idea why the TMD range should be larger than the actual number of TMDs!! strange. Changed!
+            #for n in TMD_range_plus_1:
+            for n in TMD_range:
+                list_of_positionfrequency_extra.append(df.loc[acc, 'len_juxta_after_TM%.2d' % n].tolist())
+                list_of_positionfrequency_intra.append(df.loc[acc, 'len_juxta_before_TM%.2d' % n].tolist())
+            for n in TMD_range_2nd:
+                list_of_positionfrequency_extra.append(df.loc[acc, 'len_juxta_before_TM%.2d' % n].tolist())
+                list_of_positionfrequency_intra.append(df.loc[acc, 'len_juxta_after_TM%.2d' % n].tolist())
+
+    output_data = [flipped, not_flipped, hist_data_juxta_intracellular, hist_data_juxta_extracellular, min_value, list_of_positionfrequency_extra, list_of_positionfrequency_intra, total_amount_of_TMDs_in_protein]
+
+    with open(pathdict["gap_data_pickle"], "wb") as pkl_file:
+        pickle.dump(output_data, pkl_file, -1)
+
+    logging.info('~~~~~~~~~~~~ finished list_of_positionfrequency_xxxx ~~~~~~~~~~~~')
     logging.info("~~~~~~~~~~~~        gather_gap_densities is finished         ~~~~~~~~~~~~")
 
