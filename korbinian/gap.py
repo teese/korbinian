@@ -40,16 +40,17 @@ def calculate_gap_densities(p):
     pathdict, s, logging = p["pathdict"], p["s"], p["logging"]
     acc = p["acc"]
 
+    ######################################################################################################################
+    #                                                                                                                    #
+    #                          Define some constants. Skip protein if already done.                                      #
+    #                                                                                                                    #
+    ######################################################################################################################
+
     # Maximum number of gaps for tmds to be considered
     allowed_gaps_per_tmd = s["gap_allowed_gaps_per_tmd"]
-
     # 24 for beta barrel proteins, can be altered if only several TMDs to consider
     max_number_of_tmds = s["max_number_of_tmds"]
-
-    df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
-
     # # iterate through each protein that has a list_of_TMDs
-    # for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
     protein_name = p["protein_name"]
     # define output file path
     gapout_csv_path = "{}_gapout.csv".format(p['homol_base'])
@@ -69,6 +70,12 @@ def calculate_gap_densities(p):
         logging.info(message)
         return acc, False, message
 
+    ######################################################################################################################
+    #                                                                                                                    #
+    #                     Filter by FASTA_gapped_identity (of full protein), etc.                                        #
+    #    Open homol_df_orig_pickle, which contains the full sequence of all homologues, and GappedIdentity, etc          #
+    #                                                                                                                    #
+    ######################################################################################################################
     dfh = utils.open_df_from_pickle_zip(p['homol_df_orig_zip'], filename=os.path.basename(p['homol_df_orig_pickle']), delete_corrupt=True)
     dfh.index = dfh.index.astype(int)
 
@@ -108,6 +115,14 @@ def calculate_gap_densities(p):
         logging.info(message)
         return acc, False, message
 
+    ######################################################################################################################
+    #                                                                                                                    #
+    #              For the Beta-Barrel Dataset, check if the boolean toggle n_term_ec is there. This should be           #
+    #               False for all BB proteins,  but you can confirm it by making sure the first residue is labelled      #
+    #               as "I" for Inside.                                                                                   #
+    #                                                                                                                    #
+    ######################################################################################################################
+
     """ Current code in uniprot_parse
      # information about location of first non-tmd (extracellular or periplasmic/cytoplasmic)
         if len(location_of_non_tmds_in_feature_list) > 0:
@@ -129,7 +144,7 @@ def calculate_gap_densities(p):
                 raise ValueError('p["Topology"][0] not recognized')
         else:
             raise ValueError('n_term_ec not available')
-
+    # in some cases, p["n_term_ec"] is np.nan. Confirm that if empty, it is True.
     n_term_ec = False if p["n_term_ec"] == False else True
 
     # create empty output dict, to contain all of the lists of gap positions
@@ -139,25 +154,34 @@ def calculate_gap_densities(p):
     for tmd in list_of_TMDs:
         sys.stdout.write(".")
         sys.stdout.flush()
-
         # open the dataframe containing the sequences, gap counts, etc for that TMD only
         df_s1 = utils.open_df_from_pickle_zip(p['fa_cr_sliced_TMDs_zip'], filename="{}_{}_sliced_df.pickle".format(protein_name, tmd), delete_corrupt=True)
         # filter based on dfh above, for general homologue settings (e.g. % identity of full protein)
         df_s1 = df_s1.loc[dfh_filt_index, :]
-
-        # gap_TMD_query_str =  '{min_gaps} < {TMD}_SW_query_num_gaps < {max_gaps} and ' \
-        #                      '{min_gaps} < {TMD}_SW_match_num_gaps < {max_gaps}'.format(TMD=tmd, min_gaps=s["gap_min_n_gaps_in_TMD"], max_gaps=s["gap_max_n_gaps_in_TMD"])
 
         """
         cannot filter out rows that contain no gaps, as the JM number of gaps is not yet defined!
         """
         #df_s1["%s_n_gaps_q_and_m"%tmd] = df_s1["%s_SW_query_num_gaps"%tmd] + df_s1.loc["%s_SW_match_num_gaps"%tmd]
 
-        gap_TMD_query_str =  '({TMD}_SW_query_num_gaps < {allowed_gaps_per_tmd}) & ' \
-                             '({TMD}_SW_match_num_gaps < {allowed_gaps_per_tmd})'.format(TMD=tmd,allowed_gaps_per_tmd=allowed_gaps_per_tmd)
+        max_before_filter = df_s1["{}_SW_query_num_gaps".format(tmd)].max()
+        shape_before = df_s1.shape
+
+        gap_TMD_query_str =  '({TMD}_SW_query_num_gaps <= {allowed_gaps_per_tmd}) & ' \
+                             '({TMD}_SW_match_num_gaps <= {allowed_gaps_per_tmd})'.format(TMD=tmd,allowed_gaps_per_tmd=allowed_gaps_per_tmd)
 
         # filter based on the query string
         df_s1.query(gap_TMD_query_str, inplace=True)
+
+        if max_before_filter > 2:
+            print("shape_before", shape_before)
+            print("shape", df_s1.shape)
+            print("df_s1.{}_SW_query_num_gaps.max() before filtering".format(tmd), max_before_filter)
+            print("df_s1.{}_SW_query_num_gaps.max() after filtering".format(tmd), df_s1["{}_SW_query_num_gaps".format(tmd)].max())
+
+            print(gap_TMD_query_str)
+            print(df_s1.columns)
+            utils.aaa(df_s1)
 
         #len_of_query = len(df_s1["%s_SW_query_seq"%tmd][1]) # Length of first query sequence, which does (usually) not contain any gaps
         # Length of query TM sequence
@@ -610,7 +634,7 @@ def gather_gap_densities(pathdict, s, logging):
             df.loc[acc, 'len_juxta_before_{}'.format(TMD)] = df.loc[acc, 'end_juxta_before_%s'%TMD] - df.loc[acc, 'start_juxta_before_%s'%TMD]
             df.loc[acc, 'len_juxta_after_{}'.format(TMD)] = df.loc[acc, 'end_juxta_after_%s'%TMD] - df.loc[acc, 'start_juxta_after_%s'%TMD]
 
-        logging.info('~~~~~~~~~~~~finished extraction of JM regions ~~~~~~~~~~~~')
+    logging.info('~~~~~~~~~~~~finished extraction of JM regions ~~~~~~~~~~~~')
 
     # if TMD == "TM01":
     #     # np.where syntax: np.where(boolean_query, value_if_query_true, value_if_query_false)

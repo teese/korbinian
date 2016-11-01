@@ -256,7 +256,25 @@ def create_graph_of_gap_density(pathdict, s, logging):
     with open(pathdict["gap_data_pickle"], "rb") as pkl_file:
         gap_data = pickle.load(pkl_file)
 
+    data_names = ["flipped", "not_flipped", "hist_data_juxta_intracellular", "hist_data_juxta_extracellular", "min_value", "list_of_positionfrequency_extra", "list_of_positionfrequency_intra", "total_amount_of_TMDs_in_protein"]
+
+    print(type(gap_data))
+    print(len(gap_data))
+    for i in range(len(gap_data)):
+        list_00 = gap_data[i]
+        name = data_names[i]
+        print(name)
+        print(type(list_00))
+        if isinstance(list_00, int):
+            print(list_00)
+        elif isinstance(list_00, list) or isinstance(list_00, np.ndarray):
+            print("len", len(list_00))
+            print(list_00[0:10])
+
     flipped, not_flipped, hist_data_juxta_intracellular, hist_data_juxta_extracellular, min_value, list_of_positionfrequency_extra, list_of_positionfrequency_intra, total_amount_of_TMDs_in_protein = gap_data
+
+    # the total_amount_of_TMDs_in_protein is way too large, normalisation is screwed up somehow
+
 
     ######################################################################################################################
     #                                                                                                                    #
@@ -316,6 +334,9 @@ def create_graph_of_gap_density(pathdict, s, logging):
 
     freq_counts_I, bin_array_I = np.histogram(hist_data_juxta_intracellular, bins=hist_data_juxta_intracellular_ceil)
 
+    print("freq_counts_I :")
+    print(len(freq_counts_I), freq_counts_I[0:10])
+
     #freq_counts_I, bin_array_I = np.histogram(hist_data_juxta_intracellular)
     centre_of_bar_in_x_axis_I = np.negative((bin_array_I[:-2] + bin_array_I[1:-1]) / 2)
 
@@ -344,11 +365,18 @@ def create_graph_of_gap_density(pathdict, s, logging):
 
     centre_of_bar_in_x_axis_TM = np.append(centre_of_bar_in_x_axis_TM, centre_of_bar_in_x_axis_TM[-1] + bar_width_TM)
 
-    ax_b.bar(left=centre_of_bar_in_x_axis_TM,height=[n / total_amount_of_TMDs_in_protein for n in freq_counts_TM.tolist()], align='center', width=0.5, color="blue", linewidth=0, zorder=3)  # edgecolor='black',
+    rimma_orig_height = np.array([n / total_amount_of_TMDs_in_protein for n in freq_counts_TM.tolist()])
+    print("rimma_orig_height", rimma_orig_height)
+    rimma_orig_height_by_1000 = rimma_orig_height * 1000
+
+    ax_b.bar(left=centre_of_bar_in_x_axis_TM,height=rimma_orig_height_by_1000, align='center', width=0.5, color="blue", linewidth=0, zorder=3)  # edgecolor='black',
 
     freq_counts_E, bin_array_E = np.histogram(hist_data_juxta_extracellular, bins=hist_data_juxta_extracellular_ceil)
-    # NO IDEA WHY bins=hist_data_juxta_intracellular.max()
 
+    print("freq_counts_E :")
+    print(len(freq_counts_E), freq_counts_E[0:10])
+
+    # NO IDEA WHY bins=hist_data_juxta_intracellular.max()
     #freq_counts_E, bin_array_E = np.histogram(hist_data_juxta_extracellular)
 
     #####Extracellular
@@ -363,17 +391,12 @@ def create_graph_of_gap_density(pathdict, s, logging):
 
     bar_width_E = centre_of_bar_in_x_axis_E[3] - centre_of_bar_in_x_axis_E[2]
 
-    centre_of_bar_in_x_axis_E = np.append(centre_of_bar_in_x_axis_E,
-                                            centre_of_bar_in_x_axis_E[-1] + bar_width_E)
+    centre_of_bar_in_x_axis_E = np.append(centre_of_bar_in_x_axis_E, centre_of_bar_in_x_axis_E[-1] + bar_width_E)
 
     # converted to v_list_E with the list of normalised values
     #ax_b.bar(left=centre_of_bar_in_x_axis_E + 19.5,height=[((freq_counts_E.tolist()[n]) / (positionfreq_in_list_extra(n))) for n in range(0, n_TMDs_max)], width=0.4, color="mediumblue", linewidth=0, zorder=3)  # edgecolor='black',
-
     ax_b.bar(left=centre_of_bar_in_x_axis_E + 19.5, height=v_list_E, width=0.4, color="mediumblue", linewidth=0, zorder=3)  # edgecolor='black',
-
     # ax_b.bar(left=centre_of_bar_in_x_axis_E+9.5, height=[(freq_counts_E.tolist()[n]/frequency_of_position_extracellular(n)) for n in range (0,207)], align = 'center', width=0.4, color="mediumblue" ,linewidth=0)  # edgecolor='black',
-
-
     # ax_b.bar(left=centre_of_bar_in_x_axis_E+9.5, height=[(freq_counts_E.tolist()[n]/frequency_of_position_extracellular(n)) for n in range (0,207)], align = 'center', width=0.4, color="mediumblue" ,linewidth=0)  # edgecolor='black',
 
     ##### Style
@@ -394,12 +417,10 @@ def create_graph_of_gap_density(pathdict, s, logging):
     ax_b.grid(False)
 
     # fig_b.patch.set_visible(False)
-
     # ax_b.spines['top'].set_visible(False)
     # ax_b.spines['right'].set_visible(False)
     # ax_b.spines['left'].set_visible(True)
     # ax_b.spines['right'].set_visible(False)
-
     ax_b.yaxis.tick_left()
 
     ax_b.patch.set_facecolor('white')
@@ -410,7 +431,7 @@ def create_graph_of_gap_density(pathdict, s, logging):
     ax_b.annotate('Intracellular', xy=(0, 0), xytext=(-20, 1.7), alpha=0.5, fontsize=fontsize)
     ax_b.annotate('Extracellular', xy=(0, 0), xytext=(30, 1.7), alpha=0.5, fontsize=fontsize)
     ax_b.annotate('TM', xy=(10, 0), xytext=(8.6, 1.3), alpha=0.5, fontsize=fontsize)
-    ax_b.annotate('helix', xy=(10, 0), xytext=(8.2, 1.2), alpha=0.5, fontsize=fontsize)
+    ax_b.annotate('helix or sheet', xy=(10, 0), xytext=(8.2, 1.2), alpha=0.5, fontsize=fontsize)
 
     ax_b.spines['left'].set_color('mediumblue')
     # ax_b.spines['left'].set_visible(True)
@@ -446,7 +467,6 @@ def create_graph_of_gap_density(pathdict, s, logging):
 
 def positionfreq_in_list_extra(list_of_positionfrequency_extra, position):
     return (len([n for n in list_of_positionfrequency_extra if n >= position]) * 2)
-
 
 def positionfreq_in_list_intra(list_of_positionfrequency_intra, position):
     return (len([n for n in list_of_positionfrequency_intra if n >= position]) * 2)
