@@ -173,16 +173,6 @@ def calculate_gap_densities(p):
         # filter based on the query string
         df_s1.query(gap_TMD_query_str, inplace=True)
 
-        if max_before_filter > 2:
-            print("shape_before", shape_before)
-            print("shape", df_s1.shape)
-            print("df_s1.{}_SW_query_num_gaps.max() before filtering".format(tmd), max_before_filter)
-            print("df_s1.{}_SW_query_num_gaps.max() after filtering".format(tmd), df_s1["{}_SW_query_num_gaps".format(tmd)].max())
-
-            print(gap_TMD_query_str)
-            print(df_s1.columns)
-            utils.aaa(df_s1)
-
         #len_of_query = len(df_s1["%s_SW_query_seq"%tmd][1]) # Length of first query sequence, which does (usually) not contain any gaps
         # Length of query TM sequence
         len_of_query = len(p["%s_seq" % tmd])
@@ -705,9 +695,8 @@ def gather_gap_densities(pathdict, s, logging):
 
             if not utils.isNaN(df_gap.loc[acc, "TM%.2d_occurring_gaps" % num_TMD]):
                 for n in ast.literal_eval(df_gap.loc[acc, "TM%.2d_occurring_gaps" % num_TMD]):
-                    # print (n)
-                    # print ((df.loc[acc,"TM%.2d_len"%num_TMD]-1) )
-
+                    # sys.stdout.write (n)
+                    # sys.stdout.write ((df.loc[acc,"TM%.2d_len"%num_TMD]-1) )
                     if df.loc[acc, "n_term_ec"] == False:
                         not_flipped.append((n / (len(df.loc[acc, "TM%.2d_seq" % num_TMD]) - 1)) * num_of_bins_in_tmd_region)
                     if df.loc[acc, "n_term_ec"] == True:

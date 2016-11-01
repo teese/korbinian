@@ -7,6 +7,7 @@ import tarfile
 import xml.etree.ElementTree as ET
 import korbinian
 import korbinian.utils as utils
+import sys
 import zipfile
 from multiprocessing import Pool
 
@@ -132,7 +133,8 @@ def parse_SIMAP_to_csv(p):
     """
     pathdict, s, logging = p["pathdict"], p["s"], p["logging"]
     acc = p["acc"]
-    print(acc, end=", ", flush=True)
+    sys.stdout.write(", ".format(acc))
+    sys.stdout.flush()
     # if overwrite_simap_parsed_to_csv is False, skip proteins where the homol_df_orig_zip file exists
     if s["overwrite_simap_parsed_to_csv"] == False:
         if os.path.isfile(p['homol_df_orig_zip']):

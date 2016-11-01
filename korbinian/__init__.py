@@ -1,6 +1,7 @@
 import korbinian.common
 import korbinian.cons_ratio
 import korbinian.fasta
+import korbinian.fastagap
 import korbinian.gap
 import korbinian.gap_figs
 import korbinian.prot_list

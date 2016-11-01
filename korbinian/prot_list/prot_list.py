@@ -146,6 +146,10 @@ def setup_file_locations_in_df(s, pathdict):
     # GAPS: create filename for zip folding the figures (pickled dataframes) for each TMD
     df['homol_gap_figs_zip'] = df['homol_base'] + '_gap_figs.zip'
 
+    # FASTAGAP: create filename for zip that holds the .fas files
+    df['fa_fastagap_zip'] = df['homol_base'] + '_fa_fastagap.zip'
+    df['fa_fastagap_base'] = df['homol_base'] + '_homol_seq_plus_surr_'
+
     # FASTA: create basal name for fasta file with the TMD seqs (eg A0A1F4_EYS_DROME_homol_seq_ + TM01.fas)
     df['fasta_file_BASENAME'] = df.protein_name + '_homol_seq_'
     df['fasta_file_BASENAMEPATH'] = df.homol_base + '_homol_seq_'
