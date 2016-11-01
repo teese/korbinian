@@ -3,6 +3,7 @@ import korbinian.utils as utils
 import korbinian.prot_list.prot_list
 import pandas as pd
 import numpy as np
+import sys
 
 def extract_omp_IDs_from_nr_fasta(ListXX_OMPdb_nr_fasta, ListXX_OMPdb_nr_acc, logging):
     """Takes the OMP non-redundant list of fasta sequences, and extracts the protein IDs (fasta names).
@@ -89,7 +90,8 @@ def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_
                 take_ID = True
                 counter += 1
                 if counter % 100 == 0:
-                    print(". ", end="", flush=True)
+                    sys.stdout.write(". ")
+                    sys.stdout.flush()
             if "FAMILY" in line and take_ID == True:
                 keywords["Family"].append(" ".join(line[9:]))
             if "GENE_NAME" in line and take_ID == True:
@@ -242,9 +244,11 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list
             df_KW.loc[row, TMD + "_seq"] = utils.slice_with_listlike(full_seq, tup)
             # df_KW.loc[row, TMD + "_top"] = utils.slice_with_listlike(topology, tup)
         if row_nr % 50 == 0:
-            print(".", end="", flush=True)
+            sys.stdout.write(". ")
+            sys.stdout.flush()
             if row_nr % 1000 == 0:
-                print("", flush=True)
+                sys.stdout.write("")
+                sys.stdout.flush()
 
     max_num_TMDs = df_KW["number_of_TMDs"].max()
 

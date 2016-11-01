@@ -6,8 +6,8 @@ import sys
 import zipfile
 from multiprocessing import Pool
 
-def run_create_fasta(pathdict, s, logging):
-    logging.info('~~~~~~~~~~~~         starting filter_and_save_fasta           ~~~~~~~~~~~~')
+def run_fastagap_save(pathdict, s, logging):
+    logging.info('~~~~~~~~~~~~           starting run_fastagap_save             ~~~~~~~~~~~~')
     # if multiprocessing is used, log only to the console
     p_dict_logging = logging if s["use_multiprocessing"] != True else utils.Log_Only_To_Console()
     # create list of protein dictionaries to process
@@ -17,21 +17,21 @@ def run_create_fasta(pathdict, s, logging):
 
     if s["use_multiprocessing"]:
         with Pool(processes=n_processes) as pool:
-            fasta_list = pool.map(korbinian.fasta.filter_and_save_fasta, list_p)
+            fastagap_list = pool.map(korbinian.fastagap.fastagap_save, list_p)
             # log the list of protein results (e.g. acc, "simap", True) to the actual logfile, not just the console
-            logging.info("fasta_list : {}".format(fasta_list))
+            for item in fastagap_list:
+                logging.info(item)
     else:
         for p in list_p:
-            korbinian.fasta.filter_and_save_fasta(p)
-    logging.info('~~~~~~~~~~~~       filter_and_save_fasta is finished          ~~~~~~~~~~~~')
+            korbinian.fastagap.fastagap_save(p)
+    logging.info('~~~~~~~~~~~~           finished run_fastagap_save             ~~~~~~~~~~~~')
 
-def filter_and_save_fasta(p):
-    """Filters homologues obtained for each TMD, and saves as an unaligned FastA file.
+def fastagap_save(p):
+    """ Saves TMD_plus_surr for homologues that contain gaps, for the fastagap analysis.
 
     First filters based on homol hit properties (non-TMD-specific, e.g. percentage identity of full protein)
     For each TMD:
-        Filters based on properties of each TMD (for example number of gaps in TMD sequence)
-
+        Filters based on properties of each TMD_plus_surr (for example number of gaps in TMD sequence)
 
     Parameters
     ----------
@@ -64,14 +64,13 @@ def filter_and_save_fasta(p):
 
     Saved Files and Figures
     -----------------------
-    PROTEIN_NAME_fa_fasta.zip (in homol folder, subfolder first two letters of accession)
-        PROTEIN_NAME_homol_seq_TM01.fas
+    PROTEIN_NAME_fa_fastagap.zip (in homol folder, subfolder first two letters of accession)
         PROTEIN_NAME_homol_seq_plus_surr_TM01.fas
     """
     pathdict, s, logging = p["pathdict"], p["s"], p["logging"]
     protein_name = p["protein_name"]
     acc = p["acc"]
-    sys.stdout.write("{}. ".format(acc))
+    sys.stdout.write("%s, "%acc)
     sys.stdout.flush()
     # if the fa_cr_sliced_TMDs_zip file does not exist, skip that protein
     if not os.path.exists(p['fa_cr_sliced_TMDs_zip']):
@@ -93,9 +92,11 @@ def filter_and_save_fasta(p):
     #list_of_TMDs = p['list_of_TMDs'].strip("[']").split(", ")
     list_of_TMDs = ast.literal_eval(p['list_of_TMDs'])
 
-    if os.path.isfile(p["fa_fasta_zip"]):
-        os.remove(p["fa_fasta_zip"])
-    zipout_fasta = zipfile.ZipFile(p["fa_fasta_zip"], mode="a", compression=zipfile.ZIP_DEFLATED)
+    # remove any existing outputfiles
+    if os.path.isfile(p["fa_fastagap_zip"]):
+        os.remove(p["fa_fastagap_zip"])
+
+    zipout_fasta = zipfile.ZipFile(p["fa_fastagap_zip"], mode="a", compression=zipfile.ZIP_DEFLATED)
 
     ########################################################################################
     #                                                                                      #
@@ -103,13 +104,12 @@ def filter_and_save_fasta(p):
     #                                                                                      #
     ########################################################################################
 
-    fa_X_filt_full_str = " & X_in_match_seq == False" if s["fa_X_allowed_in_full_seq"] == False else ""
-
-    fa_homol_query_str = 'FASTA_gapped_identity > {min_ident} & ' \
+    # filtering similar to fasta.py, except that X in not allowed in any match sequence
+    fa_homol_query_str ='FASTA_gapped_identity > {min_ident} & ' \
                         'FASTA_gapped_identity < {max_ident} & ' \
                         'hit_contains_SW_node == True & ' \
-                        'disallowed_words_not_in_descr == True' \
-                        '{Xfull}'.format(Xfull=fa_X_filt_full_str, min_ident=s["fa_min_identity_of_full_protein"], max_ident=s["fa_max_identity_of_full_protein"])
+                        'disallowed_words_not_in_descr == True &' \
+                        'X_in_match_seq == False'.format(min_ident=s["fa_min_identity_of_full_protein"], max_ident=s["fa_max_identity_of_full_protein"])
 
     # filter based on the query string
     dfh.query(fa_homol_query_str, inplace=True)
@@ -146,14 +146,6 @@ def filter_and_save_fasta(p):
         #                                                                                      #
         ########################################################################################
 
-        # if "X" is allowed in the full sequence, check if X is in the selected sequence
-        if s["fa_X_allowed_in_full_seq"] == True:
-            df_fa['X_in_%s'%TMD] = df_fa['%s_SW_match_seq'%TMD].str.contains("X")
-            fa_X_allowed_in_sel_seq = s["fa_X_allowed_in_sel_seq"]
-            fa_X_filt_sel_str = " & X_in_%s == False"%TMD if fa_X_allowed_in_sel_seq == False else ""
-        else:
-            fa_X_filt_sel_str = ""
-
         # create a boolean column that allows filtering by the accepted number of gaps, according to the settings file
         #df_fa['%s_fa_SW_query_acceptable_n_gaps'%TMD] = df_fa['%s_SW_query_num_gaps'%TMD] <= s["fa_max_n_gaps_in_query_TMD"]
        # df_fa['%s_fa_SW_match_acceptable_n_gaps'%TMD] = df_fa['%s_SW_match_num_gaps'%TMD] <= s["fa_max_n_gaps_in_match_TMD"]
@@ -161,73 +153,77 @@ def filter_and_save_fasta(p):
         # %timeit 46.6 ms per loop for 325 homologues
         df_fa['%s_SW_match_seq_hydro' % TMD] = df_fa['%s_SW_match_seq'%TMD].dropna().apply(lambda x: utils.calc_hydrophob(x))
 
-        # create string for the pandas.query syntax
-        fa_query_filt_str =  '{TMD}_SW_query_num_gaps <= {fa_max_n_gaps_in_query_TMD} & ' \
-                             '{TMD}_SW_match_num_gaps <= {fa_max_n_gaps_in_match_TMD} &' \
-                             '{TMD}_SW_match_seq_hydro <= {hydro_limit}' \
-                             '{Xsel}'.format(TMD=TMD, Xsel=fa_X_filt_sel_str, fa_max_n_gaps_in_query_TMD=s["fa_max_n_gaps_in_query_TMD"],
-                                             fa_max_n_gaps_in_match_TMD=s["fa_max_n_gaps_in_match_TMD"], hydro_limit=s["fa_max_hydrophilicity_Hessa"])
+        above_hessa_cutoff = df_fa['%s_SW_match_seq_hydro' % TMD] > s["gap_max_hydrophilicity_Hessa"]
+        vc = above_hessa_cutoff.value_counts()
+        if True in vc.index:
+            n = vc[True]
+            logging.info("{acc} {TMD} {n} homologues have hydrophilicity above_hessa_cutoff of {c}".format(acc=acc, TMD=TMD, n=n, c=s["gap_max_hydrophilicity_Hessa"]))
+
+        min_number_of_gaps = s["fa_min_n_gaps_in_match_TMD_plus_surr"]
+        max_number_of_gaps = s["fa_max_n_gaps_in_match_TMD_plus_surr"]
+
+        if '{}_SW_query_seq_plus_surr'.format(TMD) not in df_fa.columns:
+            message = "'{}_SW_query_seq_plus_surr'.format(TMD) not in df_fa. Suggest re-running slice script"
+            logging.info(message)
+            return acc, False, message
+
+        df_fa['{}_SW_match_plus_surr_num_gaps'.format(TMD)] = df_fa['{}_SW_match_seq_plus_surr'.format(TMD)].str.count("-")
+        df_fa['{}_SW_query_plus_surr_num_gaps'.format(TMD)] = df_fa['{}_SW_query_seq_plus_surr'.format(TMD)].str.count("-")
+        # create string for the pandas.query syntax NOTE: gaps are not mentioned. Assume that gaps are NOT allowed in full protein.
+        fa_query_filt_str = '{min_} <= {TMD}_SW_match_plus_surr_num_gaps <= {max_} &' \
+                            '{TMD}_SW_match_seq_hydro <= {hydro_limit}'.format(TMD=TMD,min_=min_number_of_gaps,max_=max_number_of_gaps,
+                                                                               hydro_limit = s["gap_max_hydrophilicity_Hessa"])
 
         # filter based on TMD-specific features
         df_fa.query(fa_query_filt_str, inplace=True)
 
-        # setup the file names again. Note that the file should already exist, and the query sequence included.
-        if s["save_fasta_plus_surr"] == True:
-            fasta_savelist_suffixes = ["", "_plus_surr"]
-        elif s["save_fasta_plus_surr"] == False:
-            fasta_savelist_suffixes = [""]
+        fastagap_file_path = p['fa_fastagap_base'] + '%s.fas' % TMD
+        with open(fastagap_file_path, 'w') as f:
+            # add the query sequence, if desired
+            if s["add_query_seq"]:
+                # add original query seq to fasta file. Note that the first SIMAP hit is excluded below.
+                #if '%s_seq%s'%(TMD,s) in df.columns:
+                if '%s_seq_plus_surr' % (TMD) in p:
+                    f.write('>00_%s_%s_uniprot_query_plus_surr\n%s\n' % (p['protein_name'], TMD, p['%s_seq_plus_surr'%(TMD)]))
+            if s["remove_redundant_seqs"]:
+                # select the non-redundant sequences by using the pandas duplicated function
+                nr_dfs_fa = df_fa.loc[~df_fa['%s_SW_match_seq_plus_surr'%(TMD)].duplicated()]
+            else:
+                nr_dfs_fa = df_fa
 
-        # for either the "_plus_surr" or "" suffix:
-        for suff in fasta_savelist_suffixes:
-            #fasta_file = p['fasta_file%s_BASENAME'%s] + '%s.fas' % TMD
-            fasta_file_path = p['fasta_file%s_BASENAMEPATH'%suff] + '%s.fas' % TMD
-            with open(fasta_file_path, 'w') as f:
-                # add the query sequence, if desired
-                if s["add_query_seq"]:
-                    # add original query seq to fasta file. Note that the first SIMAP hit is excluded below.
-                    #if '%s_seq%s'%(TMD,s) in df.columns:
-                    if '%s_seq%s' % (TMD, suff) in p:
-                        f.write('>00_%s_%s_uniprot_query%s\n%s\n' % (p['protein_name'], TMD, suff, p['%s_seq%s'%(TMD,suff)]))
-                if s["remove_redundant_seqs"]:
-                    # select the non-redundant sequences by using the pandas duplicated function
-                    nr_dfs_fa = df_fa.loc[~df_fa['%s_SW_match_seq%s'%(TMD,suff)].duplicated()]
-                else:
-                    nr_dfs_fa = df_fa
+            # if gaps are not allowed in the selected sequence, filter to remove before saving
+            if s["fa_X_allowed_in_sel_seq"] == False:
+                nr_dfs_fa = nr_dfs_fa.dropna().loc[~nr_dfs_fa['%s_SW_match_seq_plus_surr'%(TMD)].str.contains("X")]
 
-                # if gaps are not allowed in the selected sequence, filter to remove before saving
+            if s["fa_X_allowed_in_full_seq"] == True:
                 if s["fa_X_allowed_in_sel_seq"] == False:
-                    nr_dfs_fa = nr_dfs_fa.dropna().loc[~nr_dfs_fa['%s_SW_match_seq%s'%(TMD,suff)].str.contains("X")]
+                    # note this is actually faster than tha str.contains("X") function
+                    X_not_in_seq_ser = nr_dfs_fa['%s_SW_match_seq_plus_surr'%(TMD)].apply(lambda x : "X" not in x)
+                    n_before = nr_dfs_fa.shape[0]
+                    nr_dfs_fa = nr_dfs_fa.loc[X_not_in_seq_ser]
+                    n_X_removed = n_before - nr_dfs_fa.shape[0]
+                    if n_X_removed > 1:
+                        logging.info("{} {} seqs removed due to X in seq plus surr".format(acc, n_X_removed))
 
-                if suff == "_plus_surr":
-                    if s["fa_X_allowed_in_full_seq"] == True:
-                        if s["fa_X_allowed_in_sel_seq"] == False:
-                            # note this is actually faster than tha str.contains("X") function
-                            X_not_in_seq_ser = nr_dfs_fa['%s_SW_match_seq%s'%(TMD,suff)].apply(lambda x : "X" not in x)
-                            n_before = nr_dfs_fa.shape[0]
-                            nr_dfs_fa = nr_dfs_fa.loc[X_not_in_seq_ser]
-                            n_X_removed = n_before - nr_dfs_fa.shape[0]
-                            if n_X_removed > 1:
-                                logging.info("{} {} seqs removed due to X in seq plus surr".format(acc, n_X_removed))
+            """REMOVED, FIRST HIT IS ALREADY EXCLUDED?"""
+            # # add the first non-redundant sequence from the homologues, but only if it is not the same as the query
+            # if p['%s_seq%s'%(TMD,s)] != nr_dfs_fa.loc[0, '%s_SW_match_seq%s'%(TMD,s)]:
+            #     f.write('>%04d_%s_%s\n%s\n' % (1, str(nr_dfs_fa.loc[0, 'organism'])[:30],
+            #                                    str(nr_dfs_fa.loc[0, 'description'])[:30],
+            #                                    nr_dfs_fa.loc[0, '%s_SW_match_seq%s'%(TMD,s)]))
+            # for each hit after the first one, add the sequence to the fastA file
+            for row in nr_dfs_fa.index: # formerly excluding the first hit
+                # add the original query seq
+                f.write('>%04d_%s_%s\n%s\n' % (row, str(nr_dfs_fa.loc[row, 'organism'])[:30],
+                                               str(nr_dfs_fa.loc[row, 'description'])[:30],
+                                               nr_dfs_fa.loc[row, '%s_SW_match_seq_plus_surr'%(TMD)]))
 
-                """REMOVED, FIRST HIT IS ALREADY EXCLUDED?"""
-                # # add the first non-redundant sequence from the homologues, but only if it is not the same as the query
-                # if p['%s_seq%s'%(TMD,s)] != nr_dfs_fa.loc[0, '%s_SW_match_seq%s'%(TMD,s)]:
-                #     f.write('>%04d_%s_%s\n%s\n' % (1, str(nr_dfs_fa.loc[0, 'organism'])[:30],
-                #                                    str(nr_dfs_fa.loc[0, 'description'])[:30],
-                #                                    nr_dfs_fa.loc[0, '%s_SW_match_seq%s'%(TMD,s)]))
-                # for each hit after the first one, add the sequence to the fastA file
-                for row in nr_dfs_fa.index: # formerly excluding the first hit
-                    # add the original query seq
-                    f.write('>%04d_%s_%s\n%s\n' % (row, str(nr_dfs_fa.loc[row, 'organism'])[:30],
-                                                   str(nr_dfs_fa.loc[row, 'description'])[:30],
-                                                   nr_dfs_fa.loc[row, '%s_SW_match_seq%s'%(TMD,suff)]))
-
-            # transfer temporary file into zip
-            zipout_fasta.write(fasta_file_path, arcname=os.path.basename(fasta_file_path))
-            # delete temporary file
-            os.remove(fasta_file_path)
-            n_fa_saved = int(nr_dfs_fa.shape[0])
-            logging.info("{} {}{} saved to fasta, {} sequences.".format(acc, TMD, suff, n_fa_saved))
+        # transfer temporary file into zip
+        zipout_fasta.write(fastagap_file_path, arcname=os.path.basename(fastagap_file_path))
+        # delete temporary file
+        os.remove(fastagap_file_path)
+        n_fa_saved = int(nr_dfs_fa.shape[0])
+        logging.info("{} {}_plus_surr saved to fasta, {} sequences.".format(acc, TMD, n_fa_saved))
 
     # close the zipfile
     zipout_fasta.close()

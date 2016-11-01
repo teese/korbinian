@@ -150,6 +150,9 @@ if __name__ == "__main__":
     if s["run_create_graph_of_gap_density"]:
         korbinian.gap_figs.create_graph_of_gap_density(pathdict, s, logging)
 
+    if s["run_fastagap_save"]:
+        korbinian.fastagap.run_fastagap_save(pathdict, s, logging)
+
     ########################################################################################
     #                                                                                      #
     #                 conservation ratio (AAIMON ratio) figures                            #

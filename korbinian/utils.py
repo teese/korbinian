@@ -665,11 +665,12 @@ def run_command(command):
 
 def sleep_x_seconds(x):
     # sleep for several seconds to not overload a server, for example
-    print("sleeping ", end="", flush=True)
+    sys.stdout.write("sleeping ", end="", flush=True)
     for i in range(x):
         time.sleep(1)
-        print(" .", end="", flush=True)
-    print(' .')
+        sys.stdout.write(" .")
+        sys.stdout.flush()
+    sys.stdout.write(' .')
 
 def sleep_x_hours(x):
     """Sleeps for a certain number of hours. Prints a dot each hour.
@@ -685,8 +686,9 @@ def sleep_x_hours(x):
     sys.stdout.flush()
     for i in range(x):
         time.sleep(3600)
-        print(" .", end="", flush=True)
-    print(' .\n')
+        sys.stdout.write(" .")
+        sys.stdout.flush()
+    sys.stdout.write(' .\n')
 
 #set up a function for showing object names, in order to write the csv header from a list of objects
 def name_of_object_in_list_of_global_objects(object):

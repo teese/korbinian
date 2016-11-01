@@ -114,14 +114,12 @@ def calculate_AAIMON_ratios(p):
     #           Filter based on homol hit properties (non-TMD-specific)                    #
     #                                                                                      #
     ########################################################################################
-
-    fa_X_filt_full_str = " & X_in_match_seq == False" if s["fa_X_allowed_in_full_seq"] == False else ""
-
     cr_homol_query_str = 'FASTA_gapped_identity > {min_ident} & ' \
                         'FASTA_gapped_identity < {max_ident} & ' \
                         'hit_contains_SW_node == True & ' \
-                        'disallowed_words_not_in_descr == True' \
-                        '{Xfull}'.format(Xfull=fa_X_filt_full_str, min_ident=s["cr_min_identity_of_full_protein"], max_ident=s["cr_max_identity_of_full_protein"])
+                        'disallowed_words_not_in_descr == True &' \
+                        'X_in_match_seq == False'.format(min_ident=s["cr_min_identity_of_full_protein"],
+                                                         max_ident=s["cr_max_identity_of_full_protein"])
 
     # filter based on the query string
     dfh.query(cr_homol_query_str, inplace=True)
@@ -172,14 +170,18 @@ def calculate_AAIMON_ratios(p):
         os.remove(nonTMD_cr_outfile_pickle)
 
         # filter nonTMD dataframe to only contain entries where nonTMD_perc_ident is not zero
-        df_nonTMD = df_nonTMD.loc[df_nonTMD['nonTMD_perc_ident'] != 0]
+        # filter to remove short nonTMD regions
+        # note this filtering is AFTER the full dataframe has been saved to file, preventing loss of data
+        nonTMD_query_str = "nonTMD_perc_ident != 0 & " \
+                           "nonTMD_len >= {min_nonTMD_len}".format(min_nonTMD_len=s["cr_min_len_nonTMD"])
+
+        df_nonTMD.query(nonTMD_query_str, inplace=True)
 
         linspace_binlist = np.linspace(s["1p_smallest_bin"],
                                        s["1p_largest_bin"],
                                        s["1p_number_of_bins"])
         # add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
-        binlist = np.append(linspace_binlist,
-                            s["1p_final_highest_bin"])
+        binarray = np.append(linspace_binlist, s["1p_final_highest_bin"])
 
         # se default font size for text in the plot
         fontsize = 4
@@ -220,10 +222,7 @@ def calculate_AAIMON_ratios(p):
             #                                                                                      #
             ########################################################################################
             len_query_TMD = p["%s_end"%TMD] - p["%s_start"%TMD]
-            df_cr, mean_ser = korbinian.cons_ratio.calc.calc_AAIMON(TMD, df_cr, len_query_TMD, mean_ser)
-
-            logging.info('%s AAIMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean' % TMD]))
-            # logging.info('%s AASMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AASMON_ratio_mean'%TMD]))
+            df_cr = korbinian.cons_ratio.calc.calc_AAIMON(TMD, df_cr, len_query_TMD)
 
             # save the dataframe for that TMD
             TM_cr_outfile_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
@@ -231,6 +230,16 @@ def calculate_AAIMON_ratios(p):
                 pickle.dump(df_cr, f, protocol=pickle.HIGHEST_PROTOCOL)
             zipout.write(TM_cr_outfile_pickle, arcname=TM_cr_outfile_pickle)
             os.remove(TM_cr_outfile_pickle)
+
+            max_gaps  = s["cr_max_n_gaps_in_TMD"]
+            max_hydro = s["cr_max_hydrophilicity_Hessa"]
+            min_ident = s["cr_min_identity_of_TMD"]
+            # filter by TMD-specific values (e.g. max_gaps_in_TMD and then calculate all the mean values for AAIMON, etc)
+            # note that this is done AFTER the full df_cr is saved, so df_cr can be filtered and reduced directly without losing data
+            mean_ser = korbinian.cons_ratio.calc.filt_and_save_AAIMON_mean(TMD, df_cr, mean_ser, max_gaps, max_hydro, min_ident)
+
+            logging.info('%s AAIMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean' % TMD]))
+            # logging.info('%s AASMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AASMON_ratio_mean'%TMD]))
 
             # use the dictionary to obtain the figure number, plot number in figure, plot indices, etc
             newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[TMD_Nr]
@@ -250,7 +259,7 @@ def calculate_AAIMON_ratios(p):
             #       Save histograms for each TMD of that protein, with relative conservation       #
             #                                                                                      #
             ########################################################################################
-            korbinian.cons_ratio.histogram.save_hist_AAIMON_ratio_single_protein(fig_nr, fig, axarr, df_cr, s, TMD, binlist, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix)
+            korbinian.cons_ratio.histogram.save_hist_AAIMON_ratio_single_protein(fig_nr, fig, axarr, df_cr, s, TMD, binarray, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix)
 
         value_counts_hit_contains_SW_node = dfh['hit_contains_SW_node'].value_counts()
         if True in value_counts_hit_contains_SW_node:
