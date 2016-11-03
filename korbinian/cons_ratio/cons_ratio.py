@@ -275,7 +275,7 @@ def calculate_AAIMON_ratios(p):
 #        print(df_list_AAIMON_all_TMD)
         korbinian.cons_ratio.norm.save_graph_for_normalized_AAIMON(acc,  df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'],
                                                                      df_list_AAIMON_all_TMD['AAIMON_normalised'],
-                                                                     df_list_AAIMON_all_TMD['gapped_ident'], zipout, AAIMON_hist_path_prefix)
+                                                                     df_list_AAIMON_all_TMD['gapped_ident'], zipout, protein_name)
         # save the dataframe containing normalisation factor and normalised AAIMON to zipout
         df_list_AAIMON_all_TMD.to_csv(protein_name + '_AAIMON_normalisation_data.csv')
         zipout.write(protein_name + '_AAIMON_normalisation_data.csv', arcname=protein_name + '_AAIMON_normalisation_data.csv')
