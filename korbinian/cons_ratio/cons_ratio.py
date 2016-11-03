@@ -166,7 +166,7 @@ def calculate_AAIMON_ratios(p):
     #                Calculation of normalization factor for each homologue                #
     #                                                                                      #
     ########################################################################################
-    dfh['norm_factor'] = dfh['FASTA_gapped_identity'].apply(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor, args=())
+    dfh['norm_factor'] = dfh['FASTA_gapped_identity'].apply(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor, args=(0.13, 0.05))
 
     with zipfile.ZipFile(homol_cr_ratios_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
 
@@ -264,17 +264,18 @@ def calculate_AAIMON_ratios(p):
 
         ########################################################################################
         #                                                                                      #
-        #                                AAIMON normalization                                  #
+        #               AAIMON normalization and save fig for each protein                     #
         #                                                                                      #
         ########################################################################################
         df_list_AAIMON_all_TMD = pd.DataFrame(list_of_AAIMON_all_TMD)
-        df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs'] = df_list_AAIMON_all_TMD.mean(axis=1)
+        df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'] = df_list_AAIMON_all_TMD.mean(axis=1)
         df_list_AAIMON_all_TMD['gapped_ident'] = dfh['FASTA_gapped_identity'].loc[df_list_AAIMON_all_TMD.index]
         df_list_AAIMON_all_TMD['norm_factor'] = dfh['norm_factor'].loc[df_list_AAIMON_all_TMD.index]
-        df_list_AAIMON_all_TMD['AAIMON_normalized'] = df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs'] / df_list_AAIMON_all_TMD['norm_factor']
+        df_list_AAIMON_all_TMD['AAIMON_normalised'] = df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'] / df_list_AAIMON_all_TMD['norm_factor']
         print(df_list_AAIMON_all_TMD)
-        korbinian.cons_ratio.norm.create_graph_for_normalized_AAIMON(acc, df_list_AAIMON_all_TMD['AAIMON_normalized'],
-                                                                     df_list_AAIMON_all_TMD['gapped_ident'])
+        korbinian.cons_ratio.norm.save_graph_for_normalized_AAIMON(acc,  df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'],
+                                                                     df_list_AAIMON_all_TMD['AAIMON_normalised'],
+                                                                     df_list_AAIMON_all_TMD['gapped_ident'], zipout, AAIMON_hist_path_prefix)
 
         value_counts_hit_contains_SW_node = dfh['hit_contains_SW_node'].value_counts()
         if True in value_counts_hit_contains_SW_node:
