@@ -148,7 +148,6 @@ def filt_and_save_AAIMON_mean(TMD, df_cr, mean_ser, max_gaps, max_hydro, min_ide
                                                                  max_hydro=max_hydro,
                                                                  min_ident=min_ident)
     #n_homol_before_filter = df_cr.shape[0]
-
     # filter by the above query
     df_cr.query(cr_TMD_query_str, inplace=True)
 
