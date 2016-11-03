@@ -37,7 +37,7 @@ def calc_AAIMON_aa_prop_norm_factor(aa_ident, rand_TM, rand_nonTM):
     return aa_prop_norm_factor
 
 
-def save_graph_for_normalized_AAIMON(acc, AAIMON, norm_AAIMON, aa_ident, zipout, AAIMON_hist_path_prefix):
+def save_graph_for_normalized_AAIMON(acc, AAIMON, norm_AAIMON, aa_ident, zipout, protein_name):
     fig, ax = plt.subplots()
     perc_ident = aa_ident*100
     ax.scatter(perc_ident, norm_AAIMON)
@@ -55,10 +55,10 @@ def save_graph_for_normalized_AAIMON(acc, AAIMON, norm_AAIMON, aa_ident, zipout,
 
 #    fig.savefig(r'C:\Users\coffee oder tee\Dropbox\Undergraduate\Bachelor thesis\my_documents\plot_folder\%s_normalised_AAIMON.png' % acc,
 #                format="png", dpi=200)
-    fig.savefig(AAIMON_hist_path_prefix + '_normalised_AAIMON.png', format = 'png', dpi = 200)
+    fig.savefig(protein_name + '_AAIMON_normalisation.png', format = 'png', dpi = 200)
     plt.close('all')
-    zipout.write(AAIMON_hist_path_prefix + '_normalised_AAIMON.png',
-                 arcname=os.path.basename(AAIMON_hist_path_prefix) + '_normalised_AAIMON.png')
-    os.remove(AAIMON_hist_path_prefix + '_normalised_AAIMON.png')
+    zipout.write(protein_name + '_AAIMON_normalisation.png',
+                 arcname=os.path.basename(protein_name) + '_AAIMON_normalisation.png')
+    os.remove(protein_name + '_AAIMON_normalisation.png')
 
 
