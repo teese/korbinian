@@ -59,6 +59,6 @@ def save_graph_for_normalized_AAIMON(acc, AAIMON, norm_AAIMON, aa_ident, zipout,
     plt.close('all')
     zipout.write(AAIMON_hist_path_prefix + '_normalised_AAIMON.png',
                  arcname=os.path.basename(AAIMON_hist_path_prefix) + '_normalised_AAIMON.png')
-#    os.remove(AAIMON_hist_path_prefix + '_normalised AAIMON.png')
+    os.remove(AAIMON_hist_path_prefix + '_normalised_AAIMON.png')
 
 

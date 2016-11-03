@@ -272,10 +272,14 @@ def calculate_AAIMON_ratios(p):
         df_list_AAIMON_all_TMD['gapped_ident'] = dfh['FASTA_gapped_identity'].loc[df_list_AAIMON_all_TMD.index]
         df_list_AAIMON_all_TMD['norm_factor'] = dfh['norm_factor'].loc[df_list_AAIMON_all_TMD.index]
         df_list_AAIMON_all_TMD['AAIMON_normalised'] = df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'] / df_list_AAIMON_all_TMD['norm_factor']
-        print(df_list_AAIMON_all_TMD)
+#        print(df_list_AAIMON_all_TMD)
         korbinian.cons_ratio.norm.save_graph_for_normalized_AAIMON(acc,  df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'],
                                                                      df_list_AAIMON_all_TMD['AAIMON_normalised'],
                                                                      df_list_AAIMON_all_TMD['gapped_ident'], zipout, AAIMON_hist_path_prefix)
+        # save the dataframe containing normalisation factor and normalised AAIMON to zipout
+        df_list_AAIMON_all_TMD.to_csv(protein_name + '_AAIMON_normalisation_data.csv')
+        zipout.write(protein_name + '_AAIMON_normalisation_data.csv', arcname=protein_name + '_AAIMON_normalisation_data.csv')
+        os.remove(protein_name + '_AAIMON_normalisation_data.csv')
 
         value_counts_hit_contains_SW_node = dfh['hit_contains_SW_node'].value_counts()
         if True in value_counts_hit_contains_SW_node:
