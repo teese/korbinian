@@ -641,8 +641,9 @@ class Command(object):
             #self.process.communicate()
             stdout, stderr = self.process.communicate() # from http://stackoverflow.com/questions/14366352/how-to-capture-information-from-executable-jar-in-python
             # Thus far, SIMAP has only ever given java faults, never java output. Don't bother showing.
-            #logging.info('JAVA OUTPUT:%s' % stdout.decode("utf-8"))
-            logging.warning('JAVA FAULTS: %s' %stderr.decode("utf-8"))
+            # if the console prints anything longer than 5 characters, log it
+            if len(stderr.decode("utf-8")) > 5:
+                logging.warning('FAULTS: %s' % stderr.decode("utf-8"))
             #logging.info('Thread finished')
 
         thread = threading.Thread(target=target)
@@ -663,14 +664,17 @@ def run_command(command):
         stderr=subprocess.STDOUT)
     return iter(p.stdout.readline, b'')
 
-def sleep_x_seconds(x):
+def sleep_x_seconds(x, print_stuff=True):
     # sleep for several seconds to not overload a server, for example
-    sys.stdout.write("sleeping ", end="", flush=True)
+    if print_stuff == True:
+        sys.stdout.write("sleeping ")
     for i in range(x):
         time.sleep(1)
-        sys.stdout.write(" .")
-        sys.stdout.flush()
-    sys.stdout.write(' .')
+        if print_stuff == True:
+            sys.stdout.write(" .")
+            sys.stdout.flush()
+    if print_stuff == True:
+        sys.stdout.write(' .')
 
 def sleep_x_hours(x):
     """Sleeps for a certain number of hours. Prints a dot each hour.

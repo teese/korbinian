@@ -205,6 +205,7 @@ def create_pathdict(base_filename_summaries):
     # create output png from gap analysis
     pathdict["gap_density_fig_path"] = '%s_create_graph_of_gap_density.png' % base_filename_summaries
     pathdict["gap_density_testfig_png"] = '%s_gap_test_out.png' % base_filename_summaries
+    pathdict["gap_fastagap_all_pos_pickle"] = '%s_gap_all_pos.pickle' % base_filename_summaries
 
     """OUTPUT FILES FOR OLD SCRIPTS"""
     pathdict["dfout08_simap_AAIMON"] = '%s_simap_AAIMON.csv' % base_filename_summaries
