@@ -3,6 +3,7 @@ import os
 import pandas as pd
 from time import strftime
 import unicodedata
+import korbinian
 import korbinian.utils as utils
 
 def setup_file_locations_in_df(s, pathdict):
@@ -179,9 +180,32 @@ def setup_file_locations_in_df(s, pathdict):
     df['csv_file_av_cons_ratios_hits'] = df.simap_filename_base + '_cons_ratios.csv'
     df['csv_file_av_cons_ratios_hits_BASENAME'] = df.protein_name + '_cons_ratios_'
     df['csv_file_av_cons_ratios_hits_BASENAMEPATH'] = df.simap_filename_base + '_cons_ratios_'
+
+
+
     ########################################################################################
     #                                                                                      #
-    #                                     Save to CSV                                       #
+    #     slice out all the TMD_seq_plus_surr, based on settings (e.g. 10aa each side)     #
+    #                                                                                      #
+    ########################################################################################
+
+    max_num_TMDs = df["number_of_TMDs"].max()
+    n_aa_before_tmd = s["n_aa_before_tmd"]
+    n_aa_after_tmd = s["n_aa_after_tmd"]
+
+    #if 'TM01_seq_plus_surr' not in df.columns:
+    # calculate TM plus surr for ALL sequences, overwriting if necessary, in case this is changed later
+    # currently the loop is run for each TMD, based on the sequence with the most TMDs
+    for i in range(1, int(max_num_TMDs) + 1):
+        TMD = 'TM%02d' % i
+        # get the indices for TMD plus surrounding sequence
+        df = korbinian.prot_list.prot_list.get_indices_TMD_plus_surr_for_summary_file(df, TMD, n_aa_before_tmd, n_aa_after_tmd)
+        # slice out the TMD_seq_plus_surr for each TMD
+        df['%s_seq_plus_surr' % TMD] = df[df['%s_start' % TMD].notnull()].apply(utils.slice_uniprot_TMD_plus_surr_seq, args=(TMD,), axis=1)
+
+    ########################################################################################
+    #                                                                                      #
+    #                                     Save to CSV                                      #
     #                                                                                      #
     ########################################################################################
     # indicate that the setup_file_locations_in_df function has been run
