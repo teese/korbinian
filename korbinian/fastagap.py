@@ -1,18 +1,13 @@
 import ast
-import os
 import csv
 import korbinian
 import korbinian.utils as utils
-import sys
 import zipfile
 from multiprocessing import Pool
 import pandas as pd
 import pickle
 import os
 import sys
-from Bio import SeqIO
-import subprocess
-from Bio import AlignIO
 from Bio import AlignIO
 import numpy as np
 
@@ -252,14 +247,24 @@ def fastagap_save(p):
                 if s["add_query_seq"]:
                     # add original query seq to fasta file. Note that the first SIMAP hit is excluded below.
                     #if '%s_seq%s'%(TMD,s) in df.columns:
-                    if '%s_seq_plus_surr' % (TMD) in p:
+                    if '%s_seq_plus_surr'%TMD in p and '%s_seq_plus_surr'%TMD != np.nan:
                         f.write('>00_%s_%s_uniprot_query_plus_surr\n%s\n' % (p['protein_name'], TMD, p['%s_seq_plus_surr'%(TMD)]))
+                    else:
+                        message = "{} {}_seq_plus_surr is is missing (np.nan or not in database)".format(acc, TMD)
+                        logging.warning(message)
+                        continue
 
                 for row in nr_dfs_fa.index: # formerly excluding the first hit
                     # add the original query seq
                     f.write('>%04d_%s_%s\n%s\n' % (row, str(nr_dfs_fa.loc[row, 'organism'])[:30],
                                                    str(nr_dfs_fa.loc[row, 'description'])[:30],
                                                    nr_dfs_fa.loc[row, '%s_SW_match_seq_plus_surr'%(TMD)]))
+
+
+            # transfer temporary file into zip
+            zipout_fastagap.write(fastagap_filtered_fasta_path, arcname=os.path.basename(fastagap_filtered_fasta_path))
+            n_fa_saved = nr_dfs_fa.shape[0]
+            logging.info("{} {}_plus_surr saved to fasta, {} sequences.".format(acc, TMD, n_fa_saved))
 
             fastagap_aligned_fasta_path = p['fastagap_base'] + '%s_aligned.fas' % TMD
             clustal_path = os.path.normpath(s["clustal_path"])
@@ -278,14 +283,12 @@ def fastagap_save(p):
             # Wait 2 seconds, allowing time to save and finish with the alignment file.
             utils.sleep_x_seconds(2, print_stuff=False)
 
-            # transfer temporary files into zip
-            zipout_fastagap.write(fastagap_filtered_fasta_path, arcname=os.path.basename(fastagap_filtered_fasta_path))
-            zipout_fastagap.write(fastagap_aligned_fasta_path, arcname=os.path.basename(fastagap_aligned_fasta_path))
-            n_fa_saved = nr_dfs_fa.shape[0]
-            logging.info("{} {}_plus_surr saved to fasta, {} sequences.".format(acc, TMD, n_fa_saved))
             # delete temporary files
             os.remove(fastagap_filtered_fasta_path)
-            os.remove(fastagap_aligned_fasta_path)
+            # zip and delete aligned fasta file
+            if os.path.isfile(fastagap_aligned_fasta_path):
+                zipout_fastagap.write(fastagap_aligned_fasta_path, arcname=os.path.basename(fastagap_aligned_fasta_path))
+                os.remove(fastagap_aligned_fasta_path)
 
     # save the dictionary containing the number of valid homologues for each TMD as a csv file, and transfer to zip
     fastagap_n_valid_homol_csv = p['fastagap_base'] + 'n_valid_homol.csv'
@@ -328,6 +331,7 @@ def run_calc_fastagap_densities(pathdict, s, logging):
                 with openzip.open(fastagap_n_valid_homol_csv) as csv_file_handle:
                     # read as pandas dataframe for "number of valid" homologues
                     df_nv = pd.read_csv(csv_file_handle, header=None)
+
                     df_nv.columns = ["TMD", "n_valid_homol"]
                     df_nv.set_index("TMD", inplace=True)
                     # filter to remove any TMDs with less than 1 homologue
@@ -342,7 +346,16 @@ def run_calc_fastagap_densities(pathdict, s, logging):
                             TMD_query_seq = df.loc[acc,'%s_seq'%TMD]
                             fastagap_aligned_fasta_path = df.loc[acc,'fastagap_base'] + '%s_aligned.fas' % TMD
                             # extract file from zip
-                            openzip.extract(os.path.basename(fastagap_aligned_fasta_path), os.path.dirname(fastagap_aligned_fasta_path))
+                            filename = os.path.basename(fastagap_aligned_fasta_path)
+                            path = os.path.dirname(fastagap_aligned_fasta_path)
+                            try:
+                                openzip.extract(filename, path)
+                            except PermissionError:
+                                # sometimes windows and python like to hang on to a file, and don't let go
+                                # rename to an alternative to avoid permission errors
+                                fastagap_aligned_fasta_path = fastagap_aligned_fasta_path[:-4] + "_2.fas"
+                                filename = filename[:-4] + "_2.fas"
+                                openzip.extract(filename, path)
                             # read as a biopython alignment object
                             alignment = AlignIO.read(fastagap_aligned_fasta_path, "fasta")
                             # convert alignment to a pandas dataframe
@@ -402,14 +415,13 @@ def run_calc_fastagap_densities(pathdict, s, logging):
                             dfal.dropna(how="all", axis=1, inplace=True)
                             # the columns are the list of gap positions for this TMD of this protein
                             pos_with_gaps_for_this_TMD = list(dfal.columns)
-                            print("pos_with_gaps_for_this_TMD", pos_with_gaps_for_this_TMD)
+                            logging.info("{} {} gap pos : {}".format(acc, TMD, pos_with_gaps_for_this_TMD))
                             # add to the large list for all proteins
                             pos_with_gaps_for_all_TMDs_all_proteins += pos_with_gaps_for_this_TMD
 
                             # remove the non-zipped temporary files
                             os.remove(fastagap_aligned_fasta_path)
                             os.remove(csv_out)
-
 
         except (KeyError, pd.io.common.EmptyDataError, zipfile.BadZipFile):
             logging.info("{} {} corrupt zip file, will be removed".format(acc, df.loc[acc, "fastagap_zip"]))

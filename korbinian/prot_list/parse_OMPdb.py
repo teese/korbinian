@@ -250,17 +250,26 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list
                 sys.stdout.write("")
                 sys.stdout.flush()
 
-    max_num_TMDs = df_KW["number_of_TMDs"].max()
 
-    # n_aa_before_tmd = s["n_aa_before_tmd"]
-    # n_aa_after_tmd = s["n_aa_after_tmd"]
-    n_aa_before_tmd = 10
-    n_aa_after_tmd = 10
-
-    # currently the loop is run for each TMD, based on the sequence with the most TMDs
-    for i in range(1, int(max_num_TMDs) + 1):
-        TMD = 'TM%02d' % i
-        df_KW = korbinian.prot_list.prot_list.get_indices_TMD_plus_surr_for_summary_file(df_KW, TMD, n_aa_before_tmd, n_aa_after_tmd)
+    ########################################################################################
+    #                                                                                      #
+    #                slicing out TMD_seq_plus_surr shifted to prot_list.py                 #
+    #                                                                                      #
+    ########################################################################################
+    # max_num_TMDs = df_KW["number_of_TMDs"].max()
+    #
+    # # n_aa_before_tmd = s["n_aa_before_tmd"]
+    # # n_aa_after_tmd = s["n_aa_after_tmd"]
+    # n_aa_before_tmd = 10
+    # n_aa_after_tmd = 10
+    #
+    # # currently the loop is run for each TMD, based on the sequence with the most TMDs
+    # for i in range(1, int(max_num_TMDs) + 1):
+    #     TMD = 'TM%02d' % i
+    #     # get the indices for TMD plus surrounding sequence
+    #     df_KW = korbinian.prot_list.prot_list.get_indices_TMD_plus_surr_for_summary_file(df_KW, TMD, n_aa_before_tmd, n_aa_after_tmd)
+    #     # slice out the TMD_seq_plus_surr for each TMD
+    #     df_KW['%s_seq_plus_surr' % TMD] = df_KW[df_KW['%s_start' % TMD].notnull()].apply(utils.slice_uniprot_TMD_plus_surr_seq, args=(TMD,), axis=1)
 
     # rename columns to match protein lists from uniprot (Note that Family is currently translated as prot_descr)
     dict_ = {"Sequence": "full_seq", "Organism": "organism", "Uniprot": "uniprot_acc", "Gene_Name": "gene_name",
