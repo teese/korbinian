@@ -403,7 +403,12 @@ def run_calc_fastagap_densities(pathdict, s, logging):
                             # the new columns (gap positions) are made by combining the before, TM, and after_TM
                             full_new_cols = new_cols_before_TM + list(cols_TM_norm_to_1) + cols_after_TM
                             # replace original columns
-                            dfal.columns = full_new_cols
+                            if dfal.shape[1] == len(full_new_cols):
+                                dfal.columns = full_new_cols
+                            else:
+                                message = "{} {} skipped. full_new_cols with gap indices is not the same length as the dfa1.columns.".format(acc, TMD)
+                                logging.info(message)
+                                continue
                             # save the dataframe, with original sequences (before converting non-gaps to np.nan)
                             csv_out = fastagap_aligned_fasta_path[:-4] + "pos_array.csv"
                             dfal.to_csv(csv_out)
