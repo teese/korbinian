@@ -12,6 +12,22 @@ import korbinian.utils as utils
 from multiprocessing import Pool
 
 def run_calculate_gap_densities(pathdict, s, logging):
+    """Runs calculate_gap_densities using multiprocessing Pool.
+
+    Uses multiprocessing to generate a separate output file for each protein, which can be "gathered" later
+    using the gather_gap_densities function.
+
+    Parameters
+    ----------
+    pathdict : dict
+        Dictionary of the key paths and files associated with that List number.
+    s : dict
+        Settings dictionary extracted from excel settings file.
+    logging : logging.Logger
+        Logger for printing to console and/or logfile.
+        If multiprocessing == True, messages sent to the logger, e.g. logging.info(message), will only print to console.
+
+    """
     logging.info("~~~~~~~~~~~~          starting calculate_gap_densities            ~~~~~~~~~~~~")
     # if multiprocessing is used, log only to the console
     p_dict_logging = logging if s["use_multiprocessing"] != True else utils.Log_Only_To_Console()
@@ -37,6 +53,39 @@ def run_calculate_gap_densities(pathdict, s, logging):
     logging.info("~~~~~~~~~~~~         calculate_gap_densities is finished          ~~~~~~~~~~~~")
 
 def calculate_gap_densities(p):
+    """For one protein, calculates the gap positions amongst homologues.
+
+    Based on the scripts from Rimma Jenske.
+    Some changes and annotations by Mark, including the adaption to korbinian, and conversion to multiprocessing.
+    Note that Rimma's code for the slicing of JM regions has been inserted into "slice.py".
+
+    Parameters
+    ----------
+    p : dict
+        Protein Dictionary. Contains all input settings, sequences and filepaths related to a single protein.
+        Protein-specific data is extracted from one row of the the list summary, e.g. List05_summary.csv, which is read as df.
+        p also contains the GENERAL korbinian settings and filepaths for that list (pathdict, s, logging)
+
+        Components of p :
+            pathdict : dict
+                Dictionary of the key paths and files associated with that List number.
+            s : dict
+                Settings dictionary extracted from excel settings file.
+            logging : logging.Logger
+                Logger for printing to console and/or logfile.
+                If multiprocessing == True, logging.info etc will only print to console.
+            p : protein-specific dictionary components
+                acc, list_of_TMDs, description, TM01_seq, etc
+
+    Returns
+    -------
+    In all cases, a tuple (str, bool, str) is returned.
+
+    if successful:
+        return acc, True, "0"
+    if not successful:
+        return acc, False, "specific warning or reason why protein failed"
+    """
     pathdict, s, logging = p["pathdict"], p["s"], p["logging"]
     acc = p["acc"]
 
@@ -397,7 +446,7 @@ def calculate_gap_densities(p):
                             else:
                                 list_of_gaps_intracellular.append(list_of_gaps_in_query_before_even[0])
 
-                        # if more than one gap is found, code checks if the gapy are one after another in the query!
+                        # if more than one gap is found, code checks if the gaps are one after another in the query!
                         if len (list_of_gaps_in_query_before_even)>1.0:
                             following_gap = 0
                             rev_value = list_of_gaps_in_query_before_even[0]

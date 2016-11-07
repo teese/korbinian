@@ -41,18 +41,16 @@
         Protein-specific data is extracted from one row of the the list summary, e.g. List05_summary.csv, which is read as df.
         p also contains the GENERAL korbinian settings and filepaths for that list (pathdict, s, logging)
 
-
-        Components
-        ----------
-        pathdict : dict
-            Dictionary of the key paths and files associated with that List number.
-        s : dict
-            Settings dictionary extracted from excel settings file.
-        logging : logging.Logger
-            Logger for printing to console and/or logfile.
-            If multiprocessing == True, logging.info etc will only print to console.
-        p : protein-specific dictionary components
-            acc, list_of_TMDs, description, TM01_seq, etc
+        Components of p :
+            pathdict : dict
+                Dictionary of the key paths and files associated with that List number.
+            s : dict
+                Settings dictionary extracted from excel settings file.
+            logging : logging.Logger
+                Logger for printing to console and/or logfile.
+                If multiprocessing == True, logging.info etc will only print to console.
+            p : protein-specific dictionary components
+                acc, list_of_TMDs, description, TM01_seq, etc
     Returns
     -------
     In all cases, a tuple (str, bool, str) is returned.
