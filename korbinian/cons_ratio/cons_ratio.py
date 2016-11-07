@@ -18,7 +18,7 @@ def run_calculate_AAIMON_ratios(pathdict, s, logging):
     # set current working directory as the data_dir/homol, where temp files will be saved before moving to zip
     os.chdir(os.path.join(s["data_dir"], "homol"))
     # create list of protein dictionaries to process
-    list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging)
+    list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging, list_excluded_acc=not_in_homol_db)
     # number of processes is the number the settings, or the number of proteins, whichever is smallest
     n_processes = s["multiprocessing_cores"] if s["multiprocessing_cores"] < len(list_p) else len(list_p)
 
@@ -228,7 +228,7 @@ def calculate_AAIMON_ratios(p):
             #                                                                                      #
             ########################################################################################
             len_query_TMD = p["%s_end"%TMD] - p["%s_start"%TMD]
-            df_cr, mean_ser = korbinian.cons_ratio.calc.calc_AAIMON(TMD, df_cr, len_query_TMD, mean_ser)
+            df_cr = korbinian.cons_ratio.calc.calc_AAIMON(TMD, df_cr, len_query_TMD)
 
             list_of_AAIMON_all_TMD['%s_AAIMON_ratio'%TMD]= df_cr['%s_AAIMON_ratio'%TMD].dropna()
 
