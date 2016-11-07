@@ -121,3 +121,7 @@
         List of uniprot accessions that ar not in the homologue database (e.g. SIMAP)
         Any XML files with "Query failed: could not find the query sequence (check your query parameters)"
         will be added to this list
+    mean_ser : pd.Series
+        Pandas Series containing the mean values for AAIMON ratios etc, over all
+        homologues for that particular protein. Will be saved as a csv, and gathered
+        using the gather scripts for plotting.

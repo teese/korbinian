@@ -3,6 +3,7 @@ import korbinian.utils as utils
 import korbinian.prot_list.prot_list
 import pandas as pd
 import numpy as np
+import sys
 
 def extract_omp_IDs_from_nr_fasta(ListXX_OMPdb_nr_fasta, ListXX_OMPdb_nr_acc, logging):
     """Takes the OMP non-redundant list of fasta sequences, and extracts the protein IDs (fasta names).
@@ -89,7 +90,8 @@ def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_
                 take_ID = True
                 counter += 1
                 if counter % 100 == 0:
-                    print(". ", end="", flush=True)
+                    sys.stdout.write(". ")
+                    sys.stdout.flush()
             if "FAMILY" in line and take_ID == True:
                 keywords["Family"].append(" ".join(line[9:]))
             if "GENE_NAME" in line and take_ID == True:
@@ -242,21 +244,32 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list
             df_KW.loc[row, TMD + "_seq"] = utils.slice_with_listlike(full_seq, tup)
             # df_KW.loc[row, TMD + "_top"] = utils.slice_with_listlike(topology, tup)
         if row_nr % 50 == 0:
-            print(".", end="", flush=True)
+            sys.stdout.write(". ")
+            sys.stdout.flush()
             if row_nr % 1000 == 0:
-                print("", flush=True)
+                sys.stdout.write("")
+                sys.stdout.flush()
 
-    max_num_TMDs = df_KW["number_of_TMDs"].max()
 
-    # n_aa_before_tmd = s["n_aa_before_tmd"]
-    # n_aa_after_tmd = s["n_aa_after_tmd"]
-    n_aa_before_tmd = 10
-    n_aa_after_tmd = 10
-
-    # currently the loop is run for each TMD, based on the sequence with the most TMDs
-    for i in range(1, int(max_num_TMDs) + 1):
-        TMD = 'TM%02d' % i
-        df_KW = korbinian.prot_list.prot_list.get_indices_TMD_plus_surr_for_summary_file(df_KW, TMD, n_aa_before_tmd, n_aa_after_tmd)
+    ########################################################################################
+    #                                                                                      #
+    #                slicing out TMD_seq_plus_surr shifted to prot_list.py                 #
+    #                                                                                      #
+    ########################################################################################
+    # max_num_TMDs = df_KW["number_of_TMDs"].max()
+    #
+    # # n_aa_before_tmd = s["n_aa_before_tmd"]
+    # # n_aa_after_tmd = s["n_aa_after_tmd"]
+    # n_aa_before_tmd = 10
+    # n_aa_after_tmd = 10
+    #
+    # # currently the loop is run for each TMD, based on the sequence with the most TMDs
+    # for i in range(1, int(max_num_TMDs) + 1):
+    #     TMD = 'TM%02d' % i
+    #     # get the indices for TMD plus surrounding sequence
+    #     df_KW = korbinian.prot_list.prot_list.get_indices_TMD_plus_surr_for_summary_file(df_KW, TMD, n_aa_before_tmd, n_aa_after_tmd)
+    #     # slice out the TMD_seq_plus_surr for each TMD
+    #     df_KW['%s_seq_plus_surr' % TMD] = df_KW[df_KW['%s_start' % TMD].notnull()].apply(utils.slice_uniprot_TMD_plus_surr_seq, args=(TMD,), axis=1)
 
     # rename columns to match protein lists from uniprot (Note that Family is currently translated as prot_descr)
     dict_ = {"Sequence": "full_seq", "Organism": "organism", "Uniprot": "uniprot_acc", "Gene_Name": "gene_name",
@@ -264,6 +277,9 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list
     df_KW["betabarrel"] = True
     df_KW["multipass"] = True
     df_KW["singlepass"] = False
+    # since all beta-barrel proteins have the N-terminus in the periplasm, "N-term is Extracellular" is False
+    # you could make 100% sure of this by checking that the first letter of "Topology" is "I", but it is not really necessary
+    df_KW["n_term_ec"] = False
     df_KW.rename(columns=dict_, inplace=True)
     df_KW["acc"] = df_KW["uniprot_acc"]
     df_KW["protein_name"] = df_KW["uniprot_acc"]

@@ -142,10 +142,20 @@ if __name__ == "__main__":
     ########################################################################################
 
     if s["run_calculate_gap_densities"]:
-        korbinian.gap.calculate_gap_densities(pathdict, s, logging)
+        korbinian.gap.run_calculate_gap_densities(pathdict, s, logging)
+
+    if s["run_gather_gap_densities"]:
+        korbinian.gap.gather_gap_densities(pathdict, s, logging)
 
     if s["run_create_graph_of_gap_density"]:
-        korbinian.gap.calculate_gap_densities(pathdict, s, logging)
+        korbinian.gap_figs.create_graph_of_gap_density(pathdict, s, logging)
+
+    if s["run_fastagap_save"]:
+        korbinian.fastagap.run_fastagap_save(pathdict, s, logging)
+
+    if s["run_calc_fastagap_densities"]:
+        korbinian.fastagap.run_calc_fastagap_densities(pathdict, s, logging)
+
 
     ########################################################################################
     #                                                                                      #

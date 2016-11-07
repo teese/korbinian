@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 
-def save_hist_AAIMON_ratio_single_protein (fig_nr, fig, axarr, df_cr, s, TMD, binlist, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix):
+def save_hist_AAIMON_ratio_single_protein (fig_nr, fig, axarr, df_cr, s, TMD, binarray, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix):
     """Save histogram showing the AAIMON ratio for homologues of a single TMD, for a single protein.
 
     Parameters
@@ -20,7 +20,7 @@ def save_hist_AAIMON_ratio_single_protein (fig_nr, fig, axarr, df_cr, s, TMD, bi
         Settings dictionary extracted from excel settings file.
     TMD : str
         String denoting transmembrane domain number (e.g. "TM01")
-    binlist : list
+    binarray : np.ndarray
         List of bins used for the histogram.
     zipout : zipfile.Zipfile handle
         Handle for zipfile, open for writing.
@@ -48,14 +48,13 @@ def save_hist_AAIMON_ratio_single_protein (fig_nr, fig, axarr, df_cr, s, TMD, bi
     #for TMD in list_of_TMDs:
 
     # following the general filters, filter to only analyse sequences with TMD identity above cutoff, and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
-    min_identity_of_TMD_initial_filter = s['cr_min_identity_of_TMD_initial_filter']
     #RESET SO THAT IT TAKES IT FROM df_cr AGAIN
     #df_cr_filt_AAIMON = df_cr_filt.loc[df_cr['%s_perc_ident'%TMD] >= min_identity_of_TMD_initial_filter]
 
     # create numpy array of membranous over nonmembranous conservation ratios (identity)
     hist_data_I = np.array(df_cr['%s_AAIMON_ratio'%TMD].dropna())
     # use numpy to create a histogram
-    freq_counts, bin_array = np.histogram(hist_data_I, bins=binlist)
+    freq_counts, bin_array = np.histogram(hist_data_I, bins=binarray)
     # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
     col_width = float('%0.3f' % (0.7 * (bin_array[1] - bin_array[0])))
     # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
@@ -71,7 +70,7 @@ def save_hist_AAIMON_ratio_single_protein (fig_nr, fig, axarr, df_cr, s, TMD, bi
     # create numpy array of membranous over nonmembranous conservation ratios (identity + similarity)
     hist_data_S = np.array(df_cr['%s_AASMON_ratio'%TMD].dropna())
     # use numpy to create a histogram
-    freq_counts, bin_array = np.histogram(hist_data_S, bins=binlist)
+    freq_counts, bin_array = np.histogram(hist_data_S, bins=binarray)
     # create a line graph rather than a bar graph for the AASMON (ident + similarity)
     linecontainer_S = axarr[row_nr, col_nr].plot(centre_of_bar_in_x_axis, freq_counts,
                                                  color="#0101DF", alpha=0.5)
