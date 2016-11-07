@@ -234,6 +234,8 @@ def calculate_AAIMON_ratios(p):
             len_query_TMD = p["%s_end"%TMD] - p["%s_start"%TMD]
             df_cr = korbinian.cons_ratio.calc.calc_AAIMON(TMD, df_cr, len_query_TMD)
 
+            list_of_AAIMON_all_TMD['%s_AAIMON_ratio'%TMD]= df_cr['%s_AAIMON_ratio'%TMD].dropna()
+
             if '{TMD}_SW_match_seq_hydro'.format(TMD=TMD) not in df_cr.columns:
                 message = "{} {}_SW_match_seq_hydro not found in columns. Slice file is out of date and will be deleted.".format(acc, TMD)
                 os.remove(p['fa_cr_sliced_TMDs_zip'])
