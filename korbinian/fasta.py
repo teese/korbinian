@@ -2,6 +2,7 @@ import ast
 import os
 import korbinian
 import korbinian.utils as utils
+import sys
 import zipfile
 from multiprocessing import Pool
 
@@ -70,7 +71,8 @@ def filter_and_save_fasta(p):
     pathdict, s, logging = p["pathdict"], p["s"], p["logging"]
     protein_name = p["protein_name"]
     acc = p["acc"]
-    print(acc, end=", ", flush=True)
+    sys.stdout.write("{}. ".format(acc))
+    sys.stdout.flush()
     # if the fa_cr_sliced_TMDs_zip file does not exist, skip that protein
     if not os.path.exists(p['fa_cr_sliced_TMDs_zip']):
         message = "{} skipped, fa_cr_sliced_TMDs_zip not found.".format(acc)
@@ -159,23 +161,20 @@ def filter_and_save_fasta(p):
         # %timeit 46.6 ms per loop for 325 homologues
         df_fa['%s_SW_match_seq_hydro' % TMD] = df_fa['%s_SW_match_seq'%TMD].dropna().apply(lambda x: utils.calc_hydrophob(x))
 
-        """shouldn't be necessary due to improved OMPdb TM segment slicing"""
-        ## %s_SW_m_seq_len calculate the length of the match TMD seq (including gaps)
-        #df_fa['%s_SW_m_seq_len' % TMD] = df_fa['%s_SW_match_seq' % TMD].str.len()
-
         # create string for the pandas.query syntax
         fa_query_filt_str =  '{TMD}_SW_query_num_gaps <= {fa_max_n_gaps_in_query_TMD} & ' \
-                             '{TMD}_SW_match_num_gaps <= {fa_max_n_gaps_in_match_TMD}' \
+                             '{TMD}_SW_match_num_gaps <= {fa_max_n_gaps_in_match_TMD} &' \
+                             '{TMD}_SW_match_seq_hydro <= {hydro_limit}' \
                              '{Xsel}'.format(TMD=TMD, Xsel=fa_X_filt_sel_str, fa_max_n_gaps_in_query_TMD=s["fa_max_n_gaps_in_query_TMD"],
-                                             fa_max_n_gaps_in_match_TMD=s["fa_max_n_gaps_in_match_TMD"])
+                                             fa_max_n_gaps_in_match_TMD=s["fa_max_n_gaps_in_match_TMD"], hydro_limit=s["fa_max_hydrophilicity_Hessa"])
+
         # filter based on TMD-specific features
         df_fa.query(fa_query_filt_str, inplace=True)
 
         # setup the file names again. Note that the file should already exist, and the query sequence included.
         if s["save_fasta_plus_surr"] == True:
-            # setup extension string for fastA plus surrounding sequence (interfacial region)
             fasta_savelist_suffixes = ["", "_plus_surr"]
-        else:
+        elif s["save_fasta_plus_surr"] == False:
             fasta_savelist_suffixes = [""]
 
         # for either the "_plus_surr" or "" suffix:
@@ -210,7 +209,7 @@ def filter_and_save_fasta(p):
                             if n_X_removed > 1:
                                 logging.info("{} {} seqs removed due to X in seq plus surr".format(acc, n_X_removed))
 
-                """REMOVED, FIRST HIT IS ALREADY EXCLUDED"""
+                """REMOVED, FIRST HIT IS ALREADY EXCLUDED?"""
                 # # add the first non-redundant sequence from the homologues, but only if it is not the same as the query
                 # if p['%s_seq%s'%(TMD,s)] != nr_dfs_fa.loc[0, '%s_SW_match_seq%s'%(TMD,s)]:
                 #     f.write('>%04d_%s_%s\n%s\n' % (1, str(nr_dfs_fa.loc[0, 'organism'])[:30],

@@ -29,8 +29,10 @@ def run_slice_TMDs_from_homologues(pathdict, s, logging):
     logging.info('~~~~~~~~~~~~       starting run_slice_TMDs_from_homologues        ~~~~~~~~~~~~')
     # if multiprocessing is used, log only to the console
     p_dict_logging = logging if s["use_multiprocessing"] != True else utils.Log_Only_To_Console()
+    # get list of accessions that could not be downloaded, and can immediately be excluded
+    not_in_homol_db = utils.get_list_not_in_homol_db(pathdict)
     # create list of protein dictionaries to process
-    list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging)
+    list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging, list_excluded_acc=not_in_homol_db)
 
     # number of processes is the number the settings, or the number of proteins, whichever is smallest
     n_processes = s["multiprocessing_cores"] if s["multiprocessing_cores"] < len(list_p) else len(list_p)
@@ -221,8 +223,8 @@ def slice_TMD_1_prot_from_homol(p):
                 # http://stackoverflow.com/questions/29550414/how-to-split-column-of-tuples-in-pandas-dataframe
 
                 if p_is_multipass:
-                    next_TMD = "TM{}".format(int(TMD[2:]) + 1)
-                    prev_TMD = "TM{}".format(int(TMD[2:]) - 1)
+                    next_TMD = "TM{:02d}".format(int(TMD[2:]) + 1)
+                    prev_TMD = "TM{:02d}".format(int(TMD[2:]) - 1)
                     #df_next_TMD = df_TMD = korbinian.cons_ratio.slice.slice_1_TMD_from_homol(acc, next_TMD, query_TMD_sequence, dfs, s, logging)
                     #if TMD != "TM01":
                     #    df_prev_TMD = df_TMD = korbinian.cons_ratio.slice.slice_1_TMD_from_homol(acc, prev_TMD, query_TMD_sequence, dfs, s, logging)
@@ -258,9 +260,8 @@ def slice_TMD_1_prot_from_homol(p):
                         df_nonTMD_sliced['end_juxta_after_TM01'] = np.where(utils.isNaN(df_nonTMD_sliced['start_juxta_after_TM01']) == True, np.nan, df_nonTMD_sliced['len_query_align_seq'])
 
                 # the analysis is slow, so don't repeat TM01 if there is only one TM helix in the protein
-                if "TM02" in list_of_TMDs:
+                if p_is_multipass:
                     if not TMD == "TM01" and not TMD == last_TMD_of_acc:
-                        utils.aaa(df_nonTMD_sliced)
                         df_nonTMD_sliced = juxta_function_1(df_nonTMD_sliced, TMD)
                         # df_nonTMD_sliced['start_juxta_after_%s'%TMD] = np.where(utils.isNaN(df_nonTMD_sliced['TM%.2d_start_in_SW_alignment'%(int(TMD[2:])+1)])==True,np.nan,df_nonTMD_sliced['%s_end_in_SW_alignment'%TMD])
                         # df_nonTMD_sliced['end_juxta_before_%s'%TMD] = np.where(df_nonTMD_sliced["%s_start_in_SW_alignment"%TMD]!=0,df_nonTMD_sliced["%s_start_in_SW_alignment"%TMD],np.nan)
@@ -270,7 +271,7 @@ def slice_TMD_1_prot_from_homol(p):
                         # df_nonTMD_sliced['seq_juxta_after_%s_in_match'%TMD] = df_nonTMD_sliced[df_nonTMD_sliced['end_juxta_after_%s'%TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_match, args = (TMD,), axis=1)
 
                     if TMD == last_TMD_of_acc:
-                        df_nonTMD_sliced['start_juxta_before_%s' % TMD] = df_nonTMD_sliced['end_juxta_after_TM%.2d' % (int(TMD[2:]) - 1)]
+                        df_nonTMD_sliced['start_juxta_before_%s' % TMD] = df_nonTMD_sliced['end_juxta_after_%s' % prev_TMD]
                         df_nonTMD_sliced['end_juxta_before_%s' % TMD] = df_nonTMD_sliced['%s_start_in_SW_alignment' % TMD]
                         df_nonTMD_sliced['start_juxta_after_%s' % TMD] = np.where(
                             df_nonTMD_sliced['%s_end_in_SW_alignment' % TMD] == df_nonTMD_sliced['len_query_align_seq'], np.nan,
@@ -280,6 +281,9 @@ def slice_TMD_1_prot_from_homol(p):
                         # df_nonTMD_sliced['seq_juxta_after_%s_in_query'%TMD] = df_nonTMD_sliced[df_nonTMD_sliced['start_juxta_after_%s'%TMD].notnull()].apply(utils.slice_juxta_after_TMD_in_query, args = (TMD,), axis=1)
                         # df_nonTMD_sliced['seq_juxta_after_%s_in_query'%TMD] = df_nonTMD_sliced.query_align_seq[int(df_nonTMD_sliced['start_juxta_after_TM10']):int(df_nonTMD_sliced['end_juxta_after_TM10'])]
                         # df_nonTMD_sliced['seq_juxta_after_%s_in_match'%TMD] =
+                else:
+                    # the end_juxta_after_TM01 is already defined, nothing else needs to be done for the single-pass proteins
+                    pass
 
                 last_TMD_of_acc = list_of_TMDs[-1]
                 index_juxta = df_nonTMD_sliced['start_juxta_before_%s' % TMD].notnull().index
@@ -467,9 +471,11 @@ def slice_1_TMD_from_homol(acc, TMD, query_TMD_sequence, dfs, s, logging):
         dfs = dfs.loc[dfs['%s_start_in_SW_alignment_plus_surr' % TMD].notnull()]
         # slice out the match seq + the surrounding sequence
         df_TMD['%s_SW_match_seq_plus_surr' % TMD] = dfs.apply(utils.slice_SW_match_TMD_seq_plus_surr, args=(TMD,),axis=1)
+        # slice the query sequence. Could be useful for fasta_gap analysis.
+        df_TMD['%s_SW_query_seq_plus_surr'%TMD] = dfs.apply(utils.slice_SW_query_TMD_seq_plus_surr, args=(TMD,), axis=1)
+
         #and the same for the TMD + surrounding sequence, useful to examine the TMD interface
         # NOT DEEMED NECESSARY. WHY WOULD YOU NEED TO SLICE QUERY OR MARKUP + SURROUNDING?
-        # df_TMD['%s_SW_query_seq_plus_surr'%TMD] = dfs.apply(utils.slice_SW_query_TMD_seq_plus_surr, args=(TMD,), axis=1)
         # df_TMD['%s_SW_markup_seq_plus_surr'%TMD] = dfs.apply(utils.slice_SW_markup_TMD_plus_surr, args=(TMD,), axis=1)
         ########################################################################################
         #                                                                                      #
@@ -481,9 +487,19 @@ def slice_1_TMD_from_homol(acc, TMD, query_TMD_sequence, dfs, s, logging):
         df_TMD['%s_SW_query_num_gaps' % TMD] = df_TMD['%s_SW_query_seq' % TMD].str.count("-")
         df_TMD['%s_SW_match_num_gaps' % TMD] = df_TMD['%s_SW_match_seq' % TMD].str.count("-")
 
+        ########################################################################################
+        #                                                                                      #
+        #     calculate the average number of gaps per residue in the TMD alignment            #
+        #             (number of gaps)/(length of sequence excluding gaps)                     #
+        #                                                                                      #
+        ########################################################################################
+        df_TMD['%s_SW_q_gaps_per_q_residue' % TMD] = df_TMD['%s_SW_query_num_gaps' % TMD].dropna() / len(query_TMD_sequence)
+
+        # calculate hydrophobicity
+        df_TMD['%s_SW_match_seq_hydro' % TMD] = df_TMD['%s_SW_match_seq'%TMD].dropna().apply(lambda x: utils.calc_hydrophob(x))
+
     else:
-        logging.info('%s does not have any valid homologues for %s. '
-                     'Re-downloading simap homologue XML may be necessary.' % (acc, TMD))
+        logging.info('{} does not have any valid homologues for {}. Re-downloading simap homologue XML may be necessary.'.format(acc, TMD))
         df_TMD = pd.DataFrame()
 
     return df_TMD

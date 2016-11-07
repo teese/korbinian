@@ -3,6 +3,7 @@ import os
 import pandas as pd
 from time import strftime
 import unicodedata
+import korbinian
 import korbinian.utils as utils
 
 def setup_file_locations_in_df(s, pathdict):
@@ -102,6 +103,8 @@ def setup_file_locations_in_df(s, pathdict):
     # normalise path to suit operating system
     df['simap_filename_base'] = df['simap_filename_base'].apply(lambda x: os.path.normpath(x))
 
+    # create the homologue basename, e.g. "D:\Databases\homol\P0\P0A334_KCSA_STRLI"
+    # note that because UniProt protein names change, this should at some stage be changed from protein_name to acc alone
     df['homol_base'] = homol_dir + '/' + df.first_two_letters_of_uniprot_acc + '/' + df.protein_name
     # normalise path to suit operating system
     df['homol_base'] = df['homol_base'].apply(lambda x : os.path.normpath(x))
@@ -144,6 +147,11 @@ def setup_file_locations_in_df(s, pathdict):
     # GAPS: create filename for zip folding the figures (pickled dataframes) for each TMD
     df['homol_gap_figs_zip'] = df['homol_base'] + '_gap_figs.zip'
 
+    # FASTAGAP: create filename for zip that holds the .fas files
+    df['fastagap_zip'] = df['homol_base'] + '_fastagap.zip'
+    df['fastagap_pos_arrays_zip'] = df['homol_base'] + 'fastagap_pos_arrays.zip'
+    df['fastagap_base'] = df['homol_base'] + '_homol_seq_plus_surr_'
+
     # FASTA: create basal name for fasta file with the TMD seqs (eg A0A1F4_EYS_DROME_homol_seq_ + TM01.fas)
     df['fasta_file_BASENAME'] = df.protein_name + '_homol_seq_'
     df['fasta_file_BASENAMEPATH'] = df.homol_base + '_homol_seq_'
@@ -172,9 +180,32 @@ def setup_file_locations_in_df(s, pathdict):
     df['csv_file_av_cons_ratios_hits'] = df.simap_filename_base + '_cons_ratios.csv'
     df['csv_file_av_cons_ratios_hits_BASENAME'] = df.protein_name + '_cons_ratios_'
     df['csv_file_av_cons_ratios_hits_BASENAMEPATH'] = df.simap_filename_base + '_cons_ratios_'
+
+
+
     ########################################################################################
     #                                                                                      #
-    #                                     Save to CSV                                       #
+    #     slice out all the TMD_seq_plus_surr, based on settings (e.g. 10aa each side)     #
+    #                                                                                      #
+    ########################################################################################
+
+    max_num_TMDs = df["number_of_TMDs"].max()
+    n_aa_before_tmd = s["n_aa_before_tmd"]
+    n_aa_after_tmd = s["n_aa_after_tmd"]
+
+    #if 'TM01_seq_plus_surr' not in df.columns:
+    # calculate TM plus surr for ALL sequences, overwriting if necessary, in case this is changed later
+    # currently the loop is run for each TMD, based on the sequence with the most TMDs
+    for i in range(1, int(max_num_TMDs) + 1):
+        TMD = 'TM%02d' % i
+        # get the indices for TMD plus surrounding sequence
+        df = korbinian.prot_list.prot_list.get_indices_TMD_plus_surr_for_summary_file(df, TMD, n_aa_before_tmd, n_aa_after_tmd)
+        # slice out the TMD_seq_plus_surr for each TMD
+        df['%s_seq_plus_surr' % TMD] = df[df['%s_start' % TMD].notnull()].apply(utils.slice_uniprot_TMD_plus_surr_seq, args=(TMD,), axis=1)
+
+    ########################################################################################
+    #                                                                                      #
+    #                                     Save to CSV                                      #
     #                                                                                      #
     ########################################################################################
     # indicate that the setup_file_locations_in_df function has been run

@@ -641,8 +641,9 @@ class Command(object):
             #self.process.communicate()
             stdout, stderr = self.process.communicate() # from http://stackoverflow.com/questions/14366352/how-to-capture-information-from-executable-jar-in-python
             # Thus far, SIMAP has only ever given java faults, never java output. Don't bother showing.
-            #logging.info('JAVA OUTPUT:%s' % stdout.decode("utf-8"))
-            logging.warning('JAVA FAULTS: %s' %stderr.decode("utf-8"))
+            # if the console prints anything longer than 5 characters, log it
+            if len(stderr.decode("utf-8")) > 5:
+                logging.warning('FAULTS: %s' % stderr.decode("utf-8"))
             #logging.info('Thread finished')
 
         thread = threading.Thread(target=target)
@@ -663,13 +664,17 @@ def run_command(command):
         stderr=subprocess.STDOUT)
     return iter(p.stdout.readline, b'')
 
-def sleep_x_seconds(x):
+def sleep_x_seconds(x, print_stuff=True):
     # sleep for several seconds to not overload a server, for example
-    print("sleeping ", end="", flush=True)
+    if print_stuff == True:
+        sys.stdout.write("sleeping ")
     for i in range(x):
         time.sleep(1)
-        print(" .", end="", flush=True)
-    print(' .')
+        if print_stuff == True:
+            sys.stdout.write(" .")
+            sys.stdout.flush()
+    if print_stuff == True:
+        sys.stdout.write(' .')
 
 def sleep_x_hours(x):
     """Sleeps for a certain number of hours. Prints a dot each hour.
@@ -685,8 +690,9 @@ def sleep_x_hours(x):
     sys.stdout.flush()
     for i in range(x):
         time.sleep(3600)
-        print(" .", end="", flush=True)
-    print(' .\n')
+        sys.stdout.write(" .")
+        sys.stdout.flush()
+    sys.stdout.write(' .\n')
 
 #set up a function for showing object names, in order to write the csv header from a list of objects
 def name_of_object_in_list_of_global_objects(object):
@@ -984,7 +990,6 @@ def create_regex_string_for_juxta(inputseq):
         search_string += letter_with_underscore
     return "-*" + search_string
 
-
 def get_end_juxta_before_TMD(x, input_TMD):
     TM_int = int(input_TMD[2:])
     if input_TMD == "TM01":
@@ -992,7 +997,6 @@ def get_end_juxta_before_TMD(x, input_TMD):
                                                                  x['%s_start_in_SW_alignment' % input_TMD] - 1)
     else:
         x["end_juxta_before_%s_in_query" % input_TMD] = x["%s_start_in_SW_alignment" % input_TMD] - 1
-
 
 def get_end_juxta_after_TMD(x, input_TMD, list_of_tmds):
     # list_of_tmds was missing from this function! added by MT 20.07.2016
@@ -1465,3 +1469,24 @@ def convert_summary_csv_to_input_list(s, pathdict, logging, list_excluded_acc=No
         p["logging"] = logging
 
     return list_p
+
+
+def get_list_not_in_homol_db(pathdict):
+    not_in_homol_db = []
+    if os.path.isfile(pathdict["acc_not_in_homol_db_txt"]):
+        # Extracts accession numbers out of file
+        with open(pathdict["acc_not_in_homol_db_txt"], "r") as source:
+            for line in source:
+                line = line.strip()
+                not_in_homol_db.append(line)
+    return not_in_homol_db
+
+def get_list_failed_downloads(pathdict):
+    acc_list_failed_downloads = []
+    if os.path.isfile(pathdict["failed_downloads_txt"]):
+        # Extracts accession numbers out of file
+        with open(pathdict["failed_downloads_txt"], "r") as source:
+            for line in source:
+                line = line.strip()
+                acc_list_failed_downloads.append(line)
+    return acc_list_failed_downloads
