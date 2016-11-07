@@ -4,6 +4,7 @@ import pickle
 import zipfile
 import korbinian
 import korbinian.cons_ratio.calc
+import korbinian.cons_ratio.norm
 import korbinian.utils as utils
 import matplotlib.pyplot as plt
 import numpy as np
@@ -160,6 +161,13 @@ def calculate_AAIMON_ratios(p):
     ########################################################################################
     df_nonTMD, mean_ser = korbinian.cons_ratio.calc.calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser)
 
+    ########################################################################################
+    #                                                                                      #
+    #                Calculation of normalization factor for each homologue                #
+    #                                                                                      #
+    ########################################################################################
+    dfh['norm_factor'] = dfh['FASTA_gapped_identity'].apply(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor, args=(0.13, 0.05))
+
     with zipfile.ZipFile(homol_cr_ratios_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
 
         # save the nonTMD dataframe
@@ -196,6 +204,8 @@ def calculate_AAIMON_ratios(p):
         # make the IDE happy
         fig, axarr = None, None
 
+        list_of_AAIMON_all_TMD = {}
+
         for TMD_Nr, TMD in enumerate(list_of_TMDs):
             # find the TMD number (starting from 1)
             TMD_Nr = list_of_TMDs.index(TMD) + 1
@@ -223,6 +233,8 @@ def calculate_AAIMON_ratios(p):
             ########################################################################################
             len_query_TMD = p["%s_end"%TMD] - p["%s_start"%TMD]
             df_cr = korbinian.cons_ratio.calc.calc_AAIMON(TMD, df_cr, len_query_TMD)
+
+            list_of_AAIMON_all_TMD['%s_AAIMON_ratio'%TMD]= df_cr['%s_AAIMON_ratio'%TMD].dropna()
 
             if '{TMD}_SW_match_seq_hydro'.format(TMD=TMD) not in df_cr.columns:
                 message = "{} {}_SW_match_seq_hydro not found in columns. Slice file is out of date and will be deleted.".format(acc, TMD)
@@ -265,6 +277,25 @@ def calculate_AAIMON_ratios(p):
             #                                                                                      #
             ########################################################################################
             korbinian.cons_ratio.histogram.save_hist_AAIMON_ratio_single_protein(fig_nr, fig, axarr, df_cr, s, TMD, binarray, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix)
+
+        ########################################################################################
+        #                                                                                      #
+        #               AAIMON normalization and save fig for each protein                     #
+        #                                                                                      #
+        ########################################################################################
+        df_list_AAIMON_all_TMD = pd.DataFrame(list_of_AAIMON_all_TMD)
+        df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'] = df_list_AAIMON_all_TMD.mean(axis=1)
+        df_list_AAIMON_all_TMD['gapped_ident'] = dfh['FASTA_gapped_identity'].loc[df_list_AAIMON_all_TMD.index]
+        df_list_AAIMON_all_TMD['norm_factor'] = dfh['norm_factor'].loc[df_list_AAIMON_all_TMD.index]
+        df_list_AAIMON_all_TMD['AAIMON_normalised'] = df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'] / df_list_AAIMON_all_TMD['norm_factor']
+#        print(df_list_AAIMON_all_TMD)
+        korbinian.cons_ratio.norm.save_graph_for_normalized_AAIMON(acc,  df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'],
+                                                                     df_list_AAIMON_all_TMD['AAIMON_normalised'],
+                                                                     df_list_AAIMON_all_TMD['gapped_ident'], zipout, protein_name)
+        # save the dataframe containing normalisation factor and normalised AAIMON to zipout
+        df_list_AAIMON_all_TMD.to_csv(protein_name + '_AAIMON_normalisation_data.csv')
+        zipout.write(protein_name + '_AAIMON_normalisation_data.csv', arcname=protein_name + '_AAIMON_normalisation_data.csv')
+        os.remove(protein_name + '_AAIMON_normalisation_data.csv')
 
         value_counts_hit_contains_SW_node = dfh['hit_contains_SW_node'].value_counts()
         if True in value_counts_hit_contains_SW_node:
