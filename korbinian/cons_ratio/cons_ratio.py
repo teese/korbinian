@@ -12,6 +12,18 @@ import pandas as pd
 from multiprocessing import Pool
 
 def run_calculate_AAIMON_ratios(pathdict, s, logging):
+    """Runs calculate_AAIMON_ratios for each protein, using multiprocessing Pool.
+
+    Parameters
+    ----------
+    pathdict : dict
+        Dictionary of the key paths and files associated with that List number.
+    s : dict
+        Settings dictionary extracted from excel settings file.
+    logging : logging.Logger
+        Logger for printing to console and/or logfile.
+        If multiprocessing == True, logging.info etc will only print to console.
+    """
     logging.info('~~~~~~~~~~~~      starting run_calculate_AAIMON_ratios        ~~~~~~~~~~~~')
     # if multiprocessing is used, log only to the console
     p_dict_logging = logging if s["use_multiprocessing"] != True else utils.Log_Only_To_Console()
@@ -44,13 +56,16 @@ def calculate_AAIMON_ratios(p):
         Protein-specific data is extracted from one row of the the list summary, e.g. List05_summary.csv, which is read as df.
         p also contains the GENERAL korbinian settings and filepaths for that list (pathdict, s, logging)
 
-        Contains:
+        Components of p :
             pathdict : dict
                 Dictionary of the key paths and files associated with that List number.
             s : dict
                 Settings dictionary extracted from excel settings file.
             logging : logging.Logger
-                Logger for printing to console and logfile.
+                Logger for printing to console and/or logfile.
+                If multiprocessing == True, logging.info etc will only print to console.
+            p : protein-specific dictionary components
+                acc, list_of_TMDs, description, TM01_seq, etc
 
     Saved Files and Figures
     -----------------------
@@ -67,6 +82,15 @@ def calculate_AAIMON_ratios(p):
                 Dataframe containing the percentage_identity etc for that particular TMD/region (in this case, the signal peptide).
             A6BM72_MEG11_HUMAN_TM01_cr_df.pickle
                 Dataframe containing the percentage_identity etc for that particular TMD/region (in this case, TM01).
+
+    Returns
+    -------
+    In all cases, a tuple (str, bool, str) is returned.
+
+    if successful:
+        return acc, True, "0"
+    if not successful:
+        return acc, False, "specific warning or reason why protein failed"
     """
     pathdict, s, logging = p["pathdict"], p["s"], p["logging"]
     acc = p["acc"]

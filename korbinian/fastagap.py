@@ -12,6 +12,20 @@ from Bio import AlignIO
 import numpy as np
 
 def run_fastagap_save(pathdict, s, logging):
+    """Runs fastagap_save for each protein, using multiprocessing Pool.
+
+    Parameters
+    ----------
+    pathdict : dict
+        Dictionary of the key paths and files associated with that List number.
+    s : dict
+        Settings dictionary extracted from excel settings file.
+    logging : logging.Logger
+        Logger for printing to console and/or logfile.
+        If multiprocessing == True, logging.info etc will only print to console.
+
+    """
+
     logging.info('~~~~~~~~~~~~           starting run_fastagap_save             ~~~~~~~~~~~~')
     # if multiprocessing is used, log only to the console
     p_dict_logging = logging if s["use_multiprocessing"] != True else utils.Log_Only_To_Console()

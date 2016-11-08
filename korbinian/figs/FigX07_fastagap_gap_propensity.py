@@ -4,13 +4,24 @@ import pickle
 import matplotlib.pyplot as plt
 #%matplotlib inline
 
-excel_settings_file = r"D:\Dropbox\korbinian\dropbox_korbinian_settings\korbinian_run_settings_schweris_mp.xlsx"
+#excel_settings_file = r"D:\Dropbox\korbinian\dropbox_korbinian_settings\korbinian_run_settings_schweris_mp.xlsx"
+
 # extract (FROM SETTINGS) the number of amino acids before and after the TMD
 n_aa_before_tmd = 30
 n_aa_after_tmd = 30
 n_aa_excluded_from_edge = 2
+# define number of bins in TM region (~10 for betabarrel, ~21 for single-pass)
+n_bins_in_TM_region = 8
 
+# Betabarrel, 10 res each side, hessa30, gap2 in TMD, gap1-6 in TMD_plus_surr
 gap_all_pos_path = r"D:\Databases\summaries\03\20161104_BB_fastagap_60-80\List03_gap_all_pos.pickle"
+# singlepass, 30 res each side, hessa30, gap2 in TMD, gap1-6 in TMD_plus_surr
+gap_all_pos_path = r"D:\Databases\summaries\01\excl_SiPe\20161107_40-100_Hessa30_gap2\List01_gap_all_pos.pickle"
+# multipass, 30 res each side, hessa30, gap2 in TMD, gap1-6 in TMD_plus_surr
+gap_all_pos_path = r"D:\Databases\summaries\02\excl_SiPe\20161106_MP_excl_SiPe_40-100_Hessa30_gap2\List02_gap_all_pos.pickle"
+# Betabarrel, 30 res each side, hessa30, gap2 in TMD, gap1-6 in TMD_plus_surr
+gap_all_pos_path = r"D:\Databases\summaries\03\20161107_40-100_Hessa30_gap2\List03_gap_all_pos.pickle"
+
 #gap_all_pos_path = r"D:\Databases\summaries\01\20161104_fastagap_60-80\List01_gap_all_pos.pickle"
 #gap_all_pos_path = r"D:\Databases\summaries\01\20161104_fastagap_40-100\List01_gap_all_pos.pickle"
 
@@ -37,8 +48,6 @@ pd.options.display.float_format = '{:,.2f}'.format
 # define the number of aa surrounding, to be used in bin creation
 n_aa_surr_left = 37
 n_aa_surr_right = n_aa_surr_left + 1
-# define number of bins in TM region (~10 for betabarrel, ~21 for single-pass)
-n_bins_in_TM_region = 22
 # define bins left of TMD
 bins_left = list(range(-n_aa_surr_left,0))
 # use linspace to make x number of bins for the TMD, evenly spaced between 0 and 1
