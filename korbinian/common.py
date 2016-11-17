@@ -25,7 +25,7 @@ def create_settingsdict(excel_file_with_settings):
         Dictionary derived from the settings file, with the "parameter" column as keys,
         and the "value" column as values. Notes are excluded.
     """
-    sheetnames = ["run_settings", "file_locations", "variables"]
+    sheetnames = ["run_settings", "file_locations", "variables", "figs_settings"]
     s = {}
     for sheetname in sheetnames:
         # open excel file as pandas dataframe
