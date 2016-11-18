@@ -133,8 +133,10 @@ def parse_SIMAP_to_csv(p):
     """
     pathdict, s, logging = p["pathdict"], p["s"], p["logging"]
     acc = p["acc"]
-    sys.stdout.write(", ".format(acc))
+    sys.stdout.write("{}, ".format(acc))
     sys.stdout.flush()
+    protein_name = p['protein_name']
+    # logging.info('%s' % protein_name)
     # if overwrite_simap_parsed_to_csv is False, skip proteins where the homol_df_orig_zip file exists
     if s["overwrite_simap_parsed_to_csv"] == False:
         if os.path.isfile(p['homol_df_orig_zip']):
@@ -145,13 +147,11 @@ def parse_SIMAP_to_csv(p):
     number_of_hits_missing_protein_node = 0
     num_hits_with_SW_align_node = 0
     number_of_hits_missing_smithWatermanAlignment_node = 0
-    #number_of_hits_kept_for_statistical_analysis = 0  # number_of_hits
-    protein_name = p['protein_name']
     ft_xml_path = p['SIMAP_feature_table_XML_path']
     homol_xml_path = p['SIMAP_homol_XML_path']
     SIMAP_tar = p['SIMAP_tar']
     homol_xml_filename = os.path.basename(homol_xml_path)
-    logging.info('%s' % protein_name)
+
     #check which files exist
     homol_in_tar = utils.check_SIMAP_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path, acc, logging, delete_corrupt=True)[-1]
 
@@ -196,10 +196,9 @@ def parse_SIMAP_to_csv(p):
                         message = "{} not in simap database".format(acc)
                         logging.info(message)
                         return acc, False, message
-                except:
-                    message = "{} XML could not be opened".format(acc)
-                    logging.info(message)
-                    return acc, False, message
+                except IndexError:
+                    # file is probably normal, as it doesn't contain the message saying that the protein is not found in the database
+                    pass
 
                 try:
                     p['SIMAP_created'] = simap_homologue_root[0][0][0][0][2][1][0].attrib["created"]
