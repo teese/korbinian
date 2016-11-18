@@ -67,18 +67,23 @@ def save_hist_AAIMON_ratio_single_protein (fig_nr, fig, axarr, df_cr, s, TMD, bi
                                                height=freq_counts, align='center',
                                                width=col_width, color="#0489B1",
                                                alpha=0.5)  # edgecolor='black',
+
+    # SHENGER TO INSERT TM01_AAIMON_ratio_n normalised stuff here
+
+
+
+
+
     # create numpy array of membranous over nonmembranous conservation ratios (identity + similarity)
     hist_data_S = np.array(df_cr['%s_AASMON_ratio'%TMD].dropna())
     # use numpy to create a histogram
     freq_counts, bin_array = np.histogram(hist_data_S, bins=binarray)
     # create a line graph rather than a bar graph for the AASMON (ident + similarity)
-    linecontainer_S = axarr[row_nr, col_nr].plot(centre_of_bar_in_x_axis, freq_counts,
-                                                 color="#0101DF", alpha=0.5)
+    linecontainer_S = axarr[row_nr, col_nr].plot(centre_of_bar_in_x_axis, freq_counts,color="#0101DF", alpha=0.5)
     # other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
     # http://html-color-codes.info/
     # label the x-axis for each plot, based on the TMD
-    axarr[row_nr, col_nr].set_xlabel('%s conservation ratio (membranous over nonmembranous)'%TMD,
-                                     fontsize=fontsize)
+    axarr[row_nr, col_nr].set_xlabel('%s conservation ratio (membranous over nonmembranous)'%TMD,fontsize=fontsize)
     if savefig:
         # take x-axis min from settings
         xlim_min = s["1p_smallest_bin"]
@@ -95,8 +100,7 @@ def save_hist_AAIMON_ratio_single_protein (fig_nr, fig, axarr, df_cr, s, TMD, bi
             # change axis font size
             ax.tick_params(labelsize=fontsize)
             # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
-            ax.legend(['AASMON (identity + similarity)', 'AAIMON (identity)'],
-                      loc='upper right', fontsize=fontsize)
+            ax.legend(['AASMON (identity + similarity)', 'AAIMON (identity)'],loc='upper right', fontsize=fontsize)
             # add background grid
             ax.grid(True, color='0.75', alpha=0.5)
         # automatically tighten the layout of plots in the figure
