@@ -63,14 +63,18 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     colour_lists = utils.create_colour_lists()
     tableau20 = colour_lists['tableau20']
 
+    # create dataframe mean_AAIMON_each_TM
+    df_mean_AAIMON_each_TM = pd.DataFrame()
+    # add AAIMON each TMD to dataframe
+    for acc in df.index:
+        for TMD in ast.literal_eval(df.loc[acc, 'list_of_TMDs']):
+            df_mean_AAIMON_each_TM.loc[acc, '{a}_AAIMON_ratio_mean'.format(a=TMD)] = df.loc[
+                acc, '{b}_AAIMON_ratio_mean'.format(b=TMD)]
+
     if s['Fig01_Histogram_of_mean_AAIMON_and_AASMON_ratios_SP_vs_MP']:
         Fig_Nr = 1
-
         sys.stdout.write('Figure Processed: Fig01_Histogram_of_mean_AAIMON_and_AASMON_ratios_SP_vs_MP \n')
         title = 'Mean ratios'
-
-        # for the first figure, create empty objects that will be overwritten into matplotlib objects.
-        #fig, ax = 'empty', 'objects'
         # create a new figure
         fig, ax = plt.subplots()
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
@@ -116,21 +120,20 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         legend_obj = ax.legend(['AASMON (identity + similarity)', 'AAIMON (identity)'], loc='upper right',
                                fontsize=fontsize)
         # add figure number to top left of subplot
-        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=8, xytext=None, xycoords='axes fraction',
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                     alpha=0.75)
         # add figure title to top left of subplot
-        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=5, xytext=None, xycoords='axes fraction', alpha=0.75)
-        # improve ggplot style for a canvas (fig) with 4 figures (plots)
-        # FROM RIMMA SCRIPT
-        ax.yaxis.grid(True, zorder=0, linestyle=":", color="grey")
-        ax
-        for tic in ax.xaxis.get_major_ticks():
-            tic.tick1On = False
-        for tic in ax.yaxis.get_major_ticks():
-            tic.tick1On = False
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        # END FROM RIMMA SCRIPT
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', alpha=0.75)
+        # # FROM RIMMA SCRIPT - not necessary
+        # ax.yaxis.grid(True, zorder=0, linestyle=":", color="grey")
+        # ax
+        # for tic in ax.xaxis.get_major_ticks():
+        #     tic.tick1On = False
+        # for tic in ax.yaxis.get_major_ticks():
+        #     tic.tick1On = False
+        # ax.spines['top'].set_visible(False)
+        # ax.spines['right'].set_visible(False)
+        # # END FROM RIMMA SCRIPT
 
         utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
 
@@ -184,11 +187,11 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                                                   loc='upper right',
                                                   fontsize=fontsize)
         # add figure number to top left of subplot
-        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=5, xytext=None,
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
                                        xycoords='axes fraction',
                                        alpha=0.75)
         # add figure title to top left of subplot
-        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=5, xytext=None, xycoords='axes fraction',
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
 
         utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
@@ -215,11 +218,11 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
         legend_obj = ax.legend(['mean'], loc='upper right', fontsize=fontsize)
         # add figure number to top left of subplot
-        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=5, xytext=None,
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
                                        xycoords='axes fraction',
                                        alpha=0.75)
         # add figure title to top left of subplot
-        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=5, xytext=None, xycoords='axes fraction',
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
 
         utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
@@ -250,11 +253,11 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
         legend_obj = ax.legend(['standard deviation'], loc='upper right', fontsize=fontsize)
         # add figure number to top left of subplot
-        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=5, xytext=None,
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
                                        xycoords='axes fraction',
                                        alpha=0.75)
         # add figure title to top left of subplot
-        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=5, xytext=None, xycoords='axes fraction',
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
 
         utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
@@ -290,11 +293,11 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # add background grid
         ax.grid(True, color='0.75', alpha=0.3)
         # add figure number to top left of subplot
-        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=5, xytext=None,
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
                                        xycoords='axes fraction',
                                        alpha=0.75)
         # add figure title to top left of subplot
-        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=5, xytext=None, xycoords='axes fraction',
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
 
         utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
@@ -318,11 +321,11 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # change axis font size
         ax.tick_params(labelsize=fontsize)
         # add figure number to top left of subplot
-        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=5, xytext=None,
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
                                        xycoords='axes fraction',
                                        alpha=0.75)
         # add figure title to top left of subplot
-        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=5, xytext=None, xycoords='axes fraction',
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
 
         utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
@@ -346,11 +349,11 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # change axis font size
         ax.tick_params(labelsize=fontsize)
         # add figure number to top left of subplot
-        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=5, xytext=None,
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
                                        xycoords='axes fraction',
                                        alpha=0.75)
         # add figure title to top left of subplot
-        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=5, xytext=None, xycoords='axes fraction',
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
 
         utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
@@ -365,7 +368,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         fig, ax = plt.subplots()
         
         # pylab.rcParams['figure.figsize'] = (100.0, 80.0)
-        x = np.array(df['total_number_of_simap_hits'])
+        x = np.array(df['TM01_AAIMON_n_homol']) # total_number_of_simap_hits can be replaced with TM01_AAIMON_n_homol
         y = np.array(df['AAIMON_ratio_mean_all_TMDs'])
         scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#0489B1", alpha=alpha,
                                                                            s=datapointsize)
@@ -377,11 +380,11 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # change axis font size
         ax.tick_params(labelsize=fontsize)
         # add figure number to top left of subplot
-        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=5, xytext=None,
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
                                        xycoords='axes fraction',
                                        alpha=0.75)
         # add figure title to top left of subplot
-        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=5, xytext=None, xycoords='axes fraction',
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
         utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
 
@@ -398,14 +401,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         col_width_value = 0.95
         ylabel = 'freq'
         xlabel = 'average conservation ratio (membranous over nonmembranous)'
-
-        # create dataframe mean_AAIMON_each_TM
-        df_mean_AAIMON_each_TM = pd.DataFrame()
-        # add AAIMON each TMD to dataframe
-        for acc in df.index:
-            for TMD in ast.literal_eval(df.loc[acc, 'list_of_TMDs']):
-                df_mean_AAIMON_each_TM.loc[acc, '{a}_AAIMON_ratio_mean'.format(a=TMD)] = df.loc[
-                    acc, '{b}_AAIMON_ratio_mean'.format(b=TMD)]
 
         for n, TM in enumerate(df_mean_AAIMON_each_TM.columns):
             # define the colour for that TMD
@@ -462,11 +457,11 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # add title
         # ax.set_title(title,fontsize=fontsize)
         # add figure number to top left of subplot
-        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=5, xytext=None,
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
                                        xycoords='axes fraction',
                                        alpha=0.75)
         # add figure title to top left of subplot
-        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=5, xytext=None, xycoords='axes fraction',
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
 
         utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
@@ -535,14 +530,406 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # add title
         # ax.set_title(title,fontsize=fontsize)
         # add figure number to top left of subplot
-        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=5, xytext=None,
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
                                        xycoords='axes fraction',
                                        alpha=0.75)
         # add figure title to top left of subplot
-        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=5, xytext=None, xycoords='axes fraction',
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
 
         utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+
+    if s['Fig11_Line_histogram_of_mean_AAIMON_ratios_for_selected_TMDs,_highlighting_difference_for_TM07']:
+        # these graphs are only applicable for multi-pass proteins. Use where at least 2 proteins have a 7th TMD
+        if "TM07_AAIMON_ratio_mean" in df_mean_AAIMON_each_TM.columns:
+            if df_mean_AAIMON_each_TM['TM07_AAIMON_ratio_mean'].dropna().shape[0] >= 2:
+                dataset_contains_multipass_prots = True
+                sys.stdout.write('Dataset contains multipass proteins; creating figure 11 \n')
+            else:
+                dataset_contains_multipass_prots = False
+                sys.stdout.write('Dataset does not contain multipass proteins; figure 11 cannot be created \n')
+        else:
+            dataset_contains_multipass_prots = False
+            sys.stdout.write('Dataset does not contain multipass proteins; figure 11 cannot be created \n')
+
+        if dataset_contains_multipass_prots:
+            Fig_Nr = 11
+            sys.stdout.write('Figure Processed: Fig11_Line_histogram_of_mean_AAIMON_ratios_for_selected_TMDs \n')
+            title = 'Select TMDs, all data'
+            #cols_for_analysis = ['TM01', 'TM07', 'TM08', 'last_TM_AAIMON_ratio_mean']
+            cols_for_analysis = ['TM01_AAIMON_ratio_mean', 'TM07_AAIMON_ratio_mean', 'TM08_AAIMON_ratio_mean', 'TM{last_TM:02d}_AAIMON_ratio_mean'.format(last_TM=len(df_mean_AAIMON_each_TM.columns))]
+            fig, ax = plt.subplots()
+            num_bins = 50
+            # "#0489B1"
+            alpha = 0.7
+            col_width_value = 0.95
+            ylabel = 'freq'
+            xlabel = 'average conservation ratio (membranous over nonmembranous)'
+
+            for n, TM in enumerate(cols_for_analysis):
+                # define the colour for that TMD
+                # if there are more TMDs than colours, simply start from the beginning of the list again
+                if n < len(tableau20):
+                    color_num = n
+                else:
+                    color_num = n - len(tableau20)
+                color = tableau20[color_num]
+
+                hist_data = np.array(df_mean_AAIMON_each_TM[TM].dropna())
+                '''
+                Calculated the bins for a histogram, even for highly non-normal data
+                '''
+                # calculate 5th percentile
+                percentile_5 = np.percentile(hist_data, 5)  # hist_data.min()
+                # calculate 9th percentile
+                percentile_95 = np.percentile(hist_data, 95)  # hist_data.max()
+                # calculate difference
+                percentile_95_minus_5 = percentile_95 - percentile_5
+                # create buffer for bins
+                extra_xaxis_range = percentile_95_minus_5 / 4
+                # lowest bin is the 5th percentile minus the buffer, except where that is below zero
+                data_min = percentile_5 - extra_xaxis_range  # hist_data.min()
+                # ata_min = 0 if data_max < 0 else data_max
+                # highest bin is the 95th percentile
+                data_max = percentile_95 + extra_xaxis_range  # hist_data.max()
+                # create bins using the min and max
+                binlist = np.linspace(data_min, data_max, num_bins)
+                # use numpy to create a histogram
+                freq_counts_I, bin_array_I = np.histogram(hist_data, bins=binlist)
+                # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+                col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
+                # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+                centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
+                # add the final bin, which is physically located just after the last regular bin but represents all higher values
+                bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+                centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+                linecontainer = ax.plot(centre_of_bar_in_x_axis, freq_counts_I, alpha=alpha,
+                                                           linewidth=0.3)  # edgecolor='black',
+            # label the x-axis for each plot, based on the TMD
+            ax.set_xlabel(xlabel, fontsize=fontsize)
+            # move the x-axis label closer to the x-axis
+            ax.xaxis.set_label_coords(0.45, -0.085)
+            ax.set_ylabel(ylabel, rotation='vertical', fontsize=fontsize)
+            # change axis font size
+            ax.tick_params(labelsize=fontsize)
+            # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
+            legend_obj = ax.legend(cols_for_analysis, loc='upper right', fontsize=fontsize)
+            # add title
+            # ax.set_title(title,fontsize=fontsize)
+            # add figure number to top left of subplot
+            ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                                           xycoords='axes fraction', alpha=0.75)
+            # add figure title to top left of subplot
+            ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                                           alpha=0.75)
+            utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+
+    if s['Fig12_TMD_1-5_only']:
+        Fig_Nr = 12
+        sys.stdout.write('Figure Processed: Fig12_TMD_1-5_only \n')
+        
+        col_start = 0
+        col_end = 5
+        cols_to_analyse = df_mean_AAIMON_each_TM.columns[col_start:col_end]
+        title = 'TMD 1 to 5, all data'
+        fig, ax = plt.subplots()
+
+        num_bins = 30
+        # "#0489B1"
+        alpha = 0.9
+        col_width_value = 0.95
+        ylabel = 'freq'
+        xlabel = 'average conservation ratio (membranous over nonmembranous)'
+
+        for n, TM in enumerate(cols_to_analyse):
+            # define the colour for that TMD
+            # if there are more TMDs than colours, simply start from the beginning of the list again
+            if n < len(tableau20):
+                color_num = n
+            else:
+                color_num = n - len(tableau20)
+            color = tableau20[color_num]
+
+            hist_data = np.array(df_mean_AAIMON_each_TM[TM].dropna())
+            '''
+            Calculated the bins for a histogram, even for highly non-normal data
+            '''
+            # calculate 5th percentile
+            percentile_5 = np.percentile(hist_data, 5)  # hist_data.min()
+            # calculate 9th percentile
+            percentile_95 = np.percentile(hist_data, 95)  # hist_data.max()
+            # calculate difference
+            percentile_95_minus_5 = percentile_95 - percentile_5
+            # create buffer for bins
+            extra_xaxis_range = percentile_95_minus_5 / 4
+            # lowest bin is the 5th percentile minus the buffer, except where that is below zero
+            data_min = percentile_5 - extra_xaxis_range  # hist_data.min()
+            # ata_min = 0 if data_max < 0 else data_max
+            # highest bin is the 95th percentile
+            data_max = percentile_95 + extra_xaxis_range  # hist_data.max()
+            # create bins using the min and max
+            binlist = np.linspace(data_min, data_max, num_bins)
+            # use numpy to create a histogram
+            freq_counts_I, bin_array_I = np.histogram(hist_data, bins=binlist)
+            # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+            col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
+            # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+            centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
+            # add the final bin, which is physically located just after the last regular bin but represents all higher values
+            bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+            centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+            linecontainer = ax.plot(centre_of_bar_in_x_axis, freq_counts_I, alpha=alpha,
+                                                       linewidth=0.3)  # edgecolor='black',
+        # label the x-axis for each plot, based on the TMD
+        ax.set_xlabel(xlabel, fontsize=fontsize)
+        # move the x-axis label closer to the x-axis
+        ax.xaxis.set_label_coords(0.45, -0.085)
+        ax.set_ylabel(ylabel, rotation='vertical', fontsize=fontsize)
+        # change axis font size
+        ax.tick_params(labelsize=fontsize)
+        # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
+        legend_obj = ax.legend(cols_to_analyse, loc='upper right', fontsize=fontsize)
+        # add title
+        # ax.set_title(title,fontsize=fontsize)
+        # add figure number to top left of subplot
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                                       xycoords='axes fraction', alpha=0.75)
+        # add figure title to top left of subplot
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                                       alpha=0.75)
+        utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+
+    if s['Fig13_TMD_5-10_only']:
+        Fig_Nr = 13
+        sys.stdout.write('Figure Processed: Fig13_TMD_5-10_only \n')
+        title = 'TMD 5-10, all data'
+
+        col_start = 5
+        col_end = 10
+        # analyzing TM01 (as control?) and TM05-10
+        cols_to_analyse = ['TM01_AAIMON_ratio_mean'] + list(df_mean_AAIMON_each_TM.columns[col_start:col_end])
+        
+        fig, ax = plt.subplots()
+
+        num_bins = 30
+        # "#0489B1"
+        alpha = 0.9
+        col_width_value = 0.95
+        ylabel = 'freq'
+        xlabel = 'average conservation ratio (membranous over nonmembranous)'
+
+        for n, TM in enumerate(cols_to_analyse):
+            # define the colour for that TMD
+            # if there are more TMDs than colours, simply start from the beginning of the list again
+            if n < len(tableau20):
+                color_num = n
+            else:
+                color_num = n - len(tableau20)
+            color = tableau20[color_num]
+
+            hist_data = np.array(df_mean_AAIMON_each_TM[TM].dropna())
+            '''
+            Calculated the bins for a histogram, even for highly non-normal data
+            '''
+            # calculate 5th percentile
+            percentile_5 = np.percentile(hist_data, 5)  # hist_data.min()
+            # calculate 9th percentile
+            percentile_95 = np.percentile(hist_data, 95)  # hist_data.max()
+            # calculate difference
+            percentile_95_minus_5 = percentile_95 - percentile_5
+            # create buffer for bins
+            extra_xaxis_range = percentile_95_minus_5 / 4
+            # lowest bin is the 5th percentile minus the buffer, except where that is below zero
+            data_min = percentile_5 - extra_xaxis_range  # hist_data.min()
+            # ata_min = 0 if data_max < 0 else data_max
+            # highest bin is the 95th percentile
+            data_max = percentile_95 + extra_xaxis_range  # hist_data.max()
+            # create bins using the min and max
+            binlist = np.linspace(data_min, data_max, num_bins)
+            # use numpy to create a histogram
+            freq_counts_I, bin_array_I = np.histogram(hist_data, bins=binlist)
+            # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+            col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
+            # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+            centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
+            # add the final bin, which is physically located just after the last regular bin but represents all higher values
+            bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+            centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+            linecontainer = ax.plot(centre_of_bar_in_x_axis, freq_counts_I, alpha=alpha,
+                                                       linewidth=0.3)  # edgecolor='black',
+        # label the x-axis for each plot, based on the TMD
+        ax.set_xlabel(xlabel, fontsize=fontsize)
+        # move the x-axis label closer to the x-axis
+        ax.xaxis.set_label_coords(0.45, -0.085)
+        ax.set_ylabel(ylabel, rotation='vertical', fontsize=fontsize)
+        # change axis font size
+        ax.tick_params(labelsize=fontsize)
+        # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
+        legend_obj = ax.legend(cols_to_analyse, loc='upper right', fontsize=fontsize)
+        # add title
+        # ax.set_title(title,fontsize=fontsize)
+        # add figure number to top left of subplot
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                                       xycoords='axes fraction', alpha=0.75)
+        # add figure title to top left of subplot
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                                       alpha=0.75)
+        utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+
+    if s['Fig14_TMD_10-15_only']:
+        Fig_Nr = 14
+        sys.stdout.write('Figure Processed: Fig14_TMD_10-15_only \n')
+        title = 'TMD 10-15, all data'
+
+        col_start = 10
+        col_end = 15
+        cols_to_analyse = ['TM01_AAIMON_ratio_mean'] + list(df_mean_AAIMON_each_TM.columns[col_start:col_end])
+        fig, ax = plt.subplots()
+        num_bins = 10
+        # "#0489B1"
+        alpha = 0.9
+        col_width_value = 0.95
+        ylabel = 'freq'
+        xlabel = 'average conservation ratio (membranous over nonmembranous)'
+
+        for n, TM in enumerate(cols_to_analyse):
+            # define the colour for that TMD
+            # if there are more TMDs than colours, simply start from the beginning of the list again
+            if n < len(tableau20):
+                color_num = n
+            else:
+                color_num = n - len(tableau20)
+            color = tableau20[color_num]
+
+            hist_data = np.array(df_mean_AAIMON_each_TM[TM].dropna())
+            '''
+            Calculated the bins for a histogram, even for highly non-normal data
+            '''
+            # calculate 5th percentile
+            percentile_5 = np.percentile(hist_data, 5)  # hist_data.min()
+            # calculate 9th percentile
+            percentile_95 = np.percentile(hist_data, 95)  # hist_data.max()
+            # calculate difference
+            percentile_95_minus_5 = percentile_95 - percentile_5
+            # create buffer for bins
+            extra_xaxis_range = percentile_95_minus_5 / 4
+            # lowest bin is the 5th percentile minus the buffer, except where that is below zero
+            data_min = percentile_5 - extra_xaxis_range  # hist_data.min()
+            # ata_min = 0 if data_max < 0 else data_max
+            # highest bin is the 95th percentile
+            data_max = percentile_95 + extra_xaxis_range  # hist_data.max()
+            # create bins using the min and max
+            binlist = np.linspace(data_min, data_max, num_bins)
+            # use numpy to create a histogram
+            freq_counts_I, bin_array_I = np.histogram(hist_data, bins=binlist)
+            # normalize the frequency counts
+            freq_counts_normalised = freq_counts_I / freq_counts_I.max()
+
+            # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+            col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
+            # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+            centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
+            # add the final bin, which is physically located just after the last regular bin but represents all higher values
+            bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+            centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+            linecontainer = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, alpha=alpha,
+                                                       linewidth=0.3)  # edgecolor='black',
+        # label the x-axis for each plot, based on the TMD
+        ax.set_xlabel(xlabel, fontsize=fontsize)
+        # move the x-axis label closer to the x-axis
+        ax.xaxis.set_label_coords(0.45, -0.085)
+        ax.set_ylabel(ylabel, rotation='vertical', fontsize=fontsize)
+        # change axis font size
+        ax.tick_params(labelsize=fontsize)
+        # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
+        legend_obj = ax.legend(cols_to_analyse, loc='upper right', fontsize=fontsize)
+        # add title
+        # ax.set_title(title,fontsize=fontsize)
+        # add figure number to top left of subplot
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                                       xycoords='axes fraction', alpha=0.75)
+        # add figure title to top left of subplot
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                                       alpha=0.75)
+        utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+
+    if s['Fig15_TMD_15-20_only']:
+        Fig_Nr = 15
+        title = 'TMD 15-20, all data'
+        sys.stdout.write('Figure Processed: Fig15_TMD_15-20_only \n')
+        col_start = 15
+        col_end = 20
+        cols_to_analyse = ['TM01_AAIMON_ratio_mean'] + list(df_mean_AAIMON_each_TM.columns[col_start:col_end])
+        fig, ax = plt.subplots()
+        num_bins = 10
+        # "#0489B1"
+        alpha = 0.9
+        col_width_value = 0.95
+        ylabel = 'freq'
+        xlabel = 'average conservation ratio (membranous over nonmembranous)'
+
+        for n, TM in enumerate(cols_to_analyse):
+            # define the colour for that TMD
+            # if there are more TMDs than colours, simply start from the beginning of the list again
+            if n < len(tableau20):
+                color_num = n
+            else:
+                color_num = n - len(tableau20)
+            color = tableau20[color_num]
+
+            hist_data = np.array(df_mean_AAIMON_each_TM[TM].dropna())
+            '''
+            Calculated the bins for a histogram, even for highly non-normal data
+            '''
+            # calculate 5th percentile
+            percentile_5 = np.percentile(hist_data, 5)  # hist_data.min()
+            # calculate 9th percentile
+            percentile_95 = np.percentile(hist_data, 95)  # hist_data.max()
+            # calculate difference
+            percentile_95_minus_5 = percentile_95 - percentile_5
+            # create buffer for bins
+            extra_xaxis_range = percentile_95_minus_5 / 4
+            # lowest bin is the 5th percentile minus the buffer, except where that is below zero
+            data_min = percentile_5 - extra_xaxis_range  # hist_data.min()
+            # ata_min = 0 if data_max < 0 else data_max
+            # highest bin is the 95th percentile
+            data_max = percentile_95 + extra_xaxis_range  # hist_data.max()
+            # create bins using the min and max
+            binlist = np.linspace(data_min, data_max, num_bins)
+            # use numpy to create a histogram
+            freq_counts_I, bin_array_I = np.histogram(hist_data, bins=binlist)
+            # normalize the frequency counts
+            freq_counts_normalised = freq_counts_I / freq_counts_I.max()
+            # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+            col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
+            # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+            centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
+            # add the final bin, which is physically located just after the last regular bin but represents all higher values
+            bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+            centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+            linecontainer = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, alpha=alpha,
+                                                       linewidth=0.3)  # edgecolor='black',
+        # label the x-axis for each plot, based on the TMD
+        ax.set_xlabel(xlabel, fontsize=fontsize)
+        # move the x-axis label closer to the x-axis
+        ax.xaxis.set_label_coords(0.45, -0.085)
+        ax.set_ylabel(ylabel, rotation='vertical', fontsize=fontsize)
+        # change axis font size
+        ax.tick_params(labelsize=fontsize)
+        # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
+        legend_obj = ax.legend(cols_to_analyse, loc='upper right', fontsize=fontsize)
+        # add title
+        # ax.set_title(title,fontsize=fontsize)
+        # add figure number to top left of subplot
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                                       xycoords='axes fraction', alpha=0.75)
+        # add figure title to top left of subplot
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                                       alpha=0.75)
+        utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+
+
+        
 
 
     logging.info("~~~~~~~~~~~~        run_save_figures_describing_proteins_in_list is finished        ~~~~~~~~~~~~")
