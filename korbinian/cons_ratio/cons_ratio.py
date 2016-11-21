@@ -259,7 +259,6 @@ def calculate_AAIMON_ratios(p):
             df_cr = korbinian.cons_ratio.calc.calc_AAIMON(TMD, df_cr, len_query_TMD)
             df_cr['norm_factor'] = dfh['norm_factor']
             df_cr['%s_AAIMON_ratio_n'%TMD] = df_cr['%s_AAIMON_ratio'%TMD] / df_cr['norm_factor']
-#            print(df_cr.columns)
 
             list_of_AAIMON_all_TMD['%s_AAIMON_ratio'%TMD]= df_cr['%s_AAIMON_ratio'%TMD].dropna()
 
