@@ -41,6 +41,9 @@ def gather_AAIMON_ratios(pathdict, logging):
     for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
         dfg.loc[acc, 'seqlen'] = df.loc[acc, 'seqlen']
 
+    # add total_number_of_simap_hits
+    for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
+        dfg.loc[acc, 'total_number_of_simap_hits'] = dfg.loc[acc, 'TM01_AAIMON_n_homol']
 
 
     dfg.to_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
