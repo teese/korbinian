@@ -69,10 +69,21 @@ def save_hist_AAIMON_ratio_single_protein (fig_nr, fig, axarr, df_cr, s, TMD, bi
                                                alpha=0.5)  # edgecolor='black',
 
     # SHENGER TO INSERT TM01_AAIMON_ratio_n normalised stuff here
-
-
-
-
+    hist_data_N = np.array(df_cr['%s_AAIMON_ratio_n' % TMD].dropna())
+    # use numpy to create a histogram
+    freq_counts, bin_array = np.histogram(hist_data_N, bins=binarray)
+    # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+    col_width = float('%0.3f' % (0.7 * (bin_array[1] - bin_array[0])))
+    # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+    centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+    # add the final bin, which is physically located just after the last regular bin but represents all higher values
+    centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis,
+                                        centre_of_bar_in_x_axis[-1] +
+                                        centre_of_bar_in_x_axis[0])
+    barcontainer_N = axarr[row_nr, col_nr].bar(left=centre_of_bar_in_x_axis,
+                                               height=freq_counts, align='center',
+                                               width=col_width, color="green",
+                                               alpha=0.2)  # edgecolor='black',
 
     # create numpy array of membranous over nonmembranous conservation ratios (identity + similarity)
     hist_data_S = np.array(df_cr['%s_AASMON_ratio'%TMD].dropna())
@@ -84,6 +95,7 @@ def save_hist_AAIMON_ratio_single_protein (fig_nr, fig, axarr, df_cr, s, TMD, bi
     # http://html-color-codes.info/
     # label the x-axis for each plot, based on the TMD
     axarr[row_nr, col_nr].set_xlabel('%s conservation ratio (membranous over nonmembranous)'%TMD,fontsize=fontsize)
+
     if savefig:
         # take x-axis min from settings
         xlim_min = s["1p_smallest_bin"]
@@ -100,7 +112,7 @@ def save_hist_AAIMON_ratio_single_protein (fig_nr, fig, axarr, df_cr, s, TMD, bi
             # change axis font size
             ax.tick_params(labelsize=fontsize)
             # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
-            ax.legend(['AASMON (identity + similarity)', 'AAIMON (identity)'],loc='upper right', fontsize=fontsize)
+            ax.legend(['AASMON (identity + similarity)', 'AAIMON (identity)','AAIMON_n (correction)'],loc='upper right', fontsize=fontsize)
             # add background grid
             ax.grid(True, color='0.75', alpha=0.5)
         # automatically tighten the layout of plots in the figure

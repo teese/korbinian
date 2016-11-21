@@ -169,6 +169,7 @@ def filt_and_save_AAIMON_mean(TMD, df_cr, mean_ser, max_gaps, max_hydro, min_ide
     mean_ser['%s_perc_sim_plus_ident_mean' % TMD] = df_cr['%s_perc_sim_plus_ident' % TMD].mean()
     # AAIMON ratios
     mean_ser['%s_AAIMON_ratio_mean' % TMD] = float(df_cr['%s_AAIMON_ratio' % TMD].mean())
+    mean_ser['%s_AAIMON_ratio_mean_n' % TMD] = float(df_cr['%s_AAIMON_ratio_n' % TMD].mean())
     mean_ser['%s_AAIMON_ratio_std' % TMD] = df_cr['%s_AAIMON_ratio' % TMD].std()
     mean_ser['%s_AASMON_ratio_mean' % TMD] = df_cr['%s_AASMON_ratio' % TMD].mean()
     mean_ser['%s_AASMON_ratio_std' % TMD] = df_cr['%s_AASMON_ratio' % TMD].std()
