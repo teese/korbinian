@@ -76,8 +76,8 @@ def create_df_with_mean_AAIMON_each_TM(df):
     #create list to use as the legend in the later figures
     full_list_TMDs = []
     
-    for i in range(1, max_num_TMDs + 1):
-        TM = 'TM%02d' % i
+    for i in range(1, max_num_TMDs.astype(np.int64) + 1):
+        TM = 'TM%02d_AAIMON_ratio_mean' % i
         full_list_TMDs.append(TM)
         #create new series with the data (each datapoint is the mean for all homologues, 
         #for a single protein)
