@@ -257,6 +257,8 @@ def calculate_AAIMON_ratios(p):
             ########################################################################################
             len_query_TMD = p["%s_end"%TMD] - p["%s_start"%TMD]
             df_cr = korbinian.cons_ratio.calc.calc_AAIMON(TMD, df_cr, len_query_TMD)
+            df_cr['norm_factor'] = dfh['norm_factor']
+            df_cr['%s_AAIMON_ratio_n'%TMD] = df_cr['%s_AAIMON_ratio'%TMD] / df_cr['norm_factor']
 
             list_of_AAIMON_all_TMD['%s_AAIMON_ratio'%TMD]= df_cr['%s_AAIMON_ratio'%TMD].dropna()
 
@@ -280,6 +282,7 @@ def calculate_AAIMON_ratios(p):
             mean_ser = korbinian.cons_ratio.calc.filt_and_save_AAIMON_mean(TMD, df_cr, mean_ser, max_gaps, max_hydro, min_ident)
 
             logging.info('%s AAIMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean' % TMD]))
+            logging.info('%s AAIMON MEAN n %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean_n' % TMD]))
             # logging.info('%s AASMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AASMON_ratio_mean'%TMD]))
 
             # use the dictionary to obtain the figure number, plot number in figure, plot indices, etc
@@ -311,10 +314,10 @@ def calculate_AAIMON_ratios(p):
         df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'] = df_list_AAIMON_all_TMD.mean(axis=1)
         df_list_AAIMON_all_TMD['gapped_ident'] = dfh['FASTA_gapped_identity'].loc[df_list_AAIMON_all_TMD.index]
         df_list_AAIMON_all_TMD['norm_factor'] = dfh['norm_factor'].loc[df_list_AAIMON_all_TMD.index]
-        df_list_AAIMON_all_TMD['AAIMON_normalised'] = df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'] / df_list_AAIMON_all_TMD['norm_factor']
+        df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol_n'] = df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'] / df_list_AAIMON_all_TMD['norm_factor']
 #        print(df_list_AAIMON_all_TMD)
         korbinian.cons_ratio.norm.save_graph_for_normalized_AAIMON(acc,  df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'],
-                                                                     df_list_AAIMON_all_TMD['AAIMON_normalised'],
+                                                                     df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol_n'],
                                                                      df_list_AAIMON_all_TMD['gapped_ident'], zipout, protein_name)
         # save the dataframe containing normalisation factor and normalised AAIMON to zipout
         df_list_AAIMON_all_TMD.to_csv(protein_name + '_AAIMON_normalisation_data.csv')
