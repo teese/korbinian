@@ -13,7 +13,7 @@ import plotly
 
 # % matplotlib inline
 
-plotly.offline.init_notebook_mode()
+# plotly.offline.init_notebook_mode()
 
 plt.rcParams["savefig.dpi"] = 240
 
@@ -264,10 +264,10 @@ layout = go.Layout(
 fig = go.Figure(data=data, layout=layout)
 # py.iplot(fig)
 
-# py.image.save_as(fig, filename='SP_MP_BB_40-100_perc.png')
+#py.image.save_as(fig, filename='SP_MP_BB_40-100_perc.pdf')
 
 
-plotly.offline.iplot({
-    "data": data,
-    "layout": layout
-})
+#plotly.offline.iplot({
+#    "data": data,
+#    "layout": layout
+#})
