@@ -10,6 +10,7 @@ import sys
 
 def save_figures_describing_proteins_in_list(pathdict, s, logging):
     logging.info("~~~~~~~~~~~~         starting run_save_figures_describing_proteins_in_list          ~~~~~~~~~~~~")
+    print ('Preparing data for plotting', flush=True)
 
     backgroundcolour = '0.95'
     plt.style.use('ggplot')
@@ -24,8 +25,33 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
     '''Prepare data for the following plots'''
 
-    # open cons_ratio summary file
+    # open list_cr_summary_csv summary file
     df = pd.read_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+
+    # open list_summary_csv file
+
+    df_uniprot = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+
+    # add keywords column from df_uniprot to df
+
+    for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
+        df.loc[acc, 'uniprot_KW'] = df_uniprot.loc[acc, 'uniprot_KW']
+
+    # convert the keywords from a stringlist to a python list
+    if isinstance(df['uniprot_KW'][0], str):
+        df['uniprot_KW'] = df['uniprot_KW'].apply(lambda x: ast.literal_eval(x))
+    # create a new column showing whether the protein is a GPCR
+    df['G-protein_coupled_receptor'] = df['uniprot_KW'].apply(lambda x: 'G-protein coupled receptor' in x)
+    df_GPCR = df.loc[df['G-protein_coupled_receptor'] == True]
+
+    # bool to check if dataframe contains GPCRs
+    if df['G-protein_coupled_receptor'].any():
+        GPCR_in_df = True
+    else:
+        GPCR_in_df = False
+
+    # # save dataframe
+    # df.to_csv(pathdict["base_filename_summaries"] + '_df_figs.csv', sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     # create binlist
     linspace_binlist = np.linspace(s["mp_smallest_bin"],
@@ -51,14 +77,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         df.loc[acc, 'AASMON_ratio_mean_all_TMDs'] = np.mean(list(dict_AASMON_ratio_mean.values()))
         df.loc[acc, 'AASMON_ratio_std_all_TMDs'] = np.mean(list(dict_AASMON_ratio_std.values()))
 
-    # logging saved data types
-    sys.stdout.write('saving figures as: ')
-    if s['save_fig_to_pdf']:
-        sys.stdout.write(' .pdf ')
-    if s['save_fig_to_png']:
-        sys.stdout.write(' .png ')
-    sys.stdout.write('\n')
-
     # create list of colours to use in figures
     colour_lists = utils.create_colour_lists()
     tableau20 = colour_lists['tableau20']
@@ -70,6 +88,14 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         for TMD in ast.literal_eval(df.loc[acc, 'list_of_TMDs']):
             df_mean_AAIMON_each_TM.loc[acc, '{a}_AAIMON_ratio_mean'.format(a=TMD)] = df.loc[
                 acc, '{b}_AAIMON_ratio_mean'.format(b=TMD)]
+
+    # logging saved data types
+    sys.stdout.write('saving figures as: ')
+    if s['save_fig_to_pdf']:
+        sys.stdout.write(' .pdf ')
+    if s['save_fig_to_png']:
+        sys.stdout.write(' .png ')
+    sys.stdout.write('\n')
 
     if s['Fig01_Histogram_of_mean_AAIMON_and_AASMON_ratios_SP_vs_MP']:
         Fig_Nr = 1
@@ -544,10 +570,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         if "TM07_AAIMON_ratio_mean" in df_mean_AAIMON_each_TM.columns:
             if df_mean_AAIMON_each_TM['TM07_AAIMON_ratio_mean'].dropna().shape[0] >= 2:
                 dataset_contains_multipass_prots = True
-                sys.stdout.write('Dataset contains multipass proteins; creating figure 11 \n')
             else:
                 dataset_contains_multipass_prots = False
-                sys.stdout.write('Dataset does not contain multipass proteins; figure 11 cannot be created \n')
+                sys.stdout.write('Dataset does not contain multipass proteins; cannot create figure 11 \n')
         else:
             dataset_contains_multipass_prots = False
             sys.stdout.write('Dataset does not contain multipass proteins; figure 11 cannot be created \n')
@@ -928,8 +953,511 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                                        alpha=0.75)
         utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
 
-
+    if s['Fig16_ONLY_proteins_with_7_TMDs']:
+        Fig_Nr = 16
+        title = 'ONLY prot with 7 TMDs'
+        sys.stdout.write('Figure Processed: Fig16_ONLY_proteins_with_7_TMDs \n')
         
+        # create a new dataframe containing data only for proteins with 7 TMDs
+        df_seven = df.loc[df.number_of_TMDs == 7].copy()
+        # logging.info('df_seven.shape: %s' % str(df_seven.shape))
+
+        # if there are any proteins with 7 TM helices in the dataset (may not be true for beta-barrel datasets)
+        if df_seven.shape[0] != 0:
+            df_mean_AAIMON_each_TM_7TM, max_num_TMDs, legend = utils.create_df_with_mean_AAIMON_each_TM(df_seven)
+            # cols_for_analysis = ['TM01', 'TM06', 'TM07']
+            cols_for_analysis = ['TM01_AAIMON_ratio_mean', 'TM06_AAIMON_ratio_mean', 'TM07_AAIMON_ratio_mean']
+            fig, ax = plt.subplots()
+
+            num_bins = 30
+            # "#0489B1"
+            alpha = 0.7
+            col_width_value = 0.95
+            ylabel = 'freq'
+            xlabel = 'average conservation ratio (membranous over nonmembranous)'
+            # legend =
+
+            for n, TM in enumerate(cols_for_analysis):
+                # define the colour for that TMD
+                # if there are more TMDs than colours, simply start from the beginning of the list again
+                if n < len(tableau20):
+                    color_num = n
+                else:
+                    color_num = n - len(tableau20)
+                color = tableau20[color_num]
+
+                hist_data = np.array(df_mean_AAIMON_each_TM_7TM[TM].dropna())
+                '''
+                Calculated the bins for a histogram, even for highly non-normal data
+                '''
+                # calculate 5th percentile
+                percentile_5 = np.percentile(hist_data, 5)  # hist_data.min()
+                # calculate 9th percentile
+                percentile_95 = np.percentile(hist_data, 95)  # hist_data.max()
+                # calculate difference
+                percentile_95_minus_5 = percentile_95 - percentile_5
+                # create buffer for bins
+                extra_xaxis_range = percentile_95_minus_5 / 4
+                # lowest bin is the 5th percentile minus the buffer, except where that is below zero
+                data_min = percentile_5 - extra_xaxis_range  # hist_data.min()
+                # ata_min = 0 if data_max < 0 else data_max
+                # highest bin is the 95th percentile
+                data_max = percentile_95 + extra_xaxis_range  # hist_data.max()
+                # create bins using the min and max
+                binlist = np.linspace(data_min, data_max, num_bins)
+                # use numpy to create a histogram
+                freq_counts_I, bin_array_I = np.histogram(hist_data, bins=binlist)
+                # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+                col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
+                # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+                centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
+                # add the final bin, which is physically located just after the last regular bin but represents all higher values
+                bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+                centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+                linecontainer = ax.plot(centre_of_bar_in_x_axis, freq_counts_I, alpha=alpha,
+                                                           linewidth=0.3)  # edgecolor='black',
+            # label the x-axis for each plot, based on the TMD
+            ax.set_xlabel(xlabel, fontsize=fontsize)
+            # move the x-axis label closer to the x-axis
+            ax.xaxis.set_label_coords(0.45, -0.085)
+            ax.set_ylabel(ylabel, rotation='vertical', fontsize=fontsize)
+            # change axis font size
+            ax.tick_params(labelsize=fontsize)
+            # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
+            legend_obj = ax.legend(cols_for_analysis, loc='upper right', fontsize=fontsize)
+            # add title
+            # ax.set_title(title,fontsize=fontsize)
+            # add figure number to top left of subplot
+            ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                                           xycoords='axes fraction', alpha=0.75)
+            # add figure title to top left of subplot
+            ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                                           alpha=0.75)
+
+        utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+
+    if s['Fig17_Less_than_12_TMDs_vs_at_least_12_TMDs']:
+        Fig_Nr = 17
+        title = '<12 TMDs vs >12 TMDs'
+        sys.stdout.write('Figure Processed: Fig17_Less_than_12_TMDs_vs_at_least_12_TMDs \n')
+        df_under_12 = df.loc[df.number_of_TMDs < 12]
+
+        fig, ax = plt.subplots()
+        
+        # create numpy array of membranous over nonmembranous conservation ratios (identity)
+        hist_data_AAIMON_mean = np.array(df_under_12['AAIMON_ratio_mean_all_TMDs'].dropna())
+        # use numpy to create a histogram
+        freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
+        # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+        col_width = float('%0.3f' % (0.95 * (bin_array_I[1] - bin_array_I[0])))
+        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+        centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
+        # add the final bin, which is physically located just after the last regular bin but represents all higher values
+        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+        barcontainer_AAIMON_mean = ax.bar(left=centre_of_bar_in_x_axis, height=freq_counts_I,
+                                                             align='center', width=col_width, color="#0489B1",
+                                                             alpha=0.5, linewidth=0.1)  # edgecolor='black',
+        # other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
+        # http://html-color-codes.info/
+        # label the x-axis for each plot, based on the TMD
+        ax.set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
+        # move the x-axis label closer to the x-axis
+        ax.xaxis.set_label_coords(0.45, -0.085)
+        xlim_min = 0.8
+        xlim_max = 1.5
+        ax.set_xlim(xlim_min, xlim_max)
+        # set x-axis ticks
+        # use the slide selection to select every second item in the list as an xtick(axis label)
+        ax.set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
+        ax.set_ylabel('freq', rotation='vertical', fontsize=fontsize)
+        # change axis font size
+        ax.tick_params(labelsize=fontsize)
+
+
+        '''
+        At least 12 TMDs
+        '''
+        df_at_least_12 = df.loc[df.number_of_TMDs >= 12]
+
+        # create numpy array of membranous over nonmembranous conservation ratios (identity)
+        hist_data_AAIMON_mean = np.array(df_at_least_12['AAIMON_ratio_mean_all_TMDs'].dropna())
+        # use numpy to create a histogram
+        freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
+        # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+        col_width = float('%0.3f' % (0.95 * (bin_array_I[1] - bin_array_I[0])))
+        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+        centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
+        # add the final bin, which is physically located just after the last regular bin but represents all higher values
+        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+        barcontainer_AAIMON_mean = ax.bar(left=centre_of_bar_in_x_axis, height=freq_counts_I * 5,
+                                                             align='center', width=col_width, color='#B45F04',
+                                                             alpha=0.5, linewidth=0.1)  # edgecolor='black',
+        # other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
+        # http://html-color-codes.info/
+        # label the x-axis for each plot, based on the TMD
+        ax.set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
+        # move the x-axis label closer to the x-axis
+        ax.xaxis.set_label_coords(0.45, -0.085)
+        xlim_min = 0.8
+        xlim_max = 1.5
+        ax.set_xlim(xlim_min, xlim_max)
+        # set x-axis ticks
+        # use the slide selection to select every second item in the list as an xtick(axis label)
+        ax.set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
+        ax.set_ylabel('freq', rotation='vertical', fontsize=fontsize)
+        # change axis font size
+        ax.tick_params(labelsize=fontsize)
+        # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
+        legend_obj = ax.legend(['AAIMON 01-11 TMDs', 'AAIMON >= 12 TMDs'], loc='upper right',
+                                                  fontsize=fontsize)
+        # add figure number to top left of subplot
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                                       xycoords='axes fraction', alpha=0.75)
+        # add figure title to top left of subplot
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                                       alpha=0.75)
+
+        utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+        
+    if s['Fig18_Boxplot_of_all_TMDs']:
+        Fig_Nr = 18
+        title = 'Boxplot of all TMDs'
+        sys.stdout.write('Figure Processed: Fig18_Boxplot_of_all_TMDs \n')
+
+        fig, ax = plt.subplots()
+
+        num_bins = 30
+        # "#0489B1"
+        alpha = 0.25
+        col_width_value = 0.95
+        ylabel = 'freq'
+        xlabel = 'average conservation ratio (membranous over nonmembranous)'
+        # legend =
+
+        max_num_TMDs = df.number_of_TMDs.max()
+        legend = []
+        data_to_plot = []
+        for i in range(1, max_num_TMDs.astype(np.int64) + 1):
+            TM = 'TM%02d' % i
+            hist_data_AAIMON_each_TM = df['TM%02d_AAIMON_ratio_mean' % i].dropna()
+            if len(hist_data_AAIMON_each_TM) > 0:
+                data_to_plot.append(hist_data_AAIMON_each_TM)
+                legend.append(TM)
+
+        meanpointprops = dict(marker='o', markerfacecolor='black', markersize=2)  # markeredgecolor='0.75',
+
+        flierprops = dict(marker='o', markerfacecolor='green', markersize=12,
+                          linestyle='none')
+        boxplotcontainer = ax.boxplot(data_to_plot, sym='+', whis=1.5, showmeans=True,
+                                                         meanprops=meanpointprops)
+        ax.tick_params(labelsize=fontsize)
+        for box in boxplotcontainer['boxes']:
+            # change outline color
+            box.set(color='black', linewidth=0.4)  # '7570b3'
+            # change fill color
+            # box.set( facecolor = '#1b9e77' )
+            box.set_linewidth(0.4)
+
+        ## change color and linewidth of the whiskers
+        for whisker in boxplotcontainer['whiskers']:
+            whisker.set(color='black', linewidth=0.4, dashes=(1, 1))
+
+        ## change color and linewidth of the caps
+        for cap in boxplotcontainer['caps']:
+            cap.set(color='black', linewidth=0.4)
+
+        ## change color and linewidth of the medians
+        for median in boxplotcontainer['medians']:
+            median.set(color='black', linewidth=0.4)
+
+        # change the style of fliers and their fill
+        for flier in boxplotcontainer['fliers']:
+            flier.set(marker='o', color='0.8', alpha=0.1, markerfacecolor='0.3', markersize=3)
+
+        ax.set_ylabel('AAIMON_ratio', rotation='vertical', fontsize=fontsize)
+
+        ## Remove top axes and right axes ticks
+        ax.get_xaxis().tick_bottom()
+        ax.get_yaxis().tick_left()
+        ## Custom x-axis labels
+        ax.set_xticklabels(legend, rotation=45)
+        # add figure number to top left of subplot
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                                       xycoords='axes fraction', alpha=0.75)
+        # add figure title to top left of subplot
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                                       alpha=0.75)
+
+        utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+
+    if s['Fig19_Show_only_GPCRs_in_full_dataset']:
+        if GPCR_in_df:
+            if 'uniprot_KW' in df.columns:
+                Fig_Nr = 19
+                title = 'only GPCR in uniprot KW, NORM'
+                sys.stdout.write('Figure Processed: Fig19_Show_only_GPCRs_in_full_dataset \n')
+
+                fig, ax = plt.subplots()
+
+                # create numpy array of membranous over nonmembranous conservation ratios (identity)
+                hist_data_AAIMON_mean = np.array(df_GPCR['AAIMON_ratio_mean_all_TMDs'].dropna())
+                # use numpy to create a histogram
+                freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
+                # normalize the frequency counts
+                freq_counts_normalised = freq_counts_I / freq_counts_I.max()
+                # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+                col_width = float('%0.3f' % (0.95 * (bin_array_I[1] - bin_array_I[0])))
+                # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+                centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
+                # add the final bin, which is physically located just after the last regular bin but represents all higher values
+                bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+                centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+                barcontainer_AAIMON_mean = ax.bar(left=centre_of_bar_in_x_axis,
+                                                  height=freq_counts_normalised,
+                                                  align='center', width=col_width, color="#0489B1",
+                                                  alpha=0.5, linewidth=0.1)  # edgecolor='black',
+                # other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
+                # http://html-color-codes.info/
+                # label the x-axis for each plot, based on the TMD
+                ax.set_xlabel('average conservation ratio (membranous over nonmembranous)',
+                              fontsize=fontsize)
+                # move the x-axis label closer to the x-axis
+                ax.xaxis.set_label_coords(0.45, -0.085)
+                xlim_min = 0.8
+                xlim_max = 1.5
+                ax.set_xlim(xlim_min, xlim_max)
+                # set x-axis ticks
+                # use the slide selection to select every second item in the list as an xtick(axis label)
+                ax.set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
+                ax.set_ylabel('freq', rotation='vertical', fontsize=fontsize)
+                # change axis font size
+                ax.tick_params(labelsize=fontsize)
+
+                '''
+                NON-GPCRS
+                '''
+                df_nonGPCR = df.loc[df['G-protein_coupled_receptor'] == False]
+
+                # create numpy array of membranous over nonmembranous conservation ratios (identity)
+                hist_data_AAIMON_mean = np.array(df_nonGPCR['AAIMON_ratio_mean_all_TMDs'].dropna())
+                # use numpy to create a histogram
+                freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
+                # normalize the frequency counts
+                freq_counts_normalised = freq_counts_I / freq_counts_I.max()
+                # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+                col_width = float('%0.3f' % (0.95 * (bin_array_I[1] - bin_array_I[0])))
+                # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+                centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
+                # add the final bin, which is physically located just after the last regular bin but represents all higher values
+                bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+                centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+                barcontainer_AAIMON_mean = ax.bar(left=centre_of_bar_in_x_axis,
+                                                  height=freq_counts_normalised,
+                                                  align='center', width=col_width, color='#B45F04',
+                                                  alpha=0.5, linewidth=0.1)  # edgecolor='black',
+                # other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
+                # http://html-color-codes.info/
+                # label the x-axis for each plot, based on the TMD
+                ax.set_xlabel('average conservation ratio (membranous over nonmembranous)',
+                              fontsize=fontsize)
+                # move the x-axis label closer to the x-axis
+                ax.xaxis.set_label_coords(0.45, -0.085)
+                xlim_min = 0.8
+                xlim_max = 1.5
+                ax.set_xlim(xlim_min, xlim_max)
+                # set x-axis ticks
+                # use the slide selection to select every second item in the list as an xtick(axis label)
+                ax.set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
+                ax.set_ylabel('freq', rotation='vertical', fontsize=fontsize)
+                # change axis font size
+                ax.tick_params(labelsize=fontsize)
+                # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
+                legend_obj = ax.legend(['AAIMON GPCRs', 'AAIMON non-GPCRs'], loc='upper right',
+                                       fontsize=fontsize)
+                # add figure number to top left of subplot
+                ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                            xycoords='axes fraction', alpha=0.75)
+                # add figure title to top left of subplot
+                ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                            alpha=0.75)
+
+                utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"],
+                                  dpi=dpi)
+        else:
+            sys.stdout.write('Dataset does not contain GPCRs; cannot create figure 19 \n')
+
+    if s['Fig20_Show_GPCRs_vs_full_dataset']:
+        if GPCR_in_df:
+            Fig_Nr = 20
+            title = 'GPCR vs full dataset, NORM'
+            sys.stdout.write('Figure Processed: Fig20_Show_GPCRs_vs_full_dataset \n')
+            df_GPCR = df_GPCR  # see above, already defined
+            fig, ax = plt.subplots()
+
+            '''GPCR'''
+
+            # create numpy array of membranous over nonmembranous conservation ratios (identity)
+            hist_data_AAIMON_mean = np.array(df_GPCR['AAIMON_ratio_mean_all_TMDs'].dropna())
+            # use numpy to create a histogram
+            freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
+            # normalize the frequency counts
+            freq_counts_normalised = freq_counts_I / freq_counts_I.max()
+            # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+            col_width = float('%0.3f' % (0.95 * (bin_array_I[1] - bin_array_I[0])))
+            # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+            centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
+            # add the final bin, which is physically located just after the last regular bin but represents all higher values
+            bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+            centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+            barcontainer_AAIMON_mean = ax.bar(left=centre_of_bar_in_x_axis,
+                                              height=freq_counts_normalised,
+                                              align='center', width=col_width, color="#0489B1",
+                                              alpha=0.5, linewidth=0.1)  # edgecolor='black',
+            # other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
+            # http://html-color-codes.info/
+            # label the x-axis for each plot, based on the TMD
+            ax.set_xlabel('average conservation ratio (membranous over nonmembranous)',
+                          fontsize=fontsize)
+            # move the x-axis label closer to the x-axis
+            ax.xaxis.set_label_coords(0.45, -0.085)
+            xlim_min = 0.8
+            xlim_max = 1.5
+            ax.set_xlim(xlim_min, xlim_max)
+            # set x-axis ticks
+            # use the slide selection to select every second item in the list as an xtick(axis label)
+            ax.set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
+            ax.set_ylabel('freq', rotation='vertical', fontsize=fontsize)
+            # change axis font size
+            ax.tick_params(labelsize=fontsize)
+
+            '''
+            full dataset
+            '''
+            # df_nonGPCR = df.loc[df['Gprotein'] == False]
+
+            # create numpy array of membranous over nonmembranous conservation ratios (identity)
+            hist_data_AAIMON_mean = np.array(df['AAIMON_ratio_mean_all_TMDs'].dropna())
+            # use numpy to create a histogram
+            freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
+            # normalize the frequency counts
+            freq_counts_normalised = freq_counts_I / freq_counts_I.max()
+            # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+            col_width = float('%0.3f' % (0.95 * (bin_array_I[1] - bin_array_I[0])))
+            # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+            centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
+            # add the final bin, which is physically located just after the last regular bin but represents all higher values
+            bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+            centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+            barcontainer_AAIMON_mean = ax.bar(left=centre_of_bar_in_x_axis,
+                                              height=freq_counts_normalised,
+                                              align='center', width=col_width, color='#B45F04',
+                                              alpha=0.5, linewidth=0.1)  # edgecolor='black',
+            # other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
+            # http://html-color-codes.info/
+            # label the x-axis for each plot, based on the TMD
+            ax.set_xlabel('average conservation ratio (membranous over nonmembranous)',
+                          fontsize=fontsize)
+            # move the x-axis label closer to the x-axis
+            ax.xaxis.set_label_coords(0.45, -0.085)
+            xlim_min = 0.8
+            xlim_max = 1.5
+            ax.set_xlim(xlim_min, xlim_max)
+            # set x-axis ticks
+            # use the slide selection to select every second item in the list as an xtick(axis label)
+            ax.set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
+            ax.set_ylabel('freq', rotation='vertical', fontsize=fontsize)
+            # change axis font size
+            ax.tick_params(labelsize=fontsize)
+            # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
+            legend_obj = ax.legend(['AAIMON GPCR', 'AAIMON ALL'], loc='upper right',
+                                   fontsize=fontsize)
+            # add figure number to top left of subplot
+            ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                        xycoords='axes fraction', alpha=0.75)
+            # add figure title to top left of subplot
+            ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                        alpha=0.75)
+
+            utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+
+        else:
+            sys.stdout.write('Dataset does not contain GPCRs; cannot create figure 20 \n')
+
+    if s['Fig21_Boxplot_only_GPCRs']:
+        if GPCR_in_df:
+            Fig_Nr = 21
+            title = 'Only GPCRs, boxplot for each TMD'
+            sys.stdout.write('Figure Processed: Fig21_Boxplot_only_GPCRs \n')
+            fig, ax = plt.subplots()
+
+            num_bins = 30
+            # "#0489B1"
+            alpha = 0.25
+            col_width_value = 0.95
+            ylabel = 'freq'
+            xlabel = 'average conservation ratio (membranous over nonmembranous)'
+            # legend =
+
+            max_num_TMDs = df_GPCR.number_of_TMDs.max()
+            legend = []
+            data_to_plot = []
+            for i in range(1, max_num_TMDs.astype(np.int64) + 1):
+                TM = 'TM%02d' % i
+                hist_data_AAIMON_each_TM = df_GPCR['TM%02d_AAIMON_ratio_mean' % i].dropna()
+                if len(hist_data_AAIMON_each_TM) > 0:
+                    data_to_plot.append(hist_data_AAIMON_each_TM)
+                    legend.append(TM)
+
+            meanpointprops = dict(marker='o', markerfacecolor='black', markersize=3)  # markeredgecolor='0.75',
+
+            # flierprops = dict(marker='o', color = 'black', markerfacecolor='black', markersize=1)
+
+            # flierprops = dict(marker='o',color='0.1', alpha=0.1)
+            flierprops = dict(marker='o', markerfacecolor='green', markersize=12,
+                              linestyle='none')
+            boxplotcontainer = ax.boxplot(data_to_plot, sym='+', whis=1.5, showmeans=True,
+                                          meanprops=meanpointprops)
+            ax.tick_params(labelsize=fontsize)
+            for box in boxplotcontainer['boxes']:
+                # change outline color
+                box.set(color='black', linewidth=0.4)  # '7570b3'
+                # change fill color
+                # box.set( facecolor = '#1b9e77' )
+                box.set_linewidth(0.4)
+
+            ## change color and linewidth of the whiskers
+            for whisker in boxplotcontainer['whiskers']:
+                whisker.set(color='black', linewidth=0.4, dashes=(1, 1))
+
+            ## change color and linewidth of the caps
+            for cap in boxplotcontainer['caps']:
+                cap.set(color='black', linewidth=0.4)
+
+            ## change color and linewidth of the medians
+            for median in boxplotcontainer['medians']:
+                median.set(color='black', linewidth=0.4)
+
+            # change the style of fliers and their fill
+            for flier in boxplotcontainer['fliers']:
+                flier.set(marker='o', color='0.8', alpha=0.1, markerfacecolor='0.3', markersize=3)
+
+            ## Remove top axes and right axes ticks
+            ax.get_xaxis().tick_bottom()
+            ax.get_yaxis().tick_left()
+            ## Custom x-axis labels
+            ax.set_xticklabels(legend, rotation=45)
+            # add figure number to top left of subplot
+            ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                        xycoords='axes fraction', alpha=0.75)
+            # add figure title to top left of subplot
+            ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                        alpha=0.75)
+
+            utils.save_figure(s, fig, Fig_Nr, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+        else:
+            sys.stdout.write('Dataset does not contain GPCRs; cannot create figure 21 \n')
 
 
     logging.info("~~~~~~~~~~~~        run_save_figures_describing_proteins_in_list is finished        ~~~~~~~~~~~~")
