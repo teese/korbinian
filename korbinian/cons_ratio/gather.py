@@ -26,12 +26,20 @@ def gather_AAIMON_ratios(pathdict, logging):
     # transpose dataframe dfg
     dfg = dfg.T
 
-    # iterate through the proteins that have a list of TMDs
+    # calculate mean AAIMON for all TMDs
     for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
         dict_AAIMON_ratio_mean = {}
         for TMD in ast.literal_eval(dfg.loc[acc, 'list_of_TMDs']):
             dict_AAIMON_ratio_mean[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_mean' % TMD]
         dfg.loc[acc, 'AAIMON_ratio_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_mean.values()))))
+
+    # calculate mean normalised AAIMON_n for all TMDs
+    for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
+        dict_AAIMON_ratio_mean_n = {}
+        for TMD in ast.literal_eval(dfg.loc[acc, 'list_of_TMDs']):
+            dict_AAIMON_ratio_mean_n[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_mean_n' % TMD]
+        dfg.loc[acc, 'AAIMON_ratio_mean_all_TMDs_n'] = np.mean(
+            pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_mean_n.values()))))
 
     # count the number of TMDs for each protein
     for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
