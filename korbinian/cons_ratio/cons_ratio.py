@@ -321,7 +321,7 @@ def calculate_AAIMON_ratios(p):
                                                                      df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol_n'],
                                                                      df_AAIMON_all_TMD['gapped_ident'], zipout, protein_name)
         # save the dataframe containing normalisation factor and normalised AAIMON to zipout
-        df_AAIMON_all_TMD.to_csv(protein_name + '_AAIMON_normalisation_data.csv')
+        df_AAIMON_all_TMD.to_csv(protein_name + '_AAIMON_all_TMD.csv')
         zipout.write(protein_name + '_AAIMON_all_TMD.csv', arcname=protein_name + '_AAIMON_all_TMD.csv')
         os.remove(protein_name + '_AAIMON_all_TMD.csv')
 
