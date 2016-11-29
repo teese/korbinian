@@ -259,6 +259,7 @@ def calculate_AAIMON_ratios(p):
             df_cr = korbinian.cons_ratio.calc.calc_AAIMON(TMD, df_cr, len_query_TMD)
             df_cr['norm_factor'] = dfh['norm_factor']
             df_cr['%s_AAIMON_ratio_n'%TMD] = df_cr['%s_AAIMON_ratio'%TMD] / df_cr['norm_factor']
+            df_cr['FASTA_gapped_identity'] = dfh['FASTA_gapped_identity']
 
             list_of_AAIMON_all_TMD['%s_AAIMON_ratio'%TMD]= df_cr['%s_AAIMON_ratio'%TMD].dropna()
 
@@ -310,19 +311,19 @@ def calculate_AAIMON_ratios(p):
         #               AAIMON normalization and save fig for each protein                     #
         #                                                                                      #
         ########################################################################################
-        df_list_AAIMON_all_TMD = pd.DataFrame(list_of_AAIMON_all_TMD)
-        df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'] = df_list_AAIMON_all_TMD.mean(axis=1)
-        df_list_AAIMON_all_TMD['gapped_ident'] = dfh['FASTA_gapped_identity'].loc[df_list_AAIMON_all_TMD.index]
-        df_list_AAIMON_all_TMD['norm_factor'] = dfh['norm_factor'].loc[df_list_AAIMON_all_TMD.index]
-        df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol_n'] = df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'] / df_list_AAIMON_all_TMD['norm_factor']
-#        print(df_list_AAIMON_all_TMD)
-        korbinian.cons_ratio.norm.save_graph_for_normalized_AAIMON(acc,  df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'],
-                                                                     df_list_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol_n'],
-                                                                     df_list_AAIMON_all_TMD['gapped_ident'], zipout, protein_name)
+        df_AAIMON_all_TMD = pd.DataFrame(list_of_AAIMON_all_TMD)
+        df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'] = df_AAIMON_all_TMD.mean(axis=1)
+        df_AAIMON_all_TMD['gapped_ident'] = dfh['FASTA_gapped_identity'].loc[df_AAIMON_all_TMD.index]
+        df_AAIMON_all_TMD['norm_factor'] = dfh['norm_factor'].loc[df_AAIMON_all_TMD.index]
+        df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol_n'] = df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'] / df_AAIMON_all_TMD['norm_factor']
+#        print(df_AAIMON_all_TMD)
+        korbinian.cons_ratio.norm.save_graph_for_normalized_AAIMON(acc,  df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'],
+                                                                     df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol_n'],
+                                                                     df_AAIMON_all_TMD['gapped_ident'], zipout, protein_name)
         # save the dataframe containing normalisation factor and normalised AAIMON to zipout
-        df_list_AAIMON_all_TMD.to_csv(protein_name + '_AAIMON_normalisation_data.csv')
-        zipout.write(protein_name + '_AAIMON_normalisation_data.csv', arcname=protein_name + '_AAIMON_normalisation_data.csv')
-        os.remove(protein_name + '_AAIMON_normalisation_data.csv')
+        df_AAIMON_all_TMD.to_csv(protein_name + '_AAIMON_normalisation_data.csv')
+        zipout.write(protein_name + '_AAIMON_all_TMD.csv', arcname=protein_name + '_AAIMON_all_TMD.csv')
+        os.remove(protein_name + '_AAIMON_all_TMD.csv')
 
         value_counts_hit_contains_SW_node = dfh['hit_contains_SW_node'].value_counts()
         if True in value_counts_hit_contains_SW_node:
