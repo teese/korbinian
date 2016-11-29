@@ -18,7 +18,7 @@ def calc_AAIMON_aa_prop_norm_factor(aa_ident, rand_TM, rand_nonTM):
     This function takes these three values as inputs, and returns the normalisation factor.
 
     How can the randTM and rand_nonTM be calculated?
-    This correlates to the percentage of "invisible" substitutions within each region, which
+    This correlates to the percentage of "unobserved" substitutions within each region, which
     result in exactly the same amino acid, due to the restricted AA propensity. There are several
     ways that this could be calculated.
         - by aligning non-homologous
@@ -31,10 +31,10 @@ def calc_AAIMON_aa_prop_norm_factor(aa_ident, rand_TM, rand_nonTM):
     observed_changes = 1 - aa_ident = 1 - 0.6 = 0.4 (represented from now on as 40%)
     real_changes_TM = observed_changes / (1 - rand_TM) = 40% / (1-0.136) = 46.3%
     real_changes_nonTM = observed_changes / (1 - rand_nonTM) = 40% / (1-0.055) = 42.32%
-    invisible_changes_TM = real_changes_TM - observed_changes = 46.3% - 40% = 6.3%
-    invisible_changes_nonTM = real_changes_nonTM - observed_changes = 42.32% - 40% = 2.3%
-    real_conserv_TM = aa_ident - invisible_changes_TM = 60% - 6.3% = 53.7%
-    real_conserv_nonTM = aa_ident - invisible_changes_nonTM = 60% - 2.3% = 57.7%
+    unobserved_changes_TM = real_changes_TM - observed_changes = 46.3% - 40% = 6.3%
+    unobserved_changes_nonTM = real_changes_nonTM - observed_changes = 42.32% - 40% = 2.3%
+    real_conserv_TM = aa_ident - unobserved_changes_TM = 60% - 6.3% = 53.7%
+    real_conserv_nonTM = aa_ident - unobserved_changes_nonTM = 60% - 2.3% = 57.7%
     aa_prop_norm_factor = real_conserv_nonTM / real_conserv_TM =  57.7% / 53.7% = 1.074
 
     This implies that with homologues of 60% amino acid identity, the baseline AAIMON ratio will be 1.074,
@@ -73,12 +73,12 @@ def calc_AAIMON_aa_prop_norm_factor(aa_ident, rand_TM, rand_nonTM):
     # visible, as it has mutated to the same amino acid.
     real_changes_TM = observed_changes / (1 - rand_TM)
     real_changes_nonTM = observed_changes / (1 - rand_nonTM)
-    # calculation of the invisible changes (difference between observed and real changes)
-    invisible_changes_TM = real_changes_TM - observed_changes
-    invisible_changes_nonTM = real_changes_nonTM - observed_changes
-    # calculation of real conservation (observed conservation - invisible changes)
-    real_conserv_TM = aa_ident - invisible_changes_TM
-    real_conserv_nonTM = aa_ident - invisible_changes_nonTM
+    # calculation of the unobserved changes (difference between observed and real changes)
+    unobserved_changes_TM = real_changes_TM - observed_changes
+    unobserved_changes_nonTM = real_changes_nonTM - observed_changes
+    # calculation of real conservation (observed conservation - unobserved changes)
+    real_conserv_TM = aa_ident - unobserved_changes_TM
+    real_conserv_nonTM = aa_ident - unobserved_changes_nonTM
     # calculate normalisation factor
     aa_prop_norm_factor = real_conserv_nonTM / real_conserv_TM
 
