@@ -6,6 +6,13 @@ import matplotlib.pyplot as plt
 #%matplotlib inline
 plt.rcParams["savefig.dpi"] = 300
 
+
+#########################
+#                       #
+#   load summary file   #
+#                       #
+#########################
+
 # specify used list of proteins
 proteinlist = 97
 max_num_homologues = 4000
@@ -44,6 +51,11 @@ dict_uniprot_entry = {}
 for acc in df_summary.loc[df_summary['list_of_TMDs'].notnull()].loc[df_summary['list_of_TMDs'] != 'nan'].index:
     dict_uniprot_entry[acc] = df_summary.loc[acc, 'uniprot_entry_name']
 
+#########################
+#                       #
+#       load data       #
+#                       #
+#########################
 
 # initiate empty numpy array
 data = np.empty([0,3])
@@ -66,7 +78,14 @@ data = data[~np.isnan(data).any(axis=1)]
 # create real percentage values
 data[:,0] = data[:,0]*100
 
-# create bins for linegraph
+
+#########################
+#                       #
+#      create bins      #
+#                       #
+#########################
+
+
 linspace_binlist = np.linspace(1,100,100)
 binned_data = np.empty([0,3])
 for percentage in linspace_binlist:
@@ -79,8 +98,11 @@ for percentage in linspace_binlist:
 binned_data = binned_data[~np.isnan(binned_data).any(axis=1)]
 
 
-
-# plot data
+#########################
+#                       #
+#       plot data       #
+#                       #
+#########################
 
 #backgroundcolour = '0.5'
 plt.style.use('ggplot')
@@ -89,9 +111,16 @@ fontsize = 12
 datapointsize = 0.5
 alpha = 0.05
 linewidth = 1
-color_nonnorm = "#454545"
-color_norm = "#0076B8"
+color_nonnorm = "#454545"  # grey
+color_norm = "#0076B8"     # TUM-Blue
 fig, ax = plt.subplots()
+
+# set color of axis label to black
+ax.tick_params(axis='x', colors='black')
+ax.tick_params(axis='y', colors='black')
+ax.yaxis.label.set_color('black')
+ax.xaxis.label.set_color('black')
+
 # pylab.rcParams['figure.figsize'] = (50.0, 40.0)
 x = data[:,0] # FASTA_gapped_identity
 y = data[:,1] # AAIMON for each TMD
@@ -116,3 +145,5 @@ ax.scatter(x=x, y=y, color=color_norm, alpha=alpha, s=datapointsize) # color="#F
 x_line = binned_data[:,0]
 y_line = binned_data[:,2]
 plt.plot(x_line, y_line, linewidth=linewidth, color=color_norm) # plot linegraph
+
+fig.savefig('FigX18-Test_85000_TMDs_AAIMON_vs_AAIMON_n.png')
