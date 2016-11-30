@@ -190,7 +190,7 @@ def calculate_AAIMON_ratios(p):
     #                Calculation of normalization factor for each homologue                #
     #                                                                                      #
     ########################################################################################
-    dfh['norm_factor'] = dfh['FASTA_gapped_identity'].apply(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor, args=(0.13, 0.05))
+    dfh['norm_factor'] = dfh['FASTA_gapped_identity'].apply(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor, args=(0.136, 0.055)) # random factors according to Oberai 2009
 
     with zipfile.ZipFile(homol_cr_ratios_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
 
