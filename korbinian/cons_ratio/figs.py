@@ -28,8 +28,19 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # open list_cr_summary_csv summary file
     df = pd.read_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
 
-    # open list_summary_csv file
+    # filter to remove proteins that have less than ~5 homologues
+    # this is only important for the beta-barrel dataset, which has a lot of these proteins!
+    min_n_homol = 5
+    n_prot_before_n_homol_cutoff = df.shape[0]
+    df = df.loc[df['TM01_AAIMON_n_homol'] >= min_n_homol]
+    n_prot_after_n_homol_cutoff = df.shape[0]
+    n_removed = n_prot_before_n_homol_cutoff - n_prot_after_n_homol_cutoff
+    # if any proteins have been removed, then print the exact number.
+    if n_removed >= 1:
+        print("{}/{} proteins were removed, as they contained less than {} valid homologues. "
+              "Final number of proteins = {}".format(n_removed, n_prot_before_n_homol_cutoff, min_n_homol, n_prot_after_n_homol_cutoff))
 
+    # open list_summary_csv file
     df_uniprot = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
 
     if 'uniprot_KW' in df_uniprot.columns:

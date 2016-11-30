@@ -26,37 +26,38 @@ def gather_AAIMON_ratios(pathdict, logging):
     # transpose dataframe dfg
     dfg = dfg.T
 
+    # for the OMPdb dataset, there is no uniprot_entry_name
+    uniprot_entry_name_in_df = "uniprot_entry_name" in df.columns
+    if not uniprot_entry_name_in_df:
+        dfg['uniprot_entry_name'] = "OMPdb_dataset"
+
     # calculate mean AAIMON for all TMDs
     for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
+
         dict_AAIMON_ratio_mean = {}
         for TMD in ast.literal_eval(dfg.loc[acc, 'list_of_TMDs']):
             dict_AAIMON_ratio_mean[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_mean' % TMD]
         dfg.loc[acc, 'AAIMON_ratio_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_mean.values()))))
 
-    # calculate mean normalised AAIMON_n for all TMDs
-    for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
+        # calculate mean normalised AAIMON_n for all TMDs
         dict_AAIMON_ratio_mean_n = {}
         for TMD in ast.literal_eval(dfg.loc[acc, 'list_of_TMDs']):
             dict_AAIMON_ratio_mean_n[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_mean_n' % TMD]
         dfg.loc[acc, 'AAIMON_ratio_mean_all_TMDs_n'] = np.mean(
             pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_mean_n.values()))))
 
-    # count the number of TMDs for each protein
-    for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
+        # count the number of TMDs for each protein
         dfg.loc[acc, 'number_of_TMDs'] = len(dfg.loc[acc, 'list_of_TMDs'].split(','))
 
-    # add sequence length to dfg
-    for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
+        # add sequence length to dfg
         dfg.loc[acc, 'seqlen'] = df.loc[acc, 'seqlen']
 
-    # add total_number_of_simap_hits
-    for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
+        # add total_number_of_simap_hits
         dfg.loc[acc, 'total_number_of_simap_hits'] = dfg.loc[acc, 'TM01_AAIMON_n_homol']
 
-    # add 'uniprot_entry_name'
-    for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
-        dfg.loc[acc, 'uniprot_entry_name'] = df.loc[acc, 'uniprot_entry_name']
-
+        # add 'uniprot_entry_name'
+        if uniprot_entry_name_in_df:
+            dfg.loc[acc, 'uniprot_entry_name'] = df.loc[acc, 'uniprot_entry_name']
 
     dfg.to_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
     logging.info("~~~~~~~~~~~~        gather_AAIMON_ratios is finished         ~~~~~~~~~~~~")
