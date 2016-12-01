@@ -127,6 +127,20 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         barcontainer_AAIMON_mean = ax.bar(left=centre_of_bar_in_x_axis, height=freq_counts_I,
                                           align='center', width=col_width, color="#0489B1",
                                           alpha=0.5)  # edgecolor='black',
+        # create numpy array of normalised membranous over nonmembranous conservation ratios (identity)
+        hist_data_AAIMON_mean_n = np.array(df['AAIMON_ratio_mean_all_TMDs_n'].dropna())
+        # use numpy to create a histogram
+        freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean_n, bins=binlist)
+        # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+        col_width = float('%0.3f' % (0.95 * (bin_array_I[1] - bin_array_I[0])))
+        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+        centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
+        # add the final bin, which is physically located just after the last regular bin but represents all higher values
+        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+        barcontainer_AAIMON_mean = ax.bar(left=centre_of_bar_in_x_axis, height=freq_counts_I,
+                                          align='center', width=col_width, color="#EE762C",
+                                          alpha=0.5)
         # create numpy array of membranous over nonmembranous conservation ratios (identity + similarity)
         hist_data_AASMON_mean = np.array(df['AASMON_ratio_mean_all_TMDs'].dropna())
         # use numpy to create a histogram
@@ -153,7 +167,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # change axis font size
         ax.tick_params(labelsize=fontsize)
         # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
-        legend_obj = ax.legend(['AASMON (identity + similarity)', 'AAIMON (identity)'], loc='upper right',
+        legend_obj = ax.legend(['AASMON (identity + similarity)', 'AAIMON (identity)', 'AAIMON norm (identity)'], loc='upper right',
                                fontsize=fontsize)
         # add figure number to top left of subplot
         ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
@@ -401,17 +415,28 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         title = 'number SIMAP hits'
         Fig_name = 'Fig08_Scattergram_comparing_total_number_of_simap_hits_with_mean_AAIMON'
         fig, ax = plt.subplots()
-        
-        # pylab.rcParams['figure.figsize'] = (100.0, 80.0)
+
+        # plot AAIMON
         x = np.array(df['TM01_AAIMON_n_homol']) # total_number_of_simap_hits can be replaced with TM01_AAIMON_n_homol
         y = np.array(df['AAIMON_ratio_mean_all_TMDs'])
         scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#0489B1", alpha=alpha,
+                                                                           s=datapointsize)
+
+        # plot AAIMON normalised
+        x = np.array(df['TM01_AAIMON_n_homol']) # total_number_of_simap_hits can be replaced with TM01_AAIMON_n_homol
+        y = np.array(df['AAIMON_ratio_mean_all_TMDs_n'])
+        scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#EE762C", alpha=alpha,
                                                                            s=datapointsize)
         # label the x-axis for each plot, based on the TMD
         ax.set_xlabel('total number of homologues', fontsize=fontsize)
         # move the x-axis label closer to the x-axis
         ax.xaxis.set_label_coords(0.45, -0.085)
         ax.set_ylabel('AAIMON_ratio', fontsize=fontsize)
+
+        # create legend
+        legend_obj = ax.legend(['AAIMON', 'AAIMON norm'],
+                               loc='upper right',
+                               fontsize=fontsize)
         # change axis font size
         ax.tick_params(labelsize=fontsize)
         # add figure number to top left of subplot
