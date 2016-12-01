@@ -59,9 +59,8 @@ def gather_AAIMON_ratios(pathdict, logging):
         if uniprot_entry_name_in_df:
             dfg.loc[acc, 'uniprot_entry_name'] = df.loc[acc, 'uniprot_entry_name']
 
-    # add 'uniprot_KW'
-    if 'uniprot_KW' in df.columns:
-        for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
+        # add 'uniprot_KW'
+        if 'uniprot_KW' in df.columns:
             dfg.loc[acc, 'uniprot_KW'] = df.loc[acc, 'uniprot_KW']
 
 
