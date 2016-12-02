@@ -1433,13 +1433,14 @@ def savefig_if_necessary(savefig, fig, fig_nr, base_filepath, tight_layout = Fal
         #close any open figures
         plt.close('all')
 
-def save_figure(s, fig, Fig_Nr, base_filepath, dpi = 400):
+def save_figure(s, fig, Fig_name, base_filepath, dpi = 400):
     if not os.path.exists(base_filepath):
         os.makedirs(base_filepath)
+    sys.stdout.write('Figure processed: {} \n'.format(Fig_name))
     if s['save_fig_to_png']:
-        fig.savefig(os.path.join(base_filepath, '_figs') + '_%01d.png'  % Fig_Nr, format='png', dpi=dpi)
+        fig.savefig(os.path.join(base_filepath, '_figs') + '_{a}.png'.format(a=Fig_name), format='png', dpi=dpi)
     if s['save_fig_to_pdf']:
-        fig.savefig(os.path.join(base_filepath, '_figs') + '_%01d.pdf' % Fig_Nr, format='pdf')
+        fig.savefig(os.path.join(base_filepath, '_figs') + '_{a}.pdf' .format(a=Fig_name), format='pdf')
     # close any open figures
     plt.close('all')
 
