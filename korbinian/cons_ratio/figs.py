@@ -41,7 +41,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
               "Final number of proteins = {}".format(n_removed, n_prot_before_n_homol_cutoff, min_n_homol, n_prot_after_n_homol_cutoff))
 
     # open list_summary_csv file
-    df_uniprot = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    #df_uniprot = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
 
     if 'uniprot_KW' in df.columns:
         # convert the keywords from a stringlist to a python list
@@ -378,6 +378,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                                        alpha=0.75)
 
         utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+
+
 
     if s['Fig07_Scattergram_comparing_nonTMD_SW_align_len_mean_with_mean_AAIMON']:
         Fig_Nr = 7
@@ -1483,6 +1485,150 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
             else:
                 sys.stdout.write('Dataset does not contain GPCRs; cannot create figure 21 \n')
+
+    if s['Fig22_Boxplot_comparing_number_of_TMDs_with_mean_AAIMON']:
+        Fig_Nr = 22
+        title = 'num_TMDs vs AAIMON'
+        Fig_name = 'Fig22_Boxplot_comparing_number_of_TMDs_with_mean_AAIMON'
+        fig, ax = plt.subplots()
+
+        alpha = 0.25
+        col_width_value = 0.95
+        max_num_TMDs = df.number_of_TMDs.max()
+        legend = []
+        data_to_plot = []
+        # iterate through df and get all AAIMONs with specified number of TMD
+        for i in range(1, max_num_TMDs.astype(np.int64) + 1):
+            hist_data = []
+            for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
+                if df.loc[acc, 'number_of_TMDs'] == i:
+                    hist_data.append(df.loc[acc, 'AAIMON_ratio_mean_all_TMDs'])
+            data_to_plot.append(hist_data)
+            legend.append(i)
+        meanpointprops = dict(marker='o', markerfacecolor='black', markersize=3)  # markeredgecolor='0.75',
+        flierprops = dict(marker='o', markerfacecolor='green', markersize=12,
+                          linestyle='none')
+        boxplotcontainer = ax.boxplot(data_to_plot, sym='+', whis=1.5, showmeans=True,
+                                      meanprops=meanpointprops)
+        ax.tick_params(labelsize=fontsize)
+        for box in boxplotcontainer['boxes']:
+            # change outline color
+            box.set(color='black', linewidth=0.4)  # '7570b3'
+            # change fill color
+            # box.set( facecolor = '#1b9e77' )
+            box.set_linewidth(0.4)
+
+        ## change color and linewidth of the whiskers
+        for whisker in boxplotcontainer['whiskers']:
+            whisker.set(color='black', linewidth=0.4, dashes=(1, 1))
+
+        ## change color and linewidth of the caps
+        for cap in boxplotcontainer['caps']:
+            cap.set(color='black', linewidth=0.4)
+
+        ## change color and linewidth of the medians
+        for median in boxplotcontainer['medians']:
+            median.set(color='black', linewidth=0.4)
+
+        # change the style of fliers and their fill
+        for flier in boxplotcontainer['fliers']:
+            flier.set(marker='o', color='0.8', alpha=0.1, markerfacecolor='0.3', markersize=3)
+
+        ax.set_xlabel('number of TMDs in protein', fontsize=fontsize)
+        # move the x-axis label closer to the x-axis
+        ax.xaxis.set_label_coords(0.45, -0.085)
+        ax.set_ylabel('Average AAIMON ratio for all TMDs', fontsize=fontsize)
+        # Remove top axes and right axes ticks
+        ax.get_xaxis().tick_bottom()
+        ax.get_yaxis().tick_left()
+        # Custom x-axis labels
+        ax.set_xticklabels(legend)
+        # add figure number to top left of subplot
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                    xycoords='axes fraction', alpha=0.75)
+        # add figure title to top left of subplot
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                    alpha=0.75)
+
+        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+
+    if s['Fig23_Boxplot_comparing_seqlen_with_mean_AAIMON']:
+        Fig_Nr = 23
+        title = 'num_TMDs vs seqlen'
+        Fig_name = 'Fig23_Boxplot_comparing_seqlen_with_mean_AAIMON'
+        fig, ax = plt.subplots()
+
+        num_bins = 30
+        # "#0489B1"
+        alpha = 0.25
+        col_width_value = 0.95
+
+        max_seqlen = df.seqlen.max()
+        size_of_bin = 500  # amino acids
+        legend = []
+        data_to_plot = []
+
+        # iterate through df and get all AAIMONs with specified number of TMD
+
+        for i in range(1, max_seqlen.astype(np.int64) + 1000, size_of_bin):
+            hist_data = []
+            for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
+                if df.loc[acc, 'seqlen'] > i and df.loc[acc, 'seqlen'] < i + size_of_bin:
+                    hist_data.append(df.loc[acc, 'AAIMON_ratio_mean_all_TMDs'])
+            data_to_plot.append(hist_data)
+            legend.append(i + (size_of_bin / 2 - 1))
+
+        meanpointprops = dict(marker='o', markerfacecolor='black', markersize=3)  # markeredgecolor='0.75',
+
+        # flierprops = dict(marker='o', color = 'black', markerfacecolor='black', markersize=1)
+
+        # flierprops = dict(marker='o',color='0.1', alpha=0.1)
+        flierprops = dict(marker='o', markerfacecolor='green', markersize=12,
+                          linestyle='none')
+        boxplotcontainer = ax.boxplot(data_to_plot, sym='+', whis=1.5, showmeans=True,
+                                      meanprops=meanpointprops)
+        ax.tick_params(labelsize=fontsize)
+        for box in boxplotcontainer['boxes']:
+            # change outline color
+            box.set(color='black', linewidth=0.4)  # '7570b3'
+            # change fill color
+            # box.set( facecolor = '#1b9e77' )
+            box.set_linewidth(0.4)
+
+        # change color and linewidth of the whiskers
+        for whisker in boxplotcontainer['whiskers']:
+            whisker.set(color='black', linewidth=0.4, dashes=(1, 1))
+
+        # change color and linewidth of the caps
+        for cap in boxplotcontainer['caps']:
+            cap.set(color='black', linewidth=0.4)
+
+        # change color and linewidth of the medians
+        for median in boxplotcontainer['medians']:
+            median.set(color='black', linewidth=0.4)
+
+        # change the style of fliers and their fill
+        for flier in boxplotcontainer['fliers']:
+            flier.set(marker='o', color='0.8', alpha=0.1, markerfacecolor='0.3', markersize=3)
+
+        ax.set_xlabel('Length of protein in bins of 500 amino acids', fontsize=fontsize)
+        # move the x-axis label closer to the x-axis
+        ax.xaxis.set_label_coords(0.45, -0.085)
+        ax.set_ylabel('Average AAIMON ratio for all TMDs', fontsize=fontsize)
+        ## Remove top axes and right axes ticks
+        ax.get_xaxis().tick_bottom()
+        ax.get_yaxis().tick_left()
+        ## Custom x-axis labels
+        ax.set_xticklabels(legend, rotation=25)
+        # add figure number to top left of subplot
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                    xycoords='axes fraction', alpha=0.75)
+        # add figure title to top left of subplot
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                    alpha=0.75)
+
+        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+
 
 
     logging.info("~~~~~~~~~~~~        run_save_figures_describing_proteins_in_list is finished        ~~~~~~~~~~~~")
