@@ -1440,7 +1440,7 @@ def save_figure(s, fig, Fig_name, base_filepath, dpi = 400):
     if s['save_fig_to_png']:
         fig.savefig(os.path.join(base_filepath, '_figs') + '_{a}.png'.format(a=Fig_name), format='png', dpi=dpi)
     if s['save_fig_to_pdf']:
-        fig.savefig(os.path.join(base_filepath, '_figs') + '_{a}.pdf' .format(a=Fig_name), format='pdf')
+        fig.savefig(os.path.join(base_filepath, '_figs') + '_{a}.pdf'.format(a=Fig_name), format='pdf')
     # close any open figures
     plt.close('all')
 
