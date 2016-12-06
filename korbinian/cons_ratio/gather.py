@@ -6,6 +6,7 @@ import korbinian.utils as utils
 import pandas as pd
 import statsmodels.stats.api as sms
 import pickle
+import sys
 import zipfile
 
 def gather_AAIMON_ratios(pathdict, logging, s):
@@ -83,11 +84,10 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         for acc in df_summary.loc[df_summary['list_of_TMDs'].notnull()].loc[df_summary['list_of_TMDs'] != 'nan'].index:
             if pd.to_numeric(df_summary.loc[acc, 'TM01_AAIMON_n_homol']) > max_num_homologues:
                 df_summary = df_summary.drop([acc])
-                print(acc, sep=' ', end='  ')
-        for acc in df_summary.loc[df_summary['list_of_TMDs'].notnull()].loc[df_summary['list_of_TMDs'] != 'nan'].index:
+                #print(acc, sep=' ', end='  ')
             if pd.to_numeric(df_summary.loc[acc, 'TM01_AAIMON_n_homol']) < min_num_homologues:
                 df_summary = df_summary.drop([acc])
-                print(acc, sep=' ', end='  ')
+                #print(acc, sep=' ', end='  ')
 
         # save relevant parts for navigation through file system (database) in dictionaries
         dict_TMDs = {}
@@ -135,6 +135,8 @@ def gather_AAIMON_ratios(pathdict, logging, s):
     conf_95 = np.array([1, 2])
     conf95_norm = np.array([1, 2])
     for percentage in linspace_binlist:
+        sys.stdout.write(".")
+        sys.stdout.flush()
         bin_for_mean = np.empty([0, 3])
         for line in data:
             if line[0] < percentage and line[0] > percentage - 1:
