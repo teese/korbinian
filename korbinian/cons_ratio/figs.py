@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import sys
+import zipfile
+import os
+import pickle
 
 def save_figures_describing_proteins_in_list(pathdict, s, logging):
     logging.info("~~~~~~~~~~~~         starting run_save_figures_describing_proteins_in_list          ~~~~~~~~~~~~")
@@ -1629,6 +1632,135 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
 
+    if s['Fig98_Title_will_be_changed_Scatterplot_all_TMD_all_homol']:
+        Fig_Nr = 98
+        Fig_name = 'Fig98_Title_will_be_changed_Scatterplot_all_TMD_all_homol; cannot be saved as .pdf'
+
+        # read data from disk
+        in_zipfile = pathdict["save_df_characterising_each_homol_TMD"]
+        if os.path.isfile(in_zipfile):
+            with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
+                data = pickle.load(openzip.open("data_characterising_each_homol_TMD.pickle", "r"))
+                binned_data = pickle.load(openzip.open("binned_data_characterising_each_homol_TMD.pickle", "r"))
+        else:
+            raise FileNotFoundError("{} not found".format(in_zipfile))
+
+        fontsize = 14
+        datapointsize = 1
+        alpha = 0.05
+        linewidth = 2
+        color_nonnorm = "#EE762C"
+        color_norm = "#0076B8"
+        fig, ax = plt.subplots()
+
+        # set color of axis label to black
+        ax.tick_params(axis='x', colors='black')
+        ax.tick_params(axis='y', colors='black')
+        ax.yaxis.label.set_color('black')
+        ax.xaxis.label.set_color('black')
+
+        # pylab.rcParams['figure.figsize'] = (50.0, 40.0)
+        x = data[:, 0]  # FASTA_gapped_identity
+        y = data[:, 1]  # AAIMON for each TMD
+        ax.scatter(x=x, y=y, color=color_nonnorm, alpha=alpha, s=datapointsize)  # color="#003366" is TUM-blue
+        plt.ylim(ymin=0.5, ymax=1.5)
+        plt.xlim(xmin=60, xmax=100)
+        # label the x-axis for each plot, based on the TMD
+        ax.set_xlabel('% identity', fontsize=fontsize)
+        # move the x-axis label closer to the x-axis
+        # ax.xaxis.set_label_coords(0.45, -0.085)
+        ax.set_ylabel('AAIMON ratio', fontsize=fontsize)
+        # change axis font size
+        ax.tick_params(labelsize=fontsize)
+        x_line = binned_data[:, 0]
+        y_line = binned_data[:, 1]
+        plt.plot(x_line, y_line, linewidth=linewidth, color=color_nonnorm)  # plot linegraph
+
+        # plot normalised data
+        x = data[:, 0]  # FASTA_gapped_identity
+        y = data[:, 2]  # AAIMON_n for each TMD
+        ax.scatter(x=x, y=y, color=color_norm, alpha=alpha, s=datapointsize)  # color="#FF6633" is TUM-orange
+        x_line = binned_data[:, 0]
+        y_line = binned_data[:, 2]
+        plt.plot(x_line, y_line, linewidth=linewidth, color=color_norm)  # plot linegraph
+
+        # remove unwanted axis ticks on top and right
+        ax.get_xaxis().tick_bottom()
+        ax.get_yaxis().tick_left()
+
+        #ax.xaxis.set_label_coords(0.45, -0.1)  # move x-axis label towards graph
+        #ax.yaxis.set_label_coords(-0.09, 0.45)  # move y-axis label towards graph
+
+        ax.legend(['AAIMON', 'AAIMON norm.'], loc='upper right', fontsize=fontsize)  # create legend
+
+        if not os.path.exists(pathdict["figures_describing_proteins_in_list"]):
+            os.makedirs(pathdict["figures_describing_proteins_in_list"])
+        sys.stdout.write('Figure processed: {} \n'.format(Fig_name))
+        fig.savefig(os.path.join(pathdict["figures_describing_proteins_in_list"], '_figs') + '_{a}.png'.format(a=Fig_name), format='png', dpi=600)
+
+    if s['Fig99_Title_will_be_changed_Linegraph_all_TMD_all_homol_CI_95']:
+        Fig_Nr = 99
+        Fig_name = 'Fig99_Title_will_be_changed_Linegraph_all_TMD_all_homol_CI_95'
+
+        # read data from disk
+        in_zipfile = pathdict["save_df_characterising_each_homol_TMD"]
+        if os.path.isfile(in_zipfile):
+            with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
+                binned_data = pickle.load(openzip.open("binned_data_characterising_each_homol_TMD.pickle", "r"))
+        else:
+            raise FileNotFoundError("{} not found".format(in_zipfile))
+
+        fontsize = 14
+        datapointsize = 1
+        alpha = 0.05
+        alpha_line = 1
+        linewidth = 1
+        color_nonnorm = "#EE762C"
+        color_norm = "#0076B8"
+        fig, ax = plt.subplots()
+
+        # set color of axis label to black
+        ax.tick_params(axis='x', colors='black')
+        ax.tick_params(axis='y', colors='black')
+        ax.yaxis.label.set_color('black')
+        ax.xaxis.label.set_color('black')
+
+        # pylab.rcParams['figure.figsize'] = (50.0, 40.0)
+        # x = data[:,0] # FASTA_gapped_identity
+        # y = data[:,1] # AAIMON for each TMD
+        # ax.scatter(x=x, y=y, color=color_nonnorm, alpha=alpha, s=datapointsize) # color="#003366" is TUM-blue
+        plt.ylim(ymin=0.8, ymax=1.2)
+        plt.xlim(xmin=60, xmax=100)
+        # label the x-axis for each plot, based on the TMD
+        ax.set_xlabel('% identity', fontsize=fontsize)
+        ax.set_ylabel('AAIMON ratio', fontsize=fontsize)
+        # change axis font size
+        ax.tick_params(labelsize=fontsize)
+
+        # plot AAIMON
+        plt.plot(binned_data[:, 0], binned_data[:, 1], linewidth=linewidth, color=color_nonnorm,
+                 alpha=alpha_line)  # plot linegraph
+        # plot AAIMON_n
+        plt.plot(binned_data[:, 0], binned_data[:, 2], linewidth=linewidth, color=color_norm,
+                 alpha=alpha_line)  # plot linegraph
+
+        # plot 95% confidence intervals
+        # AAIMON
+        plt.plot(binned_data[:, 0], binned_data[:, 3], linewidth=linewidth, color=color_nonnorm, alpha=alpha_line - 0.5)
+        plt.plot(binned_data[:, 0], binned_data[:, 4], linewidth=linewidth, color=color_nonnorm, alpha=alpha_line - 0.5)
+        # AAIMON_n
+        plt.plot(binned_data[:, 0], binned_data[:, 5], linewidth=linewidth, color=color_norm, alpha=alpha_line - 0.5)
+        plt.plot(binned_data[:, 0], binned_data[:, 6], linewidth=linewidth, color=color_norm, alpha=alpha_line - 0.5)
+
+        # remove unwanted axis ticks on top and right
+        ax.get_xaxis().tick_bottom()
+        ax.get_yaxis().tick_left()
+
+        # ax.xaxis.set_label_coords(0.45, -0.1)  # move x-axis label towards graph
+
+        ax.legend(['AAIMON', 'AAIMON norm.'], loc='upper right', fontsize=fontsize)  # create legend
+
+        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
 
 
     logging.info("~~~~~~~~~~~~        run_save_figures_describing_proteins_in_list is finished        ~~~~~~~~~~~~")
