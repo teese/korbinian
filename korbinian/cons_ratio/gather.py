@@ -116,10 +116,19 @@ def gather_AAIMON_ratios(pathdict, logging, s):
                 # filename_csv = "{a}_{c}_AAIMON_normalisation_data.csv".format(a=key, c=dict_uniprot_entry[key])
                 print ('current file: {a}' .format(a=filename))
                 # generate column names necessary for current file
-                columns = ['FASTA_gapped_identity', '{a}_AAIMON_ratio'.format(a=TMD),
-                           '{a}_AAIMON_ratio_n'.format(a=TMD)]
+                columns = ['FASTA_gapped_identity', '{a}_AAIMON_ratio'.format(a=TMD),'{a}_AAIMON_ratio_n'.format(a=TMD)]
                 # open dataframe  with function from korbinian, extract required columns, convert to np array
-                df = utils.open_df_from_pickle_zip(in_zipfile, filename)[columns].as_matrix()
+                if not os.path.isfile(in_zipfile):
+                    # skip to next TMD or protein
+                    continue # SHOULD THIS BE A BREAK?
+                df = utils.open_df_from_pickle_zip(in_zipfile, filename)
+                if columns[2] not in df.columns:
+                    # file is old, and should be deleted
+                    os.remove(in_zipfile)
+                    logging.info("{} file is presumed out of date, and has been deleted".format(in_zipfile))
+                    # skip to next TMD or protein
+                    continue # SHOULD THIS BE A BREAK?
+                df = df[columns].as_matrix()
                 # join output data file with currently opened dataframe
                 data = np.concatenate((data, df))
         # drop every row with nan
