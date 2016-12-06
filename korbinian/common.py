@@ -207,6 +207,7 @@ def create_pathdict(base_filename_summaries):
     pathdict["gap_density_testfig_png"] = '%s_gap_test_out.png' % base_filename_summaries
     pathdict["gap_fastagap_all_pos_pickle"] = '%s_gap_all_pos.pickle' % base_filename_summaries
     pathdict["figures_describing_proteins_in_list"] = '%s_figs' %base_filename_summaries
+    pathdict["save_df_characterising_each_homol_TMD"] = '%s_characterising_each_homol_TMD.zip' % base_filename_summaries
 
 
     """OUTPUT FILES FOR OLD SCRIPTS"""

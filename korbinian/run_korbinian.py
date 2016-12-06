@@ -133,7 +133,7 @@ if __name__ == "__main__":
         korbinian.cons_ratio.cons_ratio.run_calculate_AAIMON_ratios(pathdict, s, logging)
 
     if s["run_gather_AAIMON_ratios"]:
-        korbinian.cons_ratio.gather.gather_AAIMON_ratios(pathdict, logging)
+        korbinian.cons_ratio.gather.gather_AAIMON_ratios(pathdict, logging, s)
 
     ########################################################################################
     #                                                                                      #
