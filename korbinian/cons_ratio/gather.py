@@ -85,6 +85,7 @@ def gather_AAIMON_ratios(pathdict, logging, s):
             if pd.to_numeric(df_summary.loc[acc, 'TM01_AAIMON_n_homol']) > max_num_homologues:
                 df_summary = df_summary.drop([acc])
                 #print(acc, sep=' ', end='  ')
+        for acc in df_summary.loc[df_summary['list_of_TMDs'].notnull()].loc[df_summary['list_of_TMDs'] != 'nan'].index:
             if pd.to_numeric(df_summary.loc[acc, 'TM01_AAIMON_n_homol']) < min_num_homologues:
                 df_summary = df_summary.drop([acc])
                 #print(acc, sep=' ', end='  ')
