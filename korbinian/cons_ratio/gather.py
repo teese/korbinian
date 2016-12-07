@@ -185,6 +185,5 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         zipout.write('binned_data_characterising_each_homol_TMD.pickle', arcname='binned_data_characterising_each_homol_TMD.pickle')
         os.remove('binned_data_characterising_each_homol_TMD.pickle')
 
-    sys.stdout.write('\n')
-    logging.info("~~~~~~~~~~~~        gather_AAIMON_ratios is finished         ~~~~~~~~~~~~")
+    logging.info("\n~~~~~~~~~~~~        gather_AAIMON_ratios is finished         ~~~~~~~~~~~~")
 
