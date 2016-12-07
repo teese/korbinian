@@ -115,8 +115,8 @@ def gather_AAIMON_ratios(pathdict, logging, s):
                 df_TMD = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, TM_cr_pickle)
                 if columns[2] not in df_TMD.columns:
                     # file is old, and should be deleted
-                    os.remove(homol_cr_ratios_zip)
-                    logging.info("{} file is presumed out of date, and has been deleted".format(homol_cr_ratios_zip))
+                    #os.remove(homol_cr_ratios_zip)
+                    logging.info("{} file is presumed out of date, and WILL IN THE FUTURE been deleted".format(homol_cr_ratios_zip))
                     # skip to next protein
                     break
                 df_TMD = df_TMD[columns].as_matrix()
