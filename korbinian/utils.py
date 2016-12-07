@@ -1504,11 +1504,23 @@ def get_list_failed_downloads(pathdict):
     return acc_list_failed_downloads
 
 def send_email_when_finished(s):
+    """ Sends an email to specified address when job is finished
+
+    Parameters
+    ----------
+    s : dict
+        Settings dictionary extracted from excel settings file.
+
+    Returns
+    -------
+    nothing but sends an email
+
+    """
     server = smtplib.SMTP('smtp.gmail.com', 587)
     server.starttls()
     server.login("***REMOVED***", "***REMOVED***")
 
-    msg = s['email_message']
+    msg = '{a}\n\n processed list: {b}'.format(a=s['email_message'], b=s['protein_list_number'])
     send_to = s['send_email_to']
     server.sendmail("***REMOVED***", send_to, msg)
     server.quit()
