@@ -95,74 +95,57 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         dfg = dfg.loc[list_of_acc_to_keep, :]
         df = df.loc[list_of_acc_to_keep, :]
 
-        # # save relevant parts for navigation through file system (database) in dictionaries
-        # dict_TMDs = {}
-        # for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
-        #     dict_TMDs[acc] = dfg.loc[acc, 'list_of_TMDs']
-        #
-        # dict_folder = {}
-        # for key in dict_TMDs.keys():
-        #     dict_folder[key] = key[:2]
-        #
-        # dict_uniprot_entry = {}
-        # for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
-        #     dict_uniprot_entry[acc] = dfg.loc[acc, 'uniprot_entry_name']
-
-        data_dir = s['data_dir']
-        print ("\nLoading data")
+        sys.stdout.write("\nLoading data\n")
         # initiate empty numpy array
         data = np.empty([0, 3])
         # navigate through filesystem and open pickles from .zip
         for acc in dfg.index:
-            sys.stdout.write('.')
-            sys.stdout.flush()
+            sys.stdout.write('.'), sys.stdout.flush()
             protein_name = df.loc[acc, "protein_name"]
             homol_cr_ratios_zip = df.loc[acc, "homol_cr_ratios_zip"]
-            for TMD in df.loc[acc, "list_of_TMDs"]:
-                filename = "{a}_{b}_cr_df.pickle".format(b=TMD, c=df.loc[acc, "protein_name"])
+            for TMD in ast.literal_eval(df.loc[acc, "list_of_TMDs"]):
                 TM_cr_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
-                # filename_csv = "{a}_{c}_AAIMON_normalisation_data.csv".format(a=acc, c=dict_uniprot_entry[acc])
-                #print ('current file: {a}' .format(a=filename))
                 # generate column names necessary for current file
-                columns = ['FASTA_gapped_identity', '{a}_AAIMON_ratio'.format(a=TMD),'{a}_AAIMON_ratio_n'.format(a=TMD)]
+                columns = ['FASTA_gapped_identity', '{}_AAIMON_ratio'.format(TMD),'{}_AAIMON_ratio_n'.format(TMD)]
                 # open dataframe  with function from korbinian, extract required columns, convert to np array
                 if not os.path.isfile(homol_cr_ratios_zip):
                     # skip to next TMD or protein
-                    continue # SHOULD THIS BE A BREAK?
-                df = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, filename)
-                if columns[2] not in df.columns:
+                    continue # SHOULD THIS BE A BREAK? <<-- i think this should be a break as not all data is loaded as desired!
+                df_TMD = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, TM_cr_pickle)
+                if columns[2] not in df_TMD.columns:
                     # file is old, and should be deleted
                     os.remove(homol_cr_ratios_zip)
                     logging.info("{} file is presumed out of date, and has been deleted".format(homol_cr_ratios_zip))
                     # skip to next TMD or protein
                     continue # SHOULD THIS BE A BREAK?
-                df = df[columns].as_matrix()
+                df_TMD = df_TMD[columns].as_matrix()
                 # join output data file with currently opened dataframe
-                data = np.concatenate((data, df))
+                data = np.concatenate((data, df_TMD))
         # drop every row with nan
         data = data[~np.isnan(data).any(axis=1)]
         # create real percentage values, multiply column 1 with 100
         data[:, 0] = data[:, 0] * 100
 
     # create bins, calculate mean and 95% confidence interval
-    sys.stdout.write('\nBinning data - calculate 95% confidence interval\n')
+    sys.stdout.write('\nBinning data - calculating 95% confidence interval\n')
     number_of_bins = s['specify_number_of_bins_characterising_TMDs']
     linspace_binlist = np.linspace(1, 100, number_of_bins)
+    binwidth = 100/number_of_bins
     binned_data = np.empty([0, 7])
     conf_95 = np.array([1, 2])
     conf95_norm = np.array([1, 2])
     for percentage in linspace_binlist:
-        sys.stdout.write(".")
-        sys.stdout.flush()
+        sys.stdout.write("."), sys.stdout.flush()
         bin_for_mean = np.empty([0, 3])
-        for line in data:
-            if line[0] < percentage and line[0] > percentage - 1:
-                bin_for_mean = np.concatenate((bin_for_mean, line.reshape(1, 3)))
+        for row in data:
+            if row[0] < percentage and row[0] > percentage - binwidth:
+                bin_for_mean = np.concatenate((bin_for_mean, row.reshape(1, 3)))
                 # HERE DROP THE NANs????
-                # calculate 95% conf. interv. in bin
-            conf_95 = sms.DescrStatsW(bin_for_mean[:, 1]).tconfint_mean()
-            # calculate 95% conf. interv. in bin _n
-            conf95_norm = sms.DescrStatsW(bin_for_mean[:, 2]).tconfint_mean()
+        #bin_for_mean = bin_for_mean[~np.isnan(bin_for_mean).any(axis=1)]
+        # calculate 95% conf. interv. in bin
+        conf_95 = sms.DescrStatsW(bin_for_mean[:, 1]).tconfint_mean()
+        # calculate 95% conf. interv. in bin _n
+        conf95_norm = sms.DescrStatsW(bin_for_mean[:, 2]).tconfint_mean()
         mean_data_in_bin = np.array([percentage,
                                      # calculate mean in bin
                                      bin_for_mean[:, 1].mean(),
