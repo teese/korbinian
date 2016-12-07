@@ -95,6 +95,9 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         dfg = dfg.loc[list_of_acc_to_keep, :]
         df = df.loc[list_of_acc_to_keep, :]
 
+        # generate column names necessary for current file
+        columns = ['FASTA_gapped_identity', '{}_AAIMON_ratio'.format(TMD), '{}_AAIMON_ratio_n'.format(TMD)]
+
         sys.stdout.write("\nLoading data\n")
         # initiate empty numpy array
         data = np.empty([0, 3])
@@ -103,21 +106,19 @@ def gather_AAIMON_ratios(pathdict, logging, s):
             sys.stdout.write('.'), sys.stdout.flush()
             protein_name = df.loc[acc, "protein_name"]
             homol_cr_ratios_zip = df.loc[acc, "homol_cr_ratios_zip"]
+            if not os.path.isfile(homol_cr_ratios_zip):
+                # skip to next protein
+                continue
             for TMD in ast.literal_eval(df.loc[acc, "list_of_TMDs"]):
                 TM_cr_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
-                # generate column names necessary for current file
-                columns = ['FASTA_gapped_identity', '{}_AAIMON_ratio'.format(TMD),'{}_AAIMON_ratio_n'.format(TMD)]
                 # open dataframe  with function from korbinian, extract required columns, convert to np array
-                if not os.path.isfile(homol_cr_ratios_zip):
-                    # skip to next TMD or protein
-                    continue # SHOULD THIS BE A BREAK? <<-- i think this should be a break as not all data is loaded as desired!
                 df_TMD = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, TM_cr_pickle)
                 if columns[2] not in df_TMD.columns:
                     # file is old, and should be deleted
                     os.remove(homol_cr_ratios_zip)
                     logging.info("{} file is presumed out of date, and has been deleted".format(homol_cr_ratios_zip))
-                    # skip to next TMD or protein
-                    continue # SHOULD THIS BE A BREAK?
+                    # skip to next protein
+                    break
                 df_TMD = df_TMD[columns].as_matrix()
                 # join output data file with currently opened dataframe
                 data = np.concatenate((data, df_TMD))
