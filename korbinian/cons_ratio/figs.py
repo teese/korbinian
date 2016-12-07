@@ -1634,7 +1634,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
     if s['Fig98_Title_will_be_changed_Scatterplot_all_TMD_all_homol']:
         Fig_Nr = 98
-        Fig_name = 'Fig98_Title_will_be_changed_Scatterplot_all_TMD_all_homol; cannot be saved as .pdf'
+        Fig_name = 'Fig98_Title_will_be_changed_Scatterplot_all_TMD_all_homol'
 
         # read data from disk
         in_zipfile = pathdict["save_df_characterising_each_homol_TMD"]
@@ -1695,7 +1695,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         if not os.path.exists(pathdict["figures_describing_proteins_in_list"]):
             os.makedirs(pathdict["figures_describing_proteins_in_list"])
-        sys.stdout.write('Figure processed: {} \n'.format(Fig_name))
+        sys.stdout.write('Figure processed: {} ; cannot be saved as .pdf\n'.format(Fig_name))
         fig.savefig(os.path.join(pathdict["figures_describing_proteins_in_list"], '_figs') + '_{a}.png'.format(a=Fig_name), format='png', dpi=600)
 
     if s['Fig99_Title_will_be_changed_Linegraph_all_TMD_all_homol_CI_95']:
