@@ -95,9 +95,6 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         dfg = dfg.loc[list_of_acc_to_keep, :]
         df = df.loc[list_of_acc_to_keep, :]
 
-        # generate column names necessary for current file
-        columns = ['FASTA_gapped_identity', '{}_AAIMON_ratio'.format(TMD), '{}_AAIMON_ratio_n'.format(TMD)]
-
         sys.stdout.write("\nLoading data\n")
         # initiate empty numpy array
         data = np.empty([0, 3])
@@ -110,6 +107,8 @@ def gather_AAIMON_ratios(pathdict, logging, s):
                 # skip to next protein
                 continue
             for TMD in ast.literal_eval(df.loc[acc, "list_of_TMDs"]):
+                # generate column names necessary for current file
+                columns = ['FASTA_gapped_identity', '{}_AAIMON_ratio'.format(TMD), '{}_AAIMON_ratio_n'.format(TMD)]
                 TM_cr_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
                 # open dataframe  with function from korbinian, extract required columns, convert to np array
                 df_TMD = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, TM_cr_pickle)

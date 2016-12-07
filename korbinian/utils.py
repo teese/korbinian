@@ -25,6 +25,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
+import smtplib
 
 def aaa(df_or_series):
     """ Function for use in debugging.
@@ -1501,3 +1502,14 @@ def get_list_failed_downloads(pathdict):
                 line = line.strip()
                 acc_list_failed_downloads.append(line)
     return acc_list_failed_downloads
+
+def send_email_when_finished(s):
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+    server.login("tlab.korbinian@gmail.com", "python_is_Fun!")
+
+    msg = s['email_message']
+    send_to = s['send_email_to']
+    server.sendmail("tlab.korbinian@gmail.com", send_to, msg)
+    server.quit()
+    sys.stdout.write('Email sent to {}'.format(send_to))
