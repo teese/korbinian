@@ -70,10 +70,14 @@ def gather_AAIMON_ratios(pathdict, logging, s):
 
     dfg.copy().to_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
-    if s['save_df_characterising_each_homol_TMD']:
+    ########################################################################################
+    #                                                                                      #
+    #               Save a huge dataframe with the AAIMONs for                             #
+    #                all homologues of all TMDs of all proteins                            #
+    #                                                                                      #
+    ########################################################################################
 
-        # dfg contains all informations for initialisation of navigation through file system
-        df_summary = dfg
+    if s['save_df_characterising_each_homol_TMD']:
 
         # defining cutoff for max and min number of homologues for each protein
         max_num_homologues = s['cutoff_max_characterising_each_homol_TMD']
@@ -82,53 +86,54 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         # filter summary file for min and max number of homologues based on TM01 number of homologues
         sys.stdout.write('Dropped homologues after filtering: \n')
         list_of_acc_to_keep = []
-        for acc in df_summary.loc[df_summary['list_of_TMDs'].notnull()].loc[df_summary['list_of_TMDs'] != 'nan'].index:
-            a = pd.to_numeric(df_summary.loc[acc, 'TM01_AAIMON_n_homol'])
-            if max_num_homologues > a > min_num_homologues:
+        for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
+            TM01_AAIMON_n_homol = pd.to_numeric(dfg.loc[acc, 'TM01_AAIMON_n_homol'])
+            if max_num_homologues > TM01_AAIMON_n_homol > min_num_homologues:
                 list_of_acc_to_keep.append(acc)
-            if not acc in list_of_acc_to_keep:
-                df_summary = df_summary.drop([acc])
-                print (acc)
 
-        # save relevant parts for navigation through file system (database) in dictionaries
-        dict_TMDs = {}
-        for acc in df_summary.loc[df_summary['list_of_TMDs'].notnull()].loc[df_summary['list_of_TMDs'] != 'nan'].index:
-            dict_TMDs[acc] = df_summary.loc[acc, 'list_of_TMDs']
+        # keep only proteins that have the desired number of homologues
+        dfg = dfg.loc[list_of_acc_to_keep, :]
+        df = df.loc[list_of_acc_to_keep, :]
 
-        dict_folder = {}
-        for key in dict_TMDs.keys():
-            dict_folder[key] = key[:2]
-
-        dict_uniprot_entry = {}
-        for acc in df_summary.loc[df_summary['list_of_TMDs'].notnull()].loc[df_summary['list_of_TMDs'] != 'nan'].index:
-            dict_uniprot_entry[acc] = df_summary.loc[acc, 'uniprot_entry_name']
+        # # save relevant parts for navigation through file system (database) in dictionaries
+        # dict_TMDs = {}
+        # for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
+        #     dict_TMDs[acc] = dfg.loc[acc, 'list_of_TMDs']
+        #
+        # dict_folder = {}
+        # for key in dict_TMDs.keys():
+        #     dict_folder[key] = key[:2]
+        #
+        # dict_uniprot_entry = {}
+        # for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
+        #     dict_uniprot_entry[acc] = dfg.loc[acc, 'uniprot_entry_name']
 
         data_dir = s['data_dir']
         print ("\nLoading data")
         # initiate empty numpy array
         data = np.empty([0, 3])
         # navigate through filesystem and open pickles from .zip
-        for key in dict_folder.keys():
+        for acc in dfg.index:
             sys.stdout.write('.')
             sys.stdout.flush()
-            in_zipfile = os.path.join(data_dir, 'homol', '{a}'.format(a=dict_folder[key]), '{b}_{c}_cr_ratios.zip'.format(b=key,
-                                                                                           c=dict_uniprot_entry[key]))
-            #print ('current directory: {a}' .format(a=in_zipfile))
-            for TMD in ast.literal_eval(dict_TMDs[key]):
-                filename = "{a}_{c}_{b}_cr_df.pickle".format(a=key, b=TMD, c=dict_uniprot_entry[key])
-                # filename_csv = "{a}_{c}_AAIMON_normalisation_data.csv".format(a=key, c=dict_uniprot_entry[key])
+            protein_name = df.loc[acc, "protein_name"]
+            homol_cr_ratios_zip = df.loc[acc, "homol_cr_ratios_zip"]
+            for TMD in df.loc[acc, "list_of_TMDs"]:
+                filename = "{a}_{b}_cr_df.pickle".format(b=TMD, c=df.loc[acc, "protein_name"])
+                TM_cr_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
+                # filename_csv = "{a}_{c}_AAIMON_normalisation_data.csv".format(a=acc, c=dict_uniprot_entry[acc])
                 #print ('current file: {a}' .format(a=filename))
                 # generate column names necessary for current file
                 columns = ['FASTA_gapped_identity', '{a}_AAIMON_ratio'.format(a=TMD),'{a}_AAIMON_ratio_n'.format(a=TMD)]
                 # open dataframe  with function from korbinian, extract required columns, convert to np array
-                if not os.path.isfile(in_zipfile):
+                if not os.path.isfile(homol_cr_ratios_zip):
                     # skip to next TMD or protein
                     continue # SHOULD THIS BE A BREAK?
-                df = utils.open_df_from_pickle_zip(in_zipfile, filename)
+                df = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, filename)
                 if columns[2] not in df.columns:
                     # file is old, and should be deleted
-                    os.remove(in_zipfile)
-                    logging.info("{} file is presumed out of date, and has been deleted".format(in_zipfile))
+                    os.remove(homol_cr_ratios_zip)
+                    logging.info("{} file is presumed out of date, and has been deleted".format(homol_cr_ratios_zip))
                     # skip to next TMD or protein
                     continue # SHOULD THIS BE A BREAK?
                 df = df[columns].as_matrix()
@@ -153,10 +158,11 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         for line in data:
             if line[0] < percentage and line[0] > percentage - 1:
                 bin_for_mean = np.concatenate((bin_for_mean, line.reshape(1, 3)))
+                # HERE DROP THE NANs????
                 # calculate 95% conf. interv. in bin
-                conf_95 = sms.DescrStatsW(bin_for_mean[:, 1]).tconfint_mean()
-                # calculate 95% conf. interv. in bin _n
-                conf95_norm = sms.DescrStatsW(bin_for_mean[:, 2]).tconfint_mean()
+            conf_95 = sms.DescrStatsW(bin_for_mean[:, 1]).tconfint_mean()
+            # calculate 95% conf. interv. in bin _n
+            conf95_norm = sms.DescrStatsW(bin_for_mean[:, 2]).tconfint_mean()
         mean_data_in_bin = np.array([percentage,
                                      # calculate mean in bin
                                      bin_for_mean[:, 1].mean(),
