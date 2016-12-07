@@ -173,8 +173,6 @@ def filt_and_save_AAIMON_mean(TMD, df_cr, mean_ser, max_gaps, max_hydro, min_ide
     mean_ser['%s_AAIMON_ratio_std' % TMD] = df_cr['%s_AAIMON_ratio' % TMD].std()
     mean_ser['%s_AASMON_ratio_mean' % TMD] = df_cr['%s_AASMON_ratio' % TMD].mean()
     mean_ser['%s_AASMON_ratio_std' % TMD] = df_cr['%s_AASMON_ratio' % TMD].std()
-    # number of homologues
-    mean_ser['%s_AAIMON_n_homol' % TMD] = df_cr['%s_AAIMON_ratio' % TMD].dropna().shape[0]
     # ratios for length of TMDs
     mean_ser['%s_ratio_len_TMD_to_len_nonTMD_mean' % TMD] = float('%0.2f' % df_cr['%s_ratio_len_TMD_to_len_nonTMD' % TMD].dropna().mean())
     mean_ser['%s_ratio_len_TMD_to_len_full_match_seq_mean' % TMD] = float('%0.2f' % df_cr['%s_ratio_len_TMD_to_len_full_match_seq' % TMD].dropna().mean())

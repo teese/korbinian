@@ -282,6 +282,10 @@ def calculate_AAIMON_ratios(p):
             # note that this is done AFTER the full df_cr is saved, so df_cr can be filtered and reduced directly without losing data
             mean_ser = korbinian.cons_ratio.calc.filt_and_save_AAIMON_mean(TMD, df_cr, mean_ser, max_gaps, max_hydro, min_ident)
 
+            if TMD == "TM01":
+                # number of homologues for TM01. since ALL TMDs have to be in each homologue before AAIMON is calculated, this number is the same for all TMDs
+                mean_ser['TM01_AAIMON_n_homol'] = df_cr['TM01_AAIMON_ratio'].dropna().shape[0]
+
             logging.info('%s AAIMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean' % TMD]))
             logging.info('%s AAIMON MEAN n %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean_n' % TMD]))
             # logging.info('%s AASMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AASMON_ratio_mean'%TMD]))
