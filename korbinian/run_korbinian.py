@@ -170,3 +170,7 @@ if __name__ == "__main__":
     '''+++++++++++++++ Summary figures describing the conservation ratios of proteins in the list ++++++++++++++++++'''
     if s["run_compare_lists"]:
         korbinian.cons_ratio.compare_lists.compare_rel_con_lists(pathdict, s, logging)
+
+
+    if s['send_email_when_finished']:
+        korbinian.utils.send_email_when_finished(s)
