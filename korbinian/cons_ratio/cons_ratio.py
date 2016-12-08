@@ -183,6 +183,9 @@ def calculate_AAIMON_ratios(p):
     #                 Calculate the nonTMD percentage identity and gaps                    #
     #                                                                                      #
     ########################################################################################
+    # extract the length of the nonTMD region in the original query here, which should be in the original list summary file, created during uniprot_parse or OMPdb_get_TM_indices_and_slice
+    len_nonTMD_orig_q = 100
+
     df_nonTMD, mean_ser = korbinian.cons_ratio.calc.calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser)
 
     ########################################################################################
