@@ -1434,16 +1434,17 @@ def savefig_if_necessary(savefig, fig, fig_nr, base_filepath, tight_layout = Fal
         #close any open figures
         plt.close('all')
 
-def save_figure(s, fig, Fig_name, base_filepath, dpi = 400):
+def save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi = 400, close=True):
     if not os.path.exists(base_filepath):
         os.makedirs(base_filepath)
-    sys.stdout.write('Figure processed: {} \n'.format(Fig_name))
-    if s['save_fig_to_png']:
-        fig.savefig(os.path.join(base_filepath, '_figs') + '_{a}.png'.format(a=Fig_name), format='png', dpi=dpi)
-    if s['save_fig_to_pdf']:
-        fig.savefig(os.path.join(base_filepath, '_figs') + '_{a}.pdf'.format(a=Fig_name), format='pdf')
+    sys.stdout.write('Figure processed: {}\n'.format(Fig_name))
+    if save_png:
+        fig.savefig(os.path.join(base_filepath, '{a}.png'.format(a=Fig_name)), format='png', dpi=dpi)
+    if save_pdf:
+        fig.savefig(os.path.join(base_filepath, '{a}.pdf'.format(a=Fig_name)), format='pdf')
     # close any open figures
-    plt.close('all')
+    if close == True:
+        plt.close('all')
 
 class Log_Only_To_Console(object):
     def __init__(self):
@@ -1503,7 +1504,7 @@ def get_list_failed_downloads(pathdict):
                 acc_list_failed_downloads.append(line)
     return acc_list_failed_downloads
 
-def send_email_when_finished(s):
+def send_email_when_finished(s, pathdict):
     """ Sends an email to specified address when job is finished
 
     Parameters
@@ -1516,12 +1517,61 @@ def send_email_when_finished(s):
     nothing but sends an email
 
     """
+    # server = smtplib.SMTP('smtp.gmail.com', 587)
+    # server.starttls()
+    # server.login("tlab.korbinian@gmail.com", "python_is_Fun!")
+    #
+    # msg = '{a}\n\n processed list: {b}'.format(a=s['email_message'], b=s['protein_list_number'])
+    # send_to = s['send_email_to']
+    # server.sendmail("tlab.korbinian@gmail.com", send_to, msg)
+    # server.quit()
+    # sys.stdout.write('Email sent to {}'.format(send_to))
+
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    from email.mime.base import MIMEBase
+    from email import encoders
+
+    fromaddr = "tlab.korbinian@gmail.com"
+    toaddr = s['send_email_to']
+
+    msg = MIMEMultipart()
+
+    msg['From'] = fromaddr
+    msg['To'] = toaddr
+    msg['Subject'] = "korbinian run is finished"
+
+    body = '{a}\n\n processed list: {b}'.format(a=s['email_message'], b=s['protein_list_number'])
+    msg.attach(MIMEText(body, 'plain'))
+
+    #filename = "Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins_lowres.png"
+    #filepath = os.path.join(pathdict["single_list_fig_path"], "Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins_lowres.png")
+
+    email_fig_list = []
+    for settings_parameter in s.keys():
+        if settings_parameter[-5:] == "email":
+            if s[settings_parameter] == True:
+                email_fig_list.append(settings_parameter)
+    print("email_fig_list", email_fig_list)
+
+    if email_fig_list != []:
+        for email_fig in email_fig_list:
+            Fig_name = email_fig[:-6]
+            filepath = os.path.join(pathdict["single_list_fig_path"], Fig_name + ".png")
+            print("filepath", filepath)
+            if os.path.isfile(filepath):
+                attachment = open(filepath, "rb")
+                part = MIMEBase('application', 'octet-stream')
+                part.set_payload((attachment).read())
+                encoders.encode_base64(part)
+                part.add_header('Content-Disposition', "attachment; filename= %s" % Fig_name + ".png")
+                msg.attach(part)
+
     server = smtplib.SMTP('smtp.gmail.com', 587)
     server.starttls()
     server.login("tlab.korbinian@gmail.com", "python_is_Fun!")
-
-    msg = '{a}\n\n processed list: {b}'.format(a=s['email_message'], b=s['protein_list_number'])
-    send_to = s['send_email_to']
-    server.sendmail("tlab.korbinian@gmail.com", send_to, msg)
+    text = msg.as_string()
+    server.sendmail(fromaddr, toaddr, text)
     server.quit()
-    sys.stdout.write('Email sent to {}'.format(send_to))
+    sys.stdout.write('Email sent to {}'.format(toaddr))

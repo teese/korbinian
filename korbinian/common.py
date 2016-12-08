@@ -30,6 +30,19 @@ def create_settingsdict(excel_file_with_settings):
     for sheetname in sheetnames:
         # open excel file as pandas dataframe
         dfset = pd.read_excel(excel_file_with_settings, sheetname=sheetname)
+        if "email" in dfset.columns:
+            # exclude row with notes, set parameter as index
+            dfset_email = dfset[["parameter", "email"]].dropna().copy()
+            dfset_email["parameter"] = dfset_email["parameter"] + "_email"
+            dfset_email.set_index("parameter", inplace=True)
+            # convert true-like strings to True, and false-like strings to False
+            dfset_email.email = dfset_email.email.apply(utils.convert_truelike_to_bool, convert_nontrue=False)
+            dfset_email.email = dfset_email.email.apply(utils.convert_falselike_to_bool)
+            # convert to dictionary
+            sheet_as_dict_email = dfset_email.to_dict()["email"]
+            # join dictionaries together
+            s.update(sheet_as_dict_email)
+
         # exclude row with notes, set parameter as index
         dfset = dfset[["parameter", "value"]].dropna()
         dfset.set_index("parameter", inplace=True)
@@ -206,7 +219,7 @@ def create_pathdict(base_filename_summaries):
     pathdict["gap_density_fig_path"] = '%s_create_graph_of_gap_density.png' % base_filename_summaries
     pathdict["gap_density_testfig_png"] = '%s_gap_test_out.png' % base_filename_summaries
     pathdict["gap_fastagap_all_pos_pickle"] = '%s_gap_all_pos.pickle' % base_filename_summaries
-    pathdict["figures_describing_proteins_in_list"] = '%s_figs' %base_filename_summaries
+    pathdict["single_list_fig_path"] = '%s_figs' %base_filename_summaries
     pathdict["save_df_characterising_each_homol_TMD"] = '%s_characterising_each_homol_TMD.zip' % base_filename_summaries
 
 
