@@ -38,17 +38,37 @@ def gather_AAIMON_ratios(pathdict, logging, s):
     # calculate mean AAIMON for all TMDs
     for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
 
+        # dict_AAIMON_ratio_mean = {}
+        # for TMD in ast.literal_eval(dfg.loc[acc, 'list_of_TMDs']):
+        #     dict_AAIMON_ratio_mean[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_mean' % TMD]
+        # dfg.loc[acc, 'AAIMON_ratio_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_mean.values()))))
+        #
+        # # calculate mean normalised AAIMON_n for all TMDs
+        # dict_AAIMON_ratio_mean_n = {}
+        # for TMD in ast.literal_eval(dfg.loc[acc, 'list_of_TMDs']):
+        #     dict_AAIMON_ratio_mean_n[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_mean_n' % TMD]
+        # dfg.loc[acc, 'AAIMON_ratio_mean_all_TMDs_n'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_mean_n.values()))))
+
+        # CODE COPIED FROM FIGS.PY
         dict_AAIMON_ratio_mean = {}
+        dict_AAIMON_ratio_std = {}
+        dict_AAIMON_ratio_mean_n = {}
+        dict_AAIMON_ratio_std_n = {}
+        dict_AASMON_ratio_mean = {}
+        dict_AASMON_ratio_std = {}
         for TMD in ast.literal_eval(dfg.loc[acc, 'list_of_TMDs']):
             dict_AAIMON_ratio_mean[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_mean' % TMD]
-        dfg.loc[acc, 'AAIMON_ratio_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_mean.values()))))
-
-        # calculate mean normalised AAIMON_n for all TMDs
-        dict_AAIMON_ratio_mean_n = {}
-        for TMD in ast.literal_eval(dfg.loc[acc, 'list_of_TMDs']):
+            dict_AAIMON_ratio_std[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_std' % TMD]
             dict_AAIMON_ratio_mean_n[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_mean_n' % TMD]
-        dfg.loc[acc, 'AAIMON_ratio_mean_all_TMDs_n'] = np.mean(
-            pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_mean_n.values()))))
+            #dict_AAIMON_ratio_std_n[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_std_n' % TMD]
+            dict_AASMON_ratio_mean[TMD] = dfg.loc[acc, '%s_AASMON_ratio_mean' % TMD]
+            dict_AASMON_ratio_std[TMD] = dfg.loc[acc, '%s_AASMON_ratio_std' % TMD]
+        dfg.loc[acc, 'AAIMON_ratio_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_mean.values()))))
+        dfg.loc[acc, 'AAIMON_ratio_mean_all_TMDs_n'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_mean_n.values()))))
+        #dfg.loc[acc, 'AAIMON_ratio_std_all_TMDs_n'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_std_n.values()))))
+        dfg.loc[acc, 'AAIMON_ratio_std_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_std.values()))))
+        dfg.loc[acc, 'AASMON_ratio_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AASMON_ratio_mean.values()))))
+        dfg.loc[acc, 'AASMON_ratio_std_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AASMON_ratio_std.values()))))
 
         # count the number of TMDs for each protein
         dfg.loc[acc, 'number_of_TMDs'] = len(dfg.loc[acc, 'list_of_TMDs'].split(','))
@@ -126,52 +146,52 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         # create real percentage values, multiply column 1 with 100
         data[:, 0] = data[:, 0] * 100
 
-    # create bins, calculate mean and 95% confidence interval
-    sys.stdout.write('\nBinning data - calculating 95% confidence interval\n')
-    number_of_bins = s['specify_number_of_bins_characterising_TMDs']
-    linspace_binlist = np.linspace(1, 100, number_of_bins)
-    binwidth = 100/number_of_bins
-    binned_data = np.empty([0, 7])
-    conf_95 = np.array([1, 2])
-    conf95_norm = np.array([1, 2])
-    for percentage in linspace_binlist:
-        sys.stdout.write("."), sys.stdout.flush()
-        bin_for_mean = np.empty([0, 3])
-        for row in data:
-            if row[0] < percentage and row[0] > percentage - binwidth:
-                bin_for_mean = np.concatenate((bin_for_mean, row.reshape(1, 3)))
-        # calculate 95% conf. interv. in bin
-        if bin_for_mean.size != 0:
-            conf_95 = sms.DescrStatsW(bin_for_mean[:, 1]).tconfint_mean()
-            # calculate 95% conf. interv. in bin _n
-            conf95_norm = sms.DescrStatsW(bin_for_mean[:, 2]).tconfint_mean()
-            mean_data_in_bin = np.array([percentage,
-                                         # calculate mean in bin
-                                         bin_for_mean[:, 1].mean(),
-                                         # calculate mean in bin _n
-                                         bin_for_mean[:, 2].mean(),
-                                         # add 95% conf. interv. results to np array
-                                         conf_95[0], conf_95[1], conf95_norm[0], conf95_norm[1]])
-            # merge data from bin to the others
-            binned_data = np.concatenate((mean_data_in_bin.reshape(1, 7), binned_data))
-    # drop every row containing nan in array
-    binned_data = binned_data[~np.isnan(binned_data).any(axis=1)]
+        # create bins, calculate mean and 95% confidence interval
+        sys.stdout.write('\nBinning data - calculating 95% confidence interval\n')
+        number_of_bins = s['specify_number_of_bins_characterising_TMDs']
+        linspace_binlist = np.linspace(1, 100, number_of_bins)
+        binwidth = 100/number_of_bins
+        binned_data = np.empty([0, 7])
+        conf_95 = np.array([1, 2])
+        conf95_norm = np.array([1, 2])
+        for percentage in linspace_binlist:
+            sys.stdout.write("."), sys.stdout.flush()
+            bin_for_mean = np.empty([0, 3])
+            for row in data:
+                if row[0] < percentage and row[0] > percentage - binwidth:
+                    bin_for_mean = np.concatenate((bin_for_mean, row.reshape(1, 3)))
+            # calculate 95% conf. interv. in bin
+            if bin_for_mean.size != 0:
+                conf_95 = sms.DescrStatsW(bin_for_mean[:, 1]).tconfint_mean()
+                # calculate 95% conf. interv. in bin _n
+                conf95_norm = sms.DescrStatsW(bin_for_mean[:, 2]).tconfint_mean()
+                mean_data_in_bin = np.array([percentage,
+                                             # calculate mean in bin
+                                             bin_for_mean[:, 1].mean(),
+                                             # calculate mean in bin _n
+                                             bin_for_mean[:, 2].mean(),
+                                             # add 95% conf. interv. results to np array
+                                             conf_95[0], conf_95[1], conf95_norm[0], conf95_norm[1]])
+                # merge data from bin to the others
+                binned_data = np.concatenate((mean_data_in_bin.reshape(1, 7), binned_data))
+        # drop every row containing nan in array
+        binned_data = binned_data[~np.isnan(binned_data).any(axis=1)]
 
-    # save data and binned_data as zipped pickle
+        # save data and binned_data as zipped pickle
 
-    with zipfile.ZipFile(pathdict['save_df_characterising_each_homol_TMD'], mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
+        with zipfile.ZipFile(pathdict['save_df_characterising_each_homol_TMD'], mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
 
-        # save dataframe "data" as pickle
-        with open('data_characterising_each_homol_TMD.pickle', "wb") as f:
-            pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
-        zipout.write('data_characterising_each_homol_TMD.pickle', arcname='data_characterising_each_homol_TMD.pickle')
-        os.remove('data_characterising_each_homol_TMD.pickle')
+            # save dataframe "data" as pickle
+            with open('data_characterising_each_homol_TMD.pickle', "wb") as f:
+                pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+            zipout.write('data_characterising_each_homol_TMD.pickle', arcname='data_characterising_each_homol_TMD.pickle')
+            os.remove('data_characterising_each_homol_TMD.pickle')
 
-        # save dataframe "binned_data" as pickle
-        with open('binned_data_characterising_each_homol_TMD.pickle', "wb") as f:
-            pickle.dump(binned_data, f, protocol=pickle.HIGHEST_PROTOCOL)
-        zipout.write('binned_data_characterising_each_homol_TMD.pickle', arcname='binned_data_characterising_each_homol_TMD.pickle')
-        os.remove('binned_data_characterising_each_homol_TMD.pickle')
+            # save dataframe "binned_data" as pickle
+            with open('binned_data_characterising_each_homol_TMD.pickle', "wb") as f:
+                pickle.dump(binned_data, f, protocol=pickle.HIGHEST_PROTOCOL)
+            zipout.write('binned_data_characterising_each_homol_TMD.pickle', arcname='binned_data_characterising_each_homol_TMD.pickle')
+            os.remove('binned_data_characterising_each_homol_TMD.pickle')
 
     logging.info("\n~~~~~~~~~~~~        gather_AAIMON_ratios is finished         ~~~~~~~~~~~~")
 

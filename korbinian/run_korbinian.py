@@ -173,4 +173,4 @@ if __name__ == "__main__":
 
 
     if s['send_email_when_finished']:
-        korbinian.utils.send_email_when_finished(s)
+        korbinian.utils.send_email_when_finished(s, pathdict)
