@@ -183,6 +183,9 @@ def calculate_AAIMON_ratios(p):
     #                 Calculate the nonTMD percentage identity and gaps                    #
     #                                                                                      #
     ########################################################################################
+    # extract the length of the nonTMD region in the original query here, which should be in the original list summary file, created during uniprot_parse or OMPdb_get_TM_indices_and_slice
+    len_nonTMD_orig_q = 100
+
     df_nonTMD, mean_ser = korbinian.cons_ratio.calc.calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser)
 
     ########################################################################################
@@ -281,6 +284,10 @@ def calculate_AAIMON_ratios(p):
             # filter by TMD-specific values (e.g. max_gaps_in_TMD and then calculate all the mean values for AAIMON, etc)
             # note that this is done AFTER the full df_cr is saved, so df_cr can be filtered and reduced directly without losing data
             mean_ser = korbinian.cons_ratio.calc.filt_and_save_AAIMON_mean(TMD, df_cr, mean_ser, max_gaps, max_hydro, min_ident)
+
+            if TMD == "TM01":
+                # number of homologues for TM01. since ALL TMDs have to be in each homologue before AAIMON is calculated, this number is the same for all TMDs
+                mean_ser['TM01_AAIMON_n_homol'] = df_cr['TM01_AAIMON_ratio'].dropna().shape[0]
 
             logging.info('%s AAIMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean' % TMD]))
             logging.info('%s AAIMON MEAN n %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean_n' % TMD]))
