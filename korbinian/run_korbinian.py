@@ -133,7 +133,7 @@ if __name__ == "__main__":
         korbinian.cons_ratio.cons_ratio.run_calculate_AAIMON_ratios(pathdict, s, logging)
 
     if s["run_gather_AAIMON_ratios"]:
-        korbinian.cons_ratio.gather.gather_AAIMON_ratios(pathdict, logging)
+        korbinian.cons_ratio.gather.gather_AAIMON_ratios(pathdict, logging, s)
 
     ########################################################################################
     #                                                                                      #
@@ -170,3 +170,7 @@ if __name__ == "__main__":
     '''+++++++++++++++ Summary figures describing the conservation ratios of proteins in the list ++++++++++++++++++'''
     if s["run_compare_lists"]:
         korbinian.cons_ratio.compare_lists.compare_rel_con_lists(pathdict, s, logging)
+
+
+    if s['send_email_when_finished']:
+        korbinian.utils.send_email_when_finished(s, pathdict)

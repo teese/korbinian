@@ -7,9 +7,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import sys
+import zipfile
+import os
+import pickle
 
 def save_figures_describing_proteins_in_list(pathdict, s, logging):
     logging.info("~~~~~~~~~~~~         starting run_save_figures_describing_proteins_in_list          ~~~~~~~~~~~~")
+    # define save settings
+    save_png = s["save_png"]
+    save_pdf = s["save_pdf"]
+    base_filepath = pathdict["single_list_fig_path"]
+    # set resolution for plots in png format
+    dpi = 300
+
     print ('Preparing data for plotting', flush=True)
 
     backgroundcolour = '0.95'
@@ -20,9 +30,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     datapointsize = 8
     alpha = 0.1
 
-    # set resolution for plots in png format
-    dpi = 300
-
     '''Prepare data for the following plots'''
 
     # open list_cr_summary_csv summary file
@@ -30,7 +37,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
     # filter to remove proteins that have less than ~5 homologues
     # this is only important for the beta-barrel dataset, which has a lot of these proteins!
-    min_n_homol = 5
+    min_n_homol = s["min_n_homol_for_figs"]
     n_prot_before_n_homol_cutoff = df.shape[0]
     df = df.loc[df['TM01_AAIMON_n_homol'] >= min_n_homol]
     n_prot_after_n_homol_cutoff = df.shape[0]
@@ -71,21 +78,22 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
     binlist = np.append(linspace_binlist, s["mp_final_highest_bin"])
 
-    # iterate through the proteins that have a list of TMDs
-    for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
-        dict_AAIMON_ratio_mean = {}
-        dict_AAIMON_ratio_std = {}
-        dict_AASMON_ratio_mean = {}
-        dict_AASMON_ratio_std = {}
-        for TMD in ast.literal_eval(df.loc[acc, 'list_of_TMDs']):
-            dict_AAIMON_ratio_mean[TMD] = df.loc[acc, '%s_AAIMON_ratio_mean' % TMD]
-            dict_AAIMON_ratio_std[TMD] = df.loc[acc, '%s_AAIMON_ratio_std' % TMD]
-            dict_AASMON_ratio_mean[TMD] = df.loc[acc, '%s_AASMON_ratio_mean' % TMD]
-            dict_AASMON_ratio_std[TMD] = df.loc[acc, '%s_AASMON_ratio_std' % TMD]
-        df.loc[acc, 'AAIMON_ratio_mean_all_TMDs'] = np.mean(list(dict_AAIMON_ratio_mean.values()))
-        df.loc[acc, 'AAIMON_ratio_std_all_TMDs'] = np.mean(list(dict_AAIMON_ratio_std.values()))
-        df.loc[acc, 'AASMON_ratio_mean_all_TMDs'] = np.mean(list(dict_AASMON_ratio_mean.values()))
-        df.loc[acc, 'AASMON_ratio_std_all_TMDs'] = np.mean(list(dict_AASMON_ratio_std.values()))
+    # THE MEAN CALCULATIONS ARE QUITE SLOW FOR THOUSANDS OF PROTEINS,
+    # # iterate through the proteins that have a list of TMDs
+    # for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
+    #     dict_AAIMON_ratio_mean = {}
+    #     dict_AAIMON_ratio_std = {}
+    #     dict_AASMON_ratio_mean = {}
+    #     dict_AASMON_ratio_std = {}
+    #     for TMD in ast.literal_eval(df.loc[acc, 'list_of_TMDs']):
+    #         dict_AAIMON_ratio_mean[TMD] = df.loc[acc, '%s_AAIMON_ratio_mean' % TMD]
+    #         dict_AAIMON_ratio_std[TMD] = df.loc[acc, '%s_AAIMON_ratio_std' % TMD]
+    #         dict_AASMON_ratio_mean[TMD] = df.loc[acc, '%s_AASMON_ratio_mean' % TMD]
+    #         dict_AASMON_ratio_std[TMD] = df.loc[acc, '%s_AASMON_ratio_std' % TMD]
+    #     df.loc[acc, 'AAIMON_ratio_mean_all_TMDs'] = np.mean(list(dict_AAIMON_ratio_mean.values()))
+    #     df.loc[acc, 'AAIMON_ratio_std_all_TMDs'] = np.mean(list(dict_AAIMON_ratio_std.values()))
+    #     df.loc[acc, 'AASMON_ratio_mean_all_TMDs'] = np.mean(list(dict_AASMON_ratio_mean.values()))
+    #     df.loc[acc, 'AASMON_ratio_std_all_TMDs'] = np.mean(list(dict_AASMON_ratio_std.values()))
 
     # create list of colours to use in figures
     colour_lists = utils.create_colour_lists()
@@ -101,9 +109,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
     # logging saved data types
     sys.stdout.write('Saving figures as: ')
-    if s['save_fig_to_pdf']:
+    if s['save_pdf']:
         sys.stdout.write(' .pdf ')
-    if s['save_fig_to_png']:
+    if s['save_png']:
         sys.stdout.write(' .png ')
     sys.stdout.write('\n')
 
@@ -185,7 +193,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # ax.spines['right'].set_visible(False)
         # # END FROM RIMMA SCRIPT
 
-        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig02_Histogram_of_standard_deviations_for_AAIMON_and_AASMON']:
         Fig_Nr = 2
@@ -244,8 +252,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
 
-        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
-
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig03_Scattergram_comparing_mean_AAIMON_and_AASMON']:
         Fig_Nr = 3
@@ -274,7 +281,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
 
-        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig04_Scattergram_comparing_standard_deviation_AAIMON_and_AASMON']:
         Fig_Nr = 4
@@ -309,7 +316,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
 
-        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig05_Scattergram_comparing_number_of_TMDs_with_mean_AAIMON']:
         Fig_Nr = 5
@@ -349,7 +356,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
 
-        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig06_Scattergram_comparing_seqlen_with_mean_AAIMON']:
         Fig_Nr = 6
@@ -376,10 +383,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # add figure title to top left of subplot
         ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
-
-        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
-
-
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig07_Scattergram_comparing_nonTMD_SW_align_len_mean_with_mean_AAIMON']:
         Fig_Nr = 7
@@ -407,7 +411,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
 
-        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig08_Scattergram_comparing_total_number_of_simap_hits_with_mean_AAIMON']:
         '''
@@ -448,7 +452,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # add figure title to top left of subplot
         ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
-        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig09_Histogram_of_mean_AAIMON_ratios_for_each_TMD_separately']:
         Fig_Nr = 9
@@ -526,7 +530,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
 
-        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig10_Line_histogram_of_mean_AAIMON_ratios_for_each_TMD_separately']:
         Fig_Nr = 10
@@ -599,7 +603,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
 
-        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig11_Line_histogram_of_mean_AAIMON_ratios_for_selected_TMDs,_highlighting_difference_for_TM07']:
         # these graphs are only applicable for multi-pass proteins. Use where at least 2 proteins have a 7th TMD
@@ -683,7 +687,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             # add figure title to top left of subplot
             ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                            alpha=0.75)
-            utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+            utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig12_TMD_1-5_only']:
         Fig_Nr = 12
@@ -756,7 +760,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # add figure title to top left of subplot
         ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
-        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig13_TMD_5-10_only']:
         Fig_Nr = 13
@@ -832,7 +836,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # add figure title to top left of subplot
         ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
-        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig14_TMD_10-15_only']:
         Fig_Nr = 14
@@ -908,7 +912,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # add figure title to top left of subplot
         ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
-        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig15_TMD_15-20_only']:
         Fig_Nr = 15
@@ -983,7 +987,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # add figure title to top left of subplot
         ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
-        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig16_ONLY_proteins_with_7_TMDs']:
         Fig_Nr = 16
@@ -1064,7 +1068,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                            alpha=0.75)
 
-        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig17_Less_than_12_TMDs_vs_at_least_12_TMDs']:
         Fig_Nr = 17
@@ -1149,7 +1153,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
 
-        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
         
     if s['Fig18_Boxplot_of_all_TMDs']:
         Fig_Nr = 18
@@ -1218,7 +1222,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                                        alpha=0.75)
 
-        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if 'uniprot_KW' in df.columns:
 
@@ -1310,8 +1314,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                             alpha=0.75)
 
-                utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"],
-                                  dpi=dpi)
+                utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
             else:
                 sys.stdout.write('Dataset does not contain GPCRs; cannot create figure 19 \n')
 
@@ -1407,7 +1410,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                             alpha=0.75)
 
-                utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+                utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
             else:
                 sys.stdout.write('Dataset does not contain GPCRs; cannot create figure 20 \n')
@@ -1482,7 +1485,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                             alpha=0.75)
 
-                utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+                utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
             else:
                 sys.stdout.write('Dataset does not contain GPCRs; cannot create figure 21 \n')
 
@@ -1550,7 +1553,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                     alpha=0.75)
 
-        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig23_Boxplot_comparing_seqlen_with_mean_AAIMON']:
         Fig_Nr = 23
@@ -1627,8 +1630,135 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                     alpha=0.75)
 
-        utils.save_figure(s, fig, Fig_name, base_filepath=pathdict["figures_describing_proteins_in_list"], dpi=dpi)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
+    if s['Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins']:
+        Fig_Nr = 98
+        Fig_name = 'Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins'
 
+        # read data from disk
+        in_zipfile = pathdict["save_df_characterising_each_homol_TMD"]
+        if os.path.isfile(in_zipfile):
+            with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
+                data = pickle.load(openzip.open("data_characterising_each_homol_TMD.pickle", "r"))
+                binned_data = pickle.load(openzip.open("binned_data_characterising_each_homol_TMD.pickle", "r"))
+        else:
+            raise FileNotFoundError("{} not found".format(in_zipfile))
+
+        fontsize = 14
+        datapointsize = 1
+        alpha = 0.05
+        linewidth = 2
+        color_nonnorm = "#EE762C"
+        color_norm = "#0076B8"
+        fig, ax = plt.subplots()
+
+        # set color of axis label to black
+        ax.tick_params(axis='x', colors='black')
+        ax.tick_params(axis='y', colors='black')
+        ax.yaxis.label.set_color('black')
+        ax.xaxis.label.set_color('black')
+
+        # pylab.rcParams['figure.figsize'] = (50.0, 40.0)
+        x = data[:, 0]  # FASTA_gapped_identity
+        y = data[:, 1]  # AAIMON for each TMD
+        ax.scatter(x=x, y=y, color=color_nonnorm, alpha=alpha, s=datapointsize)  # color="#003366" is TUM-blue
+        plt.ylim(ymin=0.5, ymax=1.5)
+        plt.xlim(xmin=60, xmax=100)
+        # label the x-axis for each plot, based on the TMD
+        ax.set_xlabel('% identity', fontsize=fontsize)
+        # move the x-axis label closer to the x-axis
+        # ax.xaxis.set_label_coords(0.45, -0.085)
+        ax.set_ylabel('AAIMON ratio', fontsize=fontsize)
+        # change axis font size
+        ax.tick_params(labelsize=fontsize)
+        x_line = binned_data[:, 0]
+        y_line = binned_data[:, 1]
+        plt.plot(x_line, y_line, linewidth=linewidth, color=color_nonnorm)  # plot linegraph
+
+        # plot normalised data
+        x = data[:, 0]  # FASTA_gapped_identity
+        y = data[:, 2]  # AAIMON_n for each TMD
+        ax.scatter(x=x, y=y, color=color_norm, alpha=alpha, s=datapointsize)  # color="#FF6633" is TUM-orange
+        x_line = binned_data[:, 0]
+        y_line = binned_data[:, 2]
+        plt.plot(x_line, y_line, linewidth=linewidth, color=color_norm)  # plot linegraph
+
+        # remove unwanted axis ticks on top and right
+        ax.get_xaxis().tick_bottom()
+        ax.get_yaxis().tick_left()
+
+        #ax.xaxis.set_label_coords(0.45, -0.1)  # move x-axis label towards graph
+        #ax.yaxis.set_label_coords(-0.09, 0.45)  # move y-axis label towards graph
+
+        ax.legend(['AAIMON', 'AAIMON norm.'], loc='upper right', fontsize=fontsize)  # create legend
+
+        sys.stdout.write('Figure processed: {} ; cannot be saved as .pdf\n'.format(Fig_name))
+        utils.save_figure(fig, Fig_name, base_filepath, save_png=True, save_pdf=False, dpi=150, close=False)
+        utils.save_figure(fig, Fig_name + "_highres", base_filepath, save_png=True, save_pdf=False, dpi=600)
+
+    if s['Fig99_Linegraph_CI_95_AAIMON_vs_perc_ident_all_homol_all_proteins']:
+        Fig_Nr = 99
+        Fig_name = 'Fig99_Linegraph_CI_95_AAIMON_vs_perc_ident_all_homol_all_proteins'
+
+        # read data from disk
+        in_zipfile = pathdict["save_df_characterising_each_homol_TMD"]
+        if os.path.isfile(in_zipfile):
+            with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
+                binned_data = pickle.load(openzip.open("binned_data_characterising_each_homol_TMD.pickle", "r"))
+        else:
+            raise FileNotFoundError("{} not found".format(in_zipfile))
+
+        fontsize = 14
+        datapointsize = 1
+        alpha = 0.05
+        alpha_line = 1
+        linewidth = 1
+        color_nonnorm = "#EE762C"
+        color_norm = "#0076B8"
+        fig, ax = plt.subplots()
+
+        # set color of axis label to black
+        ax.tick_params(axis='x', colors='black')
+        ax.tick_params(axis='y', colors='black')
+        ax.yaxis.label.set_color('black')
+        ax.xaxis.label.set_color('black')
+
+        # pylab.rcParams['figure.figsize'] = (50.0, 40.0)
+        # x = data[:,0] # FASTA_gapped_identity
+        # y = data[:,1] # AAIMON for each TMD
+        # ax.scatter(x=x, y=y, color=color_nonnorm, alpha=alpha, s=datapointsize) # color="#003366" is TUM-blue
+        plt.ylim(ymin=0.8, ymax=1.2)
+        plt.xlim(xmin=60, xmax=100)
+        # label the x-axis for each plot, based on the TMD
+        ax.set_xlabel('% identity', fontsize=fontsize)
+        ax.set_ylabel('AAIMON ratio', fontsize=fontsize)
+        # change axis font size
+        ax.tick_params(labelsize=fontsize)
+
+        # plot AAIMON
+        plt.plot(binned_data[:, 0], binned_data[:, 1], linewidth=linewidth, color=color_nonnorm,
+                 alpha=alpha_line)  # plot linegraph
+        # plot AAIMON_n
+        plt.plot(binned_data[:, 0], binned_data[:, 2], linewidth=linewidth, color=color_norm,
+                 alpha=alpha_line)  # plot linegraph
+
+        # plot 95% confidence intervals
+        # AAIMON
+        plt.plot(binned_data[:, 0], binned_data[:, 3], linewidth=linewidth, color=color_nonnorm, alpha=alpha_line - 0.5)
+        plt.plot(binned_data[:, 0], binned_data[:, 4], linewidth=linewidth, color=color_nonnorm, alpha=alpha_line - 0.5)
+        # AAIMON_n
+        plt.plot(binned_data[:, 0], binned_data[:, 5], linewidth=linewidth, color=color_norm, alpha=alpha_line - 0.5)
+        plt.plot(binned_data[:, 0], binned_data[:, 6], linewidth=linewidth, color=color_norm, alpha=alpha_line - 0.5)
+
+        # remove unwanted axis ticks on top and right
+        ax.get_xaxis().tick_bottom()
+        ax.get_yaxis().tick_left()
+
+        # ax.xaxis.set_label_coords(0.45, -0.1)  # move x-axis label towards graph
+
+        ax.legend(['AAIMON', 'AAIMON norm.'], loc='upper right', fontsize=fontsize)  # create legend
+
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     logging.info("~~~~~~~~~~~~        run_save_figures_describing_proteins_in_list is finished        ~~~~~~~~~~~~")
