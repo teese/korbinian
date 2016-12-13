@@ -118,7 +118,7 @@ def gather_AAIMON_ratios(pathdict, logging, s):
 
         sys.stdout.write("\nLoading data\n")
         # initiate empty numpy array
-        data = np.empty([0, 3])
+        data = np.empty([0, 4])
         # navigate through filesystem and open pickles from .zip
         for acc in dfg.index:
             sys.stdout.write('.'), sys.stdout.flush()
@@ -129,11 +129,11 @@ def gather_AAIMON_ratios(pathdict, logging, s):
                 continue
             for TMD in ast.literal_eval(df.loc[acc, "list_of_TMDs"]):
                 # generate column names necessary for current file
-                columns = ['FASTA_gapped_identity', '{}_AAIMON_ratio'.format(TMD), '{}_AAIMON_ratio_n'.format(TMD)]
+                columns = ['FASTA_gapped_identity', 'nonTMD_truncation_ratio', '{}_AAIMON_ratio'.format(TMD), '{}_AAIMON_ratio_n'.format(TMD)]
                 TM_cr_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
                 # open dataframe  with function from korbinian, extract required columns, convert to np array
                 df_TMD = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, TM_cr_pickle)
-                if columns[2] not in df_TMD.columns:
+                if columns[3] not in df_TMD.columns:
                     # file is old, and should be deleted
                     #os.remove(homol_cr_ratios_zip)
                     logging.info("{} file is presumed out of date, and WILL IN THE FUTURE been deleted".format(homol_cr_ratios_zip))
@@ -147,6 +147,13 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         # create real percentage values, multiply column 1 with 100
         data[:, 0] = data[:, 0] * 100
 
+        # filter dataframe by truncation ratio
+        truncation_cutoff = s['truncation_cutoff']
+        data_filt = np.empty([0, 4])
+        for row in data:
+            if row[1] >= truncation_cutoff:
+                data_filt = np.concatenate((data_filt, row.reshape(1, 4)))
+
         # create bins, calculate mean and 95% confidence interval
         sys.stdout.write('\nBinning data - calculating 95% confidence interval\n')
         number_of_bins = s['specify_number_of_bins_characterising_TMDs']
@@ -157,20 +164,20 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         conf95_norm = np.array([1, 2])
         for percentage in linspace_binlist:
             sys.stdout.write("."), sys.stdout.flush()
-            bin_for_mean = np.empty([0, 3])
-            for row in data:
+            bin_for_mean = np.empty([0, 4])
+            for row in data_filt:
                 if row[0] < percentage and row[0] > percentage - binwidth:
-                    bin_for_mean = np.concatenate((bin_for_mean, row.reshape(1, 3)))
+                    bin_for_mean = np.concatenate((bin_for_mean, row.reshape(1, 4)))
             # calculate 95% conf. interv. in bin
             if bin_for_mean.size != 0:
-                conf_95 = sms.DescrStatsW(bin_for_mean[:, 1]).tconfint_mean()
+                conf_95 = sms.DescrStatsW(bin_for_mean[:, 2]).tconfint_mean()
                 # calculate 95% conf. interv. in bin _n
-                conf95_norm = sms.DescrStatsW(bin_for_mean[:, 2]).tconfint_mean()
+                conf95_norm = sms.DescrStatsW(bin_for_mean[:, 3]).tconfint_mean()
                 mean_data_in_bin = np.array([percentage,
                                              # calculate mean in bin
-                                             bin_for_mean[:, 1].mean(),
-                                             # calculate mean in bin _n
                                              bin_for_mean[:, 2].mean(),
+                                             # calculate mean in bin _n
+                                             bin_for_mean[:, 3].mean(),
                                              # add 95% conf. interv. results to np array
                                              conf_95[0], conf_95[1], conf95_norm[0], conf95_norm[1]])
                 # merge data from bin to the others
