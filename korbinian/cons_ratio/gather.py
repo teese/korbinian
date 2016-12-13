@@ -76,24 +76,24 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         # add sequence length to dfg
         dfg.loc[acc, 'seqlen'] = df.loc[acc, 'seqlen']
 
-        # add total_number_of_simap_hits
-        dfg.loc[acc, 'total_number_of_simap_hits'] = dfg.loc[acc, 'TM01_AAIMON_n_homol']
-
-        # add 'uniprot_entry_name'
-        if uniprot_entry_name_in_df:
-            dfg.loc[acc, 'uniprot_entry_name'] = df.loc[acc, 'uniprot_entry_name']
-
-        # add 'uniprot_KW'
-        if 'uniprot_KW' in df.columns:
-            dfg.loc[acc, 'uniprot_KW'] = df.loc[acc, 'uniprot_KW']
+        # # add total_number_of_simap_hits
+        # dfg.loc[acc, 'total_number_of_simap_hits'] = dfg.loc[acc, 'TM01_AAIMON_n_homol']
+        #
+        # # add 'uniprot_entry_name'
+        # if uniprot_entry_name_in_df:
+        #     dfg.loc[acc, 'uniprot_entry_name'] = df.loc[acc, 'uniprot_entry_name']
+        #
+        # # add 'uniprot_KW'
+        # if 'uniprot_KW' in df.columns:
+        #     dfg.loc[acc, 'uniprot_KW'] = df.loc[acc, 'uniprot_KW']
 
 
     dfg.copy().to_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     ########################################################################################
     #                                                                                      #
-    #               Save a huge dataframe with the AAIMONs for                             #
-    #                all homologues of all TMDs of all proteins                            #
+    #                    Save a huge dataframe with the AAIMONs for                        #
+    #                    all homologues of all TMDs of all proteins                        #
     #                                                                                      #
     ########################################################################################
 
@@ -102,6 +102,7 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         # defining cutoff for max and min number of homologues for each protein
         max_num_homologues = s['cutoff_max_characterising_each_homol_TMD']
         min_num_homologues = s['cutoff_min_characterising_each_homol_TMD']
+        min_match_to_query_ratio = 0.9 # allowed length of truncated alignment is 90% coverage
 
         # filter summary file for min and max number of homologues based on TM01 number of homologues
         sys.stdout.write('Dropped homologues after filtering: \n')
