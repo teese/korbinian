@@ -1661,10 +1661,10 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         # pylab.rcParams['figure.figsize'] = (50.0, 40.0)
         x = data[:, 0]  # FASTA_gapped_identity
-        y = data[:, 1]  # AAIMON for each TMD
+        y = data[:, 2]  # AAIMON for each TMD
         ax.scatter(x=x, y=y, color=color_nonnorm, alpha=alpha, s=datapointsize)  # color="#003366" is TUM-blue
-        plt.ylim(ymin=0.5, ymax=1.5)
-        plt.xlim(xmin=60, xmax=100)
+        plt.ylim(ymin=0, ymax=3)
+        plt.xlim(xmin=40, xmax=100)
         # label the x-axis for each plot, based on the TMD
         ax.set_xlabel('% identity', fontsize=fontsize)
         # move the x-axis label closer to the x-axis
@@ -1678,7 +1678,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         # plot normalised data
         x = data[:, 0]  # FASTA_gapped_identity
-        y = data[:, 2]  # AAIMON_n for each TMD
+        y = data[:, 3]  # AAIMON_n for each TMD
         ax.scatter(x=x, y=y, color=color_norm, alpha=alpha, s=datapointsize)  # color="#FF6633" is TUM-orange
         x_line = binned_data[:, 0]
         y_line = binned_data[:, 2]
@@ -1693,7 +1693,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         ax.legend(['AAIMON', 'AAIMON norm.'], loc='upper right', fontsize=fontsize)  # create legend
 
-        sys.stdout.write('Figure processed: {} ; cannot be saved as .pdf\n'.format(Fig_name))
         utils.save_figure(fig, Fig_name, base_filepath, save_png=True, save_pdf=False, dpi=150, close=False)
         utils.save_figure(fig, Fig_name + "_highres", base_filepath, save_png=True, save_pdf=False, dpi=600)
 
@@ -1728,8 +1727,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # x = data[:,0] # FASTA_gapped_identity
         # y = data[:,1] # AAIMON for each TMD
         # ax.scatter(x=x, y=y, color=color_nonnorm, alpha=alpha, s=datapointsize) # color="#003366" is TUM-blue
-        plt.ylim(ymin=0.8, ymax=1.2)
-        plt.xlim(xmin=60, xmax=100)
+        plt.ylim(ymin=0.5, ymax=2)
+        plt.xlim(xmin=40, xmax=100)
         # label the x-axis for each plot, based on the TMD
         ax.set_xlabel('% identity', fontsize=fontsize)
         ax.set_ylabel('AAIMON ratio', fontsize=fontsize)
