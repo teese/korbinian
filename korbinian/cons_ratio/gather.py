@@ -148,24 +148,26 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         data[:, 0] = data[:, 0] * 100
 
         # filter dataframe by truncation ratio
-        truncation_cutoff = s['truncation_cutoff']
+        truncation_cutoff = pd.to_numeric(s['truncation_cutoff'])
         # initialise integer counter for dropped TMDs
         i = 0
+        # initialise array for dropped data
+        dropped_data = np.empty([0, 4])
         data_filt = np.empty([0, 4])
         for row in data:
             if row[1] >= truncation_cutoff:
                 data_filt = np.concatenate((data_filt, row.reshape(1, 4)))
             if not row[1] >= truncation_cutoff:
                 i += 1
-        sys.stdout.write('Number of dropped TMDs due to truncation cutoff: {}'.format(i))
-
+                dropped_data = np.concatenate((dropped_data, row.reshape(1, 4)))
+        sys.stdout.write('\nNumber of dropped TMDs due to truncation cutoff: {}'.format(i))
 
         # create bins, calculate mean and 95% confidence interval
         sys.stdout.write('\nBinning data - calculating 95% confidence interval\n')
         number_of_bins = s['specify_number_of_bins_characterising_TMDs']
         linspace_binlist = np.linspace(1, 100, number_of_bins)
         binwidth = 100/number_of_bins
-        binned_data = np.empty([0, 7])
+        binned_data = np.empty([0, 8])
         conf_95 = np.array([1, 2])
         conf95_norm = np.array([1, 2])
         for percentage in linspace_binlist:
@@ -185,9 +187,11 @@ def gather_AAIMON_ratios(pathdict, logging, s):
                                              # calculate mean in bin _n
                                              bin_for_mean[:, 3].mean(),
                                              # add 95% conf. interv. results to np array
-                                             conf_95[0], conf_95[1], conf95_norm[0], conf95_norm[1]])
+                                             conf_95[0], conf_95[1], conf95_norm[0], conf95_norm[1],
+                                             # add the number of TMDs in bin to bin
+                                             len(bin_for_mean[:, 0])])
                 # merge data from bin to the others
-                binned_data = np.concatenate((mean_data_in_bin.reshape(1, 7), binned_data))
+                binned_data = np.concatenate((mean_data_in_bin.reshape(1, 8), binned_data))
         # drop every row containing nan in array
         binned_data = binned_data[~np.isnan(binned_data).any(axis=1)]
 
@@ -195,11 +199,17 @@ def gather_AAIMON_ratios(pathdict, logging, s):
 
         with zipfile.ZipFile(pathdict['save_df_characterising_each_homol_TMD'], mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
 
-            # save dataframe "data" as pickle
+            # save dataframe "data_filt" as pickle
             with open('data_characterising_each_homol_TMD.pickle', "wb") as f:
-                pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+                pickle.dump(data_filt, f, protocol=pickle.HIGHEST_PROTOCOL)
             zipout.write('data_characterising_each_homol_TMD.pickle', arcname='data_characterising_each_homol_TMD.pickle')
             os.remove('data_characterising_each_homol_TMD.pickle')
+
+            # save dataframe "dropped_data" as pickle
+            with open('dropped_data_characterising_each_homol_TMD.pickle', "wb") as f:
+                pickle.dump(dropped_data, f, protocol=pickle.HIGHEST_PROTOCOL)
+            zipout.write('dropped_data_characterising_each_homol_TMD.pickle', arcname='dropped_data_characterising_each_homol_TMD.pickle')
+            os.remove('dropped_data_characterising_each_homol_TMD.pickle')
 
             # save dataframe "binned_data" as pickle
             with open('binned_data_characterising_each_homol_TMD.pickle', "wb") as f:
