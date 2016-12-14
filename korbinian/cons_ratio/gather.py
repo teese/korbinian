@@ -149,10 +149,16 @@ def gather_AAIMON_ratios(pathdict, logging, s):
 
         # filter dataframe by truncation ratio
         truncation_cutoff = s['truncation_cutoff']
+        # initialise integer counter for dropped TMDs
+        i = 0
         data_filt = np.empty([0, 4])
         for row in data:
             if row[1] >= truncation_cutoff:
                 data_filt = np.concatenate((data_filt, row.reshape(1, 4)))
+            if not row[1] >= truncation_cutoff:
+                i += 1
+        sys.stdout.write('Number of dropped TMDs due to truncation cutoff: {}'.format(i))
+
 
         # create bins, calculate mean and 95% confidence interval
         sys.stdout.write('\nBinning data - calculating 95% confidence interval\n')
