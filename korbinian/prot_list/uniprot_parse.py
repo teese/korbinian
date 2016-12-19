@@ -268,6 +268,8 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
             sys.stdout.write('.')
             sys.stdout.flush()
             list_of_TMDs = ast.literal_eval(dfu.loc[acc, 'list_of_TMDs'])
+            if 'SP01' in list_of_TMDs:
+                list_of_TMDs.remove('SP01')
             # sequence from N-term. to first TMD
             nonTMD_first = dfu.loc[acc, 'full_seq'][0: (dfu.loc[acc, 'TM01_start']-1).astype('int64')]
             sequence = nonTMD_first
