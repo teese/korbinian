@@ -27,6 +27,21 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         mean_ser = utils.open_df_from_csv_zip(df.loc[acc, 'homol_cr_ratios_zip'], filename=mean_ser_filename)
         dfg = pd.concat([dfg,mean_ser], axis=1)
 
+# # more accurate version is now part of uniprot_parse.py
+# # nested tuples are derived by first homologue hit - not the best way
+#         # extract nested tuples for slicing nonTMD regions from _nonTMD_cr_df.pickle in cf_zip file
+#         protein_name = df.loc[acc, "protein_name"]
+#         homol_cr_ratios_zip = df.loc[acc, "homol_cr_ratios_zip"]
+#         nonTMD_cr_pickle = "{}_nonTMD_cr_df.pickle".format(protein_name)
+#         df_nonTMD = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, nonTMD_cr_pickle).reset_index(drop=True)
+#         df.loc[acc, 'nested_tuple_indices_all_nonTMD_regions'] = df_nonTMD.loc[0, 'nested_tuple_indices_all_nonTMD_regions']
+#         if not pd.isnull(df.loc[acc, 'nested_tuple_indices_all_nonTMD_regions']):
+#             df.loc[acc, 'nonTMD_seq_query'] = utils.slice_with_nested_tuple(df.loc[acc, 'full_seq'], df.loc[acc, 'nested_tuple_indices_all_nonTMD_regions'])
+#             df.loc[acc, 'len_nonTMD_query'] = len(df.loc[acc, 'nonTMD_seq_query'])
+#
+#     # save a copy of summary file
+#     df.copy().to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+
     # transpose dataframe dfg
     dfg = dfg.T
 
@@ -151,13 +166,14 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         truncation_cutoff = pd.to_numeric(s['truncation_cutoff'])
         # initialise integer counter for dropped TMDs
         i = 0
-        # initialise array for dropped data
+        # initialise array for dropped and filtered data
         dropped_data = np.empty([0, 4])
         data_filt = np.empty([0, 4])
+        # filter data
         for row in data:
             if row[1] >= truncation_cutoff:
                 data_filt = np.concatenate((data_filt, row.reshape(1, 4)))
-            if not row[1] >= truncation_cutoff:
+            else:
                 i += 1
                 dropped_data = np.concatenate((dropped_data, row.reshape(1, 4)))
         sys.stdout.write('\nNumber of dropped TMDs due to truncation cutoff: {}'.format(i))
@@ -200,10 +216,10 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         with zipfile.ZipFile(pathdict['save_df_characterising_each_homol_TMD'], mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
 
             # save dataframe "data_filt" as pickle
-            with open('data_characterising_each_homol_TMD.pickle', "wb") as f:
+            with open('filtered_data_characterising_each_homol_TMD.pickle', "wb") as f:
                 pickle.dump(data_filt, f, protocol=pickle.HIGHEST_PROTOCOL)
-            zipout.write('data_characterising_each_homol_TMD.pickle', arcname='data_characterising_each_homol_TMD.pickle')
-            os.remove('data_characterising_each_homol_TMD.pickle')
+            zipout.write('filtered_data_characterising_each_homol_TMD.pickle', arcname='data_characterising_each_homol_TMD.pickle')
+            os.remove('filtered_data_characterising_each_homol_TMD.pickle')
 
             # save dataframe "dropped_data" as pickle
             with open('dropped_data_characterising_each_homol_TMD.pickle', "wb") as f:
