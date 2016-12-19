@@ -27,6 +27,21 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         mean_ser = utils.open_df_from_csv_zip(df.loc[acc, 'homol_cr_ratios_zip'], filename=mean_ser_filename)
         dfg = pd.concat([dfg,mean_ser], axis=1)
 
+# # more accurate version is now part of uniprot_parse.py
+# # nested tuples are derived by first homologue hit - not the best way
+#         # extract nested tuples for slicing nonTMD regions from _nonTMD_cr_df.pickle in cf_zip file
+#         protein_name = df.loc[acc, "protein_name"]
+#         homol_cr_ratios_zip = df.loc[acc, "homol_cr_ratios_zip"]
+#         nonTMD_cr_pickle = "{}_nonTMD_cr_df.pickle".format(protein_name)
+#         df_nonTMD = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, nonTMD_cr_pickle).reset_index(drop=True)
+#         df.loc[acc, 'nested_tuple_indices_all_nonTMD_regions'] = df_nonTMD.loc[0, 'nested_tuple_indices_all_nonTMD_regions']
+#         if not pd.isnull(df.loc[acc, 'nested_tuple_indices_all_nonTMD_regions']):
+#             df.loc[acc, 'nonTMD_seq_query'] = utils.slice_with_nested_tuple(df.loc[acc, 'full_seq'], df.loc[acc, 'nested_tuple_indices_all_nonTMD_regions'])
+#             df.loc[acc, 'len_nonTMD_query'] = len(df.loc[acc, 'nonTMD_seq_query'])
+#
+#     # save a copy of summary file
+#     df.copy().to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+
     # transpose dataframe dfg
     dfg = dfg.T
 
