@@ -268,9 +268,10 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
             sys.stdout.write('.')
             sys.stdout.flush()
             list_of_TMDs = ast.literal_eval(dfu.loc[acc, 'list_of_TMDs'])
+            # sequence from N-term. to first TMD
             nonTMD_first = dfu.loc[acc, 'full_seq'][0: (dfu.loc[acc, 'TM01_start']-1).astype('int64')]
             sequence = nonTMD_first
-            # only for multipass proteins
+            # only for multipass proteins, generate sequences between TMDs
             if len(list_of_TMDs) > 1:
                 for TM_Nr in range(len(list_of_TMDs) - 1):
                     # the TMD is the equivalent item in the list
@@ -280,6 +281,7 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
                     between_TM_and_TMplus1 = dfu.loc[acc, 'full_seq'][dfu.loc[acc, '%s_end' %TMD].astype('int64'): dfu.loc[acc, '%s_start' %next_TMD].astype('int64')-1]
                     sequence += between_TM_and_TMplus1
             last_TMD = list_of_TMDs[-1]
+            # sequence from last TMD to C-term.
             nonTMD_last = dfu.loc[acc, 'full_seq'][dfu.loc[acc, '%s_end' %last_TMD].astype('int64'):dfu.loc[acc, 'seqlen']]
             sequence += nonTMD_last
             dfu.loc[acc, 'nonTMD_seq'] = sequence

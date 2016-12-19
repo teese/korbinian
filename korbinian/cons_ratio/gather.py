@@ -166,13 +166,14 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         truncation_cutoff = pd.to_numeric(s['truncation_cutoff'])
         # initialise integer counter for dropped TMDs
         i = 0
-        # initialise array for dropped data
+        # initialise array for dropped and filtered data
         dropped_data = np.empty([0, 4])
         data_filt = np.empty([0, 4])
+        # filter data
         for row in data:
             if row[1] >= truncation_cutoff:
                 data_filt = np.concatenate((data_filt, row.reshape(1, 4)))
-            if not row[1] >= truncation_cutoff:
+            else:
                 i += 1
                 dropped_data = np.concatenate((dropped_data, row.reshape(1, 4)))
         sys.stdout.write('\nNumber of dropped TMDs due to truncation cutoff: {}'.format(i))
@@ -215,10 +216,10 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         with zipfile.ZipFile(pathdict['save_df_characterising_each_homol_TMD'], mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
 
             # save dataframe "data_filt" as pickle
-            with open('data_characterising_each_homol_TMD.pickle', "wb") as f:
+            with open('filtered_data_characterising_each_homol_TMD.pickle', "wb") as f:
                 pickle.dump(data_filt, f, protocol=pickle.HIGHEST_PROTOCOL)
-            zipout.write('data_characterising_each_homol_TMD.pickle', arcname='data_characterising_each_homol_TMD.pickle')
-            os.remove('data_characterising_each_homol_TMD.pickle')
+            zipout.write('filtered_data_characterising_each_homol_TMD.pickle', arcname='data_characterising_each_homol_TMD.pickle')
+            os.remove('filtered_data_characterising_each_homol_TMD.pickle')
 
             # save dataframe "dropped_data" as pickle
             with open('dropped_data_characterising_each_homol_TMD.pickle', "wb") as f:

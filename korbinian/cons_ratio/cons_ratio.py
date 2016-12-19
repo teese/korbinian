@@ -184,9 +184,9 @@ def calculate_AAIMON_ratios(p):
     #                                                                                      #
     ########################################################################################
     # extract the length of the nonTMD region in the original query here, which should be in the original list summary file, created during uniprot_parse or OMPdb_get_TM_indices_and_slice
-    len_nonTMD_orig_q = 100
+    len_nonTMD_orig_q = p['len_nonTMD']
 
-    df_nonTMD, mean_ser = korbinian.cons_ratio.calc.calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser)
+    df_nonTMD, mean_ser = korbinian.cons_ratio.calc.calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser, len_nonTMD_orig_q)
 
     ########################################################################################
     #                                                                                      #
@@ -264,7 +264,7 @@ def calculate_AAIMON_ratios(p):
             df_cr['%s_AAIMON_ratio_n'%TMD] = df_cr['%s_AAIMON_ratio'%TMD] / df_cr['norm_factor']
             df_cr['FASTA_gapped_identity'] = dfh['FASTA_gapped_identity']
             # calculate truncation ratio of all homologues nonTMD with value from first hit as reference (quick and dirty, more sophisticated: slice nonTMD from query and get length)
-            df_cr['nonTMD_truncation_ratio'] = df_cr['nonTMD_SW_align_len_excl_gaps'] / df_cr.iloc[0, 16] # df_cr.iloc slicing with integers; 0 represents first hit, 16 column 'nonTMD_SW_align_len_excl_gaps'
+            df_cr['nonTMD_truncation_ratio'] = df_cr['nonTMD_SW_align_len_excl_gaps'] / len_nonTMD_orig_q
 
             list_of_AAIMON_all_TMD['%s_AAIMON_ratio'%TMD]= df_cr['%s_AAIMON_ratio'%TMD].dropna()
 
