@@ -6,6 +6,7 @@ import pandas as pd
 import csv
 import korbinian
 import korbinian.utils as utils
+import ast
 
 def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_sp, logging, list_summary_csv_path):
     """ Parses a flatfile of UniProt records to csv.
@@ -259,6 +260,24 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
         dfu['uniprot_KW'] = dfu['uniprot_KW'].astype(str)
         dfu['uniprot_features'] = dfu['uniprot_features'].astype(str)
         dfu['list_of_TMDs'] = dfu['list_of_TMDs'].astype(str)
+
+        ''' ~~   SLICE nonTMD sequence FROM UNIPROT SEQ    ~~ '''
+        for acc in dfu.loc[dfu['list_of_TMDs'].notnull()].loc[dfu['list_of_TMDs'] != 'nan'].index:
+            list_of_TMDs = ast.literal_eval(dfu.loc[acc, 'list_of_TMDs'])
+            nonTMD_first = dfu.loc[acc, 'full_seq'][0: dfu.loc[acc, 'TM01_start']-1]
+            sequence = nonTMD_first
+            for TM_Nr in range(len(list_of_TMDs) - 1):
+                # the TMD is the equivalent item in the list
+                TMD = list_of_TMDs[TM_Nr]
+                # the next TMD, which contains the end index, is the next item in the list
+                next_TMD = list_of_TMDs[TM_Nr + 1]
+                between_TM_and_TMplus1 = dfu.loc[acc, 'full_seq'][dfu.loc[acc, '%s_end' % TMD].astype('int64'): dfu.loc[acc, '%s_start' % next_TMD].astype('int64')-1]
+                sequence += between_TM_and_TMplus1
+                nonTMD_last = dfu.loc[acc, 'full_seq'][dfu.loc[acc, '%s_end' % next_TMD].astype('int64'):dfu.loc[acc, 'seqlen']]
+            sequence += nonTMD_last
+            dfu.loc[acc, 'nonTMD_seq'] = sequence
+            dfu.loc[acc, 'len_nonTMD'] = len(sequence)
+
         # indicate that the create_csv_from_uniprot_flatfile function has been run
         dfu['create_csv_from_uniprot_flatfile'] = True
         # save to a csv
