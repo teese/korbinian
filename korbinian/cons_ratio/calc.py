@@ -196,7 +196,7 @@ def filt_and_save_AAIMON_mean(TMD, df_cr, mean_ser, max_gaps, max_hydro, min_ide
     return mean_ser
 
 
-def calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser, len_nonTMD_orig_q = 100):
+def calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser, len_nonTMD_orig_q):
     """Calculate the nonTMD percentage identity and gaps.
 
     Parameters
@@ -264,7 +264,7 @@ def calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser, len_nonTMD_orig_q = 100
     mean_ser['nonTMD_SW_align_len_excl_gaps_mean'] = float('%0.2f' % df_nonTMD['nonTMD_SW_align_len_excl_gaps'].dropna().mean())
     # to avoid divide by 0 errors, any homologues with only gaps in the nonTMD region should be excluded
     df_nonTMD['nonTMD_SW_align_len_excl_gaps'] = df_nonTMD['nonTMD_SW_align_len_excl_gaps'].replace(0,np.nan)
-    len_nonTMD_orig_q = 100  # to be replaced with a real number!
+    # len_nonTMD_orig_q = 100  # to be replaced with a real number!
     df_nonTMD['len_nonTMD_orig_q_minus_nonTMD_SW_align_len_excl_gaps'] = len_nonTMD_orig_q - df_nonTMD['nonTMD_SW_align_len_excl_gaps']
     mean_ser['len_nonTMD_orig_q_minus_nonTMD_SW_align_len_excl_gaps_mean'] = float('%0.2f' % df_nonTMD['len_nonTMD_orig_q_minus_nonTMD_SW_align_len_excl_gaps'].dropna().mean())
 
