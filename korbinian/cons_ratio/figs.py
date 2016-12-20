@@ -1640,7 +1640,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         in_zipfile = pathdict["save_df_characterising_each_homol_TMD"]
         if os.path.isfile(in_zipfile):
             with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
-                data = pickle.load(openzip.open("filtered_data_characterising_each_homol_TMD.pickle", "r"))
+                data = pickle.load(openzip.open("data_characterising_each_homol_TMD.pickle", "r"))
                 binned_data = pickle.load(openzip.open("binned_data_characterising_each_homol_TMD.pickle", "r"))
         else:
             raise FileNotFoundError("{} not found".format(in_zipfile))
