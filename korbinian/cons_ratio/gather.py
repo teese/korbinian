@@ -162,21 +162,23 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         # create real percentage values, multiply column 1 with 100
         data[:, 0] = data[:, 0] * 100
 
-        # filter dataframe by truncation ratio
-        truncation_cutoff = pd.to_numeric(s['truncation_cutoff'])
-        # initialise integer counter for dropped TMDs
-        i = 0
-        # initialise array for dropped and filtered data
-        dropped_data = np.empty([0, 4])
-        data_filt = np.empty([0, 4])
-        # filter data
-        for row in data:
-            if row[1] >= truncation_cutoff:
-                data_filt = np.concatenate((data_filt, row.reshape(1, 4)))
-            else:
-                i += 1
-                dropped_data = np.concatenate((dropped_data, row.reshape(1, 4)))
-        sys.stdout.write('\nNumber of dropped TMDs due to truncation cutoff: {}'.format(i))
+        # # filter dataframe by truncation ratio
+        # truncation_cutoff = pd.to_numeric(s['truncation_cutoff'])
+        # # initialise integer counter for dropped TMDs
+        # i = 0
+        # # initialise array for dropped and filtered data
+        # dropped_data = np.empty([0, 4])
+        # data_filt = np.empty([0, 4])
+        # # filter data
+        # for row in data:
+        #     sys.stdout.write('.')
+        #     sys.stdout.flush()
+        #     if row[1] >= truncation_cutoff:
+        #         data_filt = np.concatenate((data_filt, row.reshape(1, 4)))
+        #     else:
+        #         i += 1
+        #         dropped_data = np.concatenate((dropped_data, row.reshape(1, 4)))
+        # sys.stdout.write('\nNumber of dropped TMDs due to truncation cutoff: {}'.format(i))
 
         # create bins, calculate mean and 95% confidence interval
         sys.stdout.write('\nBinning data - calculating 95% confidence interval\n')
@@ -189,7 +191,7 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         for percentage in linspace_binlist:
             sys.stdout.write("."), sys.stdout.flush()
             bin_for_mean = np.empty([0, 4])
-            for row in data_filt:
+            for row in data:
                 if row[0] < percentage and row[0] > percentage - binwidth:
                     bin_for_mean = np.concatenate((bin_for_mean, row.reshape(1, 4)))
             # calculate 95% conf. interv. in bin
@@ -217,15 +219,15 @@ def gather_AAIMON_ratios(pathdict, logging, s):
 
             # save dataframe "data_filt" as pickle
             with open('filtered_data_characterising_each_homol_TMD.pickle', "wb") as f:
-                pickle.dump(data_filt, f, protocol=pickle.HIGHEST_PROTOCOL)
-            zipout.write('filtered_data_characterising_each_homol_TMD.pickle', arcname='filtered_data_characterising_each_homol_TMD.pickle')
-            os.remove('filtered_data_characterising_each_homol_TMD.pickle')
+                pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+            zipout.write('data_characterising_each_homol_TMD.pickle', arcname='data_characterising_each_homol_TMD.pickle')
+            os.remove('data_characterising_each_homol_TMD.pickle')
 
-            # save dataframe "dropped_data" as pickle
-            with open('dropped_data_characterising_each_homol_TMD.pickle', "wb") as f:
-                pickle.dump(dropped_data, f, protocol=pickle.HIGHEST_PROTOCOL)
-            zipout.write('dropped_data_characterising_each_homol_TMD.pickle', arcname='dropped_data_characterising_each_homol_TMD.pickle')
-            os.remove('dropped_data_characterising_each_homol_TMD.pickle')
+            # # save dataframe "dropped_data" as pickle
+            # with open('dropped_data_characterising_each_homol_TMD.pickle', "wb") as f:
+            #     pickle.dump(dropped_data, f, protocol=pickle.HIGHEST_PROTOCOL)
+            # zipout.write('dropped_data_characterising_each_homol_TMD.pickle', arcname='dropped_data_characterising_each_homol_TMD.pickle')
+            # os.remove('dropped_data_characterising_each_homol_TMD.pickle')
 
             # save dataframe "binned_data" as pickle
             with open('binned_data_characterising_each_homol_TMD.pickle', "wb") as f:
