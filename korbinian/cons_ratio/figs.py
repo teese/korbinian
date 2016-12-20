@@ -23,7 +23,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     print ('Preparing data for plotting', flush=True)
 
     backgroundcolour = '0.95'
-    plt.style.use('ggplot')
+    plt.style.use('bmh')
 
     # set default font size for plot
     fontsize = 8
