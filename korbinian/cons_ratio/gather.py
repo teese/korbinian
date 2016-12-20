@@ -218,7 +218,7 @@ def gather_AAIMON_ratios(pathdict, logging, s):
             # save dataframe "data_filt" as pickle
             with open('filtered_data_characterising_each_homol_TMD.pickle', "wb") as f:
                 pickle.dump(data_filt, f, protocol=pickle.HIGHEST_PROTOCOL)
-            zipout.write('filtered_data_characterising_each_homol_TMD.pickle', arcname='data_characterising_each_homol_TMD.pickle')
+            zipout.write('filtered_data_characterising_each_homol_TMD.pickle', arcname='filtered_data_characterising_each_homol_TMD.pickle')
             os.remove('filtered_data_characterising_each_homol_TMD.pickle')
 
             # save dataframe "dropped_data" as pickle

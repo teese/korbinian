@@ -263,7 +263,7 @@ def calculate_AAIMON_ratios(p):
             df_cr['norm_factor'] = dfh['norm_factor']
             df_cr['%s_AAIMON_ratio_n'%TMD] = df_cr['%s_AAIMON_ratio'%TMD] / df_cr['norm_factor']
             df_cr['FASTA_gapped_identity'] = dfh['FASTA_gapped_identity']
-            # calculate truncation ratio of all homologues nonTMD with value from first hit as reference (quick and dirty, more sophisticated: slice nonTMD from query and get length)
+            # calculate truncation ratio of all homologues nonTMD
             df_cr['nonTMD_truncation_ratio'] = df_cr['nonTMD_SW_align_len_excl_gaps'] / len_nonTMD_orig_q
 
             list_of_AAIMON_all_TMD['%s_AAIMON_ratio'%TMD]= df_cr['%s_AAIMON_ratio'%TMD].dropna()
