@@ -423,7 +423,7 @@ def truncation_filter(p):
     nonTMD_truncation_cutoff = s['truncation_cutoff']
 
     if not os.path.exists(homol_cr_ratios_zip):
-        message = "{} Protein skipped. File does not exist".format(p['homol_df_orig_zip'])
+        message = "{} Protein skipped. File does not exist".format(homol_cr_ratios_zip)
         logging.info(message)
         return acc, False, message
 
