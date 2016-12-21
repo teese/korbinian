@@ -422,22 +422,24 @@ def truncation_filter(p):
     list_of_TMDs = ast.literal_eval(p['list_of_TMDs'])
     nonTMD_truncation_cutoff = s['truncation_cutoff']
 
+    if not os.path.exists(homol_cr_ratios_zip):
+        message = "{} Protein skipped. File does not exist".format(p['homol_df_orig_zip'])
+        logging.info(message)
+        return acc, False, message
+
     # read data from disk
     in_zipfile = homol_cr_ratios_zip
-    if os.path.isfile(in_zipfile):
-        # open every single original TMD dataframe in zip
-        for TMD in list_of_TMDs:
-            in_file = "{}_{}_cr_df_RAW.pickle".format(protein_name, TMD)
-            # with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
-            df_cr = pickle.load(zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED).open(in_file, "r"))
-            sys.stdout.write('%s: ' %uniprot_acc)
-            # filtering step
-            df_cr = utils.filter_for_truncated_sequences(nonTMD_truncation_cutoff, df_cr)
-            # save filtered dataframe to pickle
-            out_file = "{}_{}_cr_df.pickle".format(protein_name, TMD)
-            with zipfile.ZipFile(in_zipfile, mode="a", compression=zipfile.ZIP_DEFLATED) as zipout:
-                pickle.dump(df_cr, open(out_file, "wb"), protocol=pickle.HIGHEST_PROTOCOL)
-                zipout.write(out_file, arcname=out_file)
-            os.remove(out_file)
-    else:
-        raise FileNotFoundError("{} not found".format(in_zipfile))
+    # open every single original TMD dataframe in zip
+    for TMD in list_of_TMDs:
+        in_file = "{}_{}_cr_df_RAW.pickle".format(protein_name, TMD)
+        # with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
+        df_cr = pickle.load(zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED).open(in_file, "r"))
+        sys.stdout.write('%s: ' %uniprot_acc)
+        # filtering step
+        df_cr = utils.filter_for_truncated_sequences(nonTMD_truncation_cutoff, df_cr)
+        # save filtered dataframe to pickle
+        out_file = "{}_{}_cr_df.pickle".format(protein_name, TMD)
+        with zipfile.ZipFile(in_zipfile, mode="a", compression=zipfile.ZIP_DEFLATED) as zipout:
+            pickle.dump(df_cr, open(out_file, "wb"), protocol=pickle.HIGHEST_PROTOCOL)
+            zipout.write(out_file, arcname=out_file)
+        os.remove(out_file)
