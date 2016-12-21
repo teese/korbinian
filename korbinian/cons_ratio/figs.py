@@ -1661,7 +1661,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         # pylab.rcParams['figure.figsize'] = (50.0, 40.0)
         x = data[:, 0]  # FASTA_gapped_identity
-        y = data[:, 2]  # AAIMON for each TMD
+        y = data[:, 1]  # AAIMON for each TMD
         ax.scatter(x=x, y=y, color=color_nonnorm, alpha=alpha, s=datapointsize)  # color="#003366" is TUM-blue
         plt.ylim(ymin=0, ymax=3)
         plt.xlim(xmin=40, xmax=100)
@@ -1678,7 +1678,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         # plot normalised data
         x = data[:, 0]  # FASTA_gapped_identity
-        y = data[:, 3]  # AAIMON_n for each TMD
+        y = data[:, 2]  # AAIMON_n for each TMD
         ax.scatter(x=x, y=y, color=color_norm, alpha=alpha, s=datapointsize)  # color="#FF6633" is TUM-orange
         x_line = binned_data[:, 0]
         y_line = binned_data[:, 2]
