@@ -433,13 +433,17 @@ def truncation_filter(p):
     for TMD in list_of_TMDs:
         in_file = "{}_{}_cr_df_RAW.pickle".format(protein_name, TMD)
         # with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
-        df_cr = pickle.load(zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED).open(in_file, "r"))
-        sys.stdout.write('%s: ' %uniprot_acc)
-        # filtering step
-        df_cr = utils.filter_for_truncated_sequences(nonTMD_truncation_cutoff, df_cr)
-        # save filtered dataframe to pickle
-        out_file = "{}_{}_cr_df.pickle".format(protein_name, TMD)
-        with zipfile.ZipFile(in_zipfile, mode="a", compression=zipfile.ZIP_DEFLATED) as zipout:
-            pickle.dump(df_cr, open(out_file, "wb"), protocol=pickle.HIGHEST_PROTOCOL)
-            zipout.write(out_file, arcname=out_file)
-        os.remove(out_file)
+        try:
+            df_cr = pickle.load(zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED).open(in_file, "r"))
+            sys.stdout.write('%s: ' %uniprot_acc)
+            # filtering step
+            df_cr = utils.filter_for_truncated_sequences(nonTMD_truncation_cutoff, df_cr)
+            # save filtered dataframe to pickle
+            out_file = "{}_{}_cr_df.pickle".format(protein_name, TMD)
+            with zipfile.ZipFile(in_zipfile, mode="a", compression=zipfile.ZIP_DEFLATED) as zipout:
+                pickle.dump(df_cr, open(out_file, "wb"), protocol=pickle.HIGHEST_PROTOCOL)
+                zipout.write(out_file, arcname=out_file)
+            os.remove(out_file)
+        except:
+            logging.info('pickle {} not found in zipfile - excluded'.format(in_file))
+            pass
