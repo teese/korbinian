@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from multiprocessing import Pool
+import sys
 
 def run_calculate_AAIMON_ratios(pathdict, s, logging):
     """Runs calculate_AAIMON_ratios for each protein, using multiprocessing Pool.
@@ -248,11 +249,36 @@ def calculate_AAIMON_ratios(p):
             df_cr['nonTMD_perc_sim_plus_ident'] = df_nonTMD['nonTMD_perc_sim_plus_ident']
             df_cr['nonTMD_SW_align_len_excl_gaps'] = df_nonTMD['nonTMD_SW_align_len_excl_gaps']
             df_cr['len_full_match_seq'] = dfh['len_full_match_seq']
+            df_cr['truncation_ratio_nonTMD'] = df_nonTMD['truncation_ratio_nonTMD']
+            df_cr['len_nonTMD_orig_q_minus_nonTMD_SW_align_len_excl_gaps'] = df_nonTMD['len_nonTMD_orig_q_minus_nonTMD_SW_align_len_excl_gaps']
             # filter based on dfh above, for general homologue settings (e.g. % identity of full protein), and df_nonTMD (for nonTMD_perc_ident is not zero, etc)
             df_cr = df_cr.loc[df_nonTMD.index,:]
             """FILTERING BY TMD IDENTITY HERE SHOULD NO LONGER BE NECESSARY. DIVIDE BY 0 AVOIDED WITH THE REPLACE FUNCTION LATER"""
             ## following the general filters, filter to only analyse sequences with TMD identity above cutoff, and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
             #df_cr = df_cr.loc[df_cr['%s_perc_ident' % TMD] >= s['cr_min_identity_of_TMD_initial_filter']]
+
+        # moved to utils - keep unfiltered data - filter can be applied without calculating AAIMONs afterwards
+
+            # ########################################################################################
+            # #                                                                                      #
+            # #                       remove homologues that were truncated                          #
+            # #                                                                                      #
+            # ########################################################################################
+            # nonTMD_truncation_cutoff = s['truncation_cutoff']
+            # if nonTMD_truncation_cutoff != 1:
+            #     list_of_hits_to_keep = []
+            #     list_of_hits_to_drop = []
+            #     for hit in df_cr.index:
+            #         if df_cr.loc[hit, 'truncation_ratio_nonTMD'] >= nonTMD_truncation_cutoff:
+            #             list_of_hits_to_keep.append(hit)
+            #         else:
+            #             list_of_hits_to_drop.append(hit)
+            #     # keep only hits that were not excluded due to truncation
+            #     df_cr = df_cr.loc[list_of_hits_to_keep, :]
+            #     sys.stdout.write('Truncated alignments; homologues dropped: {}/{}\n'.format(len(list_of_hits_to_drop), len(df_cr.index)))
+            # else:
+            #     sys.stdout.write('No filtering for truncated sequences \n')
+
             ########################################################################################
             #                                                                                      #
             #                       Calculate AAIMON, AASMON for each TMD                          #
@@ -263,8 +289,6 @@ def calculate_AAIMON_ratios(p):
             df_cr['norm_factor'] = dfh['norm_factor']
             df_cr['%s_AAIMON_ratio_n'%TMD] = df_cr['%s_AAIMON_ratio'%TMD] / df_cr['norm_factor']
             df_cr['FASTA_gapped_identity'] = dfh['FASTA_gapped_identity']
-            # calculate truncation ratio of all homologues nonTMD with value from first hit as reference (quick and dirty, more sophisticated: slice nonTMD from query and get length)
-            df_cr['nonTMD_truncation_ratio'] = df_cr['nonTMD_SW_align_len_excl_gaps'] / len_nonTMD_orig_q
 
             list_of_AAIMON_all_TMD['%s_AAIMON_ratio'%TMD]= df_cr['%s_AAIMON_ratio'%TMD].dropna()
 
@@ -273,12 +297,29 @@ def calculate_AAIMON_ratios(p):
                 os.remove(p['fa_cr_sliced_TMDs_zip'])
                 return acc, False, message
 
-            # save the dataframe for that TMD
+            # save the unfiltered dataframe for that TMD
+            TM_cr_outfile_pickle = "{}_{}_cr_df_RAW.pickle".format(protein_name, TMD)
+            with open(TM_cr_outfile_pickle, "wb") as f:
+                pickle.dump(df_cr, f, protocol=pickle.HIGHEST_PROTOCOL)
+            zipout.write(TM_cr_outfile_pickle, arcname=TM_cr_outfile_pickle)
+            os.remove(TM_cr_outfile_pickle)
+
+            # ########################################################################################
+            # #                                                                                      #
+            # #                       filter homologues that were truncated                          #
+            # #                                                                                      #
+            # ########################################################################################
+            # nonTMD_truncation_cutoff = s['truncation_cutoff']
+            # df_cr = utils.filter_for_truncated_sequences(nonTMD_truncation_cutoff, df_cr)
+            #
+            # save the unfiltered dataframe for that TMD a second time that it is possible to continue without 'run_filter_truncated_alignments'
+            # 'run_filter_truncated_alignments' will replace these saved pickles
             TM_cr_outfile_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
             with open(TM_cr_outfile_pickle, "wb") as f:
                 pickle.dump(df_cr, f, protocol=pickle.HIGHEST_PROTOCOL)
             zipout.write(TM_cr_outfile_pickle, arcname=TM_cr_outfile_pickle)
             os.remove(TM_cr_outfile_pickle)
+
 
             max_gaps  = s["cr_max_n_gaps_in_TMD"]
             max_hydro = s["cr_max_hydrophilicity_Hessa"]
@@ -345,3 +386,64 @@ def calculate_AAIMON_ratios(p):
         zipout.write(mean_ser_filename, arcname=mean_ser_filename)
         os.remove(mean_ser_filename)
         return acc, True, "0"
+
+
+def throw_out_truncated_sequences(pathdict, s, logging):
+
+    logging.info('~~~~~~~~~~~~      starting run_filter_truncated_alignments        ~~~~~~~~~~~~')
+    # if multiprocessing is used, log only to the console
+    p_dict_logging = logging if s["use_multiprocessing"] != True else utils.Log_Only_To_Console()
+    # set current working directory as the data_dir/homol, where temp files will be saved before moving to zip
+    os.chdir(os.path.join(s["data_dir"], "homol"))
+    # get list of accessions that could not be downloaded, and can immediately be excluded
+    not_in_homol_db = utils.get_list_not_in_homol_db(pathdict)
+    # create list of protein dictionaries to process
+    list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging, list_excluded_acc=not_in_homol_db)
+    # number of processes is the number the settings, or the number of proteins, whichever is smallest
+    n_processes = s["multiprocessing_cores"] if s["multiprocessing_cores"] < len(list_p) else len(list_p)
+
+    if s["use_multiprocessing"]:
+        with Pool(processes=n_processes) as pool:
+            calc_AAIMON_list = pool.map(korbinian.cons_ratio.cons_ratio.truncation_filter, list_p)
+            # log the list of protein results (e.g. acc, "simap", True) to the actual logfile, not just the console
+            logging.info("calc_AAIMON_list : {}".format(calc_AAIMON_list))
+    else:
+        for p in list_p:
+            korbinian.cons_ratio.cons_ratio.truncation_filter(p)
+    logging.info("~~~~~~~~~~~~     run_filter_truncated_alignments is finished      ~~~~~~~~~~~~")
+
+
+def truncation_filter(p):
+    pathdict, s, logging = p["pathdict"], p["s"], p["logging"]
+    acc = p["acc"]
+    protein_name = p["protein_name"]
+    uniprot_acc = p['uniprot_acc']
+    homol_cr_ratios_zip = p['homol_cr_ratios_zip']
+    list_of_TMDs = ast.literal_eval(p['list_of_TMDs'])
+    nonTMD_truncation_cutoff = s['truncation_cutoff']
+
+    if not os.path.exists(homol_cr_ratios_zip):
+        message = "{} Protein skipped. File does not exist".format(homol_cr_ratios_zip)
+        logging.info(message)
+        return acc, False, message
+
+    # read data from disk
+    in_zipfile = homol_cr_ratios_zip
+    # open every single original TMD dataframe in zip
+    for TMD in list_of_TMDs:
+        in_file = "{}_{}_cr_df_RAW.pickle".format(protein_name, TMD)
+        # with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
+        try:
+            df_cr = pickle.load(zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED).open(in_file, "r"))
+            sys.stdout.write('%s: ' %uniprot_acc)
+            # filtering step
+            df_cr = utils.filter_for_truncated_sequences(nonTMD_truncation_cutoff, df_cr)
+            # save filtered dataframe to pickle
+            out_file = "{}_{}_cr_df.pickle".format(protein_name, TMD)
+            with zipfile.ZipFile(in_zipfile, mode="a", compression=zipfile.ZIP_DEFLATED) as zipout:
+                pickle.dump(df_cr, open(out_file, "wb"), protocol=pickle.HIGHEST_PROTOCOL)
+                zipout.write(out_file, arcname=out_file)
+            os.remove(out_file)
+        except:
+            logging.info('pickle {} not found in zipfile - excluded'.format(in_file))
+            pass

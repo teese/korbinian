@@ -132,6 +132,9 @@ if __name__ == "__main__":
     if s["run_calculate_AAIMON_ratios"]:
         korbinian.cons_ratio.cons_ratio.run_calculate_AAIMON_ratios(pathdict, s, logging)
 
+    if s['run_filter_truncated_alignments']:
+        korbinian.cons_ratio.cons_ratio.throw_out_truncated_sequences(pathdict, s, logging)
+
     if s["run_gather_AAIMON_ratios"]:
         korbinian.cons_ratio.gather.gather_AAIMON_ratios(pathdict, logging, s)
 

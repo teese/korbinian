@@ -133,7 +133,7 @@ def gather_AAIMON_ratios(pathdict, logging, s):
 
         sys.stdout.write("\nLoading data\n")
         # initiate empty numpy array
-        data = np.empty([0, 4])
+        data = np.empty([0, 3])
         # navigate through filesystem and open pickles from .zip
         for acc in dfg.index:
             sys.stdout.write('.'), sys.stdout.flush()
@@ -144,11 +144,11 @@ def gather_AAIMON_ratios(pathdict, logging, s):
                 continue
             for TMD in ast.literal_eval(df.loc[acc, "list_of_TMDs"]):
                 # generate column names necessary for current file
-                columns = ['FASTA_gapped_identity', 'nonTMD_truncation_ratio', '{}_AAIMON_ratio'.format(TMD), '{}_AAIMON_ratio_n'.format(TMD)]
+                columns = ['FASTA_gapped_identity', '{}_AAIMON_ratio'.format(TMD), '{}_AAIMON_ratio_n'.format(TMD)]
                 TM_cr_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
                 # open dataframe  with function from korbinian, extract required columns, convert to np array
                 df_TMD = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, TM_cr_pickle)
-                if columns[3] not in df_TMD.columns:
+                if columns[2] not in df_TMD.columns:
                     # file is old, and should be deleted
                     #os.remove(homol_cr_ratios_zip)
                     logging.info("{} file is presumed out of date, and WILL IN THE FUTURE been deleted".format(homol_cr_ratios_zip))
@@ -162,21 +162,23 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         # create real percentage values, multiply column 1 with 100
         data[:, 0] = data[:, 0] * 100
 
-        # filter dataframe by truncation ratio
-        truncation_cutoff = pd.to_numeric(s['truncation_cutoff'])
-        # initialise integer counter for dropped TMDs
-        i = 0
-        # initialise array for dropped and filtered data
-        dropped_data = np.empty([0, 4])
-        data_filt = np.empty([0, 4])
-        # filter data
-        for row in data:
-            if row[1] >= truncation_cutoff:
-                data_filt = np.concatenate((data_filt, row.reshape(1, 4)))
-            else:
-                i += 1
-                dropped_data = np.concatenate((dropped_data, row.reshape(1, 4)))
-        sys.stdout.write('\nNumber of dropped TMDs due to truncation cutoff: {}'.format(i))
+        # # filter dataframe by truncation ratio
+        # truncation_cutoff = pd.to_numeric(s['truncation_cutoff'])
+        # # initialise integer counter for dropped TMDs
+        # i = 0
+        # # initialise array for dropped and filtered data
+        # dropped_data = np.empty([0, 4])
+        # data_filt = np.empty([0, 4])
+        # # filter data
+        # for row in data:
+        #     sys.stdout.write('.')
+        #     sys.stdout.flush()
+        #     if row[1] >= truncation_cutoff:
+        #         data_filt = np.concatenate((data_filt, row.reshape(1, 4)))
+        #     else:
+        #         i += 1
+        #         dropped_data = np.concatenate((dropped_data, row.reshape(1, 4)))
+        # sys.stdout.write('\nNumber of dropped TMDs due to truncation cutoff: {}'.format(i))
 
         # create bins, calculate mean and 95% confidence interval
         sys.stdout.write('\nBinning data - calculating 95% confidence interval\n')
@@ -188,20 +190,20 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         conf95_norm = np.array([1, 2])
         for percentage in linspace_binlist:
             sys.stdout.write("."), sys.stdout.flush()
-            bin_for_mean = np.empty([0, 4])
-            for row in data_filt:
+            bin_for_mean = np.empty([0, 3])
+            for row in data:
                 if row[0] < percentage and row[0] > percentage - binwidth:
-                    bin_for_mean = np.concatenate((bin_for_mean, row.reshape(1, 4)))
+                    bin_for_mean = np.concatenate((bin_for_mean, row.reshape(1, 3)))
             # calculate 95% conf. interv. in bin
             if bin_for_mean.size != 0:
-                conf_95 = sms.DescrStatsW(bin_for_mean[:, 2]).tconfint_mean()
+                conf_95 = sms.DescrStatsW(bin_for_mean[:, 1]).tconfint_mean()
                 # calculate 95% conf. interv. in bin _n
-                conf95_norm = sms.DescrStatsW(bin_for_mean[:, 3]).tconfint_mean()
+                conf95_norm = sms.DescrStatsW(bin_for_mean[:, 2]).tconfint_mean()
                 mean_data_in_bin = np.array([percentage,
                                              # calculate mean in bin
-                                             bin_for_mean[:, 2].mean(),
+                                             bin_for_mean[:, 1].mean(),
                                              # calculate mean in bin _n
-                                             bin_for_mean[:, 3].mean(),
+                                             bin_for_mean[:, 2].mean(),
                                              # add 95% conf. interv. results to np array
                                              conf_95[0], conf_95[1], conf95_norm[0], conf95_norm[1],
                                              # add the number of TMDs in bin to bin
@@ -216,16 +218,16 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         with zipfile.ZipFile(pathdict['save_df_characterising_each_homol_TMD'], mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
 
             # save dataframe "data_filt" as pickle
-            with open('filtered_data_characterising_each_homol_TMD.pickle', "wb") as f:
-                pickle.dump(data_filt, f, protocol=pickle.HIGHEST_PROTOCOL)
-            zipout.write('filtered_data_characterising_each_homol_TMD.pickle', arcname='data_characterising_each_homol_TMD.pickle')
-            os.remove('filtered_data_characterising_each_homol_TMD.pickle')
+            with open('data_characterising_each_homol_TMD.pickle', "wb") as f:
+                pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+            zipout.write('data_characterising_each_homol_TMD.pickle', arcname='data_characterising_each_homol_TMD.pickle')
+            os.remove('data_characterising_each_homol_TMD.pickle')
 
-            # save dataframe "dropped_data" as pickle
-            with open('dropped_data_characterising_each_homol_TMD.pickle', "wb") as f:
-                pickle.dump(dropped_data, f, protocol=pickle.HIGHEST_PROTOCOL)
-            zipout.write('dropped_data_characterising_each_homol_TMD.pickle', arcname='dropped_data_characterising_each_homol_TMD.pickle')
-            os.remove('dropped_data_characterising_each_homol_TMD.pickle')
+            # # save dataframe "dropped_data" as pickle
+            # with open('dropped_data_characterising_each_homol_TMD.pickle', "wb") as f:
+            #     pickle.dump(dropped_data, f, protocol=pickle.HIGHEST_PROTOCOL)
+            # zipout.write('dropped_data_characterising_each_homol_TMD.pickle', arcname='dropped_data_characterising_each_homol_TMD.pickle')
+            # os.remove('dropped_data_characterising_each_homol_TMD.pickle')
 
             # save dataframe "binned_data" as pickle
             with open('binned_data_characterising_each_homol_TMD.pickle', "wb") as f:
