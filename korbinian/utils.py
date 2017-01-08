@@ -1575,3 +1575,20 @@ def send_email_when_finished(s, pathdict):
     server.sendmail(fromaddr, toaddr, text)
     server.quit()
     sys.stdout.write('Email sent to {}'.format(toaddr))
+
+def filter_for_truncated_sequences(nonTMD_truncation_cutoff, df_cr):
+    if nonTMD_truncation_cutoff != 1:
+        list_of_hits_to_keep = []
+        list_of_hits_to_drop = []
+        number_of_hits = len(df_cr.index)
+        for hit in df_cr.index:
+            if df_cr.loc[hit, 'truncation_ratio_nonTMD'] >= nonTMD_truncation_cutoff:
+                list_of_hits_to_keep.append(hit)
+            else:
+                list_of_hits_to_drop.append(hit)
+        # keep only hits that were not excluded due to truncation
+        df_cr = df_cr.loc[list_of_hits_to_keep, :]
+        sys.stdout.write('Truncated alignments; homologues dropped: {}/{}\n'.format(len(list_of_hits_to_drop), number_of_hits))
+    else:
+        sys.stdout.write('nonTMD_truncation_cutoff = 1 ; no filtering for truncated sequences \n')
+    return df_cr
