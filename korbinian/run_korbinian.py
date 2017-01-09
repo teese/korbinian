@@ -175,5 +175,9 @@ if __name__ == "__main__":
         korbinian.cons_ratio.compare_lists.compare_rel_con_lists(pathdict, s, logging)
 
 
+    if s["run_keyword_analysis"]:
+        korbinian.cons_ratio.keywords.keyword_analysis(pathdict, s, logging)
+
+
     if s['send_email_when_finished']:
         korbinian.utils.send_email_when_finished(s, pathdict)
