@@ -435,7 +435,7 @@ def truncation_filter(p):
         # with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
         try:
             df_cr = pickle.load(zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED).open(in_file, "r"))
-            sys.stdout.write('%s: ' %uniprot_acc)
+            sys.stdout.write('{}, {}: ' .format(uniprot_acc, TMD))
             # filtering step
             df_cr = utils.filter_for_truncated_sequences(nonTMD_truncation_cutoff, df_cr)
             # save filtered dataframe to pickle
