@@ -4,6 +4,7 @@ import ast
 import csv
 import sys
 import itertools
+from scipy.stats import ttest_ind
 import matplotlib.pyplot as plt
 
 def keyword_analysis(pathdict, s, logging):
@@ -13,9 +14,14 @@ def keyword_analysis(pathdict, s, logging):
     dfc = pd.read_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     # load summary file
     dfu = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-    # merge cr_summary and summary file
+    # merge cr_summary and summary file, if columns are equal in both files, suffix _dfc will be added in cr_summary column names for backwards compatibility
     df = pd.merge(dfc, dfu, left_index=True, right_index=True, suffixes=('_dfc', ''))
-
+    # remove proteins containing nan in AAIMON_ratio_mean_all_TMDs
+    list_of_acc_without_nan = []
+    for acc in df.index:
+        if not pd.isnull(df.loc[acc, 'AAIMON_ratio_mean_all_TMDs']):
+            list_of_acc_without_nan.append(acc)
+    df = df.loc[list_of_acc_without_nan, :]
     # apply ast.literal_eval to every item in df['uniprot_KW']
     if isinstance(df['uniprot_KW'][0], str):
         df['uniprot_KW'] = df['uniprot_KW'].apply(lambda x: ast.literal_eval(x))
@@ -36,18 +42,13 @@ def keyword_analysis(pathdict, s, logging):
     for KW in list_ignored_KW:
         if KW in KW_counts_major.index:
             KW_counts_major = KW_counts_major.drop(KW)
-    # convert series to dict
-    dict_KW_counts_major = pd.Series.to_dict(KW_counts_major)
-    # extract dict keys and introduce them as index into a python list
-    list_KW_counts_major = list(dict_KW_counts_major.keys())
-
+    # extract series indices and make them a python list
+    list_KW_counts_major = list(KW_counts_major.index)
     sys.stdout.write ('valid keywords for analysis (n = {a}):\n{b}\n\n'.format(a = len(list_KW_counts_major), b = list_KW_counts_major))
-
     # check if keywords are present
     if list_KW_counts_major:
         # initialise pandas dataframe with keywords as index
         dfk = pd.DataFrame(index=list_KW_counts_major)
-
         for keyword in list_KW_counts_major:
             # initialise lists of acc that do or do not contain the keyword
             list_of_acc_containing_kw = []
@@ -61,33 +62,32 @@ def keyword_analysis(pathdict, s, logging):
             df_keyword = df.loc[list_of_acc_containing_kw, :]
             df_no_keyword = df.loc[list_of_acc_without_kw, :]
             # calculate mean and std of AAIMON_ratio_mean_all_TMDs
-            AAIMON_keyword_mean = np.mean(df_keyword['AAIMON_ratio_mean_all_TMDs'])
-            AAIMON_keyword_std = np.std(df_keyword['AAIMON_ratio_mean_all_TMDs'])
-            AAIMON_no_keyword_mean = np.mean(df_no_keyword['AAIMON_ratio_mean_all_TMDs'])
-            AAIMON_no_keyword_std = np.std(df_no_keyword['AAIMON_ratio_mean_all_TMDs'])
-            number_of_proteins_keyword = len(df_keyword.index)
-            number_of_proteins_no_keyword = len(df_no_keyword.index)
+            dfk.loc[keyword, 'AAIMON_keyword_mean'] = np.mean(df_keyword['AAIMON_ratio_mean_all_TMDs'])
+            dfk.loc[keyword, 'AAIMON_keyword_std'] = np.std(df_keyword['AAIMON_ratio_mean_all_TMDs'])
+            dfk.loc[keyword, 'AAIMON_no_keyword_mean'] = np.mean(df_no_keyword['AAIMON_ratio_mean_all_TMDs'])
+            dfk.loc[keyword, 'AAIMON_no_keyword_std'] = np.std(df_no_keyword['AAIMON_ratio_mean_all_TMDs'])
+            dfk.loc[keyword, 'number_of_proteins_keyword'] = len(df_keyword.index)
+            dfk.loc[keyword, 'number_of_proteins_no_keyword'] = len(df_no_keyword.index)
             # calculate odds ratio
-            odds_ratio = AAIMON_keyword_mean / AAIMON_no_keyword_mean
-            sys.stdout.write('mean AAIMON containing keyword  "{a}" : {b:.5f} ± {c:.5f}, number of proteins: {d}\n'
-                             'mean AAIMON   without  keyword  "{a}" : {e:.5f} ± {f:.5f}, number of proteins: {g}\n'
-                             'odds_ratio = {h:.5f}\n'.format(a=keyword, b=AAIMON_keyword_mean, c=AAIMON_keyword_std, d=number_of_proteins_keyword,
-                                                           e=AAIMON_no_keyword_mean, f=AAIMON_no_keyword_std, g=number_of_proteins_no_keyword, h=odds_ratio))
-            # fill pandas dataframe with values
-            dfk.loc[keyword, 'AAIMON_keyword_mean'] = AAIMON_keyword_mean
-            dfk.loc[keyword, 'AAIMON_keyword_std'] = AAIMON_keyword_std
-            dfk.loc[keyword, 'AAIMON_no_keyword_mean'] = AAIMON_no_keyword_mean
-            dfk.loc[keyword, 'AAIMON_no_keyword_std'] = AAIMON_no_keyword_std
-            dfk.loc[keyword, 'AAIMON_whole_dataset_mean'] = np.mean(df['AAIMON_ratio_mean_all_TMDs'])
-            dfk.loc[keyword, 'AAIMON_whole_dataset_std'] = np.std(df['AAIMON_ratio_mean_all_TMDs'])
-            dfk.loc[keyword, 'number_of_proteins_keyword'] = number_of_proteins_keyword
-            dfk.loc[keyword, 'number_of_proteins_no_keyword'] = number_of_proteins_no_keyword
-            dfk.loc[keyword, 'odds_ratio'] = odds_ratio
-
+            dfk.loc[keyword, 'odds_ratio'] = dfk.loc[keyword, 'AAIMON_keyword_mean'] / dfk.loc[keyword, 'AAIMON_no_keyword_mean']
+            # ttest p- and t- values calculation
+            data1 = df_keyword['AAIMON_ratio_mean_all_TMDs']
+            data2 = df_no_keyword['AAIMON_ratio_mean_all_TMDs']
+            t, p = ttest_ind(data1, data2, equal_var=False)
+            dfk.loc[keyword, 't-value'] = t
+            dfk.loc[keyword, 'p-value'] = p
+            sys.stdout.write('mean AAIMON containing keyword  "{a}" : {b:.3f} ± {c:.3f}, number of proteins: {d:.0f}\n'
+                             'mean AAIMON   without  keyword  "{a}" : {e:.3f} ± {f:.3f}, number of proteins: {g:.0f}\n'
+                             'odds_ratio = {h:.3f}, t-value = {i:.3f}, p-value = {j:.3f}\n'
+                             .format(a=keyword, b=dfk.loc[keyword, 'AAIMON_keyword_mean'], c=dfk.loc[keyword, 'AAIMON_keyword_std'], d=dfk.loc[keyword, 'number_of_proteins_keyword'],
+                                     e=dfk.loc[keyword, 'AAIMON_no_keyword_mean'], f=dfk.loc[keyword, 'AAIMON_no_keyword_std'], g=dfk.loc[keyword, 'number_of_proteins_no_keyword'],
+                                     h=dfk.loc[keyword, 'odds_ratio'], i=dfk.loc[keyword, 't-value'], j=dfk.loc[keyword, 'p-value']))
+        # add mean and std of whole dataset
+        dfk['AAIMON_whole_dataset_mean'] = np.mean(df['AAIMON_ratio_mean_all_TMDs'])
+        dfk['AAIMON_whole_dataset_std'] = np.std(df['AAIMON_ratio_mean_all_TMDs'])
+        # save pandas dataframe with values
         dfk.to_csv(pathdict["list_keywords_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
-
     else:
         sys.stdout.write ('no valid keywords found! change "cutoff_major_keywords" setting! current value: {}'.format(s['cutoff_major_keywords']))
-
 
     logging.info("\n~~~~~~~~~~~~        keyword_analysis is finished         ~~~~~~~~~~~~")
