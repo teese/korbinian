@@ -7,3 +7,4 @@ import korbinian.cons_ratio.histogram
 import korbinian.cons_ratio.norm
 import korbinian.cons_ratio.slice
 import korbinian.cons_ratio.ssr
+import korbinian.cons_ratio.keywords
