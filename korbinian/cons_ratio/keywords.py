@@ -144,7 +144,7 @@ def keyword_analysis(pathdict, s, logging):
             # ttest p- and t- values calculation
             data1 = df_keyword['AAIMON_ratio_mean_all_TMDs']
             data2 = df_no_keyword['AAIMON_ratio_mean_all_TMDs']
-            t, p = ttest_ind(data1, data2, equal_var=False)
+            t, p = ttest_ind(data1, data2, equal_var=False)             # equal_var True or False ?!?!
             dfk.loc[keyword, 't-value_whole_dataset'] = t
             dfk.loc[keyword, 'p-value_whole_dataset'] = p
 
