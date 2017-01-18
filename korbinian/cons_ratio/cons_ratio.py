@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 from multiprocessing import Pool
 import sys
+from scipy.optimize import leastsq
 
 def run_calculate_AAIMON_ratios(pathdict, s, logging):
     """Runs calculate_AAIMON_ratios for each protein, using multiprocessing Pool.
@@ -285,17 +286,26 @@ def calculate_AAIMON_ratios(p):
             AAIMON_ratios = df_cr['%s_AAIMON_ratio'%TMD]            # y-axis
             AAIMON_ratios_n = df_cr['%s_AAIMON_ratio_n'%TMD]        # y-axis
 
-            # linear regression for non-normalised AAIMON
-            linear_regression_AAIMON = np.polyfit(FASTA_gapped_identity, AAIMON_ratios, 1)
-            fit_fn_AAIMON = np.poly1d(linear_regression_AAIMON)
-            fitted_data_AAIMON = fit_fn_AAIMON(FASTA_gapped_identity)
-            mean_ser['%s_AAIMON_slope' %TMD] = linear_regression_AAIMON[0]
+            # linear regression for non-norm. and norm. AAIMON with fixed 100% identity at AAIMON 1.0
 
-            # linear regression for normalised AAIMON
-            linear_regression_AAIMON_n = np.polyfit(FASTA_gapped_identity, AAIMON_ratios_n, 1)
-            fit_fn_AAIMON_n = np.poly1d(linear_regression_AAIMON_n)
-            fitted_data_AAIMON_n = fit_fn_AAIMON_n(FASTA_gapped_identity)
-            mean_ser['%s_AAIMON_n_slope' %TMD] = linear_regression_AAIMON_n[0]
+            AAIMON_slope, x_data, y_data = curve_fitting_fixed_100(FASTA_gapped_identity, AAIMON_ratios)
+            mean_ser['%s_AAIMON_slope' % TMD] = AAIMON_slope
+            AAIMON_n_slope, x_data_n, y_data_n = curve_fitting_fixed_100(FASTA_gapped_identity, AAIMON_ratios_n)
+            mean_ser['%s_AAIMON_n_slope' % TMD] = AAIMON_n_slope
+
+
+
+            # # linear regression for non-normalised AAIMON
+            # linear_regression_AAIMON = np.polyfit(FASTA_gapped_identity, AAIMON_ratios, 1)
+            # fit_fn_AAIMON = np.poly1d(linear_regression_AAIMON)
+            # fitted_data_AAIMON = fit_fn_AAIMON(FASTA_gapped_identity)
+            # mean_ser['%s_AAIMON_slope' %TMD] = linear_regression_AAIMON[0]
+            #
+            # # linear regression for normalised AAIMON
+            # linear_regression_AAIMON_n = np.polyfit(FASTA_gapped_identity, AAIMON_ratios_n, 1)
+            # fit_fn_AAIMON_n = np.poly1d(linear_regression_AAIMON_n)
+            # fitted_data_AAIMON_n = fit_fn_AAIMON_n(FASTA_gapped_identity)
+            # mean_ser['%s_AAIMON_n_slope' %TMD] = linear_regression_AAIMON_n[0]
 
 
 
@@ -338,10 +348,10 @@ def calculate_AAIMON_ratios(p):
                 # number of homologues for TM01. since ALL TMDs have to be in each homologue before AAIMON is calculated, this number is the same for all TMDs
                 mean_ser['TM01_AAIMON_n_homol'] = df_cr['TM01_AAIMON_ratio'].dropna().shape[0]
 
-            logging.info('%s AAIMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean' % TMD]))
-            logging.info('%s AAIMON MEAN n %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean_n' % TMD]))
-            logging.info('%s AAIMON_slope %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_slope' % TMD]))
-            logging.info('%s AAIMON_n_slope %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_n_slope' % TMD]))
+            logging.info('%s AAIMON_MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean' % TMD]))
+            logging.info('%s AAIMON_MEAN_n %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean_n' % TMD]))
+            logging.info('%s AAIMON_slope %s: %0.5f' % (acc, TMD, mean_ser['%s_AAIMON_slope' % TMD]))
+            logging.info('%s AAIMON_n_slope %s: %0.5f' % (acc, TMD, mean_ser['%s_AAIMON_n_slope' % TMD]))
             # logging.info('%s AASMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AASMON_ratio_mean'%TMD]))
 
             # use the dictionary to obtain the figure number, plot number in figure, plot indices, etc
@@ -455,3 +465,34 @@ def truncation_filter(p):
         except:
             logging.info('pickle {} not found in zipfile - excluded'.format(in_file))
             pass
+
+
+
+##############################################################
+#                                                            #
+#       define funtcions for AAIMON_slope curve fitting      #
+#                                                            #
+##############################################################
+
+def residuals(constants, function, x, y):
+    """
+    Function used to optimise the fit of the curve to the data.
+    It calculates the distance between y-value from real data and y-value from the function (sigmoid/sine/etc).
+    """
+    return y - function(constants, x)
+
+def lin_AAIMON_slope_eq(a, x):
+    y = a * x + 1 - 100 * a
+    return y
+
+def get_line_data_to_plot(a_constant, x_low=40, x_high=100):
+    y_low = lin_AAIMON_slope_eq(a_constant, x_low)
+    y_high = lin_AAIMON_slope_eq(a_constant, x_high)
+    x_data = np.array([x_low, x_high])
+    y_data = np.array([y_low, y_high])
+    return x_data, y_data
+
+def curve_fitting_fixed_100(x_array, y_array, a_constant_guess = -0.1):
+    a_constant = leastsq(residuals, a_constant_guess, args = (lin_AAIMON_slope_eq, x_array, y_array))
+    x_data, y_data = get_line_data_to_plot(a_constant[0])
+    return float(a_constant[0]), x_data, y_data
