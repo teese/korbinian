@@ -23,7 +23,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     print ('Preparing data for plotting', flush=True)
 
     backgroundcolour = '0.95'
-    plt.style.use('bmh')
+    plt.style.use('seaborn-whitegrid')
 
     # set default font size for plot
     fontsize = 8
@@ -1631,6 +1631,59 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                     alpha=0.75)
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
+    if s['Fig24_Scatterplot_AAIMON_n_vs._AAIMON_n_slope']:
+        Fig_Nr = 24
+        title = 'AAIMON_n vs. AAIMON_n_slope'
+        Fig_name = 'Fig24_Scatterplot_AAIMON_n_vs._AAIMON_n_slope'
+        fig, ax = plt.subplots()
+
+        ax.scatter(df['AAIMON_ratio_mean_all_TMDs_n'], df['AAIMON_n_slope_mean_all_TMDs'], alpha=alpha, s=datapointsize)
+        ax.set_ylabel('AAIMON_n_slope', rotation='vertical', fontsize=fontsize)
+        ax.set_xlabel('AAIMON_n', fontsize=fontsize)
+
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                    xycoords='axes fraction', alpha=0.75)
+        # add figure title to top left of subplot
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                    alpha=0.75)
+        # change axis font size
+        ax.tick_params(labelsize=fontsize)
+
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
+
+    if s['Fig25_Scatterplot_comparing_AAIMON_n_and_AAIMON_n_slope_vs._perc._identity']:
+        Fig_Nr = 25
+        title = 'comparing AAIMON_n and AAIMON_n_slope vs. perc. identity'
+        Fig_name = 'Fig25_Scatterplot_comparing_AAIMON_n_and_AAIMON_n_slope_vs._perc._identity'
+        fig, ax = plt.subplots()
+
+        ax.scatter(df['FASTA_ident_mean'], df['AAIMON_n_slope_mean_all_TMDs'] * -1, color='b', alpha=alpha+0.2, s=datapointsize)
+        ax.set_ylabel('AAIMON_n_slope - inverted', rotation='vertical', color='b', fontsize=fontsize)
+        ax.set_xlabel('FASTA_ident_mean', fontsize=fontsize)
+
+        ax2 = ax.twinx()
+        ax2.scatter(df['FASTA_ident_mean'], df['AAIMON_ratio_mean_all_TMDs_n'], color="r", alpha=alpha+0.2, s=datapointsize)
+        ax2.set_ylabel('AAIMON_n', rotation='vertical', color='r', fontsize=fontsize)
+
+        ax.set_xlim(0.4, 1)
+        ax.set_ylim(-0.006, 0.006)
+        ax2.set_ylim(0.4, 1.6)
+
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                    xycoords='axes fraction', alpha=0.75)
+        # add figure title to top left of subplot
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                    alpha=0.75)
+
+        # change axis font size
+        ax.tick_params(labelsize=fontsize)
+        ax2.tick_params(labelsize=fontsize)
+
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
+
 
     if s['Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins']:
         Fig_Nr = 98
