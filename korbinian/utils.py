@@ -1460,7 +1460,7 @@ def convert_summary_csv_to_input_list(s, pathdict, logging, list_excluded_acc=No
     # open dataframe with list of proteins
     df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     # exclude any proteins where there is no list_of_TMDs
-    df = df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan']
+    df = df.loc[df['list_of_TMDs'].notnull()]
     # add the accession
     df["acc"] = df.index
 
@@ -1553,7 +1553,6 @@ def send_email_when_finished(s, pathdict):
         if settings_parameter[-5:] == "email":
             if s[settings_parameter] == True:
                 email_fig_list.append(settings_parameter)
-    print("email_fig_list", email_fig_list)
 
     if email_fig_list != []:
         for email_fig in email_fig_list:

@@ -271,13 +271,11 @@ def calculate_AAIMON_ratios(p):
 
             list_of_AAIMON_all_TMD['%s_AAIMON_ratio'%TMD]= df_cr['%s_AAIMON_ratio'%TMD].dropna()
 
-
             ########################################################################################
             #                                                                                      #
             #                       Calculate AAIMON_slope, AAIMON_n_slope                         #
             #                                                                                      #
             ########################################################################################
-
             # drop every row (hit) in df_cr that contains NaN in column TMxy_AAIMON_ratio - important for line fit that can't handle NAN
             df_cr = df_cr[np.isfinite(df_cr['%s_AAIMON_ratio'%TMD])]
 
@@ -286,8 +284,10 @@ def calculate_AAIMON_ratios(p):
             AAIMON_ratios = df_cr['%s_AAIMON_ratio'%TMD]            # y-axis
             AAIMON_ratios_n = df_cr['%s_AAIMON_ratio_n'%TMD]        # y-axis
 
+            if len(FASTA_gapped_identity) == 0 or len(AAIMON_ratios) == 0:
+                # There is no gapped identity for these homologues, skip to next TMD
+                continue
             # linear regression for non-norm. and norm. AAIMON with fixed 100% identity at AAIMON 1.0
-
             AAIMON_slope, x_data, y_data = curve_fitting_fixed_100(FASTA_gapped_identity, AAIMON_ratios)
             mean_ser['%s_AAIMON_slope' % TMD] = AAIMON_slope
             AAIMON_n_slope, x_data_n, y_data_n = curve_fitting_fixed_100(FASTA_gapped_identity, AAIMON_ratios_n)
@@ -307,10 +307,6 @@ def calculate_AAIMON_ratios(p):
             # fitted_data_AAIMON_n = fit_fn_AAIMON_n(FASTA_gapped_identity)
             # mean_ser['%s_AAIMON_n_slope' %TMD] = linear_regression_AAIMON_n[0]
 
-
-
-
-
             if '{TMD}_SW_match_seq_hydro'.format(TMD=TMD) not in df_cr.columns:
                 message = "{} {}_SW_match_seq_hydro not found in columns. Slice file is out of date and will be deleted.".format(acc, TMD)
                 os.remove(p['fa_cr_sliced_TMDs_zip'])
@@ -322,13 +318,14 @@ def calculate_AAIMON_ratios(p):
             #                             DO NOT DELETE!!!                            #
             #                                                                         #
             ###########################################################################
-
-            # # save the unfiltered dataframe for that TMD
-            # TM_cr_outfile_pickle = "{}_{}_cr_df_RAW.pickle".format(protein_name, TMD)
-            # with open(TM_cr_outfile_pickle, "wb") as f:
-            #     pickle.dump(df_cr, f, protocol=pickle.HIGHEST_PROTOCOL)
-            # zipout.write(TM_cr_outfile_pickle, arcname=TM_cr_outfile_pickle)
-            # os.remove(TM_cr_outfile_pickle)
+            """
+            # save the unfiltered dataframe for that TMD
+            TM_cr_outfile_pickle = "{}_{}_cr_df_RAW.pickle".format(protein_name, TMD)
+            with open(TM_cr_outfile_pickle, "wb") as f:
+                pickle.dump(df_cr, f, protocol=pickle.HIGHEST_PROTOCOL)
+            zipout.write(TM_cr_outfile_pickle, arcname=TM_cr_outfile_pickle)
+            os.remove(TM_cr_outfile_pickle)
+            """
 
             TM_cr_outfile_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
             with open(TM_cr_outfile_pickle, "wb") as f:
@@ -348,8 +345,8 @@ def calculate_AAIMON_ratios(p):
                 # number of homologues for TM01. since ALL TMDs have to be in each homologue before AAIMON is calculated, this number is the same for all TMDs
                 mean_ser['TM01_AAIMON_n_homol'] = df_cr['TM01_AAIMON_ratio'].dropna().shape[0]
 
-            logging.info('%s AAIMON_MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean' % TMD]))
-            logging.info('%s AAIMON_MEAN_n %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean_n' % TMD]))
+            logging.info('%s AAIMON_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean' % TMD]))
+            logging.info('%s AAIMON_n_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean_n' % TMD]))
             logging.info('%s AAIMON_slope %s: %0.5f' % (acc, TMD, mean_ser['%s_AAIMON_slope' % TMD]))
             logging.info('%s AAIMON_n_slope %s: %0.5f' % (acc, TMD, mean_ser['%s_AAIMON_n_slope' % TMD]))
             # logging.info('%s AASMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AASMON_ratio_mean'%TMD]))
@@ -362,8 +359,7 @@ def calculate_AAIMON_ratios(p):
             # if a new figure should be created (either because the orig is full, or the last TMD is analysed)
             if newfig:
                 # create a new figure
-                fig, axarr = plt.subplots(nrows=nrows_in_each_fig,
-                                          ncols=ncols_in_each_fig)  # sharex=True
+                fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig)  # sharex=True
 
             #" NOT STABLE! NEED TO CHANGE save_hist_AAIMON_ratio_single_protein SO THAT IT RUNS WITHIN THE FOR LOOP ABOVE, AND TAKES A SINGLE TMD AS INPUT, RATHER THAN LIST OF TMDS" / 4
             AAIMON_hist_path_prefix = p['AAIMON_hist_path_prefix']
@@ -372,6 +368,9 @@ def calculate_AAIMON_ratios(p):
             #       Save histograms for each TMD of that protein, with relative conservation       #
             #                                                                                      #
             ########################################################################################
+            if axarr is None:
+                # avoid bug where the axarr is still not created, as newfig was not True for first figure?
+                continue
             korbinian.cons_ratio.histogram.save_hist_AAIMON_ratio_single_protein(fig_nr, fig, axarr, df_cr, s, TMD, binarray, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix)
 
         ########################################################################################
@@ -470,7 +469,7 @@ def truncation_filter(p):
 
 ##############################################################
 #                                                            #
-#       define funtcions for AAIMON_slope curve fitting      #
+#       define functions for AAIMON_slope curve fitting      #
 #                                                            #
 ##############################################################
 
