@@ -1638,7 +1638,16 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         Fig_name = 'Fig24_Scatterplot_AAIMON_n_vs._AAIMON_n_slope'
         fig, ax = plt.subplots()
 
-        ax.scatter(df['AAIMON_ratio_mean_all_TMDs_n'], df['AAIMON_n_slope_mean_all_TMDs'], alpha=alpha, s=datapointsize)
+        x = df['AAIMON_ratio_mean_all_TMDs_n']
+        y = df['AAIMON_n_slope_mean_all_TMDs']
+
+        # calculate linear regression for fitted line
+        linear_regression = np.polyfit(x, y, 1)
+        fit_fn = np.poly1d(linear_regression)
+        fitted_data_x = fit_fn(x)
+
+        ax.scatter(x, y, alpha=alpha, s=datapointsize)
+        ax.plot(x, fitted_data_x, alpha=0.75, color='k')
         ax.set_ylabel('AAIMON_n_slope', rotation='vertical', fontsize=fontsize)
         ax.set_xlabel('AAIMON_n', fontsize=fontsize)
 
@@ -1646,6 +1655,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                     xycoords='axes fraction', alpha=0.75)
         # add figure title to top left of subplot
         ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                    alpha=0.75)
+        ax.annotate(s='y = {a:.5f}x + {b:.5f}'.format(a=linear_regression[0], b=linear_regression[1]), xy=(0.85, 0.95), fontsize=fontsize-2, xytext=None, xycoords='axes fraction',
                     alpha=0.75)
         # change axis font size
         ax.tick_params(labelsize=fontsize)
