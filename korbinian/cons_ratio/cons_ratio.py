@@ -281,28 +281,28 @@ def calculate_AAIMON_ratios(p):
 
             # set up variables
             FASTA_gapped_identity = df_cr['FASTA_gapped_identity']  # x-axis of plot
-            AAIMON_ratios = df_cr['%s_AAIMON_ratio'%TMD]            # y-axis
-            AAIMON_ratios_n = df_cr['%s_AAIMON_ratio_n'%TMD]        # y-axis
+            AAIMON = df_cr['%s_AAIMON_ratio'%TMD]            # y-axis
+            AAIMON_n = df_cr['%s_AAIMON_ratio_n'%TMD]        # y-axis
 
-            if len(FASTA_gapped_identity) == 0 or len(AAIMON_ratios) == 0:
+            if len(FASTA_gapped_identity) == 0 or len(AAIMON) == 0:
                 # There is no gapped identity for these homologues, skip to next TMD
                 continue
             # linear regression for non-norm. and norm. AAIMON with fixed 100% identity at AAIMON 1.0
-            AAIMON_slope, x_data, y_data = curve_fitting_fixed_100(FASTA_gapped_identity, AAIMON_ratios)
+            AAIMON_slope, x_data, y_data = curve_fitting_fixed_100(FASTA_gapped_identity, AAIMON)
             mean_ser['%s_AAIMON_slope' % TMD] = AAIMON_slope
-            AAIMON_n_slope, x_data_n, y_data_n = curve_fitting_fixed_100(FASTA_gapped_identity, AAIMON_ratios_n)
+            AAIMON_n_slope, x_data_n, y_data_n = curve_fitting_fixed_100(FASTA_gapped_identity, AAIMON_n)
             mean_ser['%s_AAIMON_n_slope' % TMD] = AAIMON_n_slope
 
 
 
             # # linear regression for non-normalised AAIMON
-            # linear_regression_AAIMON = np.polyfit(FASTA_gapped_identity, AAIMON_ratios, 1)
+            # linear_regression_AAIMON = np.polyfit(FASTA_gapped_identity, AAIMON, 1)
             # fit_fn_AAIMON = np.poly1d(linear_regression_AAIMON)
             # fitted_data_AAIMON = fit_fn_AAIMON(FASTA_gapped_identity)
             # mean_ser['%s_AAIMON_slope' %TMD] = linear_regression_AAIMON[0]
             #
             # # linear regression for normalised AAIMON
-            # linear_regression_AAIMON_n = np.polyfit(FASTA_gapped_identity, AAIMON_ratios_n, 1)
+            # linear_regression_AAIMON_n = np.polyfit(FASTA_gapped_identity, AAIMON_n, 1)
             # fit_fn_AAIMON_n = np.poly1d(linear_regression_AAIMON_n)
             # fitted_data_AAIMON_n = fit_fn_AAIMON_n(FASTA_gapped_identity)
             # mean_ser['%s_AAIMON_n_slope' %TMD] = linear_regression_AAIMON_n[0]
