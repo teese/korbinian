@@ -136,9 +136,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                                           align='center', width=col_width, color="#0489B1",
                                           alpha=0.5)  # edgecolor='black',
         # create numpy array of normalised membranous over nonmembranous conservation ratios (identity)
-        hist_data_AAIMON_mean_n = np.array(df['AAIMON_ratio_mean_all_TMDs_n'].dropna())
+        hist_data_AAIMON_n_mean = np.array(df['AAIMON_ratio_mean_all_TMDs_n'].dropna())
         # use numpy to create a histogram
-        freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean_n, bins=binlist)
+        freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_n_mean, bins=binlist)
         # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
         col_width = float('%0.3f' % (0.95 * (bin_array_I[1] - bin_array_I[0])))
         # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
