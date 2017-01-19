@@ -290,7 +290,6 @@ def calculate_AAIMON_ratios(p):
                 # There is no gapped identity for these homologues, skip to next TMD
                 continue
             # linear regression for non-norm. and norm. AAIMON with fixed 100% identity at AAIMON 1.0
-            print("FASTA_gapped_identity", FASTA_gapped_identity[0:10])
             AAIMON_slope, x_data, y_data = curve_fitting_fixed_100(FASTA_gapped_identity, AAIMON)
             mean_ser['%s_AAIMON_slope' % TMD] = AAIMON_slope
             AAIMON_n_slope, x_data_n, y_data_n = curve_fitting_fixed_100(FASTA_gapped_identity, AAIMON_n)
@@ -390,7 +389,6 @@ def calculate_AAIMON_ratios(p):
         df_AAIMON_all_TMD['gapped_ident'] = dfh['FASTA_gapped_identity'].loc[df_AAIMON_all_TMD.index]
         df_AAIMON_all_TMD['norm_factor'] = dfh['norm_factor'].loc[df_AAIMON_all_TMD.index]
         df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol_n'] = df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'] / df_AAIMON_all_TMD['norm_factor']
-#        print(df_AAIMON_all_TMD)
         korbinian.cons_ratio.norm.save_graph_for_normalized_AAIMON(acc,  df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'],
                                                                      df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol_n'],
                                                                      df_AAIMON_all_TMD['gapped_ident'], zipout, protein_name)
@@ -507,7 +505,6 @@ def get_line_data_to_plot(a_constant, x_low=40, x_high=100):
     x_data = np.array([x_low, x_high])
     y_data = np.array([y_low, y_high])
     AAIMON_at_80 = lin_AAIMON_slope_eq(a_constant, 80)
-    print("AAIMON_at_80", AAIMON_at_80)
     return x_data, y_data
 
 def curve_fitting_fixed_100(x_array, y_array, a_constant_guess = -0.1):
