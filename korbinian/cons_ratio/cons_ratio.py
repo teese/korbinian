@@ -280,7 +280,9 @@ def calculate_AAIMON_ratios(p):
             df_cr = df_cr[np.isfinite(df_cr['%s_AAIMON_ratio'%TMD])]
 
             # set up variables
-            FASTA_gapped_identity = df_cr['FASTA_gapped_identity']  # x-axis of plot
+            FASTA_gapped_identity_0_to_1 = df_cr['FASTA_gapped_identity']  # x-axis of plot
+            # convert from 0.94 to 94%
+            FASTA_gapped_identity = FASTA_gapped_identity_0_to_1 * 100
             AAIMON = df_cr['%s_AAIMON_ratio'%TMD]            # y-axis
             AAIMON_n = df_cr['%s_AAIMON_ratio_n'%TMD]        # y-axis
 
@@ -288,6 +290,7 @@ def calculate_AAIMON_ratios(p):
                 # There is no gapped identity for these homologues, skip to next TMD
                 continue
             # linear regression for non-norm. and norm. AAIMON with fixed 100% identity at AAIMON 1.0
+            print("FASTA_gapped_identity", FASTA_gapped_identity[0:10])
             AAIMON_slope, x_data, y_data = curve_fitting_fixed_100(FASTA_gapped_identity, AAIMON)
             mean_ser['%s_AAIMON_slope' % TMD] = AAIMON_slope
             AAIMON_n_slope, x_data_n, y_data_n = curve_fitting_fixed_100(FASTA_gapped_identity, AAIMON_n)
@@ -495,7 +498,7 @@ def residuals(constants, function, x, y):
     return y - function(constants, x)
 
 def lin_AAIMON_slope_eq(a, x):
-    y = a * x + 1 - 100 * a
+    y = a * x + 1 - (100 * a)
     return y
 
 def get_line_data_to_plot(a_constant, x_low=40, x_high=100):
@@ -503,9 +506,11 @@ def get_line_data_to_plot(a_constant, x_low=40, x_high=100):
     y_high = lin_AAIMON_slope_eq(a_constant, x_high)
     x_data = np.array([x_low, x_high])
     y_data = np.array([y_low, y_high])
+    AAIMON_at_80 = lin_AAIMON_slope_eq(a_constant, 80)
+    print("AAIMON_at_80", AAIMON_at_80)
     return x_data, y_data
 
 def curve_fitting_fixed_100(x_array, y_array, a_constant_guess = -0.1):
-    a_constant = leastsq(residuals, a_constant_guess, args = (lin_AAIMON_slope_eq, x_array, y_array))
-    x_data, y_data = get_line_data_to_plot(a_constant[0])
-    return float(a_constant[0]), x_data, y_data
+    a_constant = leastsq(residuals, a_constant_guess, args = (lin_AAIMON_slope_eq, x_array, y_array))[0][0]
+    x_data, y_data = get_line_data_to_plot(a_constant)
+    return float(a_constant), x_data, y_data
