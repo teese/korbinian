@@ -293,8 +293,6 @@ def calculate_AAIMON_ratios(p):
             AAIMON_n_slope, x_data_n, y_data_n = curve_fitting_fixed_100(FASTA_gapped_identity, AAIMON_n)
             mean_ser['%s_AAIMON_n_slope' % TMD] = AAIMON_n_slope
 
-
-
             # # linear regression for non-normalised AAIMON
             # linear_regression_AAIMON = np.polyfit(FASTA_gapped_identity, AAIMON, 1)
             # fit_fn_AAIMON = np.poly1d(linear_regression_AAIMON)
@@ -358,11 +356,14 @@ def calculate_AAIMON_ratios(p):
                 savefig = True
             # if a new figure should be created (either because the orig is full, or the last TMD is analysed)
             if newfig:
-                # create a new figure
+                # create a new figure for histograms
                 fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig)  # sharex=True
+                # create a new figure for scatter plot
+                fig2, axarr2 = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig)  # sharex=True
 
             #" NOT STABLE! NEED TO CHANGE save_hist_AAIMON_ratio_single_protein SO THAT IT RUNS WITHIN THE FOR LOOP ABOVE, AND TAKES A SINGLE TMD AS INPUT, RATHER THAN LIST OF TMDS" / 4
             AAIMON_hist_path_prefix = p['AAIMON_hist_path_prefix']
+            norm_scatter_path_prefix = p['norm_scatter_path_prefix']
             ########################################################################################
             #                                                                                      #
             #       Save histograms for each TMD of that protein, with relative conservation       #
@@ -371,7 +372,10 @@ def calculate_AAIMON_ratios(p):
             if axarr is None:
                 # avoid bug where the axarr is still not created, as newfig was not True for first figure?
                 continue
+            # create histograms for this protein
             korbinian.cons_ratio.histogram.save_hist_AAIMON_ratio_single_protein(fig_nr, fig, axarr, df_cr, s, TMD, binarray, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix)
+            # create scatterplots for this protein
+            korbinian.cons_ratio.histogram.save_scatter_AAIMON_ratio_norm_and_AAIMON_slope_single_protein(fig_nr, fig2, axarr2, df_cr, x_data, y_data, y_data_n, AAIMON_slope, AAIMON_n_slope, TMD, zipout, row_nr, col_nr, fontsize, savefig, norm_scatter_path_prefix)
 
         ########################################################################################
         #                                                                                      #
@@ -406,7 +410,17 @@ def calculate_AAIMON_ratios(p):
 
 
 def throw_out_truncated_sequences(pathdict, s, logging):
-
+    '''
+    :param pathdict: dict
+        Dictionary of the key paths and files associated with that List number.
+    :param s:
+        Settings dictionary extracted from excel settings file.
+    :param logging: logging.Logger
+        Logger for printing to console and/or logfile.
+    :return:
+        returns an altered dataframe that does not contain the homologues that do not match the requirements for validated homologues
+        due to truncatiion of nonTMD sequence during local aligning of query and match sequence
+    '''
     logging.info('~~~~~~~~~~~~      starting run_filter_truncated_alignments        ~~~~~~~~~~~~')
     # if multiprocessing is used, log only to the console
     p_dict_logging = logging if s["use_multiprocessing"] != True else utils.Log_Only_To_Console()
