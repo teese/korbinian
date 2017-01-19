@@ -1441,7 +1441,10 @@ def save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi = 400, clo
     if save_png:
         fig.savefig(os.path.join(base_filepath, '{a}.png'.format(a=Fig_name)), format='png', dpi=dpi)
     if save_pdf:
-        fig.savefig(os.path.join(base_filepath, '{a}.pdf'.format(a=Fig_name)), format='pdf')
+        base_filepath_pdf = os.path.join(base_filepath, 'pdf')
+        if not os.path.exists(base_filepath_pdf):
+            os.makedirs(base_filepath_pdf)
+        fig.savefig(os.path.join(base_filepath_pdf, '{a}.pdf'.format(a=Fig_name)), format='pdf')
     # close any open figures
     if close == True:
         plt.close('all')
