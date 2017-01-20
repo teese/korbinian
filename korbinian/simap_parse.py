@@ -80,7 +80,7 @@ def run_parse_simap_to_csv(pathdict, s, logging):
             with open(pathdict["acc_not_in_homol_db_txt"], "a") as source:
                 for acc in new_acc_not_in_db_nr_set:
                     source.write("\n{}".format(acc))
-        except (TypeError, IndexError):
+        except (TypeError, IndexError, ValueError):
             logging.info(parse_simap_list)
             print("TypeError, IndexError, parse_simap_list is not a list of 3-item tuples for some reason.")
     else:
