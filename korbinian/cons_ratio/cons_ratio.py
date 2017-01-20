@@ -154,6 +154,9 @@ def calculate_AAIMON_ratios(p):
     #Calculate fasta values, add to mean_ser output series for each protein.
     # The mean fasta identity of homologues should almost always be around the centre of the min and max in the settings.
     mean_ser['FASTA_ident_mean'] = float('%0.2f' % dfh['FASTA_identity'].mean())
+    # add mean observed changes as a percentage value to mean_ser
+    mean_ser['obs_changes_mean'] = float('%0.2f' % dfh['obs_changes'].mean())
+
     # number of identical residues in each FASTA alignment can be calculated from identity and overlap
     dfh['FASTA_num_ident_res'] = dfh['FASTA_identity'] * dfh['FASTA_overlap']
     mean_ser['FASTA_num_ident_res_mean'] = float('%0.2f' % dfh['FASTA_num_ident_res'].mean())
@@ -268,6 +271,7 @@ def calculate_AAIMON_ratios(p):
             df_cr['norm_factor'] = dfh['norm_factor']
             df_cr['%s_AAIMON_ratio_n'%TMD] = df_cr['%s_AAIMON_ratio'%TMD] / df_cr['norm_factor']
             df_cr['FASTA_gapped_identity'] = dfh['FASTA_gapped_identity']
+            df_cr['obs_changes'] = dfh['obs_changes']
 
             list_of_AAIMON_all_TMD['%s_AAIMON_ratio'%TMD]= df_cr['%s_AAIMON_ratio'%TMD].dropna()
 
@@ -280,19 +284,21 @@ def calculate_AAIMON_ratios(p):
             df_cr = df_cr[np.isfinite(df_cr['%s_AAIMON_ratio'%TMD])]
 
             # set up variables
-            FASTA_gapped_identity_0_to_1 = df_cr['FASTA_gapped_identity']  # x-axis of plot
-            # convert from 0.94 to 94%
-            FASTA_gapped_identity = FASTA_gapped_identity_0_to_1 * 100
+            # FASTA_gapped_identity_0_to_1 = df_cr['FASTA_gapped_identity']  # x-axis of plot
+            # # convert from 0.94 to 94%
+            # FASTA_gapped_identity = FASTA_gapped_identity_0_to_1 * 100
+
+            obs_changes = df_cr['obs_changes']
             AAIMON = df_cr['%s_AAIMON_ratio'%TMD]            # y-axis
             AAIMON_n = df_cr['%s_AAIMON_ratio_n'%TMD]        # y-axis
 
-            if len(FASTA_gapped_identity) == 0 or len(AAIMON) == 0:
+            if len(obs_changes) == 0 or len(AAIMON) == 0:
                 # There is no gapped identity for these homologues, skip to next TMD
                 continue
             # linear regression for non-norm. and norm. AAIMON with fixed 100% identity at AAIMON 1.0
-            AAIMON_slope, x_data, y_data = curve_fitting_fixed_100(FASTA_gapped_identity, AAIMON)
+            AAIMON_slope, x_data, y_data = curve_fitting_fixed(obs_changes, AAIMON)
             mean_ser['%s_AAIMON_slope' % TMD] = AAIMON_slope
-            AAIMON_n_slope, x_data_n, y_data_n = curve_fitting_fixed_100(FASTA_gapped_identity, AAIMON_n)
+            AAIMON_n_slope, x_data_n, y_data_n = curve_fitting_fixed(obs_changes, AAIMON_n)
             mean_ser['%s_AAIMON_n_slope' % TMD] = AAIMON_n_slope
 
             # # linear regression for non-normalised AAIMON
@@ -389,9 +395,12 @@ def calculate_AAIMON_ratios(p):
         df_AAIMON_all_TMD['gapped_ident'] = dfh['FASTA_gapped_identity'].loc[df_AAIMON_all_TMD.index]
         df_AAIMON_all_TMD['norm_factor'] = dfh['norm_factor'].loc[df_AAIMON_all_TMD.index]
         df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol_n'] = df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'] / df_AAIMON_all_TMD['norm_factor']
-        korbinian.cons_ratio.norm.save_graph_for_normalized_AAIMON(acc,  df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'],
-                                                                     df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol_n'],
-                                                                     df_AAIMON_all_TMD['gapped_ident'], zipout, protein_name)
+
+        # # taken out by MO - figure replaced with plots for every single TMD
+        # korbinian.cons_ratio.norm.save_graph_for_normalized_AAIMON(acc,  df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'],
+        #                                                              df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol_n'],
+        #                                                              df_AAIMON_all_TMD['gapped_ident'], zipout, protein_name)
+
         # save the dataframe containing normalisation factor and normalised AAIMON to zipout
         df_AAIMON_all_TMD.to_csv(protein_name + '_AAIMON_all_TMD.csv')
         zipout.write(protein_name + '_AAIMON_all_TMD.csv', arcname=protein_name + '_AAIMON_all_TMD.csv')
@@ -496,10 +505,10 @@ def residuals(constants, function, x, y):
     return y - function(constants, x)
 
 def lin_AAIMON_slope_eq(a, x):
-    y = a * x + 1 - (100 * a)
+    y = a * x + 1
     return y
 
-def get_line_data_to_plot(a_constant, x_low=40, x_high=100):
+def get_line_data_to_plot(a_constant, x_low=0, x_high=60):
     y_low = lin_AAIMON_slope_eq(a_constant, x_low)
     y_high = lin_AAIMON_slope_eq(a_constant, x_high)
     x_data = np.array([x_low, x_high])
@@ -507,7 +516,7 @@ def get_line_data_to_plot(a_constant, x_low=40, x_high=100):
     AAIMON_at_80 = lin_AAIMON_slope_eq(a_constant, 80)
     return x_data, y_data
 
-def curve_fitting_fixed_100(x_array, y_array, a_constant_guess = -0.1):
+def curve_fitting_fixed(x_array, y_array, a_constant_guess = 0.1):
     a_constant = leastsq(residuals, a_constant_guess, args = (lin_AAIMON_slope_eq, x_array, y_array))[0][0]
     x_data, y_data = get_line_data_to_plot(a_constant)
     return float(a_constant), x_data, y_data
