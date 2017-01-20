@@ -136,7 +136,7 @@ def gather_AAIMON_ratios(pathdict, logging, s):
                 continue
             for TMD in ast.literal_eval(df.loc[acc, "list_of_TMDs"]):
                 # generate column names necessary for current file
-                columns = ['FASTA_gapped_identity', '{}_AAIMON_ratio'.format(TMD), '{}_AAIMON_ratio_n'.format(TMD)]
+                columns = ['obs_changes', '{}_AAIMON_ratio'.format(TMD), '{}_AAIMON_ratio_n'.format(TMD)]
                 TM_cr_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
                 # open dataframe  with function from korbinian, extract required columns, convert to np array
                 df_TMD = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, TM_cr_pickle)
@@ -152,7 +152,7 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         # drop every row with nan
         data = data[~np.isnan(data).any(axis=1)]
         # create real percentage values, multiply column 1 with 100
-        data[:, 0] = data[:, 0] * 100
+        #data[:, 0] = data[:, 0] * 100
 
         # create bins, calculate mean and 95% confidence interval
         sys.stdout.write('\nBinning data - calculating 95% confidence interval\n')
@@ -173,7 +173,7 @@ def gather_AAIMON_ratios(pathdict, logging, s):
                 conf_95 = sms.DescrStatsW(bin_for_mean[:, 1]).tconfint_mean()
                 # calculate 95% conf. interv. in bin _n
                 conf95_norm = sms.DescrStatsW(bin_for_mean[:, 2]).tconfint_mean()
-                mean_data_in_bin = np.array([percentage,
+                mean_data_in_bin = np.array([percentage - binwidth/2,
                                              # calculate mean in bin
                                              bin_for_mean[:, 1].mean(),
                                              # calculate mean in bin _n

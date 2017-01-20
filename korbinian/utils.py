@@ -1594,3 +1594,12 @@ def filter_for_truncated_sequences(nonTMD_truncation_cutoff, df_cr):
     else:
         sys.stdout.write('nonTMD_truncation_cutoff = 1 ; no filtering for truncated sequences \n')
     return df_cr
+
+def calc_alpha_from_datapoints(data):
+    if len(data) > 100:
+        alpha = 100 / len(data) - 0.1
+        if alpha < 0.05:
+            alpha = 0.05
+    else:
+        alpha = 0.9
+    return float(alpha)

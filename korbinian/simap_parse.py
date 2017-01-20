@@ -86,7 +86,7 @@ def run_parse_simap_to_csv(pathdict, s, logging):
     else:
         for p in list_p:
             parse_SIMAP_to_csv(p)
-        logging.info('~~~~~~~~~~~~          parse_SIMAP_to_csv is finished          ~~~~~~~~~~~~')
+        logging.info('\n~~~~~~~~~~~~          parse_SIMAP_to_csv is finished          ~~~~~~~~~~~~')
 
 def parse_SIMAP_to_csv(p):
     """ Parses the SIMAP XML file to csv for a single protein.
@@ -346,6 +346,8 @@ def parse_SIMAP_to_csv(p):
                                 match_details_dict['FASTA_identity'] = float(alignment_node[3].text) / 100
                                 #strangely, I think gappedIdentity is the identity EXCLUDING gaps, which is a better value to base judgements on. convert identity from e.g. 80 (80%) to 0.8
                                 match_details_dict['FASTA_gapped_identity'] = float(alignment_node[4].text) / 100
+                                # creating the real observed changes from FASTA_gapped_identity - this is a percentage value now!!!
+                                match_details_dict['obs_changes'] = 100 - float(alignment_node[4].text)
                                 '''xxx notes on the gapped identity
                                 N.B The FASTA_gapped_identity data here is from the FASTA algorithm, that precedes the SW algorithm.
                                 Occasionally they don’t match!!!
@@ -430,7 +432,7 @@ def parse_SIMAP_to_csv(p):
                     df_homol['X_in_match_seq'] = df_homol['match_align_seq'].str.contains("X")
 
                     # restrict to just a few columns including the align_pretty that might be useful to check manually
-                    df_pretty = df_homol[["FASTA_gapped_identity", "organism", "description", "align_pretty"]]
+                    df_pretty = df_homol[["FASTA_gapped_identity", "obs_changes", "organism", "description", "align_pretty"]]
                     # save the align_pretty to csv
                     df_pretty.to_csv(p['SIMAP_align_pretty_csv'], sep=',', quoting=csv.QUOTE_NONNUMERIC)
                     # drop the align_pretty column from the orig dataframe
