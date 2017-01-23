@@ -1507,7 +1507,7 @@ def get_list_failed_downloads(pathdict):
                 acc_list_failed_downloads.append(line)
     return acc_list_failed_downloads
 
-def send_email_when_finished(s, pathdict):
+def send_email_when_finished(s, pathdict, list_number):
     """ Sends an email to specified address when job is finished
 
     Parameters
@@ -1545,7 +1545,11 @@ def send_email_when_finished(s, pathdict):
     msg['To'] = toaddr
     msg['Subject'] = "korbinian run is finished"
 
-    body = '{a}\n\n processed list: {b}'.format(a=s['email_message'], b=s['protein_list_number'])
+    if s['multiple_lists_to_analyse']:
+        body = '{a}\n\nmultiple lists activated! lists to analyse: {c}\nprocessed list: {b}'.format(a=s['email_message'], b=list_number, c=s['multiple_lists_to_analyse'])
+
+    else:
+        body = '{a}\n\n processed list: {b}'.format(a=s['email_message'], b=list_number)
     msg.attach(MIMEText(body, 'plain'))
 
     #filename = "Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins_lowres.png"
@@ -1576,7 +1580,7 @@ def send_email_when_finished(s, pathdict):
     text = msg.as_string()
     server.sendmail(fromaddr, toaddr, text)
     server.quit()
-    sys.stdout.write('Email sent to {}'.format(toaddr))
+    sys.stdout.write('Email sent to {}\n'.format(toaddr))
 
 def filter_for_truncated_sequences(nonTMD_truncation_cutoff, df_cr):
     if nonTMD_truncation_cutoff != 1:
@@ -1596,10 +1600,10 @@ def filter_for_truncated_sequences(nonTMD_truncation_cutoff, df_cr):
     return df_cr
 
 def calc_alpha_from_datapoints(data):
-    if len(data) > 100:
+    if len(data) > 500:
         alpha = 500 / len(data) - 0.1
-        if alpha < 0.05:
-            alpha = 0.05
+        if alpha < 0.1:
+            alpha = 0.1
     else:
         alpha = 0.9
     return float(alpha)

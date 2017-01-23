@@ -1728,6 +1728,40 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
+    if s['Fig27_Scatterplot_perc_identity_nonTMD_vs_TMD']:
+        Fig_Nr = 27
+        title = 'perc identity all TMDs  vs. perc identity nonTMD'
+        Fig_name = 'Fig27_Scatterplot_perc_identity_nonTMD_vs_TMD'
+        fig, ax = plt.subplots()
+
+        x = df['TMD_perc_identity_mean_all_TMDs'] * 100
+        y = df['nonTMD_perc_ident_mean'] * 100
+
+        linear_regression = np.polyfit(x, y, 1)
+        fit_fn = np.poly1d(linear_regression)
+        fitted_data_x = fit_fn(x)
+
+        ax.scatter(x, y, s=datapointsize, alpha=alpha_dpd, color='r')
+        ax.plot(x, fitted_data_x, alpha=0.75, color='k')
+        ax.set_xlabel('TMD_perc_identity_all_TMDs', fontsize=fontsize)
+        ax.set_ylabel('nonTMD_perc_ident_mean', rotation='vertical', fontsize=fontsize)
+        ax.tick_params(labelsize=fontsize)
+        ax.set_xlim(40, 100)
+        ax.set_ylim(40, 100)
+
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                    xycoords='axes fraction', alpha=0.75)
+        # add figure title to top left of subplot
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                    alpha=0.75)
+        ax.annotate(s='y = {a:.5f}x + {b:.5f}'.format(a=linear_regression[0], b=linear_regression[1]), xy=(0.85, 0.95), fontsize=fontsize-2, xytext=None, xycoords='axes fraction',
+                    alpha=0.75)
+        # change axis font size
+        ax.tick_params(labelsize=fontsize)
+
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
+
 
 
     if s['Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins']:
