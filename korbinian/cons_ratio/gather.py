@@ -23,8 +23,9 @@ def gather_AAIMON_ratios(pathdict, logging, s):
             logging.info("{} Protein skipped. File does not exist".format(df.loc[acc, 'homol_cr_ratios_zip']))
             continue
         # open csv as pandas dataframe (note, it was originally a series, and contains only one column and an index)
+        # set delete_corrupt=True so that if the expected csv is not in the zip, the wholezipfile will be deleted
         mean_ser_filename = "{}_cr_mean.csv".format(protein_name)
-        mean_ser = utils.open_df_from_csv_zip(df.loc[acc, 'homol_cr_ratios_zip'], filename=mean_ser_filename)
+        mean_ser = utils.open_df_from_csv_zip(df.loc[acc, 'homol_cr_ratios_zip'], filename=mean_ser_filename, delete_corrupt=True)
         dfg = pd.concat([dfg,mean_ser], axis=1)
 
     # transpose dataframe dfg
