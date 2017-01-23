@@ -5,11 +5,6 @@ import string
 import numpy
 import random
 
-# open csv file as a dataframe which contains the TM and non-TM sequences
-csv_file = r'/Volumes/Shenger/data/summaries/01/List01_summary.csv'
-df = pd.read_csv(csv_file, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-
-
 ############################################################################################
 #                                                                                          #
 #                        calculation of aa propensity                                      #
@@ -17,7 +12,7 @@ df = pd.read_csv(csv_file, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
 #                                                                                          #
 ############################################################################################
 
-def cal_aa_propensity (df):
+def cal_aa_propensity_TM_nonTM (df, TM_col='TM01_seq', nonTM_col='nonTMD_seq'):
     """Calculation of amino acid propensity for TM and non-TM region in dataset.
 
     Parameters
@@ -29,33 +24,35 @@ def cal_aa_propensity (df):
     -------
     prob_table : pd.DataFrame
         show the aa propensity in TM and non-TM region, respectively
+        index is the AA
+        columns are the input columns plus aap (e.g. "TM01_seq" + "_aap")
     """
 
     # create a string to hold all TM segments from all proteins
     massive_string_tm = ""
-    for seq in df['TM01_seq']:
+    for seq in df[TM_col]:
         if type(seq) == str:
             massive_string_tm += seq
 
     # create a string to hold all non-TM segments from all proteins
     massive_string_ntm = ""
-    for seq in df['nonTMD_seq']:
+    for seq in df[nonTM_col]:
         if type(seq) == str:
             massive_string_ntm += seq
 
     # calculate aa propensity in TM region
-    prob_table_tm = count_aa_freq(massive_string_tm).T
+    prob_table_tm = calc_aa_propensity(massive_string_tm)
     # calculate aa propensity in non-TM region
-    prob_table_ntm = count_aa_freq(massive_string_ntm).T
+    prob_table_ntm = calc_aa_propensity(massive_string_ntm)
     # merge the two table into one dataframe
     prob_table = pd.concat([prob_table_tm, prob_table_ntm], axis=1)
-    # rename the columns to match the content
-    prob_table.columns = ['TM', 'non-TM']
+    # rename the columns to match the content, with the orig name plus "amino acid propensity"
+    prob_table.columns = [TM_col + "_aap", nonTM_col + "_aap"]
 
     return prob_table
 
 
-def count_aa_freq(seq):
+def calc_aa_propensity(seq):
     """calculate aa propensity for each residue in a particular sequence.
 
     Parameters
@@ -65,8 +62,8 @@ def count_aa_freq(seq):
 
     Returns
     -------
-    freq_df : pd.DataFrame
-        containing corresponding aa propensity
+    freq_ser : pd.Series
+        Series containing corresponding aa propensity
     """
 
     # count absolute number of each residue in the input string
@@ -79,57 +76,44 @@ def count_aa_freq(seq):
     # create a dictionary to hold the propensity of each residue
     prop_dict = {}
     for aa in aa_dict:
-        prop_dict[aa] = aa_dict['%s' % aa] / len(seq)
+        prop_dict[aa] = aa_dict[aa] / len(seq)
 
     # turn the dictionary into a pd.DataFrame and transpose it so that the residue names are listed in index
-    freq_df = pd.Series(prop_dict)
-    freq_df = pd.DataFrame(freq_df, columns=['freq'])
-    freq_df = freq_df.transpose()
-    return freq_df
-
-
-
-############################################################################################
-#                                                                                          #
-#                        calculation of random aa identity                                 #
-#                                  based on dataset                                        #
-#                                                                                          #
-############################################################################################
-
-#seq_len = 10000
-#number_seq = 500
-#number_mutations = 100
-#subset_num = 12
-#ident = 100 * (seq_len - number_mutations) / seq_len
+    freq_ser = pd.Series(prop_dict)
+    freq_ser.index.name = "freq"
+    return freq_ser
 
 
 def cal_random_aa_ident(prob_table, ident=0.9, seq_len=10000, number_seq=500, subset_num=12):
-    """Calculation of random amino acid identity in TM and non-TM region using randomly created sequences based on
-        precaculated aa propensity in TM or non-TM region.
+    """Calculation of random amino acid identity based on a particular amino acid propensity.
 
-        Parameters
-        ----------
-        prob_table : pd.DataFrame
-            aa propensity for TM and non-TM region. obtained from the function cal_aa_propensity
+    Protein regions with a limited aa propensity (e.g. transmembrane regions) have a measurable amino
+    acid identity EVEN IN NON-HOMOLOGUES. This is referred to here as the random amino acid identity.
+    This formula takes the aa propensity of a sequence or dataset as an input, and calculates the random aa identity.
 
-        ident: float
-            overall identity of randomly created sequence cluster. Default value: 0.9
+    Parameters
+    ----------
+    prob_table : pd.DataFrame
+        aa propensity for TM and non-TM region. obtained from the function cal_aa_propensity
 
-        seq_len: integer
-            length of randomly created sequences. To achieve a more plausible result using randomisation method,
-            greater values (> 5000) are recommended. Defalut value: 10,000
+    ident: float
+        overall identity of randomly created sequence cluster. Default value: 0.9
 
-        number_seq: integer
-            number of aligned sequences. Larger values are recommended. Default value: 500
+    seq_len: integer
+        length of randomly created sequences. To achieve a more plausible result using randomisation method,
+        greater values (> 5000) are recommended. Defalut value: 10,000
 
-        subset_num: integer
-            currently not in use.
+    number_seq: integer
+        number of aligned sequences. Larger values are recommended. Default value: 500
 
-        Returns
-        -------
-        TM_back_mutation_rate,  nonTM_back_mutation_rate : tuple
-            = random identity TM, random identity non-TM
-        """
+    subset_num: integer
+        currently not in use.
+
+    Returns
+    -------
+    TM_back_mutation_rate,  nonTM_back_mutation_rate : tuple
+        = random identity TM, random identity non-TM
+    """
 
     # extract aa pool and propensity for TM region in form of np.array
     TM_probtable = prob_table["TM"].dropna()
@@ -158,7 +142,7 @@ def cal_random_aa_ident(prob_table, ident=0.9, seq_len=10000, number_seq=500, su
     # count amino acid frequency for each position in a MSA
     cons_list = []
     for pos in tr_mat:
-        cons = count_aa_freq(pos)
+        cons = calc_aa_propensity(pos)
         cons_list.append(cons)
 
     # turn the list into a pd.DataFrame
@@ -209,7 +193,7 @@ def cal_random_aa_ident(prob_table, ident=0.9, seq_len=10000, number_seq=500, su
     # count amino acid frequency for each position in a MSA
     cons_list = []
     for pos in tr_mat:
-        cons = count_aa_freq(pos)
+        cons = calc_aa_propensity(pos)
         cons_list.append(cons)
 
     # turn the list into a pd.DataFrame
@@ -348,16 +332,6 @@ def cal_MSA_ident_n_factor(ident_tm, rand_tm, rand_ntm):
     TM_ident_n = ident_tm/n_factor
     return 'normalisation factor: %.3f' %n_factor, 'normalised overall TM identity: %.3f' %TM_ident_n
 
-
-
-test_aa_prop = cal_aa_propensity(df)
-print(test_aa_prop)
-
-test_aa_rand = cal_random_aa_ident(test_aa_prop,ident=0.95, seq_len=5000, number_seq=100)
-print(test_aa_rand)
-
-test_factor = cal_MSA_ident_n_factor(0.76, test_aa_rand[0],test_aa_rand[1])
-print(test_factor)
 
 
 

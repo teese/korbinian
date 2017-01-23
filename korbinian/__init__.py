@@ -9,3 +9,4 @@ import korbinian.simap_download
 import korbinian.simap_parse
 import korbinian.utils
 import korbinian.run_korbinian
+import korbinian.MSA_normalisation
