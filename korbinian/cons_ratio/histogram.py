@@ -130,3 +130,57 @@ def save_hist_AAIMON_ratio_single_protein (fig_nr, fig, axarr, df_cr, s, TMD, bi
         # delete temporory files
         os.remove(AAIMON_hist_path_prefix + '_%01d.png' % fig_nr)
         #os.remove(AAIMON_hist_path_prefix + '_%01d.pdf' % fig_nr)
+
+
+def save_scatter_AAIMON_ratio_norm_and_AAIMON_slope_single_protein (fig_nr, fig, axarr, df_cr, x_data, y_data, y_data_n, AAIMON_slope, AAIMON_n_slope,
+                                                                    TMD, zipout, row_nr, col_nr, fontsize, savefig, norm_scatter_path_prefix):
+    # define data to plot
+    datapointsize = 0.5
+    x_data_obs_changes = df_cr['obs_changes']
+    scatter_data_AAIMON = df_cr['%s_AAIMON_ratio'%TMD]
+    scatter_data_AAIMON_n = df_cr['%s_AAIMON_ratio_n'%TMD]
+
+
+    xlim_min = 0
+    xlim_max = 60
+
+    axarr[row_nr, col_nr].scatter(x_data_obs_changes, scatter_data_AAIMON, alpha=0.2, s=datapointsize)
+    axarr[row_nr, col_nr].scatter(x_data_obs_changes, scatter_data_AAIMON_n, color='red', marker='^', alpha=0.2, s=datapointsize)
+    axarr[row_nr, col_nr].plot(x_data, y_data, color="k", alpha=0.75)
+    axarr[row_nr, col_nr].plot(x_data, y_data_n, color="g", alpha=0.75)
+
+    axarr[row_nr, col_nr].set_ylabel('%s AAIMON' % TMD, rotation='vertical', fontsize=fontsize)
+    #axarr[row_nr, col_nr].set_xlabel('% identity')
+    axarr[row_nr, col_nr].set_ylim(0.2, 1.8)
+    axarr[row_nr, col_nr].annotate(s='AAIMON_slope: {a}\nAAIMON_n_slope {b}'.format(a=AAIMON_slope, b=AAIMON_n_slope), xy=(0.01, 1.01), xytext=None, xycoords='axes fraction', alpha=0.75, fontsize=fontsize)
+    #axarr[row_nr, col_nr].set_xticks(range(xlim_min,xlim_max+1,10))
+
+    if savefig:
+
+        # apply the following formatting changes to all plots in the figure
+        for ax in axarr.flat:
+            # set x-axis min
+            ax.set_xlim(xlim_min, xlim_max)
+            # set x-axis ticks
+            # use the slide selection to select every second item in the list as an xtick(axis label)
+            ax.set_xticks(range(xlim_min,xlim_max+1,10))
+            ax.set_xlabel('% observed changes', fontsize=fontsize)
+            # change axis font size
+            ax.tick_params(labelsize=fontsize)
+            # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
+            ax.legend(['AAIMON_slope', 'AAIMON_n_slope', 'AAIMON','AAIMON_n'],loc='upper right', fontsize=fontsize)
+            # add background grid
+            ax.grid(True, color='0.75', alpha=0.5)
+        # automatically tighten the layout of plots in the figure
+        fig.tight_layout()
+        # save files
+        fig.savefig(norm_scatter_path_prefix + '_%01d.png' % fig_nr,format='png', dpi=200)
+        # close figure
+        plt.close('all')
+        # add to zipfile
+        zipout.write(norm_scatter_path_prefix + '_%01d.png' % fig_nr,arcname=os.path.basename(norm_scatter_path_prefix) + '_%01d.png' % fig_nr)
+        # delete temporory files
+        os.remove(norm_scatter_path_prefix + '_%01d.png' % fig_nr)
+
+
+

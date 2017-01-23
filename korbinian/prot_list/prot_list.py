@@ -161,6 +161,7 @@ def setup_file_locations_in_df(s, pathdict):
 
     # create a basename for the output histograms
     df['AAIMON_hist_path_prefix'] = df.homol_base + '_AAIMON_hist'
+    df['norm_scatter_path_prefix'] = df.homol_base + '_norm_scatter'
 
     ########################################################################################
     #                                                                                      #

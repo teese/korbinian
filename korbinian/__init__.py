@@ -8,3 +8,4 @@ import korbinian.prot_list
 import korbinian.simap_download
 import korbinian.simap_parse
 import korbinian.utils
+import korbinian.run_korbinian

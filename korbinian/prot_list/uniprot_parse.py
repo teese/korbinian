@@ -264,9 +264,13 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
 
         ''' ~~   SLICE nonTMD sequence FROM UNIPROT SEQ    ~~ '''
         sys.stdout.write ('slicing nonTMD sequences:')
-        for acc in dfu.loc[dfu['list_of_TMDs'].notnull()].loc[dfu['list_of_TMDs'] != 'nan'].index:
-            sys.stdout.write('.')
-            sys.stdout.flush()
+        for n, acc in enumerate(dfu.loc[dfu['list_of_TMDs'].notnull()].index):
+            if n % 10 == 0:
+                sys.stdout.write('.')
+                sys.stdout.flush()
+                if n % 100 == 0:
+                    sys.stdout.write('\n')
+                    sys.stdout.flush()
             list_of_TMDs = ast.literal_eval(dfu.loc[acc, 'list_of_TMDs'])
             if 'SP01' in list_of_TMDs:
                 list_of_TMDs.remove('SP01')

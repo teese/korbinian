@@ -23,24 +23,10 @@ def gather_AAIMON_ratios(pathdict, logging, s):
             logging.info("{} Protein skipped. File does not exist".format(df.loc[acc, 'homol_cr_ratios_zip']))
             continue
         # open csv as pandas dataframe (note, it was originally a series, and contains only one column and an index)
+        # set delete_corrupt=True so that if the expected csv is not in the zip, the wholezipfile will be deleted
         mean_ser_filename = "{}_cr_mean.csv".format(protein_name)
-        mean_ser = utils.open_df_from_csv_zip(df.loc[acc, 'homol_cr_ratios_zip'], filename=mean_ser_filename)
+        mean_ser = utils.open_df_from_csv_zip(df.loc[acc, 'homol_cr_ratios_zip'], filename=mean_ser_filename, delete_corrupt=True)
         dfg = pd.concat([dfg,mean_ser], axis=1)
-
-# # more accurate version is now part of uniprot_parse.py
-# # nested tuples are derived by first homologue hit - not the best way
-#         # extract nested tuples for slicing nonTMD regions from _nonTMD_cr_df.pickle in cf_zip file
-#         protein_name = df.loc[acc, "protein_name"]
-#         homol_cr_ratios_zip = df.loc[acc, "homol_cr_ratios_zip"]
-#         nonTMD_cr_pickle = "{}_nonTMD_cr_df.pickle".format(protein_name)
-#         df_nonTMD = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, nonTMD_cr_pickle).reset_index(drop=True)
-#         df.loc[acc, 'nested_tuple_indices_all_nonTMD_regions'] = df_nonTMD.loc[0, 'nested_tuple_indices_all_nonTMD_regions']
-#         if not pd.isnull(df.loc[acc, 'nested_tuple_indices_all_nonTMD_regions']):
-#             df.loc[acc, 'nonTMD_seq_query'] = utils.slice_with_nested_tuple(df.loc[acc, 'full_seq'], df.loc[acc, 'nested_tuple_indices_all_nonTMD_regions'])
-#             df.loc[acc, 'len_nonTMD_query'] = len(df.loc[acc, 'nonTMD_seq_query'])
-#
-#     # save a copy of summary file
-#     df.copy().to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     # transpose dataframe dfg
     dfg = dfg.T
@@ -71,6 +57,9 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         dict_AAIMON_ratio_std_n = {}
         dict_AASMON_ratio_mean = {}
         dict_AASMON_ratio_std = {}
+        dict_AAIMON_slope_mean = {}
+        dict_AAIMON_n_slope_mean = {}
+        dict_TMD_perc_identity_mean_all_TMDs = {}
         for TMD in ast.literal_eval(dfg.loc[acc, 'list_of_TMDs']):
             dict_AAIMON_ratio_mean[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_mean' % TMD]
             dict_AAIMON_ratio_std[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_std' % TMD]
@@ -78,12 +67,19 @@ def gather_AAIMON_ratios(pathdict, logging, s):
             #dict_AAIMON_ratio_std_n[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_std_n' % TMD]
             dict_AASMON_ratio_mean[TMD] = dfg.loc[acc, '%s_AASMON_ratio_mean' % TMD]
             dict_AASMON_ratio_std[TMD] = dfg.loc[acc, '%s_AASMON_ratio_std' % TMD]
+            dict_AAIMON_slope_mean[TMD] = dfg.loc[acc, '%s_AAIMON_slope' %TMD]
+            dict_AAIMON_n_slope_mean[TMD] = dfg.loc[acc, '%s_AAIMON_n_slope' % TMD]
+            dict_TMD_perc_identity_mean_all_TMDs[TMD] = dfg.loc[acc, '%s_perc_ident_mean' % TMD]
+
         dfg.loc[acc, 'AAIMON_ratio_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_mean.values()))))
         dfg.loc[acc, 'AAIMON_ratio_mean_all_TMDs_n'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_mean_n.values()))))
         #dfg.loc[acc, 'AAIMON_ratio_std_all_TMDs_n'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_std_n.values()))))
         dfg.loc[acc, 'AAIMON_ratio_std_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_std.values()))))
         dfg.loc[acc, 'AASMON_ratio_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AASMON_ratio_mean.values()))))
         dfg.loc[acc, 'AASMON_ratio_std_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AASMON_ratio_std.values()))))
+        dfg.loc[acc, 'AAIMON_slope_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_slope_mean.values()))))
+        dfg.loc[acc, 'AAIMON_n_slope_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_n_slope_mean.values()))))
+        dfg.loc[acc, 'TMD_perc_identity_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_TMD_perc_identity_mean_all_TMDs.values()))))
 
         # count the number of TMDs for each protein
         dfg.loc[acc, 'number_of_TMDs'] = len(dfg.loc[acc, 'list_of_TMDs'].split(','))
@@ -144,7 +140,7 @@ def gather_AAIMON_ratios(pathdict, logging, s):
                 continue
             for TMD in ast.literal_eval(df.loc[acc, "list_of_TMDs"]):
                 # generate column names necessary for current file
-                columns = ['FASTA_gapped_identity', '{}_AAIMON_ratio'.format(TMD), '{}_AAIMON_ratio_n'.format(TMD)]
+                columns = ['obs_changes', '{}_AAIMON_ratio'.format(TMD), '{}_AAIMON_ratio_n'.format(TMD)]
                 TM_cr_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
                 # open dataframe  with function from korbinian, extract required columns, convert to np array
                 df_TMD = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, TM_cr_pickle)
@@ -160,25 +156,7 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         # drop every row with nan
         data = data[~np.isnan(data).any(axis=1)]
         # create real percentage values, multiply column 1 with 100
-        data[:, 0] = data[:, 0] * 100
-
-        # # filter dataframe by truncation ratio
-        # truncation_cutoff = pd.to_numeric(s['truncation_cutoff'])
-        # # initialise integer counter for dropped TMDs
-        # i = 0
-        # # initialise array for dropped and filtered data
-        # dropped_data = np.empty([0, 4])
-        # data_filt = np.empty([0, 4])
-        # # filter data
-        # for row in data:
-        #     sys.stdout.write('.')
-        #     sys.stdout.flush()
-        #     if row[1] >= truncation_cutoff:
-        #         data_filt = np.concatenate((data_filt, row.reshape(1, 4)))
-        #     else:
-        #         i += 1
-        #         dropped_data = np.concatenate((dropped_data, row.reshape(1, 4)))
-        # sys.stdout.write('\nNumber of dropped TMDs due to truncation cutoff: {}'.format(i))
+        #data[:, 0] = data[:, 0] * 100
 
         # create bins, calculate mean and 95% confidence interval
         sys.stdout.write('\nBinning data - calculating 95% confidence interval\n')
@@ -199,7 +177,7 @@ def gather_AAIMON_ratios(pathdict, logging, s):
                 conf_95 = sms.DescrStatsW(bin_for_mean[:, 1]).tconfint_mean()
                 # calculate 95% conf. interv. in bin _n
                 conf95_norm = sms.DescrStatsW(bin_for_mean[:, 2]).tconfint_mean()
-                mean_data_in_bin = np.array([percentage,
+                mean_data_in_bin = np.array([percentage - binwidth/2,
                                              # calculate mean in bin
                                              bin_for_mean[:, 1].mean(),
                                              # calculate mean in bin _n

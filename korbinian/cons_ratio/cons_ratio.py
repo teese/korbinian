@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 from multiprocessing import Pool
 import sys
+from scipy.optimize import leastsq
 
 def run_calculate_AAIMON_ratios(pathdict, s, logging):
     """Runs calculate_AAIMON_ratios for each protein, using multiprocessing Pool.
@@ -153,6 +154,9 @@ def calculate_AAIMON_ratios(p):
     #Calculate fasta values, add to mean_ser output series for each protein.
     # The mean fasta identity of homologues should almost always be around the centre of the min and max in the settings.
     mean_ser['FASTA_ident_mean'] = float('%0.2f' % dfh['FASTA_identity'].mean())
+    # add mean observed changes as a percentage value to mean_ser
+    mean_ser['obs_changes_mean'] = float('%0.2f' % dfh['obs_changes'].mean())
+
     # number of identical residues in each FASTA alignment can be calculated from identity and overlap
     dfh['FASTA_num_ident_res'] = dfh['FASTA_identity'] * dfh['FASTA_overlap']
     mean_ser['FASTA_num_ident_res_mean'] = float('%0.2f' % dfh['FASTA_num_ident_res'].mean())
@@ -257,28 +261,6 @@ def calculate_AAIMON_ratios(p):
             ## following the general filters, filter to only analyse sequences with TMD identity above cutoff, and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
             #df_cr = df_cr.loc[df_cr['%s_perc_ident' % TMD] >= s['cr_min_identity_of_TMD_initial_filter']]
 
-        # moved to utils - keep unfiltered data - filter can be applied without calculating AAIMONs afterwards
-
-            # ########################################################################################
-            # #                                                                                      #
-            # #                       remove homologues that were truncated                          #
-            # #                                                                                      #
-            # ########################################################################################
-            # nonTMD_truncation_cutoff = s['truncation_cutoff']
-            # if nonTMD_truncation_cutoff != 1:
-            #     list_of_hits_to_keep = []
-            #     list_of_hits_to_drop = []
-            #     for hit in df_cr.index:
-            #         if df_cr.loc[hit, 'truncation_ratio_nonTMD'] >= nonTMD_truncation_cutoff:
-            #             list_of_hits_to_keep.append(hit)
-            #         else:
-            #             list_of_hits_to_drop.append(hit)
-            #     # keep only hits that were not excluded due to truncation
-            #     df_cr = df_cr.loc[list_of_hits_to_keep, :]
-            #     sys.stdout.write('Truncated alignments; homologues dropped: {}/{}\n'.format(len(list_of_hits_to_drop), len(df_cr.index)))
-            # else:
-            #     sys.stdout.write('No filtering for truncated sequences \n')
-
             ########################################################################################
             #                                                                                      #
             #                       Calculate AAIMON, AASMON for each TMD                          #
@@ -289,31 +271,68 @@ def calculate_AAIMON_ratios(p):
             df_cr['norm_factor'] = dfh['norm_factor']
             df_cr['%s_AAIMON_ratio_n'%TMD] = df_cr['%s_AAIMON_ratio'%TMD] / df_cr['norm_factor']
             df_cr['FASTA_gapped_identity'] = dfh['FASTA_gapped_identity']
+            df_cr['obs_changes'] = dfh['obs_changes']
 
             list_of_AAIMON_all_TMD['%s_AAIMON_ratio'%TMD]= df_cr['%s_AAIMON_ratio'%TMD].dropna()
+
+            ########################################################################################
+            #                                                                                      #
+            #                       Calculate AAIMON_slope, AAIMON_n_slope                         #
+            #                                                                                      #
+            ########################################################################################
+            # drop every row (hit) in df_cr that contains NaN in column TMxy_AAIMON_ratio - important for line fit that can't handle NAN
+            df_cr = df_cr[np.isfinite(df_cr['%s_AAIMON_ratio'%TMD])]
+
+            # set up variables
+            # FASTA_gapped_identity_0_to_1 = df_cr['FASTA_gapped_identity']  # x-axis of plot
+            # # convert from 0.94 to 94%
+            # FASTA_gapped_identity = FASTA_gapped_identity_0_to_1 * 100
+
+            obs_changes = df_cr['obs_changes']
+            AAIMON = df_cr['%s_AAIMON_ratio'%TMD]            # y-axis
+            AAIMON_n = df_cr['%s_AAIMON_ratio_n'%TMD]        # y-axis
+
+            if len(obs_changes) == 0 or len(AAIMON) == 0:
+                # There is no gapped identity for these homologues, skip to next TMD
+                continue
+            # linear regression for non-norm. and norm. AAIMON with fixed 100% identity at AAIMON 1.0
+            AAIMON_slope, x_data, y_data = curve_fitting_fixed(obs_changes, AAIMON)
+            mean_ser['%s_AAIMON_slope' % TMD] = AAIMON_slope
+            AAIMON_n_slope, x_data_n, y_data_n = curve_fitting_fixed(obs_changes, AAIMON_n)
+            mean_ser['%s_AAIMON_n_slope' % TMD] = AAIMON_n_slope
+
+            # # linear regression for non-normalised AAIMON
+            # linear_regression_AAIMON = np.polyfit(FASTA_gapped_identity, AAIMON, 1)
+            # fit_fn_AAIMON = np.poly1d(linear_regression_AAIMON)
+            # fitted_data_AAIMON = fit_fn_AAIMON(FASTA_gapped_identity)
+            # mean_ser['%s_AAIMON_slope' %TMD] = linear_regression_AAIMON[0]
+            #
+            # # linear regression for normalised AAIMON
+            # linear_regression_AAIMON_n = np.polyfit(FASTA_gapped_identity, AAIMON_n, 1)
+            # fit_fn_AAIMON_n = np.poly1d(linear_regression_AAIMON_n)
+            # fitted_data_AAIMON_n = fit_fn_AAIMON_n(FASTA_gapped_identity)
+            # mean_ser['%s_AAIMON_n_slope' %TMD] = linear_regression_AAIMON_n[0]
 
             if '{TMD}_SW_match_seq_hydro'.format(TMD=TMD) not in df_cr.columns:
                 message = "{} {}_SW_match_seq_hydro not found in columns. Slice file is out of date and will be deleted.".format(acc, TMD)
                 os.remove(p['fa_cr_sliced_TMDs_zip'])
                 return acc, False, message
 
+            ###########################################################################
+            #                                                                         #
+            #       important if you want to filter for truncated alignments          #
+            #                             DO NOT DELETE!!!                            #
+            #                                                                         #
+            ###########################################################################
+            """
             # save the unfiltered dataframe for that TMD
             TM_cr_outfile_pickle = "{}_{}_cr_df_RAW.pickle".format(protein_name, TMD)
             with open(TM_cr_outfile_pickle, "wb") as f:
                 pickle.dump(df_cr, f, protocol=pickle.HIGHEST_PROTOCOL)
             zipout.write(TM_cr_outfile_pickle, arcname=TM_cr_outfile_pickle)
             os.remove(TM_cr_outfile_pickle)
+            """
 
-            # ########################################################################################
-            # #                                                                                      #
-            # #                       filter homologues that were truncated                          #
-            # #                                                                                      #
-            # ########################################################################################
-            # nonTMD_truncation_cutoff = s['truncation_cutoff']
-            # df_cr = utils.filter_for_truncated_sequences(nonTMD_truncation_cutoff, df_cr)
-            #
-            # save the unfiltered dataframe for that TMD a second time that it is possible to continue without 'run_filter_truncated_alignments'
-            # 'run_filter_truncated_alignments' will replace these saved pickles
             TM_cr_outfile_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
             with open(TM_cr_outfile_pickle, "wb") as f:
                 pickle.dump(df_cr, f, protocol=pickle.HIGHEST_PROTOCOL)
@@ -332,8 +351,10 @@ def calculate_AAIMON_ratios(p):
                 # number of homologues for TM01. since ALL TMDs have to be in each homologue before AAIMON is calculated, this number is the same for all TMDs
                 mean_ser['TM01_AAIMON_n_homol'] = df_cr['TM01_AAIMON_ratio'].dropna().shape[0]
 
-            logging.info('%s AAIMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean' % TMD]))
-            logging.info('%s AAIMON MEAN n %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean_n' % TMD]))
+            logging.info('%s AAIMON_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean' % TMD]))
+            logging.info('%s AAIMON_n_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean_n' % TMD]))
+            logging.info('%s AAIMON_slope %s: %0.5f' % (acc, TMD, mean_ser['%s_AAIMON_slope' % TMD]))
+            logging.info('%s AAIMON_n_slope %s: %0.5f' % (acc, TMD, mean_ser['%s_AAIMON_n_slope' % TMD]))
             # logging.info('%s AASMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AASMON_ratio_mean'%TMD]))
 
             # use the dictionary to obtain the figure number, plot number in figure, plot indices, etc
@@ -343,18 +364,26 @@ def calculate_AAIMON_ratios(p):
                 savefig = True
             # if a new figure should be created (either because the orig is full, or the last TMD is analysed)
             if newfig:
-                # create a new figure
-                fig, axarr = plt.subplots(nrows=nrows_in_each_fig,
-                                          ncols=ncols_in_each_fig)  # sharex=True
+                # create a new figure for histograms
+                fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig)  # sharex=True
+                # create a new figure for scatter plot
+                fig2, axarr2 = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig)  # sharex=True
 
             #" NOT STABLE! NEED TO CHANGE save_hist_AAIMON_ratio_single_protein SO THAT IT RUNS WITHIN THE FOR LOOP ABOVE, AND TAKES A SINGLE TMD AS INPUT, RATHER THAN LIST OF TMDS" / 4
             AAIMON_hist_path_prefix = p['AAIMON_hist_path_prefix']
+            norm_scatter_path_prefix = p['norm_scatter_path_prefix']
             ########################################################################################
             #                                                                                      #
             #       Save histograms for each TMD of that protein, with relative conservation       #
             #                                                                                      #
             ########################################################################################
+            if axarr is None:
+                # avoid bug where the axarr is still not created, as newfig was not True for first figure?
+                continue
+            # create histograms for this protein
             korbinian.cons_ratio.histogram.save_hist_AAIMON_ratio_single_protein(fig_nr, fig, axarr, df_cr, s, TMD, binarray, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix)
+            # create scatterplots for this protein
+            korbinian.cons_ratio.histogram.save_scatter_AAIMON_ratio_norm_and_AAIMON_slope_single_protein(fig_nr, fig2, axarr2, df_cr, x_data, y_data, y_data_n, AAIMON_slope, AAIMON_n_slope, TMD, zipout, row_nr, col_nr, fontsize, savefig, norm_scatter_path_prefix)
 
         ########################################################################################
         #                                                                                      #
@@ -366,10 +395,12 @@ def calculate_AAIMON_ratios(p):
         df_AAIMON_all_TMD['gapped_ident'] = dfh['FASTA_gapped_identity'].loc[df_AAIMON_all_TMD.index]
         df_AAIMON_all_TMD['norm_factor'] = dfh['norm_factor'].loc[df_AAIMON_all_TMD.index]
         df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol_n'] = df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'] / df_AAIMON_all_TMD['norm_factor']
-#        print(df_AAIMON_all_TMD)
-        korbinian.cons_ratio.norm.save_graph_for_normalized_AAIMON(acc,  df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'],
-                                                                     df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol_n'],
-                                                                     df_AAIMON_all_TMD['gapped_ident'], zipout, protein_name)
+
+        # # taken out by MO - figure replaced with plots for every single TMD
+        # korbinian.cons_ratio.norm.save_graph_for_normalized_AAIMON(acc,  df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'],
+        #                                                              df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol_n'],
+        #                                                              df_AAIMON_all_TMD['gapped_ident'], zipout, protein_name)
+
         # save the dataframe containing normalisation factor and normalised AAIMON to zipout
         df_AAIMON_all_TMD.to_csv(protein_name + '_AAIMON_all_TMD.csv')
         zipout.write(protein_name + '_AAIMON_all_TMD.csv', arcname=protein_name + '_AAIMON_all_TMD.csv')
@@ -389,7 +420,17 @@ def calculate_AAIMON_ratios(p):
 
 
 def throw_out_truncated_sequences(pathdict, s, logging):
-
+    '''
+    :param pathdict: dict
+        Dictionary of the key paths and files associated with that List number.
+    :param s:
+        Settings dictionary extracted from excel settings file.
+    :param logging: logging.Logger
+        Logger for printing to console and/or logfile.
+    :return:
+        returns an altered dataframe that does not contain the homologues that do not match the requirements for validated homologues
+        due to truncatiion of nonTMD sequence during local aligning of query and match sequence
+    '''
     logging.info('~~~~~~~~~~~~      starting run_filter_truncated_alignments        ~~~~~~~~~~~~')
     # if multiprocessing is used, log only to the console
     p_dict_logging = logging if s["use_multiprocessing"] != True else utils.Log_Only_To_Console()
@@ -435,7 +476,7 @@ def truncation_filter(p):
         # with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
         try:
             df_cr = pickle.load(zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED).open(in_file, "r"))
-            sys.stdout.write('%s: ' %uniprot_acc)
+            sys.stdout.write('{}, {}: ' .format(uniprot_acc, TMD))
             # filtering step
             df_cr = utils.filter_for_truncated_sequences(nonTMD_truncation_cutoff, df_cr)
             # save filtered dataframe to pickle
@@ -447,3 +488,35 @@ def truncation_filter(p):
         except:
             logging.info('pickle {} not found in zipfile - excluded'.format(in_file))
             pass
+
+
+
+##############################################################
+#                                                            #
+#       define functions for AAIMON_slope curve fitting      #
+#                                                            #
+##############################################################
+
+def residuals(constants, function, x, y):
+    """
+    Function used to optimise the fit of the curve to the data.
+    It calculates the distance between y-value from real data and y-value from the function (sigmoid/sine/etc).
+    """
+    return y - function(constants, x)
+
+def lin_AAIMON_slope_eq(a, x):
+    y = a * x + 1
+    return y
+
+def get_line_data_to_plot(a_constant, x_low=0, x_high=60):
+    y_low = lin_AAIMON_slope_eq(a_constant, x_low)
+    y_high = lin_AAIMON_slope_eq(a_constant, x_high)
+    x_data = np.array([x_low, x_high])
+    y_data = np.array([y_low, y_high])
+    AAIMON_at_80 = lin_AAIMON_slope_eq(a_constant, 80)
+    return x_data, y_data
+
+def curve_fitting_fixed(x_array, y_array, a_constant_guess = 0.1):
+    a_constant = leastsq(residuals, a_constant_guess, args = (lin_AAIMON_slope_eq, x_array, y_array))[0][0]
+    x_data, y_data = get_line_data_to_plot(a_constant)
+    return float(a_constant), x_data, y_data
