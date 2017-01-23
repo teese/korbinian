@@ -17,6 +17,7 @@ Further Details:For details regarding the java access to SIMAP, see here: E:\Ste
 import argparse
 import os
 import korbinian
+import ast
 
 # read the command line arguments
 parser = argparse.ArgumentParser()
@@ -33,7 +34,19 @@ if __name__ == "__main__":
     # args.s is the excel_settings_file input by the user
     # convert the excel settings file to a python dictionary, s
     s = korbinian.common.create_settingsdict(args.s)
-    list_number = s["protein_list_number"]
+
+    # distinguish between serial analysis of multiple lists or just one list
+    if not s['analyse_multiple_lists']:
+        list_number = s["protein_list_number"]
+        korbinian.run_korbinian.run_statements(s, list_number)
+    else:
+        multiple_lists_to_analyse = ast.literal_eval(s['multiple_lists_to_analyse'])
+        print ('\nmultiple lists activated! starting serial analysis of multiple lists!\n\nlists to analyse: {}\n\n'.format(multiple_lists_to_analyse))
+        for element in multiple_lists_to_analyse:
+            list_number = element
+            korbinian.run_korbinian.run_statements(s, list_number)
+
+def run_statements(s, list_number):
     # setup error logging
     logging = korbinian.common.setup_keyboard_interrupt_and_error_logging(s, list_number)
     # print the list number describing the protein list
@@ -175,5 +188,9 @@ if __name__ == "__main__":
         korbinian.cons_ratio.compare_lists.compare_rel_con_lists(pathdict, s, logging)
 
 
+    if s["run_keyword_analysis"]:
+        korbinian.cons_ratio.keywords.keyword_analysis(pathdict, s, logging)
+
+
     if s['send_email_when_finished']:
-        korbinian.utils.send_email_when_finished(s, pathdict)
+        korbinian.utils.send_email_when_finished(s, pathdict, list_number)

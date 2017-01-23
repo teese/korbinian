@@ -23,18 +23,25 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     print ('Preparing data for plotting', flush=True)
 
     backgroundcolour = '0.95'
-    plt.style.use('bmh')
+    plt.style.use('seaborn-whitegrid')
 
     # set default font size for plot
     fontsize = 8
     datapointsize = 8
-    alpha = 0.1
+    #alpha = 0.1
 
     '''Prepare data for the following plots'''
 
-    # open list_cr_summary_csv summary file
-    df = pd.read_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    # load cr_summary file
+    dfc = pd.read_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    # load summary file
+    dfu = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    # merge cr_summary and summary file, if columns are equal in both files, suffix _dfc will be added in cr_summary column names for backwards compatibility
+    df = pd.merge(dfc, dfu, left_index=True, right_index=True, suffixes=('_dfc', ''))
 
+    # create number of datapoint dependent alpha_dpd
+    alpha_dpd = utils.calc_alpha_from_datapoints(df['AAIMON_ratio_mean_all_TMDs'])
+    sys.stdout.write('oppacity of datapoints: {a:.2f}\n'.format(a=alpha_dpd))
     # filter to remove proteins that have less than ~5 homologues
     # this is only important for the beta-barrel dataset, which has a lot of these proteins!
     min_n_homol = s["min_n_homol_for_figs"]
@@ -136,9 +143,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                                           align='center', width=col_width, color="#0489B1",
                                           alpha=0.5)  # edgecolor='black',
         # create numpy array of normalised membranous over nonmembranous conservation ratios (identity)
-        hist_data_AAIMON_mean_n = np.array(df['AAIMON_ratio_mean_all_TMDs_n'].dropna())
+        hist_data_AAIMON_n_mean = np.array(df['AAIMON_ratio_mean_all_TMDs_n'].dropna())
         # use numpy to create a histogram
-        freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean_n, bins=binlist)
+        freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_n_mean, bins=binlist)
         # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
         col_width = float('%0.3f' % (0.95 * (bin_array_I[1] - bin_array_I[0])))
         # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
@@ -262,7 +269,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # pylab.rcParams['figure.figsize'] = (50.0, 40.0)
         x = np.array(df['AAIMON_ratio_mean_all_TMDs'])
         y = np.array(df['AASMON_ratio_mean_all_TMDs'])
-        scattercontainer_AAIMON_AASMON_mean = ax.scatter(x=x, y=y, color="#8A084B", alpha=alpha,
+        scattercontainer_AAIMON_AASMON_mean = ax.scatter(x=x, y=y, color="#8A084B", alpha=alpha_dpd,
                                                                             s=datapointsize)
         # label the x-axis for each plot, based on the TMD
         ax.set_xlabel('AAIMON_ratio (aa identity)', fontsize=fontsize)
@@ -291,7 +298,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         x = np.array(df['AAIMON_ratio_std_all_TMDs'])
         y = np.array(df['AASMON_ratio_std_all_TMDs'])
-        scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#B45F04", alpha=alpha,
+        scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#B45F04", alpha=alpha_dpd,
                                                                            s=datapointsize)
         # other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
         # http://html-color-codes.info/
@@ -333,7 +340,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         #     x = np.array(df['number_of_TMDs'])
         x = np.array(df['number_of_TMDs'])
         y = np.array(df['AAIMON_ratio_mean_all_TMDs'])
-        scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#0489B1", alpha=alpha,
+        scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#0489B1", alpha=alpha_dpd,
                                                                            s=datapointsize)
         # other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
         # http://html-color-codes.info/
@@ -367,7 +374,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # pylab.rcParams['figure.figsize'] = (100.0, 80.0)
         x = np.array(df['seqlen'])
         y = np.array(df['AAIMON_ratio_mean_all_TMDs'])
-        scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#0489B1", alpha=alpha,
+        scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#0489B1", alpha=alpha_dpd,
                                                                            s=datapointsize)
         # label the x-axis for each plot, based on the TMD
         ax.set_xlabel('Length of protein', fontsize=fontsize)
@@ -394,7 +401,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # pylab.rcParams['figure.figsize'] = (100.0, 80.0)
         x = np.array(df['nonTMD_SW_align_len_mean'])
         y = np.array(df['AAIMON_ratio_mean_all_TMDs'])
-        scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#0489B1", alpha=alpha,
+        scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#0489B1", alpha=alpha_dpd,
                                                                            s=datapointsize)
         # label the x-axis for each plot, based on the TMD
         ax.set_xlabel('Average length of nonTMD region in homologues', fontsize=fontsize)
@@ -425,13 +432,13 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # plot AAIMON
         x = np.array(df['TM01_AAIMON_n_homol']) # total_number_of_simap_hits can be replaced with TM01_AAIMON_n_homol
         y = np.array(df['AAIMON_ratio_mean_all_TMDs'])
-        scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#0489B1", alpha=alpha,
+        scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#0489B1", alpha=alpha_dpd,
                                                                            s=datapointsize)
 
         # plot AAIMON normalised
         x = np.array(df['TM01_AAIMON_n_homol']) # total_number_of_simap_hits can be replaced with TM01_AAIMON_n_homol
         y = np.array(df['AAIMON_ratio_mean_all_TMDs_n'])
-        scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#EE762C", alpha=alpha,
+        scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#EE762C", alpha=alpha_dpd,
                                                                            s=datapointsize)
         # label the x-axis for each plot, based on the TMD
         ax.set_xlabel('total number of homologues', fontsize=fontsize)
@@ -1632,6 +1639,131 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
+    if s['Fig24_Scatterplot_AAIMON_n_vs._AAIMON_n_slope']:
+        Fig_Nr = 24
+        title = 'AAIMON_n vs. AAIMON_n_slope'
+        Fig_name = 'Fig24_Scatterplot_AAIMON_n_vs._AAIMON_n_slope'
+        fig, ax = plt.subplots()
+
+        x = df['AAIMON_ratio_mean_all_TMDs_n']
+        y = df['AAIMON_n_slope_mean_all_TMDs']
+
+        # calculate linear regression for fitted line
+        linear_regression = np.polyfit(x, y, 1)
+        fit_fn = np.poly1d(linear_regression)
+        fitted_data_x = fit_fn(x)
+
+        ax.scatter(x, y, alpha=alpha_dpd, s=datapointsize)
+        ax.plot(x, fitted_data_x, alpha=0.75, color='k')
+        ax.set_ylabel('AAIMON_n_slope', rotation='vertical', fontsize=fontsize)
+        ax.set_xlabel('AAIMON_n', fontsize=fontsize)
+
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                    xycoords='axes fraction', alpha=0.75)
+        # add figure title to top left of subplot
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                    alpha=0.75)
+        ax.annotate(s='y = {a:.5f}x + {b:.5f}'.format(a=linear_regression[0], b=linear_regression[1]), xy=(0.85, 0.95), fontsize=fontsize-2, xytext=None, xycoords='axes fraction',
+                    alpha=0.75)
+        # change axis font size
+        ax.tick_params(labelsize=fontsize)
+
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
+
+    if s['Fig25_Scatterplot_AAIMON_n_vs_obs_changes_mean']:
+        Fig_Nr = 25
+        title = 'AAIMON_n  vs. obs_changes_mean'
+        Fig_name = 'Fig25_Scatterplot_AAIMON_n_vs_obs_changes_mean'
+        fig, ax = plt.subplots()
+
+        ax.scatter(df['obs_changes_mean'], df['AAIMON_ratio_mean_all_TMDs_n'], color='b', alpha=alpha_dpd, s=datapointsize)
+        ax.set_ylabel('AAIMON_n', rotation='vertical', fontsize=fontsize)
+        ax.set_xlabel('obs_changes_mean', fontsize=fontsize)
+
+        #ax2 = ax.twinx()
+        #ax2.scatter(df['obs_changes_mean'], df['AAIMON_ratio_mean_all_TMDs_n'], color="r", alpha=alpha_dpd, s=datapointsize)
+        #ax2.set_ylabel('AAIMON_n', rotation='vertical', color='r', fontsize=fontsize)
+
+        ax.set_xlim(0, 60)
+        ax.set_ylim(0.2, 1.8)
+        #ax2.set_ylim(0.4, 1.6)
+
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                    xycoords='axes fraction', alpha=0.75)
+        # add figure title to top left of subplot
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                    alpha=0.75)
+
+        # change axis font size
+        ax.tick_params(labelsize=fontsize)
+        #ax2.tick_params(labelsize=fontsize)
+
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
+    if s['Fig26_Scatterplot_AAIMON_n_slope_vs_obs_changes_mean']:
+        Fig_Nr = 26
+        title = 'AAIMON_n_slope  vs. obs_changes_mean'
+        Fig_name = 'Fig26_Scatterplot_AAIMON_n_slope_vs_obs_changes_mean'
+        fig, ax = plt.subplots()
+
+        ax.scatter(df['obs_changes_mean'], df['AAIMON_n_slope_mean_all_TMDs'], color="r", alpha=alpha_dpd, s=datapointsize)
+        ax.set_ylabel('AAIMON_n_slope', rotation='vertical', fontsize=fontsize)
+        ax.set_xlabel('obs_changes_mean', fontsize=fontsize)
+
+
+        ax.set_xlim(0, 60)
+        ax.set_ylim(-0.020, 0.020)
+        # ax2.set_ylim(0.4, 1.6)
+
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                    xycoords='axes fraction', alpha=0.75)
+        # add figure title to top left of subplot
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                    alpha=0.75)
+
+        # change axis font size
+        ax.tick_params(labelsize=fontsize)
+        # ax2.tick_params(labelsize=fontsize)
+
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
+    if s['Fig27_Scatterplot_perc_identity_nonTMD_vs_TMD']:
+        Fig_Nr = 27
+        title = 'perc identity all TMDs  vs. perc identity nonTMD'
+        Fig_name = 'Fig27_Scatterplot_perc_identity_nonTMD_vs_TMD'
+        fig, ax = plt.subplots()
+
+        x = df['TMD_perc_identity_mean_all_TMDs'] * 100
+        y = df['nonTMD_perc_ident_mean'] * 100
+
+        linear_regression = np.polyfit(x, y, 1)
+        fit_fn = np.poly1d(linear_regression)
+        fitted_data_x = fit_fn(x)
+
+        ax.scatter(x, y, s=datapointsize, alpha=alpha_dpd, color='r')
+        ax.plot(x, fitted_data_x, alpha=0.75, color='k')
+        ax.set_xlabel('TMD_perc_identity_all_TMDs', fontsize=fontsize)
+        ax.set_ylabel('nonTMD_perc_ident_mean', rotation='vertical', fontsize=fontsize)
+        ax.tick_params(labelsize=fontsize)
+        ax.set_xlim(40, 100)
+        ax.set_ylim(40, 100)
+
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                    xycoords='axes fraction', alpha=0.75)
+        # add figure title to top left of subplot
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                    alpha=0.75)
+        ax.annotate(s='y = {a:.5f}x + {b:.5f}'.format(a=linear_regression[0], b=linear_regression[1]), xy=(0.85, 0.95), fontsize=fontsize-2, xytext=None, xycoords='axes fraction',
+                    alpha=0.75)
+        # change axis font size
+        ax.tick_params(labelsize=fontsize)
+
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
+
+
+
     if s['Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins']:
         Fig_Nr = 98
         Fig_name = 'Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins'
@@ -1664,9 +1796,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         y = data[:, 1]  # AAIMON for each TMD
         ax.scatter(x=x, y=y, color=color_nonnorm, alpha=alpha, s=datapointsize)  # color="#003366" is TUM-blue
         plt.ylim(ymin=0, ymax=3)
-        plt.xlim(xmin=40, xmax=100)
+        plt.xlim(xmin=0, xmax=60)
         # label the x-axis for each plot, based on the TMD
-        ax.set_xlabel('% identity', fontsize=fontsize)
+        ax.set_xlabel('% observed changes', fontsize=fontsize)
         # move the x-axis label closer to the x-axis
         # ax.xaxis.set_label_coords(0.45, -0.085)
         ax.set_ylabel('AAIMON ratio', fontsize=fontsize)
@@ -1728,9 +1860,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # y = data[:,1] # AAIMON for each TMD
         # ax.scatter(x=x, y=y, color=color_nonnorm, alpha=alpha, s=datapointsize) # color="#003366" is TUM-blue
         plt.ylim(ymin=0.5, ymax=2)
-        plt.xlim(xmin=40, xmax=100)
+        plt.xlim(xmin=0, xmax=60)
         # label the x-axis for each plot, based on the TMD
-        ax.set_xlabel('% identity', fontsize=fontsize)
+        ax.set_xlabel('% observed changes', fontsize=fontsize)
         ax.set_ylabel('AAIMON ratio', fontsize=fontsize)
         # change axis font size
         ax.tick_params(labelsize=fontsize)

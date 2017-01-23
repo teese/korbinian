@@ -1249,7 +1249,7 @@ def save_df_to_csv_zip(df,out_zipfile,open_method="w"):
     # delete temporary csv file
     os.remove(temp_csv)
 
-def open_df_from_csv_zip(in_zipfile, filename=None):
+def open_df_from_csv_zip(in_zipfile, filename=None, delete_corrupt=False):
     """ Opens a pandas dataframe that is saved as a zipped csv (.csv.zip)
 
     Parameters
@@ -1268,18 +1268,53 @@ def open_df_from_csv_zip(in_zipfile, filename=None):
     -------
     Much faster than reading from excel.
     """
+    # create bool deciding whether zip file will be deleted
+    deletezip = False
     if os.path.isfile(in_zipfile):
-        with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
-            if filename == None:
-                # if a filename is not given, open the first file in the list
-                filename = openzip.namelist()[0]
-            # open the file
-            csv_file_handle = openzip.open(filename)
-            # read as pandas dataframe
-            df = pd.read_csv(csv_file_handle, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+        try:
+            with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
+                filenamelist = openzip.namelist()
+                if filename is None:
+                    # if a filename is not given, open the first file in the list
+                    for file_in_zip in filenamelist:
+                        if file_in_zip[-4:] == ".csv":
+                            filename = file_in_zip
+                            # stop searching after finding the first csv file
+                            break
+                    if filename is None:
+                        # code should only continue here if no csv files found
+                        # if the zipfile doesn't contain ANY csv files, something is seriously wrong. Either delete or raise Error.
+                        if delete_corrupt == True:
+                            deletezip = True
+                            df_loaded = pd.DataFrame()
+                        else:
+                            raise FileNotFoundError("{} does not contain a valid csv file".format(in_zipfile))
+                if filename is not None:
+                    # if a filename is available, check if the file is in the zip
+                    if filename in filenamelist:
+                        csv_file_handle = openzip.open(filename)
+                        # read as pandas dataframe
+                        df_loaded = pd.read_csv(csv_file_handle, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+                    else:
+                        # the desired file is not in the zip. Either delete the zip, or return an empty dataframe.
+                        if delete_corrupt == True:
+                            deletezip = True
+                        else:
+                            df_loaded = pd.DataFrame()
+        except zipfile.BadZipFile:
+            # the desired file is not in the zip. Either delete the zip, or return an empty dataframe.
+            if delete_corrupt == True:
+                deletezip = True
+            else:
+                df_loaded = pd.DataFrame()
     else:
         raise FileNotFoundError("{} not found".format(in_zipfile))
-    return df
+    if deletezip:
+        logging.info("{} does not contain expected pickle file {}. File is old or damaged, and has been deleted".format(in_zipfile, filename))
+        os.remove(in_zipfile)
+        df_loaded = pd.DataFrame()
+    return df_loaded
+
 
 def open_df_from_pickle_zip(in_zipfile, filename=None, delete_corrupt=False):
     """ Opens a pandas dataframe that is saved as a zipped pickle file (.pickle.zip)
@@ -1306,19 +1341,28 @@ def open_df_from_pickle_zip(in_zipfile, filename=None, delete_corrupt=False):
         try:
             with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
                 filenamelist = openzip.namelist()
-                if filename == None:
+                if filename is None:
                     # if a filename is not given, open the first file in the list
                     for file_in_zip in filenamelist:
                         if file_in_zip[-7:] == ".pickle":
                             filename = file_in_zip
                             # pickle is found, stop searching
                             break
+                    if filename is None:
+                        # code should only continue here if no pickle files found
+                        # if the zipfile doesn't contain ANY pickle files, something is seriously wrong. Either delete or raise Error.
+                        if delete_corrupt == True:
+                            deletezip = True
+                            df_loaded = pd.DataFrame()
+                        else:
+                            raise FileNotFoundError("{} does not contain a valid pickle file".format(in_zipfile))
+
                 if filename is not None:
                     # if a filename is available, check if the file is in the zip
                     if  filename in filenamelist:
-                        csv_file_handle = openzip.open(filename)
+                        pickle_file_handle = openzip.open(filename)
                         # read as pandas dataframe
-                        df_loaded = pickle.load(csv_file_handle)
+                        df_loaded = pickle.load(pickle_file_handle)
                         # make sure that the pickled object was REALLY a pandas object, and not some other python datatype that was pickled.
                         assert isinstance(df_loaded, (pd.Series, pd.DataFrame))
                     else:
@@ -1327,12 +1371,6 @@ def open_df_from_pickle_zip(in_zipfile, filename=None, delete_corrupt=False):
                             deletezip = True
                         else:
                             df_loaded = pd.DataFrame()
-                else:
-                    # if the zipfile doesn't contain ANY pickle files, something is seriously wrong. Either delete or raise Error.
-                    if delete_corrupt == True:
-                        deletezip = True
-                    else:
-                        raise FileNotFoundError("{} does not contain a valid pickle file".format(in_zipfile))
         except zipfile.BadZipFile:
             # the desired file is not in the zip. Either delete the zip, or return an empty dataframe.
             if delete_corrupt == True:
@@ -1441,7 +1479,10 @@ def save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi = 400, clo
     if save_png:
         fig.savefig(os.path.join(base_filepath, '{a}.png'.format(a=Fig_name)), format='png', dpi=dpi)
     if save_pdf:
-        fig.savefig(os.path.join(base_filepath, '{a}.pdf'.format(a=Fig_name)), format='pdf')
+        base_filepath_pdf = os.path.join(base_filepath, 'pdf')
+        if not os.path.exists(base_filepath_pdf):
+            os.makedirs(base_filepath_pdf)
+        fig.savefig(os.path.join(base_filepath_pdf, '{a}.pdf'.format(a=Fig_name)), format='pdf')
     # close any open figures
     if close == True:
         plt.close('all')
@@ -1460,7 +1501,7 @@ def convert_summary_csv_to_input_list(s, pathdict, logging, list_excluded_acc=No
     # open dataframe with list of proteins
     df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     # exclude any proteins where there is no list_of_TMDs
-    df = df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan']
+    df = df.loc[df['list_of_TMDs'].notnull()]
     # add the accession
     df["acc"] = df.index
 
@@ -1504,7 +1545,7 @@ def get_list_failed_downloads(pathdict):
                 acc_list_failed_downloads.append(line)
     return acc_list_failed_downloads
 
-def send_email_when_finished(s, pathdict):
+def send_email_when_finished(s, pathdict, list_number):
     """ Sends an email to specified address when job is finished
 
     Parameters
@@ -1542,7 +1583,11 @@ def send_email_when_finished(s, pathdict):
     msg['To'] = toaddr
     msg['Subject'] = "korbinian run is finished"
 
-    body = '{a}\n\n processed list: {b}'.format(a=s['email_message'], b=s['protein_list_number'])
+    if s['multiple_lists_to_analyse']:
+        body = '{a}\n\nmultiple lists activated! lists to analyse: {c}\nprocessed list: {b}'.format(a=s['email_message'], b=list_number, c=s['multiple_lists_to_analyse'])
+
+    else:
+        body = '{a}\n\n processed list: {b}'.format(a=s['email_message'], b=list_number)
     msg.attach(MIMEText(body, 'plain'))
 
     #filename = "Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins_lowres.png"
@@ -1553,7 +1598,6 @@ def send_email_when_finished(s, pathdict):
         if settings_parameter[-5:] == "email":
             if s[settings_parameter] == True:
                 email_fig_list.append(settings_parameter)
-    print("email_fig_list", email_fig_list)
 
     if email_fig_list != []:
         for email_fig in email_fig_list:
@@ -1574,7 +1618,7 @@ def send_email_when_finished(s, pathdict):
     text = msg.as_string()
     server.sendmail(fromaddr, toaddr, text)
     server.quit()
-    sys.stdout.write('Email sent to {}'.format(toaddr))
+    sys.stdout.write('Email sent to {}\n'.format(toaddr))
 
 def filter_for_truncated_sequences(nonTMD_truncation_cutoff, df_cr):
     if nonTMD_truncation_cutoff != 1:
@@ -1592,3 +1636,12 @@ def filter_for_truncated_sequences(nonTMD_truncation_cutoff, df_cr):
     else:
         sys.stdout.write('nonTMD_truncation_cutoff = 1 ; no filtering for truncated sequences \n')
     return df_cr
+
+def calc_alpha_from_datapoints(data):
+    if len(data) > 500:
+        alpha = 500 / len(data) - 0.1
+        if alpha < 0.1:
+            alpha = 0.1
+    else:
+        alpha = 0.9
+    return float(alpha)

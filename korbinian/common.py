@@ -221,6 +221,8 @@ def create_pathdict(base_filename_summaries):
     pathdict["gap_fastagap_all_pos_pickle"] = '%s_gap_all_pos.pickle' % base_filename_summaries
     pathdict["single_list_fig_path"] = '%s_figs' %base_filename_summaries
     pathdict["save_df_characterising_each_homol_TMD"] = '%s_characterising_each_homol_TMD.zip' % base_filename_summaries
+    pathdict["list_keywords_csv"] = '%s_keywords.csv' % base_filename_summaries
+    pathdict["figs_keywords"] = '%s_keywords_histograms' % base_filename_summaries
 
 
     """OUTPUT FILES FOR OLD SCRIPTS"""
