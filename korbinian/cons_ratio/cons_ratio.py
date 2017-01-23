@@ -65,7 +65,8 @@ def calculate_AAIMON_ratios(p):
                 Settings dictionary extracted from excel settings file.
             logging : logging.Logger
                 Logger for printing to console and/or logfile.
-                If multiprocessing == True, logging.info etc will only print to console.
+                If multiprocessing == Tr
+                ue, logging.info etc will only print to console.
             p : protein-specific dictionary components
                 acc, list_of_TMDs, description, TM01_seq, etc
 
