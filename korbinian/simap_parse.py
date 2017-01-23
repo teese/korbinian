@@ -9,6 +9,7 @@ import korbinian
 import korbinian.utils as utils
 import sys
 import zipfile
+import xml
 from multiprocessing import Pool
 
 def run_parse_simap_to_csv(pathdict, s, logging):
@@ -168,7 +169,8 @@ def parse_SIMAP_to_csv(p):
             #check if output file already exists
             if os.path.isfile(p['homol_df_orig_zip']):
                 try:
-                    dfs_test = utils.open_df_from_csv_zip(p['homol_df_orig_zip'])
+                    # open up the csv as a dataframe. Delete the zip file if a csv is not found.
+                    dfs_test = utils.open_df_from_csv_zip(p['homol_df_orig_zip'], delete_corrupt=True)
                     description_of_first_hit = dfs_test.loc[1, 'description']
                     logging.info('Protein %s: homologues already converted to csv. (%s)' % (p["acc"], description_of_first_hit))
                     create_homol_csv = False
@@ -185,10 +187,15 @@ def parse_SIMAP_to_csv(p):
             #extract the tarfile so that it can be read as xml
             with tarfile.open(p['SIMAP_tar'], 'r:gz') as tar:
                 SIMAP_homologues_XML_file_extracted = tar.extractfile(homol_xml_filename)
-
-                #parse_uniprot the XML file with elementtree, define the 'root' of the XML file
-                simap_homologue_tree = ET.parse(SIMAP_homologues_XML_file_extracted)
-                simap_homologue_root = simap_homologue_tree.getroot()
+                try:
+                    #parse_uniprot the XML file with elementtree, define the 'root' of the XML file
+                    simap_homologue_tree = ET.parse(SIMAP_homologues_XML_file_extracted)
+                    simap_homologue_root = simap_homologue_tree.getroot()
+                except xml.etree.ElementTree.ParseError:
+                    message = "{} contains xml file that gives a ParseError. " \
+                              "In the future, file may be automatically deleted.".format(p['homol_df_orig_zip'])
+                    logging.info(message)
+                    return acc, False, message
 
                 try:
                     error = simap_homologue_root[0][0][1][0].text
