@@ -73,7 +73,7 @@ def calc_AAIMON_aa_prop_norm_factor(aa_ident, rand_TM, rand_nonTM):
     # visible, as it has mutated to the same amino acid.
     real_changes_TM = observed_changes / (1 - rand_TM)
     real_changes_nonTM = observed_changes / (1 - rand_nonTM)
-    # calculation of the unobse rved changes (difference between observed and real changes)
+    # calculation of the unobserved changes (difference between observed and real changes)
     unobserved_changes_TM = real_changes_TM - observed_changes
     unobserved_changes_nonTM = real_changes_nonTM - observed_changes
     # calculation of real conservation (observed conservation - unobserved changes)
