@@ -193,4 +193,4 @@ def run_statements(s, list_number):
 
 
     if s['send_email_when_finished']:
-        korbinian.utils.send_email_when_finished(s, pathdict)
+        korbinian.utils.send_email_when_finished(s, pathdict, list_number)

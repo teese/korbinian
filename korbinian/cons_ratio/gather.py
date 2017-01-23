@@ -58,6 +58,7 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         dict_AASMON_ratio_std = {}
         dict_AAIMON_slope_mean = {}
         dict_AAIMON_n_slope_mean = {}
+        dict_TMD_perc_identity_mean_all_TMDs = {}
         for TMD in ast.literal_eval(dfg.loc[acc, 'list_of_TMDs']):
             dict_AAIMON_ratio_mean[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_mean' % TMD]
             dict_AAIMON_ratio_std[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_std' % TMD]
@@ -67,6 +68,7 @@ def gather_AAIMON_ratios(pathdict, logging, s):
             dict_AASMON_ratio_std[TMD] = dfg.loc[acc, '%s_AASMON_ratio_std' % TMD]
             dict_AAIMON_slope_mean[TMD] = dfg.loc[acc, '%s_AAIMON_slope' %TMD]
             dict_AAIMON_n_slope_mean[TMD] = dfg.loc[acc, '%s_AAIMON_n_slope' % TMD]
+            dict_TMD_perc_identity_mean_all_TMDs[TMD] = dfg.loc[acc, '%s_perc_ident_mean' % TMD]
 
         dfg.loc[acc, 'AAIMON_ratio_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_mean.values()))))
         dfg.loc[acc, 'AAIMON_ratio_mean_all_TMDs_n'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_mean_n.values()))))
@@ -76,6 +78,7 @@ def gather_AAIMON_ratios(pathdict, logging, s):
         dfg.loc[acc, 'AASMON_ratio_std_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AASMON_ratio_std.values()))))
         dfg.loc[acc, 'AAIMON_slope_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_slope_mean.values()))))
         dfg.loc[acc, 'AAIMON_n_slope_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_n_slope_mean.values()))))
+        dfg.loc[acc, 'TMD_perc_identity_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_TMD_perc_identity_mean_all_TMDs.values()))))
 
         # count the number of TMDs for each protein
         dfg.loc[acc, 'number_of_TMDs'] = len(dfg.loc[acc, 'list_of_TMDs'].split(','))
