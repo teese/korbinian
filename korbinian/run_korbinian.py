@@ -35,16 +35,15 @@ if __name__ == "__main__":
     # convert the excel settings file to a python dictionary, s
     s = korbinian.common.create_settingsdict(args.s)
 
-    # distinguish between serial analysis of multiple lists or just one list
-    if not s['analyse_multiple_lists']:
-        list_number = s["protein_list_number"]
+    protein_list_number = ast.literal_eval(str(s['protein_list_number']))
+    if type(protein_list_number) is int:
+        list_number = protein_list_number
         korbinian.run_korbinian.run_statements(s, list_number)
     else:
-        multiple_lists_to_analyse = ast.literal_eval(s['multiple_lists_to_analyse'])
-        print ('\nmultiple lists activated! starting serial analysis of multiple lists!\n\nlists to analyse: {}\n\n'.format(multiple_lists_to_analyse))
-        for element in multiple_lists_to_analyse:
-            list_number = element
+        print('\nmultiple lists entered! starting serial analysis of multiple lists!\n\nlists to analyse: {}\n\n'.format(protein_list_number))
+        for list_number in protein_list_number:
             korbinian.run_korbinian.run_statements(s, list_number)
+            print('\n\n~~~~~~~~~~~~         List {} finished           ~~~~~~~~~~~~\n\n'.format(list_number))
 
 def run_statements(s, list_number):
     # setup error logging
