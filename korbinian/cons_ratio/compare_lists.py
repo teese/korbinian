@@ -51,14 +51,14 @@ def compare_rel_con_lists(pathdict, s, logging):
     df_list_excluding_AAIMON_ones = []
     for dfl in df_list:
         # count numbers of each AAIMON ratio
-        vc_AAIMON = dfl.AAIMON_ratio_mean_all_TMDs.value_counts()
-        # replace dfl with a filtered dataframe, with all rows excluded where AAIMON_ratio_mean_all_TMDs is 1.000000
+        vc_AAIMON = dfl.AAIMON_mean_all_TMDs.value_counts()
+        # replace dfl with a filtered dataframe, with all rows excluded where AAIMON_mean_all_TMDs is 1.000000
         if 1.000000 in vc_AAIMON:
             num_proteins_with_AAIMON_of_ONE = vc_AAIMON[1.000000]
-            total_num_prot_with_data = len(dfl['AAIMON_ratio_mean_all_TMDs'].dropna())
+            total_num_prot_with_data = len(dfl['AAIMON_mean_all_TMDs'].dropna())
             logging.info('num_proteins_with_AAIMON_of_ONE in orig dataframe : %i from %i total' % (
             num_proteins_with_AAIMON_of_ONE, total_num_prot_with_data))
-            dfl = dfl.loc[dfl['AAIMON_ratio_mean_all_TMDs'] != 1.000000]
+            dfl = dfl.loc[dfl['AAIMON_mean_all_TMDs'] != 1.000000]
         df_list_excluding_AAIMON_ones.append(dfl)
     df_list = df_list_excluding_AAIMON_ones
 
@@ -95,7 +95,7 @@ def compare_rel_con_lists(pathdict, s, logging):
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
 
     for n, dfl in enumerate(df_list):
-        data_column = 'AAIMON_ratio_mean_all_TMDs'
+        data_column = 'AAIMON_mean_all_TMDs'
         color = TUM_colours_list_with_greys[n + 2]  # "#0489B1"
         alpha = 0.7
         col_width_value = 0.95
@@ -368,7 +368,7 @@ def compare_rel_con_lists(pathdict, s, logging):
                                      fig_nr=fig_nr, fontsize=fontsize)
 
     Fig_Nr = Fig_Nr + 1
-    title = 'TM01_AAIMON_ratio_mean'
+    title = 'TM01_AAIMON_mean'
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     # if the plot is the last one, the figure should be saved
     # if a new figure should be created (either because the orig is full, or the last TMD is analysed)
@@ -379,7 +379,7 @@ def compare_rel_con_lists(pathdict, s, logging):
         fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig, dpi=300)  # sharex=True
 
     for n, dfl in enumerate(df_list):
-        data_column = 'TM01_AAIMON_ratio_mean'
+        data_column = 'TM01_AAIMON_mean'
         color = TUM_colours_list_with_greys[n + 2]  # "#0489B1"
         alpha = 0.7
         col_width_value = 0.95
@@ -610,15 +610,15 @@ def compare_rel_con_lists(pathdict, s, logging):
         utils.save_fig_with_subplots(fig=fig, axarr=axarr, base_filename=base_filename_summ_two_lists,
                                      fig_nr=fig_nr, fontsize=fontsize)
     logging.info('A10_compare_lists is finished')
-    logging.info('df1 AAIMON_ratio_mean_all_TMDs : %0.5f' % df_list[0]['AAIMON_ratio_mean_all_TMDs'].mean())
+    logging.info('df1 AAIMON_mean_all_TMDs : %0.5f' % df_list[0]['AAIMON_mean_all_TMDs'].mean())
     logging.info('df1 AASMON_ratio_mean_all_TMDs : %0.5f' % df_list[0]['AASMON_ratio_mean_all_TMDs'].mean())
-    logging.info('df2 AAIMON_ratio_mean_all_TMDs : %0.5f' % df_list[1]['AAIMON_ratio_mean_all_TMDs'].mean())
+    logging.info('df2 AAIMON_mean_all_TMDs : %0.5f' % df_list[1]['AAIMON_mean_all_TMDs'].mean())
     logging.info('df2 AASMON_ratio_mean_all_TMDs : %0.5f' % df_list[1]['AASMON_ratio_mean_all_TMDs'].mean())
     if len(df_list) > 2:
-        logging.info('df3 AAIMON_ratio_mean_all_TMDs : %0.5f' % df_list[2]['AAIMON_ratio_mean_all_TMDs'].mean())
+        logging.info('df3 AAIMON_mean_all_TMDs : %0.5f' % df_list[2]['AAIMON_mean_all_TMDs'].mean())
         logging.info('df3 AASMON_ratio_mean_all_TMDs : %0.5f' % df_list[2]['AASMON_ratio_mean_all_TMDs'].mean())
     if len(df_list) > 3:
-        logging.info('df4 AAIMON_ratio_mean_all_TMDs : %0.5f' % df_list[3]['AAIMON_ratio_mean_all_TMDs'].mean())
+        logging.info('df4 AAIMON_mean_all_TMDs : %0.5f' % df_list[3]['AAIMON_mean_all_TMDs'].mean())
         logging.info('df4 AASMON_ratio_mean_all_TMDs : %0.5f' % df_list[3]['AASMON_ratio_mean_all_TMDs'].mean())
 
     '''
@@ -650,7 +650,7 @@ def compare_rel_con_lists(pathdict, s, logging):
         print(
             "dfl%i\nAverage AAIMON ratio all TMDs = %0.3f\nAverage len TMD = %0.2f\nAverage len full sequence = %0.2f\nAverage TMD proportion = %0.4f (%0.2f%%)\nAverage proportion JM (3aa each side) = %0.4f (%0.2f%%)\nAverage proportion JM (6aa each side) = %0.4f (%0.2f%%)" % (
                 n,
-                dfl['AAIMON_ratio_mean_all_TMDs'].mean(),
+                dfl['AAIMON_mean_all_TMDs'].mean(),
                 dfl.len_all_TMD_region.mean(),
                 dfl.len_query_align_seq.mean(),
                 dfl['ratio_len_all_TMD_to_seqlen'].mean(),

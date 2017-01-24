@@ -4,6 +4,7 @@ import numpy as np
 import string
 import numpy
 import random
+import sys
 
 ############################################################################################
 #                                                                                          #
@@ -12,7 +13,7 @@ import random
 #                                                                                          #
 ############################################################################################
 
-def cal_aa_propensity_TM_nonTM(df, TM_col='TM01_seq', nonTM_col='nonTMD_seq'):
+def calc_aa_propensity_TM_nonTM(df, TM_col='TM01_seq', nonTM_col='nonTMD_seq'):
     """Calculation of amino acid propensity for TM and non-TM region in dataset.
 
     Parameters
@@ -29,21 +30,21 @@ def cal_aa_propensity_TM_nonTM(df, TM_col='TM01_seq', nonTM_col='nonTMD_seq'):
     """
 
     # create a string to hold all TM segments from all proteins
-    massive_string_tm = ""
+    massive_string_TM = ""
     for seq in df[TM_col]:
         if type(seq) == str:
-            massive_string_tm += seq
+            massive_string_TM += seq
 
     # create a string to hold all non-TM segments from all proteins
-    massive_string_ntm = ""
+    massive_string_nonTM = ""
     for seq in df[nonTM_col]:
         if type(seq) == str:
-            massive_string_ntm += seq
+            massive_string_nonTM += seq
 
     # calculate aa propensity in TM region
-    TM_aa_propensity_ser = calc_aa_propensity(massive_string_tm)
+    TM_aa_propensity_ser = calc_aa_propensity(massive_string_TM)
     # calculate aa propensity in non-TM region
-    nonTM_aa_propensity_ser = calc_aa_propensity(massive_string_ntm)
+    nonTM_aa_propensity_ser = calc_aa_propensity(massive_string_nonTM)
     # merge the two table into one dataframe
     aa_propensity_TM_nonTM_df = pd.concat([TM_aa_propensity_ser, nonTM_aa_propensity_ser], axis=1)
     # rename the columns to match the content, with the orig name plus "amino acid propensity"
@@ -89,7 +90,7 @@ def calc_aa_propensity(seq):
     return aa_prop_norm_ser
 
 
-def cal_random_aa_ident(aa_prop_ser, ident=0.9, seq_len=10000, number_seq=500, subset_num=12):
+def calc_random_aa_ident(aa_prop_ser, seq_len=1000, number_seq=1000, ident=0.7):
     """Calculation of random amino acid identity based on a particular amino acid propensity.
 
     Protein regions with a limited aa propensity (e.g. transmembrane regions) have a measurable amino
@@ -98,11 +99,13 @@ def cal_random_aa_ident(aa_prop_ser, ident=0.9, seq_len=10000, number_seq=500, s
 
     Parameters
     ----------
-    prob_table : pd.DataFrame
-        aa propensity for TM and non-TM region. obtained from the function cal_aa_propensity
+    aa_prop_ser : pd.Series
+        aa propensity for a particular sequenc or dataset.
+        pandas series with all 20 aa as the index, and a proportion (0.08, 0.09 etc) as the data.
+        Typically obtained from the function calc_aa_propensity
 
     ident: float
-        overall identity of randomly created sequence cluster. Default value: 0.9
+        desired overall identity of randomly created sequence matrix.
 
     seq_len: integer
         length of randomly created sequences. To achieve a more plausible result using randomisation method,
@@ -116,8 +119,9 @@ def cal_random_aa_ident(aa_prop_ser, ident=0.9, seq_len=10000, number_seq=500, s
 
     Returns
     -------
-    TM_back_mutation_rate,  nonTM_back_mutation_rate : tuple
-        = random identity TM, random identity non-TM
+    random_aa_identity : float
+        random identity due to limited aa propensity
+        effectively the average back mutation rate for all amino acids
     """
     # extract aa array and propensity array
     aa_propensities = np.array(aa_prop_ser)
@@ -127,7 +131,7 @@ def cal_random_aa_ident(aa_prop_ser, ident=0.9, seq_len=10000, number_seq=500, s
     number_mutations = int(np.round(seq_len*(1 - ident)))
 
     # generate random sequences, extract the original reference sequence and the sequence cluster
-    orig_and_mut_seqs = generate_ran_seq(seq_len, number_seq, number_mutations, aa_arr, aa_propensities)
+    orig_and_mut_seqs = generate_random_seq(seq_len, number_seq, number_mutations, aa_arr, aa_propensities)
     # extract the original sequence, of which the matrix are variants
     orig_seq = orig_and_mut_seqs[0]
     aa_prop_orig_seq = calc_aa_propensity(orig_seq)
@@ -136,25 +140,36 @@ def cal_random_aa_ident(aa_prop_ser, ident=0.9, seq_len=10000, number_seq=500, s
     # extract the matrix of mutated sequences, slightly different from the orig_seq
     mut_seqs_matrix = orig_and_mut_seqs[1]
     # make a list of residues in each position (each column in MSA)
-    nested_list_of_columnwise_strings = []
+    list_of_columnwise_strings = []
     for i in range(mut_seqs_matrix.shape[1]):
-        string_joined_aa_at_that_pos = "".join(mut_seqs_matrix[:, i])
-        nested_list_of_columnwise_strings.append(string_joined_aa_at_that_pos)
+        """ joins up everything in column
+        orig seq : G   I   L   I
+        mut1       G   I   L   I
+        mut2       G   V   L   I
+        mut3       G   I   L   P
 
-    #print("\nmut_seqs_matrix\n", mut_seqs_matrix)
+        G : GGG
+        I : IVI
+        L : LLL
+        etc.
+        """
+        # takes one column, joins all aa into a single string
+        string_joined_aa_at_that_pos = "".join(mut_seqs_matrix[:, i])
+        # adds that string to a list
+        list_of_columnwise_strings.append(string_joined_aa_at_that_pos)
 
     # count amino acid frequency for each position in a MSA
     columnwise_aa_propensities_df = pd.DataFrame()
 
-    # iterate through each aa in orig sequence
+    # iterate through length of orig_seq
     for n in range(seq_len):
         # in the matrix, the amino acids at that positions can be extracted from the nested list created previously
-        string_aa_in_matrix_at_that_pos = nested_list_of_columnwise_strings[n]
+        string_aa_in_matrix_at_that_pos = list_of_columnwise_strings[n]
         # create a series of amino acid propensities from that nested list (of course, mostly the aa is the original one)
         aa_prop_ser = calc_aa_propensity(string_aa_in_matrix_at_that_pos)
-        # add the amino acid propensities as a new column in the dataframe, with the orig_aa as the column name
+        # add the amino acid propensities as a new column in the dataframe, with the orig_aa number as the column name
         columnwise_aa_propensities_df[n] = aa_prop_ser
-
+    # replace the orig_aa numbers as column names with the orig_aa itself
     columnwise_aa_propensities_df.columns = list(orig_seq)
     """
     columnwise_aa_propensities_df
@@ -204,37 +219,37 @@ def cal_random_aa_ident(aa_prop_ser, ident=0.9, seq_len=10000, number_seq=500, s
     observed_mean_cons_rate_all_pos = np.array(all_perc_orig_aa_in_matrix_list).mean()
     # calculate the random identity in TM region in form of back mutation" rate", which represents the fraction of mutation which have
     # resulted in the same aa residue as in the original reference sequence
-    back_mutation_rate = (observed_mean_cons_rate_all_pos - ident ) / (1 - ident)
-    return back_mutation_rate
+    random_aa_identity = (observed_mean_cons_rate_all_pos - ident ) / (1 - ident)
+    return random_aa_identity
 
 
-def generate_ran_seq(seq_len, number_seq, number_mutations, aa_pool, aa_probabilities):
+def generate_random_seq(seq_len, number_seq, number_mutations, list_all_20_aa, probabilities_all_20_aa):
     """Generation of sequence cluster using randomisation method
 
     Parameters
     ----------
-    seq_len: integer
+    seq_len: int
         length of randomly created sequences. To achieve a more plausible result using randomisation method,
         greater values (> 5000) are recommended. Defalut value: 10,000
 
-    number_seq: integer
+    number_seq: int
         number of aligned sequences. Larger values are recommended. Default value: 500
 
-    number_mutations: integer
-        number of residues that will be randomly replaced in a sequence. precalculated in the function cal_random_aa_ident
+    number_mutations: int
+        number of residues that will be randomly replaced in a sequence. precalculated in the function calc_random_aa_ident
 
-    subset_num: integer
+    subset_num: int
         currently not in use.
 
-    aa_pool: np.array
+    list_all_20_aa: np.array
         array of amino acid from which residues will be chosen randomly to create a sequence or to replace a residue
 
-    aa_probabilities: np.array
+    probabilities_all_20_aa: np.array
         array of propensities. The order should match that of the amino acid in aa_ppol
 
     Returns
     -------
-    ori_seq: string
+    ori_seq: str
         original sequence as reference
 
     seq_matrix: np.array
@@ -242,33 +257,43 @@ def generate_ran_seq(seq_len, number_seq, number_mutations, aa_pool, aa_probabil
     """
 
     # seq_list = []
-    # sublist = ''.join(np.random.choice(aa_pool, p=aa_probabilities) for _ in range(subset_num))
+    # sublist = ''.join(np.random.choice(list_all_20_aa, p=probabilities_all_20_aa) for _ in range(subset_num))
     # subdict = { my_key: prob_table[my_key] for my_key in sublist }
     # pick_list = []
     # for key, prob in subdict.items():
     #    pick_list.extend([key] * int((prob * 100)))
 
     # generate a reference sequence based on the aa propensity of TM or non-TM region
-    ori_seq = "".join(np.random.choice(aa_pool, p=aa_probabilities) for _ in range(int(seq_len)))
+
+    orig_seq = "".join(np.random.choice(list_all_20_aa, p=probabilities_all_20_aa) for _ in range(int(seq_len)))
 
     # generate sequence cluster by randomly replacing predetermined number of residues in reference seq
     seq_matrix = []
     # firstly, choose a set of positions whoose aa will be replaced
     for n in range(number_seq):
-        inds = [i for i, _ in enumerate(ori_seq) if not ori_seq.isspace()]
-        sam = random.sample(inds, number_mutations)
-        lst = list(ori_seq)
+        if n % 10 == 0:
+            sys.stdout.write(".")
+            if n !=0 and n % 300 == 0:
+                sys.stdout.write(" please have patience, I'm still calculating \n")
+        sys.stdout.flush()
+
+        # create indices (list of positions)
+        inds = list(range(seq_len))
+        # number of mutations is calculated beforehand. E.g. if ident=0.9, seqlen=100, number_mutations = 10)
+        # create a sample of positions to mutate, e.g. [77, 81, 18, 46, 42, 53, 65, 2, 89, 69, ..... and so on
+        list_of_aa_positions_to_be_mutated = random.sample(inds, number_mutations)
+        orig_seq_as_list = list(orig_seq)
         # based on aa propensity, replace the residue at each chosen position
-        for ind in sam:
-            lst[ind] = np.random.choice(aa_pool, p=aa_probabilities)
-        new_seq = "".join(lst)
+        for pos in list_of_aa_positions_to_be_mutated:
+            orig_seq_as_list[pos] = np.random.choice(list_all_20_aa, p=probabilities_all_20_aa)
+        seq_incl_mutations = "".join(orig_seq_as_list)
 
         # append each new sequence to the seq_matrix
-        seq_matrix.append(list(new_seq))
+        seq_matrix.append(list(seq_incl_mutations))
 
     seq_matrix = np.array(seq_matrix)
 
-    return ori_seq, seq_matrix
+    return orig_seq, seq_matrix
 
 
 ############################################################################################
@@ -278,19 +303,35 @@ def generate_ran_seq(seq_len, number_seq, number_mutations, aa_pool, aa_probabil
 #                                                                                          #
 ############################################################################################
 
-def cal_MSA_ident_n_factor(ident_tm, rand_tm, rand_ntm):
+def calc_MSA_ident_n_factor(observed_perc_ident_full_seq, rand_perc_ident_TM, rand_perc_ident_nonTM, proportion_seq_TM_residues=0.3):
     """Calculation of the MSA identity normalisation factor
+
+
+
+    For this formula, we assume most proteins are multi-pass, and that approximately 30% of the
+    residues are TM residues. Therefore a rand_30TM_70nonTM can be calculated, that roughly
+    gives the random identity for the full protein.
+
+    rand_30TM_70nonTM = 0.3 * rand_perc_ident_TM + 0.7 * rand_perc_ident_nonTM
 
     Parameters
     ----------
-    ident_tm: float
+    observed_perc_ident_full_seq: float
         the observed average identity of TM region in your MSA which needs to be normalised
 
-    rand_tm: float
-        random identity in TM region, calculated based on your dataset using radomisation method (cal_random_aa_ident)
+    rand_perc_ident_TM: float
+        random identity in TM region, calculated based on your dataset using radomisation method (calc_random_aa_ident)
 
-    rand_ntm: float
-        random identity in non-TM region, calculated based on your dataset using radomisation method (cal_random_aa_ident)
+    rand_perc_ident_nonTM: float
+        random identity in non-TM region, calculated based on your dataset using radomisation method (calc_random_aa_ident)
+
+    proportion_seq_TM_residues : float
+        proportion of the sequence length that is the TM region
+        To roughly calculate the observed percentage identity of the TM region from the full percentage
+        identity, it is necessary to estimate the percentage length of the TM region.
+        For the single-pass human dataset this is 0.0681 (6.8% TM region)
+        For the multi-pass human dataset this is 0.330 (34% TM region)
+        For the non-redundant beta-barrel dataset this is 0.348 (35% TM region)
 
     Returns
     -------
@@ -301,25 +342,92 @@ def cal_MSA_ident_n_factor(ident_tm, rand_tm, rand_ntm):
         normalised TM identity for MSA
 
     Example:
-    observed average ident_tm = 0,78, rand_tm = 0.126, rand_ntm = 0.059
-    calculated real_cons = 0.748
-    calculated ident_ntm = 0.763
+    observed_perc_ident_TM = 0,78, rand_perc_ident_TM = 0.126, rand_perc_ident_nonTM = 0.059
+    calculated real_perc_identity = 0.748
+    calculated observed_perc_ident_nonTM = 0.763
     calculated n_factor = 0.78/0.763 = 1.022
     """
+    # calculate proportion of length of full sequence that is nonTM
+    proportion_seq_nonTM_residues = 1 - proportion_seq_TM_residues
+    # random percentage identity of the full protein, assuming 30% TM region and 70% nonTM region
+    rand_perc_ident_full_protein = proportion_seq_TM_residues * rand_perc_ident_TM + proportion_seq_nonTM_residues * rand_perc_ident_nonTM
 
     # calculation of real conservation rate based on the random identity in TM region
-    real_cons = (ident_tm - rand_tm)/(1 - rand_tm)
+    # solved for R from observed_perc_ident_full_seq = real_perc_identity + (1-real_perc_identity)*rand_perc_ident_full_protein
+    # as usual, we assume that the unobserved conservation is a proportion of the observed_changes (i.e. (1-real_perc_identity))
+    # and that this proportion is exactly the rand_perc_ident_full_protein * real_changes
+    real_perc_identity = (observed_perc_ident_full_seq - rand_perc_ident_full_protein)/(1 - rand_perc_ident_full_protein)
 
-    # calculation of the observed conservation in non-TM region
-    ident_ntm = (1 - real_cons)*rand_ntm + real_cons
+    # from the estimated real_perc_identity of the full protein, calculate the observed percentage identity for the TM region
+    observed_perc_ident_TM = (1 - real_perc_identity)*rand_perc_ident_TM + real_perc_identity
+    # from the estimated real_perc_identity of the full protein, calculate the observed percentage identity for the nonTM region
+    observed_perc_ident_nonTM = (1 - real_perc_identity)*rand_perc_ident_nonTM + real_perc_identity
 
     #calculation of normalisation factor
-    n_factor = ident_tm/ident_ntm
+    # for randomised sequences, the aa propensity is the ONLY factor giving an effect
+    # therefore the ratio of the observed identities gives the normalisation factor
+    MSA_TM_nonTM_aa_ident_norm_factor = observed_perc_ident_TM/observed_perc_ident_nonTM
 
-    # normalise the TM identity
-    TM_ident_n = ident_tm/n_factor
-    return 'normalisation factor: %.3f' %n_factor, 'normalised overall TM identity: %.3f' %TM_ident_n
+    #sys.stdout.write('\nnormalisation factor: %.3f' %MSA_TM_nonTM_aa_ident_norm_factor)
 
+    return MSA_TM_nonTM_aa_ident_norm_factor
 
+def OLD_calc_MSA_ident_n_factor(observed_perc_ident_TM, rand_perc_ident_TM, rand_perc_ident_nonTM):
+    """Calculation of the MSA identity normalisation factor
 
+    To roughly calculate the observed percentage identity of the TM region from the full percentage
+    identity, it is necessary to estimate the percentage length of the TM region.
+    For the single-pass human dataset this is 0.0681 (6.8% TM region)
+    For the multi-pass human dataset this is 0.330 (34% TM region)
+    For the non-redundant beta-barrel dataset this is 0.348 (35% TM region)
 
+    For this formula, we assume most proteins are multi-pass, and that approximately 30% of the
+    residues are TM residues. Therefore a rand_30TM_70nonTM can be calculated, that roughly
+    gives the random identity for the full protein.
+
+    rand_30TM_70nonTM = 0.3 * rand_perc_ident_TM + 0.7 * rand_perc_ident_nonTM
+
+    Parameters
+    ----------
+    observed_perc_ident_full_seq: float
+        the observed average identity of TM region in your MSA which needs to be normalised
+
+    rand_perc_ident_TM: float
+        random identity in TM region, calculated based on your dataset using radomisation method (calc_random_aa_ident)
+
+    rand_perc_ident_nonTM: float
+        random identity in non-TM region, calculated based on your dataset using radomisation method (calc_random_aa_ident)
+
+    Returns
+    -------
+    n_factor: float
+        normalisation factor which will be applied to your observed TM identity
+
+    TM_ident_n: float
+        normalised TM identity for MSA
+
+    Example:
+    observed_perc_ident_TM = 0,78, rand_perc_ident_TM = 0.126, rand_perc_ident_nonTM = 0.059
+    calculated real_perc_identity = 0.748
+    calculated observed_perc_ident_nonTM = 0.763
+    calculated n_factor = 0.78/0.763 = 1.022
+    """
+    # calculation of real conservation rate based on the random identity in TM region
+    # solved for R from observed_perc_ident_full_seq = real_perc_identity + (1-real_perc_identity)*rand_perc_ident_full_protein
+    # as usual, we assume that the unobserved conservation is a proportion of the observed_changes (i.e. (1-real_perc_identity))
+    # and that this proportion is exactly the rand_perc_ident_full_protein * real_changes
+    real_perc_identity_TM = (observed_perc_ident_TM - rand_perc_ident_TM)/(1 - rand_perc_ident_TM)
+
+    # # from the estimated real_perc_identity of the full protein, calculate the observed percentage identity for the TM region
+    # observed_perc_ident_TM = (1 - real_perc_identity_TM)*rand_perc_ident_TM + real_perc_identity_TM
+    # from the estimated real_perc_identity of the full protein, calculate the observed percentage identity for the nonTM region
+    observed_perc_ident_nonTM = (1 - real_perc_identity_TM)*rand_perc_ident_nonTM + real_perc_identity_TM
+
+    #calculation of normalisation factor
+    # for randomised sequences, the aa propensity is the ONLY factor giving an effect
+    # therefore the ratio of the observed identities gives the normalisation factor
+    MSA_TM_nonTM_aa_ident_norm_factor = observed_perc_ident_TM/observed_perc_ident_nonTM
+
+    #sys.stdout.write('\nnormalisation factor: %.3f' %MSA_TM_nonTM_aa_ident_norm_factor)
+
+    return MSA_TM_nonTM_aa_ident_norm_factor
