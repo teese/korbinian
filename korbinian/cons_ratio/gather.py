@@ -9,8 +9,8 @@ import pickle
 import sys
 import zipfile
 
-def gather_AAIMON_ratios(pathdict, logging, s):
-    logging.info("~~~~~~~~~~~~         starting gather_AAIMON_ratios           ~~~~~~~~~~~~")
+def gather_AAIMONs(pathdict, logging, s):
+    logging.info("~~~~~~~~~~~~         starting gather_AAIMONs           ~~~~~~~~~~~~")
     df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
 
     dfg = pd.DataFrame()
@@ -39,42 +39,42 @@ def gather_AAIMON_ratios(pathdict, logging, s):
     # calculate mean AAIMON for all TMDs
     for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
 
-        # dict_AAIMON_ratio_mean = {}
+        # dict_AAIMON_mean = {}
         # for TMD in ast.literal_eval(dfg.loc[acc, 'list_of_TMDs']):
-        #     dict_AAIMON_ratio_mean[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_mean' % TMD]
-        # dfg.loc[acc, 'AAIMON_ratio_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_mean.values()))))
+        #     dict_AAIMON_mean[TMD] = dfg.loc[acc, '%s_AAIMON_mean' % TMD]
+        # dfg.loc[acc, 'AAIMON_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_mean.values()))))
         #
         # # calculate mean normalised AAIMON_n for all TMDs
-        # dict_AAIMON_ratio_mean_n = {}
+        # dict_AAIMON_mean_n = {}
         # for TMD in ast.literal_eval(dfg.loc[acc, 'list_of_TMDs']):
-        #     dict_AAIMON_ratio_mean_n[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_mean_n' % TMD]
-        # dfg.loc[acc, 'AAIMON_ratio_mean_all_TMDs_n'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_mean_n.values()))))
+        #     dict_AAIMON_mean_n[TMD] = dfg.loc[acc, '%s_AAIMON_mean_n' % TMD]
+        # dfg.loc[acc, 'AAIMON_mean_all_TMDs_n'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_mean_n.values()))))
 
         # CODE COPIED FROM FIGS.PY
-        dict_AAIMON_ratio_mean = {}
-        dict_AAIMON_ratio_std = {}
-        dict_AAIMON_ratio_mean_n = {}
-        dict_AAIMON_ratio_std_n = {}
+        dict_AAIMON_mean = {}
+        dict_AAIMON_std = {}
+        dict_AAIMON_mean_n = {}
+        dict_AAIMON_std_n = {}
         dict_AASMON_ratio_mean = {}
         dict_AASMON_ratio_std = {}
         dict_AAIMON_slope_mean = {}
         dict_AAIMON_n_slope_mean = {}
         dict_TMD_perc_identity_mean_all_TMDs = {}
         for TMD in ast.literal_eval(dfg.loc[acc, 'list_of_TMDs']):
-            dict_AAIMON_ratio_mean[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_mean' % TMD]
-            dict_AAIMON_ratio_std[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_std' % TMD]
-            dict_AAIMON_ratio_mean_n[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_mean_n' % TMD]
-            #dict_AAIMON_ratio_std_n[TMD] = dfg.loc[acc, '%s_AAIMON_ratio_std_n' % TMD]
+            dict_AAIMON_mean[TMD] = dfg.loc[acc, '%s_AAIMON_mean' % TMD]
+            dict_AAIMON_std[TMD] = dfg.loc[acc, '%s_AAIMON_std' % TMD]
+            dict_AAIMON_mean_n[TMD] = dfg.loc[acc, '%s_AAIMON_mean_n' % TMD]
+            #dict_AAIMON_std_n[TMD] = dfg.loc[acc, '%s_AAIMON_std_n' % TMD]
             dict_AASMON_ratio_mean[TMD] = dfg.loc[acc, '%s_AASMON_ratio_mean' % TMD]
             dict_AASMON_ratio_std[TMD] = dfg.loc[acc, '%s_AASMON_ratio_std' % TMD]
             dict_AAIMON_slope_mean[TMD] = dfg.loc[acc, '%s_AAIMON_slope' %TMD]
             dict_AAIMON_n_slope_mean[TMD] = dfg.loc[acc, '%s_AAIMON_n_slope' % TMD]
             dict_TMD_perc_identity_mean_all_TMDs[TMD] = dfg.loc[acc, '%s_perc_ident_mean' % TMD]
 
-        dfg.loc[acc, 'AAIMON_ratio_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_mean.values()))))
-        dfg.loc[acc, 'AAIMON_ratio_mean_all_TMDs_n'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_mean_n.values()))))
-        #dfg.loc[acc, 'AAIMON_ratio_std_all_TMDs_n'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_std_n.values()))))
-        dfg.loc[acc, 'AAIMON_ratio_std_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_ratio_std.values()))))
+        dfg.loc[acc, 'AAIMON_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_mean.values()))))
+        dfg.loc[acc, 'AAIMON_mean_all_TMDs_n'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_mean_n.values()))))
+        #dfg.loc[acc, 'AAIMON_std_all_TMDs_n'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_std_n.values()))))
+        dfg.loc[acc, 'AAIMON_std_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_std.values()))))
         dfg.loc[acc, 'AASMON_ratio_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AASMON_ratio_mean.values()))))
         dfg.loc[acc, 'AASMON_ratio_std_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AASMON_ratio_std.values()))))
         dfg.loc[acc, 'AAIMON_slope_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_slope_mean.values()))))
@@ -140,7 +140,7 @@ def gather_AAIMON_ratios(pathdict, logging, s):
                 continue
             for TMD in ast.literal_eval(df.loc[acc, "list_of_TMDs"]):
                 # generate column names necessary for current file
-                columns = ['obs_changes', '{}_AAIMON_ratio'.format(TMD), '{}_AAIMON_ratio_n'.format(TMD)]
+                columns = ['obs_changes', '{}_AAIMON'.format(TMD), '{}_AAIMON_n'.format(TMD)]
                 TM_cr_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
                 # open dataframe  with function from korbinian, extract required columns, convert to np array
                 df_TMD = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, TM_cr_pickle)
@@ -213,5 +213,5 @@ def gather_AAIMON_ratios(pathdict, logging, s):
             zipout.write('binned_data_characterising_each_homol_TMD.pickle', arcname='binned_data_characterising_each_homol_TMD.pickle')
             os.remove('binned_data_characterising_each_homol_TMD.pickle')
 
-    logging.info("\n~~~~~~~~~~~~        gather_AAIMON_ratios is finished         ~~~~~~~~~~~~")
+    logging.info("\n~~~~~~~~~~~~        gather_AAIMONs is finished         ~~~~~~~~~~~~")
 

@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 
-def save_hist_AAIMON_ratio_single_protein (fig_nr, fig, axarr, df_cr, s, TMD, binarray, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix):
+def save_hist_AAIMON_single_protein (fig_nr, fig, axarr, df_cr, s, TMD, binarray, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix):
     """Save histogram showing the AAIMON ratio for homologues of a single TMD, for a single protein.
 
     Parameters
@@ -52,7 +52,7 @@ def save_hist_AAIMON_ratio_single_protein (fig_nr, fig, axarr, df_cr, s, TMD, bi
     #df_cr_filt_AAIMON = df_cr_filt.loc[df_cr['%s_perc_ident'%TMD] >= min_identity_of_TMD_initial_filter]
 
     # create numpy array of membranous over nonmembranous conservation ratios (identity)
-    hist_data_I = np.array(df_cr['%s_AAIMON_ratio'%TMD].dropna())
+    hist_data_I = np.array(df_cr['%s_AAIMON'%TMD].dropna())
     # use numpy to create a histogram
     freq_counts, bin_array = np.histogram(hist_data_I, bins=binarray)
     # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
@@ -70,7 +70,7 @@ def save_hist_AAIMON_ratio_single_protein (fig_nr, fig, axarr, df_cr, s, TMD, bi
 #                                               alpha=0.5)  # edgecolor='black',
 
     # create linegraph for AAIMON after correction
-    hist_data_N = np.array(df_cr['%s_AAIMON_ratio_n' % TMD].dropna())
+    hist_data_N = np.array(df_cr['%s_AAIMON_n' % TMD].dropna())
     # use numpy to create a histogram
     freq_counts, bin_array = np.histogram(hist_data_N, bins=binarray)
     # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
@@ -132,13 +132,13 @@ def save_hist_AAIMON_ratio_single_protein (fig_nr, fig, axarr, df_cr, s, TMD, bi
         #os.remove(AAIMON_hist_path_prefix + '_%01d.pdf' % fig_nr)
 
 
-def save_scatter_AAIMON_ratio_norm_and_AAIMON_slope_single_protein (fig_nr, fig, axarr, df_cr, x_data, y_data, y_data_n, AAIMON_slope, AAIMON_n_slope,
+def save_scatter_AAIMON_norm_and_AAIMON_slope_single_protein (fig_nr, fig, axarr, df_cr, x_data, y_data, y_data_n, AAIMON_slope, AAIMON_n_slope,
                                                                     TMD, zipout, row_nr, col_nr, fontsize, savefig, norm_scatter_path_prefix):
     # define data to plot
     datapointsize = 0.5
     x_data_obs_changes = df_cr['obs_changes']
-    scatter_data_AAIMON = df_cr['%s_AAIMON_ratio'%TMD]
-    scatter_data_AAIMON_n = df_cr['%s_AAIMON_ratio_n'%TMD]
+    scatter_data_AAIMON = df_cr['%s_AAIMON'%TMD]
+    scatter_data_AAIMON_n = df_cr['%s_AAIMON_n'%TMD]
 
 
     xlim_min = 0

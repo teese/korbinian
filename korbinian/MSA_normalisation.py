@@ -4,6 +4,7 @@ import numpy as np
 import string
 import numpy
 import random
+import sys
 
 ############################################################################################
 #                                                                                          #
@@ -89,7 +90,7 @@ def calc_aa_propensity(seq):
     return aa_prop_norm_ser
 
 
-def cal_random_aa_ident(aa_prop_ser, ident=0.9, seq_len=10000, number_seq=500, subset_num=12):
+def cal_random_aa_ident(aa_prop_ser, seq_len=1000, number_seq=1000, ident=0.7):
     """Calculation of random amino acid identity based on a particular amino acid propensity.
 
     Protein regions with a limited aa propensity (e.g. transmembrane regions) have a measurable amino
@@ -98,11 +99,13 @@ def cal_random_aa_ident(aa_prop_ser, ident=0.9, seq_len=10000, number_seq=500, s
 
     Parameters
     ----------
-    prob_table : pd.DataFrame
-        aa propensity for TM and non-TM region. obtained from the function cal_aa_propensity
+    aa_prop_ser : pd.Series
+        aa propensity for a particular sequenc or dataset.
+        pandas series with all 20 aa as the index, and a proportion (0.08, 0.09 etc) as the data.
+        Typically obtained from the function calc_aa_propensity
 
     ident: float
-        overall identity of randomly created sequence cluster. Default value: 0.9
+        desired overall identity of randomly created sequence matrix.
 
     seq_len: integer
         length of randomly created sequences. To achieve a more plausible result using randomisation method,
@@ -116,8 +119,9 @@ def cal_random_aa_ident(aa_prop_ser, ident=0.9, seq_len=10000, number_seq=500, s
 
     Returns
     -------
-    TM_back_mutation_rate,  nonTM_back_mutation_rate : tuple
-        = random identity TM, random identity non-TM
+    random_aa_identity : float
+        random identity due to limited aa propensity
+        effectively the average back mutation rate for all amino acids
     """
     # extract aa array and propensity array
     aa_propensities = np.array(aa_prop_ser)
@@ -146,15 +150,15 @@ def cal_random_aa_ident(aa_prop_ser, ident=0.9, seq_len=10000, number_seq=500, s
     # count amino acid frequency for each position in a MSA
     columnwise_aa_propensities_df = pd.DataFrame()
 
-    # iterate through each aa in orig sequence
+    # iterate through length of orig_seq
     for n in range(seq_len):
         # in the matrix, the amino acids at that positions can be extracted from the nested list created previously
         string_aa_in_matrix_at_that_pos = nested_list_of_columnwise_strings[n]
         # create a series of amino acid propensities from that nested list (of course, mostly the aa is the original one)
         aa_prop_ser = calc_aa_propensity(string_aa_in_matrix_at_that_pos)
-        # add the amino acid propensities as a new column in the dataframe, with the orig_aa as the column name
+        # add the amino acid propensities as a new column in the dataframe, with the orig_aa number as the column name
         columnwise_aa_propensities_df[n] = aa_prop_ser
-
+    # replace the orig_aa numbers as column names with the orig_aa itself
     columnwise_aa_propensities_df.columns = list(orig_seq)
     """
     columnwise_aa_propensities_df
@@ -204,8 +208,8 @@ def cal_random_aa_ident(aa_prop_ser, ident=0.9, seq_len=10000, number_seq=500, s
     observed_mean_cons_rate_all_pos = np.array(all_perc_orig_aa_in_matrix_list).mean()
     # calculate the random identity in TM region in form of back mutation" rate", which represents the fraction of mutation which have
     # resulted in the same aa residue as in the original reference sequence
-    back_mutation_rate = (observed_mean_cons_rate_all_pos - ident ) / (1 - ident)
-    return back_mutation_rate
+    random_aa_identity = (observed_mean_cons_rate_all_pos - ident ) / (1 - ident)
+    return random_aa_identity
 
 
 def generate_ran_seq(seq_len, number_seq, number_mutations, aa_pool, aa_probabilities):
@@ -255,6 +259,11 @@ def generate_ran_seq(seq_len, number_seq, number_mutations, aa_pool, aa_probabil
     seq_matrix = []
     # firstly, choose a set of positions whoose aa will be replaced
     for n in range(number_seq):
+        if n % 10 == 0:
+            sys.stdout.write(".")
+            if n !=0 and n % 300 == 0:
+                sys.stdout.write(" please have patience, I'm still calculating \n")
+        sys.stdout.flush()
         inds = [i for i, _ in enumerate(ori_seq) if not ori_seq.isspace()]
         sam = random.sample(inds, number_mutations)
         lst = list(ori_seq)
@@ -306,7 +315,6 @@ def cal_MSA_ident_n_factor(ident_tm, rand_tm, rand_ntm):
     calculated ident_ntm = 0.763
     calculated n_factor = 0.78/0.763 = 1.022
     """
-
     # calculation of real conservation rate based on the random identity in TM region
     real_cons = (ident_tm - rand_tm)/(1 - rand_tm)
 
@@ -316,9 +324,9 @@ def cal_MSA_ident_n_factor(ident_tm, rand_tm, rand_ntm):
     #calculation of normalisation factor
     n_factor = ident_tm/ident_ntm
 
-    # normalise the TM identity
-    TM_ident_n = ident_tm/n_factor
-    return 'normalisation factor: %.3f' %n_factor, 'normalised overall TM identity: %.3f' %TM_ident_n
+    #sys.stdout.write('\nnormalisation factor: %.3f' %n_factor)
+
+    return n_factor
 
 
 

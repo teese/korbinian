@@ -56,30 +56,30 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     '''
     # iterate through the proteins that have a list of TMDs
     for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
-        dict_AAIMON_ratio_mean = {}
-        dict_AAIMON_ratio_std = {}
+        dict_AAIMON_mean = {}
+        dict_AAIMON_std = {}
         dict_AASMON_ratio_mean = {}
         dict_AASMON_ratio_std = {}
         for TMD in ast.literal_eval(df.loc[acc, 'list_of_TMDs']):
-            dict_AAIMON_ratio_mean[TMD] = df.loc[acc, '%s_AAIMON_ratio_mean'%TMD]
-            dict_AAIMON_ratio_std[TMD] = df.loc[acc, '%s_AAIMON_ratio_std'%TMD]
+            dict_AAIMON_mean[TMD] = df.loc[acc, '%s_AAIMON_mean'%TMD]
+            dict_AAIMON_std[TMD] = df.loc[acc, '%s_AAIMON_std'%TMD]
             dict_AASMON_ratio_mean[TMD] = df.loc[acc, '%s_AASMON_ratio_mean'%TMD]
             dict_AASMON_ratio_std[TMD] = df.loc[acc, '%s_AASMON_ratio_std'%TMD]
-        df.loc[acc, 'AAIMON_ratio_mean_all_TMDs'] = np.mean(list(dict_AAIMON_ratio_mean.values()))
-        df.loc[acc, 'AAIMON_ratio_std_all_TMDs'] = np.mean(list(dict_AAIMON_ratio_std.values()))
+        df.loc[acc, 'AAIMON_mean_all_TMDs'] = np.mean(list(dict_AAIMON_mean.values()))
+        df.loc[acc, 'AAIMON_std_all_TMDs'] = np.mean(list(dict_AAIMON_std.values()))
         df.loc[acc, 'AASMON_ratio_mean_all_TMDs'] = np.mean(list(dict_AASMON_ratio_mean.values()))
         df.loc[acc, 'AASMON_ratio_std_all_TMDs'] = np.mean(list(dict_AASMON_ratio_std.values()))
 
     # count numbers of each AAIMON ratio
-    vc_AAIMON = df.AAIMON_ratio_mean_all_TMDs.value_counts()
-    # replace df with a filtered dataframe, with all rows excluded where AAIMON_ratio_mean_all_TMDs is 1.000000
+    vc_AAIMON = df.AAIMON_mean_all_TMDs.value_counts()
+    # replace df with a filtered dataframe, with all rows excluded where AAIMON_mean_all_TMDs is 1.000000
     if 1.000000 in vc_AAIMON:
         num_proteins_with_AAIMON_of_ONE = vc_AAIMON[1.000000]
-        total_num_prot_with_data = len(df['AAIMON_ratio_mean_all_TMDs'].dropna())
+        total_num_prot_with_data = len(df['AAIMON_mean_all_TMDs'].dropna())
         logging.info('num_proteins_with_AAIMON_of_ONE in orig dataframe : %i from %i total' % (
         num_proteins_with_AAIMON_of_ONE, total_num_prot_with_data))
         # replace the original dataframe with the dataframe lacking data containing a TMD/rest ratio of exactly 1.
-        df = df.loc[df['AAIMON_ratio_mean_all_TMDs'] != 1.000000]
+        df = df.loc[df['AAIMON_mean_all_TMDs'] != 1.000000]
 
     '''
     Fig01: Histogram of mean AAIMON and AASMON ratios, SP vs MP
@@ -96,7 +96,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # create a new figure
     fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi=300)
     # create numpy array of membranous over nonmembranous conservation ratios (identity)
-    hist_data_AAIMON_mean = np.array(df['AAIMON_ratio_mean_all_TMDs'].dropna())
+    hist_data_AAIMON_mean = np.array(df['AAIMON_mean_all_TMDs'].dropna())
     # use numpy to create a histogram
     freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
     # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
@@ -171,7 +171,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # if a new figure should be created (either because the orig is full, or the last TMD is analysed)
     fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi=300)
     # create numpy array of membranous over nonmembranous conservation ratios (identity)
-    hist_data_AAIMON_std = np.array(df['AAIMON_ratio_std_all_TMDs'].dropna())
+    hist_data_AAIMON_std = np.array(df['AAIMON_std_all_TMDs'].dropna())
     # use numpy to create a histogram
     number_of_bins = 50
     freq_counts_S, bin_array_S = np.histogram(hist_data_AAIMON_std, bins=number_of_bins)
@@ -232,12 +232,12 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # if a new figure should be created (either because the orig is full, or the last TMD is analysed)
     fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi=300)
     # pylab.rcParams['figure.figsize'] = (50.0, 40.0)
-    x = np.array(df['AAIMON_ratio_mean_all_TMDs'])
+    x = np.array(df['AAIMON_mean_all_TMDs'])
     y = np.array(df['AASMON_ratio_mean_all_TMDs'])
     scattercontainer_AAIMON_AASMON_mean = axarr[row_nr, col_nr].scatter(x=x, y=y, color="#8A084B", alpha=alpha,
                                                                         s=datapointsize)
     # label the x-axis for each plot, based on the TMD
-    axarr[row_nr, col_nr].set_xlabel('AAIMON_ratio (aa identity)', fontsize=fontsize)
+    axarr[row_nr, col_nr].set_xlabel('AAIMON (aa identity)', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
     axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
     axarr[row_nr, col_nr].set_ylabel('AASMON_ratio (aa identity + similarity)', fontsize=fontsize)
@@ -264,14 +264,14 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
     # if a new figure should be created (either because the orig is full, or the last TMD is analysed)
     fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi=300)
-    x = np.array(df['AAIMON_ratio_std_all_TMDs'])
+    x = np.array(df['AAIMON_std_all_TMDs'])
     y = np.array(df['AASMON_ratio_std_all_TMDs'])
     scattercontainer_AAIMON_AASMON_std = axarr[row_nr, col_nr].scatter(x=x, y=y, color="#B45F04", alpha=alpha,
                                                                        s=datapointsize)
     # other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
     # http://html-color-codes.info/
     # label the x-axis for each plot, based on the TMD
-    axarr[row_nr, col_nr].set_xlabel('AAIMON_ratio', fontsize=fontsize)
+    axarr[row_nr, col_nr].set_xlabel('AAIMON', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
     axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
     axarr[row_nr, col_nr].set_ylabel('AASMON_ratio', fontsize=fontsize)
@@ -309,7 +309,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # else:
     #     x = np.array(df['number_of_TMDs'])
     x = np.array(df['number_of_TMDs'])
-    y = np.array(df['AAIMON_ratio_mean_all_TMDs'])
+    y = np.array(df['AAIMON_mean_all_TMDs'])
     scattercontainer_AAIMON_AASMON_std = axarr[row_nr, col_nr].scatter(x=x, y=y, color="#0489B1", alpha=alpha,
                                                                        s=datapointsize)
     # other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
@@ -322,7 +322,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # change axis font size
     axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
     # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
-    legend_obj = axarr[row_nr, col_nr].legend(['AAIMON_ratio_mean'], loc='upper right', fontsize=fontsize)
+    legend_obj = axarr[row_nr, col_nr].legend(['AAIMON_mean'], loc='upper right', fontsize=fontsize)
     # add background grid
     axarr[row_nr, col_nr].grid(True, color='0.75', alpha=0.3)
     # add figure number to top left of subplot
@@ -347,14 +347,14 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi=300)
     # pylab.rcParams['figure.figsize'] = (100.0, 80.0)
     x = np.array(df['seqlen'])
-    y = np.array(df['AAIMON_ratio_mean_all_TMDs'])
+    y = np.array(df['AAIMON_mean_all_TMDs'])
     scattercontainer_AAIMON_AASMON_std = axarr[row_nr, col_nr].scatter(x=x, y=y, color="#0489B1", alpha=alpha,
                                                                        s=datapointsize)
     # label the x-axis for each plot, based on the TMD
     axarr[row_nr, col_nr].set_xlabel('Length of protein', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
     axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
-    axarr[row_nr, col_nr].set_ylabel('AAIMON_ratio', fontsize=fontsize)
+    axarr[row_nr, col_nr].set_ylabel('AAIMON', fontsize=fontsize)
     # change axis font size
     axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
     # add figure number to top left of subplot
@@ -376,14 +376,14 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi=300)
     # pylab.rcParams['figure.figsize'] = (100.0, 80.0)
     x = np.array(df['nonTMD_SW_align_len_mean'])
-    y = np.array(df['AAIMON_ratio_mean_all_TMDs'])
+    y = np.array(df['AAIMON_mean_all_TMDs'])
     scattercontainer_AAIMON_AASMON_std = axarr[row_nr, col_nr].scatter(x=x, y=y, color="#0489B1", alpha=alpha,
                                                                        s=datapointsize)
     # label the x-axis for each plot, based on the TMD
     axarr[row_nr, col_nr].set_xlabel('Average length of nonTMD region in homologues', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
     axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
-    axarr[row_nr, col_nr].set_ylabel('AAIMON_ratio', fontsize=fontsize)
+    axarr[row_nr, col_nr].set_ylabel('AAIMON', fontsize=fontsize)
     # change axis font size
     axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
     # add figure number to top left of subplot
@@ -409,14 +409,14 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi=300)
     # pylab.rcParams['figure.figsize'] = (100.0, 80.0)
     x = np.array(df['total_number_of_simap_hits'])
-    y = np.array(df['AAIMON_ratio_mean_all_TMDs'])
+    y = np.array(df['AAIMON_mean_all_TMDs'])
     scattercontainer_AAIMON_AASMON_std = axarr[row_nr, col_nr].scatter(x=x, y=y, color="#0489B1", alpha=alpha,
                                                                        s=datapointsize)
     # label the x-axis for each plot, based on the TMD
     axarr[row_nr, col_nr].set_xlabel('total number of homologues', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
     axarr[row_nr, col_nr].xaxis.set_label_coords(0.45, -0.085)
-    axarr[row_nr, col_nr].set_ylabel('AAIMON_ratio', fontsize=fontsize)
+    axarr[row_nr, col_nr].set_ylabel('AAIMON', fontsize=fontsize)
     # change axis font size
     axarr[row_nr, col_nr].tick_params(labelsize=fontsize)
     # add figure number to top left of subplot
@@ -465,8 +465,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # add AAIMON each TMD to dataframe
     for acc in df.index:
         for TMD in ast.literal_eval(df.loc[acc, 'list_of_TMDs']):
-            df_mean_AAIMON_each_TM.loc[acc, '{a}_AAIMON_ratio_mean'.format(a=TMD)] = df.loc[
-                acc, '{b}_AAIMON_ratio_mean'.format(b=TMD)]
+            df_mean_AAIMON_each_TM.loc[acc, '{a}_AAIMON_mean'.format(a=TMD)] = df.loc[
+                acc, '{b}_AAIMON_mean'.format(b=TMD)]
 
 
 
@@ -624,7 +624,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         Fig_Nr = 11
         sys.stdout.write(str(Fig_Nr) + ', ')
         title = 'Select TMDs, all data'
-        cols_for_analysis = ['TM01', 'TM07', 'TM08', 'last_TM_AAIMON_ratio_mean']
+        cols_for_analysis = ['TM01', 'TM07', 'TM08', 'last_TM_AAIMON_mean']
         newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
         # if a new figure should be created (either because the orig is full, or the last TMD is analysed)
         fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi=300)
@@ -1129,7 +1129,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # if a new figure should be created (either because the orig is full, or the last TMD is analysed)
         fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig, dpi=300)
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data_AAIMON_mean = np.array(df_under_12['AAIMON_ratio_mean_all_TMDs'].dropna())
+        hist_data_AAIMON_mean = np.array(df_under_12['AAIMON_mean_all_TMDs'].dropna())
         # use numpy to create a histogram
         freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
         # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
@@ -1166,7 +1166,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         df_at_least_12 = df.loc[df.number_of_TMDs >= 12]
 
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data_AAIMON_mean = np.array(df_at_least_12['AAIMON_ratio_mean_all_TMDs'].dropna())
+        hist_data_AAIMON_mean = np.array(df_at_least_12['AAIMON_mean_all_TMDs'].dropna())
         # use numpy to create a histogram
         freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
         # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
@@ -1232,7 +1232,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         data_to_plot = []
         for i in range(1, max_num_TMDs + 1):
             TM = 'TM%02d' % i
-            hist_data_AAIMON_each_TM = df['TM%02d_AAIMON_ratio_mean' % i].dropna()
+            hist_data_AAIMON_each_TM = df['TM%02d_AAIMON_mean' % i].dropna()
             if len(hist_data_AAIMON_each_TM) > 0:
                 data_to_plot.append(hist_data_AAIMON_each_TM)
                 legend.append(TM)
@@ -1305,7 +1305,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig,
                                                            dpi=300)
             # create numpy array of membranous over nonmembranous conservation ratios (identity)
-            hist_data_AAIMON_mean = np.array(df_GPCR['AAIMON_ratio_mean_all_TMDs'].dropna())
+            hist_data_AAIMON_mean = np.array(df_GPCR['AAIMON_mean_all_TMDs'].dropna())
             # use numpy to create a histogram
             freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
             # normalize the frequency counts
@@ -1344,7 +1344,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             df_nonGPCR = df.loc[df['G-protein coupled receptor'] == False]
 
             # create numpy array of membranous over nonmembranous conservation ratios (identity)
-            hist_data_AAIMON_mean = np.array(df_nonGPCR['AAIMON_ratio_mean_all_TMDs'].dropna())
+            hist_data_AAIMON_mean = np.array(df_nonGPCR['AAIMON_mean_all_TMDs'].dropna())
             # use numpy to create a histogram
             freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
             # normalize the frequency counts
@@ -1402,7 +1402,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             fig, axarr = utils.create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_each_fig,
                                                            dpi=300)
             # create numpy array of membranous over nonmembranous conservation ratios (identity)
-            hist_data_AAIMON_mean = np.array(df_GPCR['AAIMON_ratio_mean_all_TMDs'].dropna())
+            hist_data_AAIMON_mean = np.array(df_GPCR['AAIMON_mean_all_TMDs'].dropna())
             # use numpy to create a histogram
             freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
             # normalize the frequency counts
@@ -1441,7 +1441,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             # df_nonGPCR = df.loc[df['Gprotein'] == False]
 
             # create numpy array of membranous over nonmembranous conservation ratios (identity)
-            hist_data_AAIMON_mean = np.array(df['AAIMON_ratio_mean_all_TMDs'].dropna())
+            hist_data_AAIMON_mean = np.array(df['AAIMON_mean_all_TMDs'].dropna())
             # use numpy to create a histogram
             freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
             # normalize the frequency counts
@@ -1513,7 +1513,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             data_to_plot = []
             for i in range(1, max_num_TMDs + 1):
                 TM = 'TM%02d' % i
-                hist_data_AAIMON_each_TM = df_GPCR['TM%02d_AAIMON_ratio_mean' % i].dropna()
+                hist_data_AAIMON_each_TM = df_GPCR['TM%02d_AAIMON_mean' % i].dropna()
                 if len(hist_data_AAIMON_each_TM) > 0:
                     data_to_plot.append(hist_data_AAIMON_each_TM)
                     legend.append(TM)
@@ -1694,7 +1694,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 data_names_list = ['containing keyword', 'without keyword']
 
                 for n, dfK in enumerate(df_list_KW):
-                    data_column = 'AAIMON_ratio_mean_all_TMDs'
+                    data_column = 'AAIMON_mean_all_TMDs'
                     color = colourlist_greys[n]
                     alpha = 1.0
                     col_width_value = 0.95
@@ -1854,7 +1854,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                     data_names_list = ['containing keyword', 'without keyword']
 
                     for n, dfK in enumerate(df_list_KW):
-                        data_column = 'AAIMON_ratio_mean_all_TMDs'
+                        data_column = 'AAIMON_mean_all_TMDs'
                         color = colourlist_greys[n]
                         alpha = 1.0
                         col_width_value = 0.95
@@ -1995,7 +1995,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             data_names_list = ['enzyme', 'nonenzyme']
 
             for n, dfK in enumerate(df_list_KW):
-                data_column = 'AAIMON_ratio_mean_all_TMDs'
+                data_column = 'AAIMON_mean_all_TMDs'
                 color = colourlist_greys[n]
                 alpha = 1.0
                 col_width_value = 0.95
@@ -2102,7 +2102,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 data_names_list = ['enzyme', 'nonenzyme']
 
                 for n, dfK in enumerate(df_list_KW):
-                    data_column = 'AAIMON_ratio_mean_all_TMDs'
+                    data_column = 'AAIMON_mean_all_TMDs'
                     color = colourlist_greys[n]
                     alpha = 1.0
                     col_width_value = 0.95
@@ -2243,7 +2243,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 data_names_list = ['containing keyword', 'without keyword']
 
                 for n, dfK in enumerate(df_list_KW):
-                    data_column = 'AAIMON_ratio_mean_all_TMDs'
+                    data_column = 'AAIMON_mean_all_TMDs'
                     # color = TUM_colours_list_with_greys[n + 1]
                     color = colourlist_greys[n]
                     alpha = 1.0
@@ -2388,7 +2388,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                     data_names_list = ['containing keyword', 'without keyword']
 
                     for n, dfK in enumerate(df_list_KW):
-                        data_column = 'AAIMON_ratio_mean_all_TMDs'
+                        data_column = 'AAIMON_mean_all_TMDs'
                         # color = TUM_colours_list_with_greys[n + 1]
                         color = colourlist_greys[n]
                         alpha = 1.0
