@@ -13,8 +13,8 @@ from multiprocessing import Pool
 import sys
 from scipy.optimize import leastsq
 
-def run_calculate_AAIMON_ratios(pathdict, s, logging):
-    """Runs calculate_AAIMON_ratios for each protein, using multiprocessing Pool.
+def run_calculate_AAIMONs(pathdict, s, logging):
+    """Runs calculate_AAIMONs for each protein, using multiprocessing Pool.
 
     Parameters
     ----------
@@ -26,7 +26,7 @@ def run_calculate_AAIMON_ratios(pathdict, s, logging):
         Logger for printing to console and/or logfile.
         If multiprocessing == True, logging.info etc will only print to console.
     """
-    logging.info('~~~~~~~~~~~~      starting run_calculate_AAIMON_ratios        ~~~~~~~~~~~~')
+    logging.info('~~~~~~~~~~~~      starting run_calculate_AAIMONs        ~~~~~~~~~~~~')
     # if multiprocessing is used, log only to the console
     p_dict_logging = logging if s["use_multiprocessing"] != True else utils.Log_Only_To_Console()
     # set current working directory as the data_dir/homol, where temp files will be saved before moving to zip
@@ -40,15 +40,15 @@ def run_calculate_AAIMON_ratios(pathdict, s, logging):
 
     if s["use_multiprocessing"]:
         with Pool(processes=n_processes) as pool:
-            calc_AAIMON_list = pool.map(korbinian.cons_ratio.cons_ratio.calculate_AAIMON_ratios, list_p)
+            calc_AAIMON_list = pool.map(korbinian.cons_ratio.cons_ratio.calculate_AAIMONs, list_p)
             # log the list of protein results (e.g. acc, "simap", True) to the actual logfile, not just the console
             logging.info("calc_AAIMON_list : {}".format(calc_AAIMON_list))
     else:
         for p in list_p:
-            korbinian.cons_ratio.cons_ratio.calculate_AAIMON_ratios(p)
-    logging.info("~~~~~~~~~~~~     run_calculate_AAIMON_ratios is finished      ~~~~~~~~~~~~")
+            korbinian.cons_ratio.cons_ratio.calculate_AAIMONs(p)
+    logging.info("~~~~~~~~~~~~     run_calculate_AAIMONs is finished      ~~~~~~~~~~~~")
 
-def calculate_AAIMON_ratios(p):
+def calculate_AAIMONs(p):
     """Calculate the AAIMON ratios for a particular protein
 
     Parameters
@@ -77,7 +77,7 @@ def calculate_AAIMON_ratios(p):
                 Histograms of AAIMON ratios for homologues of each TMD.
             A6BM72_MEG11_HUMAN_cr_mean.csv : csv
                 Summary file for that protein. Contains conservation ratios means.
-                Will be gathered for all proteins by the gather_AAIMON_ratios function.
+                Will be gathered for all proteins by the gather_AAIMONs function.
             A6BM72_MEG11_HUMAN_nonTMD_cr_df.pickle : pickled pd.DataFrame
                 Dataframe containing the percentage_identity etc for sliced nonTMD region.
             A6BM72_MEG11_HUMAN_SP01_cr_df.pickle : pickled pd.DataFrame
@@ -127,12 +127,12 @@ def calculate_AAIMON_ratios(p):
     mean_ser_filename = "{}_cr_mean.csv".format(protein_name)
 
     #assume af first that there is no previous data, and that the calculations can be re-run
-    if s["overwrite_prev_calculated_AAIMON_ratios"] == False:
+    if s["overwrite_prev_calculated_AAIMONs"] == False:
         if os.path.isfile(homol_cr_ratios_zip):
             with zipfile.ZipFile(homol_cr_ratios_zip, mode="r", compression=zipfile.ZIP_DEFLATED) as cr_zip:
                 if mean_ser_filename in cr_zip.namelist():
                     # if the means are saved as a csv in the homol cr_ratios zipfile, skip this protein
-                    message = '{} AAIMON_ratios skipped, file with mean AAIMON ratios exists (in settings, overwrite_prev_calculated_AAIMON_ratios = True)'.format(acc)
+                    message = '{} AAIMONs skipped, file with mean AAIMON ratios exists (in settings, overwrite_prev_calculated_AAIMONs = True)'.format(acc)
                     logging.info(message)
                     return acc, False, message
 
@@ -269,19 +269,19 @@ def calculate_AAIMON_ratios(p):
             len_query_TMD = p["%s_end"%TMD] - p["%s_start"%TMD]
             df_cr = korbinian.cons_ratio.calc.calc_AAIMON(TMD, df_cr, len_query_TMD)
             df_cr['norm_factor'] = dfh['norm_factor']
-            df_cr['%s_AAIMON_ratio_n'%TMD] = df_cr['%s_AAIMON_ratio'%TMD] / df_cr['norm_factor']
+            df_cr['%s_AAIMON_n'%TMD] = df_cr['%s_AAIMON'%TMD] / df_cr['norm_factor']
             df_cr['FASTA_gapped_identity'] = dfh['FASTA_gapped_identity']
             df_cr['obs_changes'] = dfh['obs_changes']
 
-            list_of_AAIMON_all_TMD['%s_AAIMON_ratio'%TMD]= df_cr['%s_AAIMON_ratio'%TMD].dropna()
+            list_of_AAIMON_all_TMD['%s_AAIMON'%TMD]= df_cr['%s_AAIMON'%TMD].dropna()
 
             ########################################################################################
             #                                                                                      #
             #                       Calculate AAIMON_slope, AAIMON_n_slope                         #
             #                                                                                      #
             ########################################################################################
-            # drop every row (hit) in df_cr that contains NaN in column TMxy_AAIMON_ratio - important for line fit that can't handle NAN
-            df_cr = df_cr[np.isfinite(df_cr['%s_AAIMON_ratio'%TMD])]
+            # drop every row (hit) in df_cr that contains NaN in column TMxy_AAIMON - important for line fit that can't handle NAN
+            df_cr = df_cr[np.isfinite(df_cr['%s_AAIMON'%TMD])]
 
             # set up variables
             # FASTA_gapped_identity_0_to_1 = df_cr['FASTA_gapped_identity']  # x-axis of plot
@@ -289,8 +289,8 @@ def calculate_AAIMON_ratios(p):
             # FASTA_gapped_identity = FASTA_gapped_identity_0_to_1 * 100
 
             obs_changes = df_cr['obs_changes']
-            AAIMON = df_cr['%s_AAIMON_ratio'%TMD]            # y-axis
-            AAIMON_n = df_cr['%s_AAIMON_ratio_n'%TMD]        # y-axis
+            AAIMON = df_cr['%s_AAIMON'%TMD]            # y-axis
+            AAIMON_n = df_cr['%s_AAIMON_n'%TMD]        # y-axis
 
             if len(obs_changes) == 0 or len(AAIMON) == 0:
                 # There is no gapped identity for these homologues, skip to next TMD
@@ -349,10 +349,10 @@ def calculate_AAIMON_ratios(p):
 
             if TMD == "TM01":
                 # number of homologues for TM01. since ALL TMDs have to be in each homologue before AAIMON is calculated, this number is the same for all TMDs
-                mean_ser['TM01_AAIMON_n_homol'] = df_cr['TM01_AAIMON_ratio'].dropna().shape[0]
+                mean_ser['TM01_AAIMON_n_homol'] = df_cr['TM01_AAIMON'].dropna().shape[0]
 
-            logging.info('%s AAIMON_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean' % TMD]))
-            logging.info('%s AAIMON_n_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_ratio_mean_n' % TMD]))
+            logging.info('%s AAIMON_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_mean' % TMD]))
+            logging.info('%s AAIMON_n_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_mean_n' % TMD]))
             logging.info('%s AAIMON_slope %s: %0.5f' % (acc, TMD, mean_ser['%s_AAIMON_slope' % TMD]))
             logging.info('%s AAIMON_n_slope %s: %0.5f' % (acc, TMD, mean_ser['%s_AAIMON_n_slope' % TMD]))
             # logging.info('%s AASMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AASMON_ratio_mean'%TMD]))
@@ -369,7 +369,7 @@ def calculate_AAIMON_ratios(p):
                 # create a new figure for scatter plot
                 fig2, axarr2 = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig)  # sharex=True
 
-            #" NOT STABLE! NEED TO CHANGE save_hist_AAIMON_ratio_single_protein SO THAT IT RUNS WITHIN THE FOR LOOP ABOVE, AND TAKES A SINGLE TMD AS INPUT, RATHER THAN LIST OF TMDS" / 4
+            #" NOT STABLE! NEED TO CHANGE save_hist_AAIMON_single_protein SO THAT IT RUNS WITHIN THE FOR LOOP ABOVE, AND TAKES A SINGLE TMD AS INPUT, RATHER THAN LIST OF TMDS" / 4
             AAIMON_hist_path_prefix = p['AAIMON_hist_path_prefix']
             norm_scatter_path_prefix = p['norm_scatter_path_prefix']
             ########################################################################################
@@ -381,9 +381,9 @@ def calculate_AAIMON_ratios(p):
                 # avoid bug where the axarr is still not created, as newfig was not True for first figure?
                 continue
             # create histograms for this protein
-            korbinian.cons_ratio.histogram.save_hist_AAIMON_ratio_single_protein(fig_nr, fig, axarr, df_cr, s, TMD, binarray, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix)
+            korbinian.cons_ratio.histogram.save_hist_AAIMON_single_protein(fig_nr, fig, axarr, df_cr, s, TMD, binarray, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix)
             # create scatterplots for this protein
-            korbinian.cons_ratio.histogram.save_scatter_AAIMON_ratio_norm_and_AAIMON_slope_single_protein(fig_nr, fig2, axarr2, df_cr, x_data, y_data, y_data_n, AAIMON_slope, AAIMON_n_slope, TMD, zipout, row_nr, col_nr, fontsize, savefig, norm_scatter_path_prefix)
+            korbinian.cons_ratio.histogram.save_scatter_AAIMON_norm_and_AAIMON_slope_single_protein(fig_nr, fig2, axarr2, df_cr, x_data, y_data, y_data_n, AAIMON_slope, AAIMON_n_slope, TMD, zipout, row_nr, col_nr, fontsize, savefig, norm_scatter_path_prefix)
 
         ########################################################################################
         #                                                                                      #
@@ -391,14 +391,14 @@ def calculate_AAIMON_ratios(p):
         #                                                                                      #
         ########################################################################################
         df_AAIMON_all_TMD = pd.DataFrame(list_of_AAIMON_all_TMD)
-        df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'] = df_AAIMON_all_TMD.mean(axis=1)
+        df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol'] = df_AAIMON_all_TMD.mean(axis=1)
         df_AAIMON_all_TMD['gapped_ident'] = dfh['FASTA_gapped_identity'].loc[df_AAIMON_all_TMD.index]
         df_AAIMON_all_TMD['norm_factor'] = dfh['norm_factor'].loc[df_AAIMON_all_TMD.index]
-        df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol_n'] = df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'] / df_AAIMON_all_TMD['norm_factor']
+        df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol_n'] = df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol'] / df_AAIMON_all_TMD['norm_factor']
 
         # # taken out by MO - figure replaced with plots for every single TMD
-        # korbinian.cons_ratio.norm.save_graph_for_normalized_AAIMON(acc,  df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol'],
-        #                                                              df_AAIMON_all_TMD['AAIMON_ratio_mean_all_TMDs_1_homol_n'],
+        # korbinian.cons_ratio.norm.save_graph_for_normalized_AAIMON(acc,  df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol'],
+        #                                                              df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol_n'],
         #                                                              df_AAIMON_all_TMD['gapped_ident'], zipout, protein_name)
 
         # save the dataframe containing normalisation factor and normalised AAIMON to zipout

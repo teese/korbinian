@@ -78,11 +78,11 @@ def create_df_with_mean_AAIMON_each_TM(df):
     full_list_TMDs = []
     
     for i in range(1, max_num_TMDs.astype(np.int64) + 1):
-        TM = 'TM%02d_AAIMON_ratio_mean' % i
+        TM = 'TM%02d_AAIMON_mean' % i
         full_list_TMDs.append(TM)
         #create new series with the data (each datapoint is the mean for all homologues, 
         #for a single protein)
-        hist_data_AAIMON_each_TM = df['TM%02d_AAIMON_ratio_mean' % i].dropna()
+        hist_data_AAIMON_each_TM = df['TM%02d_AAIMON_mean' % i].dropna()
         #add data to nested dict
         nested_dict_hist_data_AAIMON_each_TM[TM] = hist_data_AAIMON_each_TM
         #calculate mean, std etc
@@ -98,13 +98,13 @@ def create_df_with_mean_AAIMON_each_TM(df):
     df_mean_AAIMON_each_TM = df.from_dict(nested_dict_hist_data_AAIMON_each_TM)
     
     #create new column to hold the last TMD
-    df['last_TM_AAIMON_ratio_mean'] = np.nan
+    df['last_TM_AAIMON_mean'] = np.nan
     #obtain data from last TMD for all proteins
     for acc in df.index:
-        df.loc[acc,'last_TM_AAIMON_ratio_mean'] = df.loc[acc,'TM%02d_AAIMON_ratio_mean' % df.loc[acc,'number_of_TMDs']]
-    AAIMON_last_TM = df['last_TM_AAIMON_ratio_mean'].dropna()
+        df.loc[acc,'last_TM_AAIMON_mean'] = df.loc[acc,'TM%02d_AAIMON_mean' % df.loc[acc,'number_of_TMDs']]
+    AAIMON_last_TM = df['last_TM_AAIMON_mean'].dropna()
     #add the data for the last TMD to the dataframe
-    df_mean_AAIMON_each_TM['last_TM_AAIMON_ratio_mean'] = AAIMON_last_TM
+    df_mean_AAIMON_each_TM['last_TM_AAIMON_mean'] = AAIMON_last_TM
     
     return df_mean_AAIMON_each_TM, max_num_TMDs, full_list_TMDs
 

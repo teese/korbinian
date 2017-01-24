@@ -67,10 +67,10 @@ def keyword_analysis(pathdict, s, logging):
                       'Sphingolipid metabolism', 'Cholesterol metabolism', 'Fatty acid metabolism',
                       'Phospholipid metabolism', 'Catecholamine metabolism', 'Prostaglandin metabolism',
                       'Glycogen metabolism', 'Fucose metabolism']
-    # remove proteins containing nan in AAIMON_ratio_mean_all_TMDs
+    # remove proteins containing nan in AAIMON_mean_all_TMDs
     list_of_acc_without_nan = []
     for acc in df.index:
-        if not pd.isnull(df.loc[acc, 'AAIMON_ratio_mean_all_TMDs']):
+        if not pd.isnull(df.loc[acc, 'AAIMON_mean_all_TMDs']):
             list_of_acc_without_nan.append(acc)
     df = df.loc[list_of_acc_without_nan, :]
 
@@ -162,16 +162,16 @@ def keyword_analysis(pathdict, s, logging):
             #                                                             #
             ###############################################################
 
-            # calculate mean and std of AAIMON_ratio_mean_all_TMDs
-            dfk.loc[keyword, 'AAIMON_keyword_mean'] = np.mean(df_keyword['AAIMON_ratio_mean_all_TMDs'])
-            dfk.loc[keyword, 'AAIMON_keyword_std'] = np.std(df_keyword['AAIMON_ratio_mean_all_TMDs'])
+            # calculate mean and std of AAIMON_mean_all_TMDs
+            dfk.loc[keyword, 'AAIMON_keyword_mean'] = np.mean(df_keyword['AAIMON_mean_all_TMDs'])
+            dfk.loc[keyword, 'AAIMON_keyword_std'] = np.std(df_keyword['AAIMON_mean_all_TMDs'])
             dfk.loc[keyword, 'AAIMON_slope_keyword_mean'] = np.mean(df_keyword['AAIMON_slope_mean_all_TMDs'])
             dfk.loc[keyword, 'AAIMON_slope_keyword_std'] = np.std(df_keyword['AAIMON_slope_mean_all_TMDs'])
             number_of_proteins_keyword = len(df_keyword.index)
             dfk.loc[keyword, 'number_of_proteins_keyword'] = number_of_proteins_keyword
 
-            dfk.loc[keyword, 'AAIMON_no_keyword_mean'] = np.mean(df_no_keyword['AAIMON_ratio_mean_all_TMDs'])
-            dfk.loc[keyword, 'AAIMON_no_keyword_std'] = np.std(df_no_keyword['AAIMON_ratio_mean_all_TMDs'])
+            dfk.loc[keyword, 'AAIMON_no_keyword_mean'] = np.mean(df_no_keyword['AAIMON_mean_all_TMDs'])
+            dfk.loc[keyword, 'AAIMON_no_keyword_std'] = np.std(df_no_keyword['AAIMON_mean_all_TMDs'])
             dfk.loc[keyword, 'AAIMON_slope_no_keyword_mean'] = np.mean(df_no_keyword['AAIMON_slope_mean_all_TMDs'])
             dfk.loc[keyword, 'AAIMON_slope_no_keyword_std'] = np.std(df_no_keyword['AAIMON_slope_mean_all_TMDs'])
             number_of_proteins_no_keyword = len(df_no_keyword.index)
@@ -179,8 +179,8 @@ def keyword_analysis(pathdict, s, logging):
 
             # calculate odds ratio, p- and t-values for AAIMONs
             dfk.loc[keyword, 'odds_ratio_AAIMON_no_exclusion'] = dfk.loc[keyword, 'AAIMON_keyword_mean'] / dfk.loc[keyword, 'AAIMON_no_keyword_mean']
-            data1 = df_keyword['AAIMON_ratio_mean_all_TMDs']
-            data2 = df_no_keyword['AAIMON_ratio_mean_all_TMDs']
+            data1 = df_keyword['AAIMON_mean_all_TMDs']
+            data2 = df_no_keyword['AAIMON_mean_all_TMDs']
             t, p = ttest_ind(data1, data2, equal_var=True)             # equal_var True or False ?!?!
             dfk.loc[keyword, 't-value_AAIMON_no_exclusion'] = t
             dfk.loc[keyword, 'p-value_AAIMON_no_exclusion'] = p
@@ -200,16 +200,16 @@ def keyword_analysis(pathdict, s, logging):
                 #                                                             #
                 ###############################################################
 
-                # calculate mean and std of AAIMON_ratio_mean_all_TMDs
-                dfk.loc[keyword, 'AAIMON_keyword_nonenzyme_mean'] = np.mean(df_keyword_nonenzyme['AAIMON_ratio_mean_all_TMDs'])
-                dfk.loc[keyword, 'AAIMON_keyword_nonenzyme_std'] = np.std(df_keyword_nonenzyme['AAIMON_ratio_mean_all_TMDs'])
+                # calculate mean and std of AAIMON_mean_all_TMDs
+                dfk.loc[keyword, 'AAIMON_keyword_nonenzyme_mean'] = np.mean(df_keyword_nonenzyme['AAIMON_mean_all_TMDs'])
+                dfk.loc[keyword, 'AAIMON_keyword_nonenzyme_std'] = np.std(df_keyword_nonenzyme['AAIMON_mean_all_TMDs'])
                 dfk.loc[keyword, 'AAIMON_slope_keyword_nonenzyme_mean'] = np.mean(df_keyword_nonenzyme['AAIMON_slope_mean_all_TMDs'])
                 dfk.loc[keyword, 'AAIMON_slope_keyword_nonenzyme_std'] = np.std(df_keyword_nonenzyme['AAIMON_slope_mean_all_TMDs'])
                 number_of_proteins_keyword_nonenzyme = len(df_keyword_nonenzyme.index)
                 dfk.loc[keyword, 'number_of_proteins_keyword_nonenzyme'] = number_of_proteins_keyword_nonenzyme
 
-                dfk.loc[keyword, 'AAIMON_no_keyword_nonenzyme_mean'] = np.mean(df_no_keyword_nonenzyme['AAIMON_ratio_mean_all_TMDs'])
-                dfk.loc[keyword, 'AAIMON_no_keyword_nonenzyme_std'] = np.std(df_no_keyword_nonenzyme['AAIMON_ratio_mean_all_TMDs'])
+                dfk.loc[keyword, 'AAIMON_no_keyword_nonenzyme_mean'] = np.mean(df_no_keyword_nonenzyme['AAIMON_mean_all_TMDs'])
+                dfk.loc[keyword, 'AAIMON_no_keyword_nonenzyme_std'] = np.std(df_no_keyword_nonenzyme['AAIMON_mean_all_TMDs'])
                 dfk.loc[keyword, 'AAIMON_slope_no_keyword_nonenzyme_mean'] = np.mean(df_no_keyword_nonenzyme['AAIMON_slope_mean_all_TMDs'])
                 dfk.loc[keyword, 'AAIMON_slope_no_keyword_nonenzyme_std'] = np.std(df_no_keyword_nonenzyme['AAIMON_slope_mean_all_TMDs'])
                 number_of_proteins_no_keyword_nonenzyme = len(df_no_keyword_nonenzyme.index)
@@ -217,8 +217,8 @@ def keyword_analysis(pathdict, s, logging):
 
                 # calculate odds ratio, p- and t-values for AAIMONs
                 dfk.loc[keyword, 'odds_ratio_AAIMON_excluding_enzymes'] = dfk.loc[keyword, 'AAIMON_keyword_nonenzyme_mean'] / dfk.loc[keyword, 'AAIMON_no_keyword_nonenzyme_mean']
-                data1 = df_keyword_nonenzyme['AAIMON_ratio_mean_all_TMDs']
-                data2 = df_no_keyword_nonenzyme['AAIMON_ratio_mean_all_TMDs']
+                data1 = df_keyword_nonenzyme['AAIMON_mean_all_TMDs']
+                data2 = df_no_keyword_nonenzyme['AAIMON_mean_all_TMDs']
                 t, p = ttest_ind(data1, data2, equal_var=True)
                 dfk.loc[keyword, 't-value_AAIMON_excluding_enzymes'] = t
                 dfk.loc[keyword, 'p-value_AAIMON_excluding_enzymes'] = p
@@ -238,16 +238,16 @@ def keyword_analysis(pathdict, s, logging):
                 #                                                             #
                 ###############################################################
 
-                # calculate mean and std of AAIMON_ratio_mean_all_TMDs
-                dfk.loc[keyword, 'AAIMON_keyword_nonGPCR_mean'] = np.mean(df_keyword_nonGPCR['AAIMON_ratio_mean_all_TMDs'])
-                dfk.loc[keyword, 'AAIMON_keyword_nonGPCR_std'] = np.std(df_keyword_nonGPCR['AAIMON_ratio_mean_all_TMDs'])
+                # calculate mean and std of AAIMON_mean_all_TMDs
+                dfk.loc[keyword, 'AAIMON_keyword_nonGPCR_mean'] = np.mean(df_keyword_nonGPCR['AAIMON_mean_all_TMDs'])
+                dfk.loc[keyword, 'AAIMON_keyword_nonGPCR_std'] = np.std(df_keyword_nonGPCR['AAIMON_mean_all_TMDs'])
                 dfk.loc[keyword, 'AAIMON_slope_keyword_nonGPCR_mean'] = np.mean(df_keyword_nonGPCR['AAIMON_slope_mean_all_TMDs'])
                 dfk.loc[keyword, 'AAIMON_slope_keyword_nonGPCR_std'] = np.std(df_keyword_nonGPCR['AAIMON_slope_mean_all_TMDs'])
                 number_of_proteins_keyword_nonGPCR = len(df_keyword_nonGPCR.index)
                 dfk.loc[keyword, 'number_of_proteins_keyword_nonGPCR'] = number_of_proteins_keyword_nonGPCR
 
-                dfk.loc[keyword, 'AAIMON_no_keyword_nonGPCR_mean'] = np.mean(df_no_keyword_nonGPCR['AAIMON_ratio_mean_all_TMDs'])
-                dfk.loc[keyword, 'AAIMON_no_keyword_nonGPCR_std'] = np.std(df_no_keyword_nonGPCR['AAIMON_ratio_mean_all_TMDs'])
+                dfk.loc[keyword, 'AAIMON_no_keyword_nonGPCR_mean'] = np.mean(df_no_keyword_nonGPCR['AAIMON_mean_all_TMDs'])
+                dfk.loc[keyword, 'AAIMON_no_keyword_nonGPCR_std'] = np.std(df_no_keyword_nonGPCR['AAIMON_mean_all_TMDs'])
                 dfk.loc[keyword, 'AAIMON_slope_no_keyword_nonGPCR_mean'] = np.mean(df_no_keyword_nonGPCR['AAIMON_slope_mean_all_TMDs'])
                 dfk.loc[keyword, 'AAIMON_slope_no_keyword_nonGPCR_std'] = np.std(df_no_keyword_nonGPCR['AAIMON_slope_mean_all_TMDs'])
                 number_of_proteins_no_keyword_nonGPCR = len(df_no_keyword_nonGPCR.index)
@@ -255,8 +255,8 @@ def keyword_analysis(pathdict, s, logging):
 
                 # calculate odds ratio, p- and t-values for AAIMONs
                 dfk.loc[keyword, 'odds_ratio_AAIMON_excluding_GPCRs'] = dfk.loc[keyword, 'AAIMON_keyword_nonGPCR_mean'] / dfk.loc[keyword, 'AAIMON_no_keyword_nonGPCR_mean']
-                data1 = df_keyword_nonGPCR['AAIMON_ratio_mean_all_TMDs']
-                data2 = df_no_keyword_nonGPCR['AAIMON_ratio_mean_all_TMDs']
+                data1 = df_keyword_nonGPCR['AAIMON_mean_all_TMDs']
+                data2 = df_no_keyword_nonGPCR['AAIMON_mean_all_TMDs']
                 t, p = ttest_ind(data1, data2, equal_var=True)
                 dfk.loc[keyword, 't-value_AAIMON_excluding_GPCRs'] = t
                 dfk.loc[keyword, 'p-value_AAIMON_excluding_GPCRs'] = p
@@ -276,16 +276,16 @@ def keyword_analysis(pathdict, s, logging):
                 #                                                             #
                 ###############################################################
 
-                # calculate mean and std of AAIMON_ratio_mean_all_TMDs
-                dfk.loc[keyword, 'AAIMON_keyword_nonenzyme_nonGPCR_mean'] = np.mean(df_keyword_nonenzyme_nonGPCR['AAIMON_ratio_mean_all_TMDs'])
-                dfk.loc[keyword, 'AAIMON_keyword_nonenzyme_nonGPCR_std'] = np.std(df_keyword_nonenzyme_nonGPCR['AAIMON_ratio_mean_all_TMDs'])
+                # calculate mean and std of AAIMON_mean_all_TMDs
+                dfk.loc[keyword, 'AAIMON_keyword_nonenzyme_nonGPCR_mean'] = np.mean(df_keyword_nonenzyme_nonGPCR['AAIMON_mean_all_TMDs'])
+                dfk.loc[keyword, 'AAIMON_keyword_nonenzyme_nonGPCR_std'] = np.std(df_keyword_nonenzyme_nonGPCR['AAIMON_mean_all_TMDs'])
                 dfk.loc[keyword, 'AAIMON_slope_keyword_nonenzyme_nonGPCR_mean'] = np.mean(df_keyword_nonenzyme_nonGPCR['AAIMON_slope_mean_all_TMDs'])
                 dfk.loc[keyword, 'AAIMON_slope_keyword_nonenzyme_nonGPCR_std'] = np.std(df_keyword_nonenzyme_nonGPCR['AAIMON_slope_mean_all_TMDs'])
                 number_of_proteins_keyword_nonenzyme_nonGPCR = len(df_keyword_nonenzyme_nonGPCR.index)
                 dfk.loc[keyword, 'number_of_proteins_keyword_nonenzyme_nonGPCR'] = number_of_proteins_keyword_nonenzyme_nonGPCR
 
-                dfk.loc[keyword, 'AAIMON_no_keyword_nonenzyme_nonGPCR_mean'] = np.mean(df_no_keyword_nonenzyme_nonGPCR['AAIMON_ratio_mean_all_TMDs'])
-                dfk.loc[keyword, 'AAIMON_no_keyword_nonenzyme_nonGPCR_std'] = np.std(df_no_keyword_nonenzyme_nonGPCR['AAIMON_ratio_mean_all_TMDs'])
+                dfk.loc[keyword, 'AAIMON_no_keyword_nonenzyme_nonGPCR_mean'] = np.mean(df_no_keyword_nonenzyme_nonGPCR['AAIMON_mean_all_TMDs'])
+                dfk.loc[keyword, 'AAIMON_no_keyword_nonenzyme_nonGPCR_std'] = np.std(df_no_keyword_nonenzyme_nonGPCR['AAIMON_mean_all_TMDs'])
                 dfk.loc[keyword, 'AAIMON_slope_no_keyword_nonenzyme_nonGPCR_mean'] = np.mean(df_no_keyword_nonenzyme_nonGPCR['AAIMON_slope_mean_all_TMDs'])
                 dfk.loc[keyword, 'AAIMON_slope_no_keyword_nonenzyme_nonGPCR_std'] = np.std(df_no_keyword_nonenzyme_nonGPCR['AAIMON_slope_mean_all_TMDs'])
                 number_of_proteins_no_keyword_nonenzyme_nonGPCR = len(df_no_keyword_nonenzyme_nonGPCR.index)
@@ -293,8 +293,8 @@ def keyword_analysis(pathdict, s, logging):
 
                 # calculate odds ratio, p- and t-values for AAIMONs
                 dfk.loc[keyword, 'odds_ratio_AAIMON_excluding_Enzymes+GPCRs'] = dfk.loc[keyword, 'AAIMON_keyword_nonenzyme_nonGPCR_mean'] / dfk.loc[keyword, 'AAIMON_no_keyword_nonenzyme_nonGPCR_mean']
-                data1 = df_keyword_nonenzyme_nonGPCR['AAIMON_ratio_mean_all_TMDs']
-                data2 = df_no_keyword_nonenzyme_nonGPCR['AAIMON_ratio_mean_all_TMDs']
+                data1 = df_keyword_nonenzyme_nonGPCR['AAIMON_mean_all_TMDs']
+                data2 = df_no_keyword_nonenzyme_nonGPCR['AAIMON_mean_all_TMDs']
                 t, p = ttest_ind(data1, data2, equal_var=True)
                 dfk.loc[keyword, 't-value_AAIMON_excluding_Enzymes+GPCRs'] = t
                 dfk.loc[keyword, 'p-value_AAIMON_excluding_Enzymes+GPCRs'] = p
@@ -353,7 +353,7 @@ def keyword_analysis(pathdict, s, logging):
                 #                                                             #
                 ###############################################################
 
-                data_keyword = df_keyword['AAIMON_ratio_mean_all_TMDs'].values
+                data_keyword = df_keyword['AAIMON_mean_all_TMDs'].values
                 # create numpy array of membranous over nonmembranous conservation ratios (identity)
                 hist_data_keyword = np.array(data_keyword)
                 # use numpy to create a histogram
@@ -374,7 +374,7 @@ def keyword_analysis(pathdict, s, logging):
                 #                                                             #
                 ###############################################################
 
-                data_no_keyword = df_no_keyword['AAIMON_ratio_mean_all_TMDs'].values
+                data_no_keyword = df_no_keyword['AAIMON_mean_all_TMDs'].values
                 # create numpy array of membranous over nonmembranous conservation ratios (identity)
                 hist_data_no_keyword = np.array(data_no_keyword)
                 # use numpy to create a histogram
@@ -421,8 +421,8 @@ def keyword_analysis(pathdict, s, logging):
                 utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
         # add mean and std of whole dataset (AAIMON and AAIMON_slope)
-        dfk['AAIMON_whole_dataset_mean'] = np.mean(df['AAIMON_ratio_mean_all_TMDs'])
-        dfk['AAIMON_whole_dataset_std'] = np.std(df['AAIMON_ratio_mean_all_TMDs'])
+        dfk['AAIMON_whole_dataset_mean'] = np.mean(df['AAIMON_mean_all_TMDs'])
+        dfk['AAIMON_whole_dataset_std'] = np.std(df['AAIMON_mean_all_TMDs'])
         dfk['AAIMON_slope_whole_dataset_mean'] = np.mean(df['AAIMON_slope_mean_all_TMDs'])
         dfk['AAIMON_slope_whole_dataset_std'] = np.std(df['AAIMON_slope_mean_all_TMDs'])
 
