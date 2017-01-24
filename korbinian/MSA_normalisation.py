@@ -12,7 +12,7 @@ import random
 #                                                                                          #
 ############################################################################################
 
-def cal_aa_propensity_TM_nonTM (df, TM_col='TM01_seq', nonTM_col='nonTMD_seq'):
+def cal_aa_propensity_TM_nonTM(df, TM_col='TM01_seq', nonTM_col='nonTMD_seq'):
     """Calculation of amino acid propensity for TM and non-TM region in dataset.
 
     Parameters
@@ -41,15 +41,15 @@ def cal_aa_propensity_TM_nonTM (df, TM_col='TM01_seq', nonTM_col='nonTMD_seq'):
             massive_string_ntm += seq
 
     # calculate aa propensity in TM region
-    prob_table_tm = calc_aa_propensity(massive_string_tm)
+    TM_aa_propensity_ser = calc_aa_propensity(massive_string_tm)
     # calculate aa propensity in non-TM region
-    prob_table_ntm = calc_aa_propensity(massive_string_ntm)
+    nonTM_aa_propensity_ser = calc_aa_propensity(massive_string_ntm)
     # merge the two table into one dataframe
-    prob_table = pd.concat([prob_table_tm, prob_table_ntm], axis=1)
+    aa_propensity_TM_nonTM_df = pd.concat([TM_aa_propensity_ser, nonTM_aa_propensity_ser], axis=1)
     # rename the columns to match the content, with the orig name plus "amino acid propensity"
-    prob_table.columns = [TM_col + "_aap", nonTM_col + "_aap"]
+    aa_propensity_TM_nonTM_df.columns = [TM_col + "_aap", nonTM_col + "_aap"]
 
-    return prob_table
+    return aa_propensity_TM_nonTM_df
 
 
 def calc_aa_propensity(seq):
@@ -67,21 +67,26 @@ def calc_aa_propensity(seq):
     """
 
     # count absolute number of each residue in the input string
-    aa_dict = {}
-    for aa in seq:
-        aa_dict[aa] = 0
-    for aa in seq:
-        aa_dict[aa] += 1
+    number_each_aa_dict = {}
+
+    all_aa = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
+    # create an dictionary of the numbers {"A" : 57, "C" : 5, ...} etc
+    for aa in all_aa:
+        number_each_aa_dict[aa] = seq.count(aa)
 
     # create a dictionary to hold the propensity of each residue
-    prop_dict = {}
-    for aa in aa_dict:
-        prop_dict[aa] = aa_dict[aa] / len(seq)
+    aa_propensity_dict = {}
+    length = len(seq)
+    for aa in number_each_aa_dict:
+        aa_propensity_dict[aa] = number_each_aa_dict[aa] / length
 
-    # turn the dictionary into a pd.DataFrame and transpose it so that the residue names are listed in index
-    aa_prop_ser = pd.Series(prop_dict)
-    aa_prop_ser.index.name = "freq"
-    return aa_prop_ser
+    # turn the dictionary into a pd.Series
+    aa_prop_ser = pd.Series(aa_propensity_dict)
+    # normalise so that all the aa propensities add up to 1.0
+    # this is important if "X" or "U" is in the sequences
+    aa_prop_norm_ser = aa_prop_ser / aa_prop_ser.sum()
+    aa_prop_norm_ser.index.name = "freq"
+    return aa_prop_norm_ser
 
 
 def cal_random_aa_ident(aa_prop_ser, ident=0.9, seq_len=10000, number_seq=500, subset_num=12):
@@ -114,110 +119,92 @@ def cal_random_aa_ident(aa_prop_ser, ident=0.9, seq_len=10000, number_seq=500, s
     TM_back_mutation_rate,  nonTM_back_mutation_rate : tuple
         = random identity TM, random identity non-TM
     """
-
     # extract aa array and propensity array
     aa_propensities = np.array(aa_prop_ser)
     aa_arr = np.array(aa_prop_ser.index)
 
-    # calculate number of residues that need to be replaced based on the desired percentage identity. This applies to both
-    # TM and non-TM region
-    number_mutations = int(seq_len*(1 - ident))
+    # calculate number of residues that need to be replaced based on the desired percentage identity.
+    number_mutations = int(np.round(seq_len*(1 - ident)))
 
     # generate random sequences, extract the original reference sequence and the sequence cluster
     orig_and_mut_seqs = generate_ran_seq(seq_len, number_seq, number_mutations, aa_arr, aa_propensities)
     # extract the original sequence, of which the matrix are variants
     orig_seq = orig_and_mut_seqs[0]
+    aa_prop_orig_seq = calc_aa_propensity(orig_seq)
+    aa_in_orig_seq_list = list(aa_prop_orig_seq.loc[aa_prop_orig_seq > 0].index)
+
     # extract the matrix of mutated sequences, slightly different from the orig_seq
     mut_seqs_matrix = orig_and_mut_seqs[1]
-
     # make a list of residues in each position (each column in MSA)
     nested_list_of_columnwise_strings = []
     for i in range(mut_seqs_matrix.shape[1]):
         string_joined_aa_at_that_pos = "".join(mut_seqs_matrix[:, i])
-    nested_list_of_columnwise_strings.append(string_joined_aa_at_that_pos)
+        nested_list_of_columnwise_strings.append(string_joined_aa_at_that_pos)
+
+    #print("\nmut_seqs_matrix\n", mut_seqs_matrix)
 
     # count amino acid frequency for each position in a MSA
-    nested_list_of_columnwise_aa_propensities = []
-    for pos in nested_list_of_columnwise_strings:
-        aa_prop_ser = calc_aa_propensity(pos)
-        nested_list_of_columnwise_aa_propensities.append(aa_prop_ser)
+    columnwise_aa_propensities_df = pd.DataFrame()
 
-    # turn the list into a pd.DataFrame
-    columnwise_aa_propensities_df = pd.concat(nested_list_of_columnwise_aa_propensities).T
-    # len_df = len(columnwise_aa_propensities_df.columns)
-    # use the original reference sequence as index to find the conserved residue at each position (column)
+    # iterate through each aa in orig sequence
+    for n in range(seq_len):
+        # in the matrix, the amino acids at that positions can be extracted from the nested list created previously
+        string_aa_in_matrix_at_that_pos = nested_list_of_columnwise_strings[n]
+        # create a series of amino acid propensities from that nested list (of course, mostly the aa is the original one)
+        aa_prop_ser = calc_aa_propensity(string_aa_in_matrix_at_that_pos)
+        # add the amino acid propensities as a new column in the dataframe, with the orig_aa as the column name
+        columnwise_aa_propensities_df[n] = aa_prop_ser
+
     columnwise_aa_propensities_df.columns = list(orig_seq)
+    """
+    columnwise_aa_propensities_df
+        index = all 20 amino acids
+        columns = all orig aa in sequence
+        content = aa propensities for that aa for that position
 
+        orig seq : G        A           L           I
+        A          0.0      0.91       0.05         0.02
+        C          0.0      0.01       0.04         0.02
+        D          0.0      0.0        0.05         0.01
+        etc..
+
+    """
     all_aa = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
 
     # find the conserved residue (which matches the corresponding one in reference sequence) and its propensity at each position
-    aa_prop_list = []
+    all_perc_orig_aa_in_matrix_list = []
     # to avoid redundant counting, use .unique
     for aa in all_aa:
-        if all_aa in columnwise_aa_propensities_df.columns:
-            if type(columnwise_aa_propensities_df[aa][aa]) == pd.Series:
-                observed_cons_1_row = list(columnwise_aa_propensities_df.loc[aa, aa])
-                aa_prop_list += observed_cons_1_row
+        if aa in aa_in_orig_seq_list:
+            # if the orig seq contains more than one of the aa of interest
+            if type(columnwise_aa_propensities_df.loc[aa,aa]) == pd.Series:
+                """
+                e.g.
+
+                orig seq : G   I   L   I
+                mut1       G   I   L   I
+                mut2       G   V   L   I
+                mut3       G   I   L   P
+                           1  0.75  1  0.75
+
+                for I (aa occurs twice in orig, perc_orig_aa_all_rows_for_that_aa) : [0.75, 0.75]
+
+                for G (aa occurs once, perc_orig_aa_1_row) : 1.0
+
+                """
+                perc_orig_aa_all_rows_for_that_aa = list(columnwise_aa_propensities_df.loc[aa, aa])
+                # add all items in list to large list of perc_orig_aa
+                all_perc_orig_aa_in_matrix_list += perc_orig_aa_all_rows_for_that_aa
             else:
-                aa_prop_list.append(columnwise_aa_propensities_df.loc[aa, aa])
+                perc_orig_aa_1_row = columnwise_aa_propensities_df.loc[aa, aa]
+                # add that percentage to large list of perc_orig_aa
+                all_perc_orig_aa_in_matrix_list.append(perc_orig_aa_1_row)
 
     # calculation of the average identity (conservation) at each position
-    observed_mean_cons_rate_all_pos = np.array(aa_prop_list).mean()
+    observed_mean_cons_rate_all_pos = np.array(all_perc_orig_aa_in_matrix_list).mean()
     # calculate the random identity in TM region in form of back mutation" rate", which represents the fraction of mutation which have
     # resulted in the same aa residue as in the original reference sequence
     back_mutation_rate = (observed_mean_cons_rate_all_pos - ident ) / (1 - ident)
-
-    #
-    # ### the same procedure for non-Tm region ###
-    #
-    # # extract aa pool and propensity for non-TM region in form of np.array
-    # nonTM_probtable = prob_table["non-TM"].dropna()
-    # nonTM_aa_probabilities = np.array(nonTM_probtable)
-    # aa_pool = np.array(nonTM_probtable.index)
-    #
-    # # generate random sequences, extract the original reference sequence and the sequence cluster
-    # nonTM_matrix = generate_ran_seq(seq_len, number_seq, number_mutations, subset_num, aa_pool, nonTM_aa_probabilities)
-    # nonTM_orig_seq = nonTM_matrix[0]
-    # nonTM_mat = nonTM_matrix[1]
-    #
-    # # make a list of residues in each position (each column in MSA)
-    # pos = []
-    # tr_mat = []
-    # for i in range(seq_len):
-    #     for seq in nonTM_mat:
-    #         pos.append(seq[i])
-    #     pos = ''.join(pos)
-    #     tr_mat.append(pos)
-    #     pos = []
-    #
-    # # count amino acid frequency for each position in a MSA
-    # cons_list = []
-    # for pos in tr_mat:
-    #     cons = calc_aa_propensity(pos)
-    #     cons_list.append(cons)
-    #
-    # # turn the list into a pd.DataFrame
-    # cons_df = pd.concat(cons_list)
-    # len_df = len(cons_df.columns)
-    # #cons_df2 = cons_df.copy()
-    # # use the original reference sequence as index to find the conserved residue at each position (column)
-    # cons_df.index = list(nonTM_orig_seq)
-    #
-    # # find the conserved residue (which mathches the coresponding one in reference seqeunce) and its propensity at each position
-    # aa_prop_list = []
-    # for aa in cons_df.index.unique():
-    #     if type(cons_df[aa][aa]) == pd.Series:
-    #         observed_cons_1_row = list(cons_df.loc[aa, aa])
-    #         aa_prop_list += observed_cons_1_row
-    #     else:
-    #         aa_prop_list.append(cons_df.loc[aa, aa])
-    #
-    # # calculation of the average idenity (conservation) at each position
-    # observed_cons_rate_all_pos = np.array(aa_prop_list).mean()
-    # # calculate the random identity in non-TM region in form of back mutation" rate", which represents the fraction of mutation which have
-    # # resulted in the same aa residue as in the original reference sequence
-    # nonTM_back_mutation_rate = (observed_cons_rate_all_pos - ident) / (1 - ident )
-
     return back_mutation_rate
 
 

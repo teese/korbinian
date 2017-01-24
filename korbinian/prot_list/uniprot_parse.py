@@ -264,7 +264,8 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
 
         ''' ~~   SLICE nonTMD sequence FROM UNIPROT SEQ    ~~ '''
         sys.stdout.write ('slicing nonTMD sequences:')
-        for n, acc in enumerate(dfu.loc[dfu['list_of_TMDs'].notnull()].index):
+        valid_acc_list = dfu.loc[dfu['list_of_TMDs'].notnull()].loc[dfu['list_of_TMDs'] != "nan"].index
+        for n, acc in enumerate(valid_acc_list):
             if n % 10 == 0:
                 sys.stdout.write('.')
                 sys.stdout.flush()
