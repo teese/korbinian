@@ -127,7 +127,7 @@ def calculate_AAIMONs(p):
     mean_ser_filename = "{}_cr_mean.csv".format(protein_name)
 
     #assume af first that there is no previous data, and that the calculations can be re-run
-    if s["overwrite_prev_calculated_AAIMONs"] == False:
+    if s["overwrite_prev_calculated_AAIMON_ratios"] == False:
         if os.path.isfile(homol_cr_ratios_zip):
             with zipfile.ZipFile(homol_cr_ratios_zip, mode="r", compression=zipfile.ZIP_DEFLATED) as cr_zip:
                 if mean_ser_filename in cr_zip.namelist():
