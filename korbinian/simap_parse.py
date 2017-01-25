@@ -64,6 +64,9 @@ def run_parse_simap_to_csv(pathdict, s, logging):
         # log the list of protein results to the actual logfile, not just the console
         logging.info(parse_simap_list)
         try:
+            # remove all the None values from the list
+            # note that we don't know exactly how they get there, as all return statements should give a tuple
+            parse_simap_list = list(filter(None.__ne__, parse_simap_list))
             df_parsed = pd.DataFrame(parse_simap_list)
             df_parsed.set_index(0, inplace=True)
             df_parsed.index.name = "acc"
@@ -192,6 +195,7 @@ def parse_SIMAP_to_csv(p):
                     simap_homologue_tree = ET.parse(SIMAP_homologues_XML_file_extracted)
                     simap_homologue_root = simap_homologue_tree.getroot()
                 except xml.etree.ElementTree.ParseError:
+                    # returns a tuple
                     message = "{} contains xml file that gives a ParseError. " \
                               "In the future, file may be automatically deleted.".format(p['homol_df_orig_zip'])
                     logging.info(message)
@@ -200,6 +204,7 @@ def parse_SIMAP_to_csv(p):
                 try:
                     error = simap_homologue_root[0][0][1][0].text
                     if "could not find the query sequence" in error:
+                        # returns a tuple
                         message = "{} not in simap database".format(acc)
                         logging.info(message)
                         return acc, False, message
