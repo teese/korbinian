@@ -461,10 +461,10 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                                        alpha=0.75)
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s['Fig09_Histogram_of_mean_AAIMONs_for_each_TMD_separately']:
+    if s['Fig09_Histogram_of_mean_AAIMON_ratios_for_each_TMD_separately']:
         Fig_Nr = 9
         title = 'Histogram of mean AAIMON ratios'
-        Fig_name = 'Fig09_Histogram_of_mean_AAIMONs_for_each_TMD_separately'
+        Fig_name = 'Fig09_Histogram_of_mean_AAIMON_ratios_for_each_TMD_separately'
         fig, ax = plt.subplots()
 
         title = 'AAIMON each TMD separately'
@@ -539,10 +539,10 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s['Fig10_Line_histogram_of_mean_AAIMONs_for_each_TMD_separately']:
+    if s['Fig10_Line_histogram_of_mean_AAIMON_ratios_for_each_TMD_separately']:
         Fig_Nr = 10
         title = 'Line histogram each TMD'
-        Fig_name = 'Fig10_Line_histogram_of_mean_AAIMONs_for_each_TMD_separately'
+        Fig_name = 'Fig10_Line_histogram_of_mean_AAIMON_ratios_for_each_TMD_separately'
         fig, ax = plt.subplots()
 
         num_bins = 50
@@ -612,7 +612,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s['Fig11_Line_histogram_of_mean_AAIMONs_for_selected_TMDs,_highlighting_difference_for_TM07']:
+    if s['Fig11_Line_histogram_of_mean_AAIMON_ratios_for_selected_TMDs,_highlighting_difference_for_TM07']:
         # these graphs are only applicable for multi-pass proteins. Use where at least 2 proteins have a 7th TMD
         if "TM07_AAIMON_mean" in df_mean_AAIMON_each_TM.columns:
             if df_mean_AAIMON_each_TM['TM07_AAIMON_mean'].dropna().shape[0] >= 2:
@@ -627,7 +627,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         if dataset_contains_multipass_prots:
             Fig_Nr = 11
             title = 'Select TMDs, all data'
-            Fig_name = 'Fig11_Line_histogram_of_mean_AAIMONs_for_selected_TMDs'
+            Fig_name = 'Fig11_Line_histogram_of_mean_AAIMON_ratios_for_selected_TMDs'
             #cols_for_analysis = ['TM01', 'TM07', 'TM08', 'last_TM_AAIMON_mean']
             cols_for_analysis = ['TM01_AAIMON_mean', 'TM07_AAIMON_mean', 'TM08_AAIMON_mean', 'TM{last_TM:02d}_AAIMON_mean'.format(last_TM=len(df_mean_AAIMON_each_TM.columns))]
             fig, ax = plt.subplots()

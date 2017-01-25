@@ -132,7 +132,7 @@ def calculate_AAIMONs(p):
             with zipfile.ZipFile(homol_cr_ratios_zip, mode="r", compression=zipfile.ZIP_DEFLATED) as cr_zip:
                 if mean_ser_filename in cr_zip.namelist():
                     # if the means are saved as a csv in the homol cr_ratios zipfile, skip this protein
-                    message = '{} AAIMONs skipped, file with mean AAIMON ratios exists (in settings, overwrite_prev_calculated_AAIMONs = True)'.format(acc)
+                    message = '{} AAIMONs skipped, file with mean AAIMON ratios exists (in settings, overwrite_prev_calculated_AAIMON_ratios = True)'.format(acc)
                     logging.info(message)
                     return acc, False, message
 
