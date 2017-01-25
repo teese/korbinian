@@ -188,7 +188,7 @@ def run_statements(s, list_number):
 
 
     if s["run_keyword_analysis"]:
-        korbinian.cons_ratio.keywords.keyword_analysis(pathdict, s, logging)
+        korbinian.cons_ratio.keywords.keyword_analysis(pathdict, s, logging, list_number)
 
 
     if s['send_email_when_finished']:

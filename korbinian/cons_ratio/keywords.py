@@ -9,7 +9,7 @@ import korbinian.utils as utils
 import matplotlib.pyplot as plt
 import os
 
-def keyword_analysis(pathdict, s, logging):
+def keyword_analysis(pathdict, s, logging, list_number):
     logging.info("~~~~~~~~~~~~         starting keyword_analysis           ~~~~~~~~~~~~")
 
     # create folder in list summary directory to hold keyword data
@@ -85,6 +85,7 @@ def keyword_analysis(pathdict, s, logging):
     df['GPCR'] = df['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args=(list_GPCR_KW,))
 
     # remove ignored keywords; replace Enzyme keywords with single keyword 'Enzyme
+    sys.stdout.write('removing ignored keywords; replacing enzyme associated keywords with "Enzyme"\n')
     for acc in df.index:
         # remove ignored keywords from dataframe 'uniprot_KW'
         for element in list_ignored_KW:
@@ -96,6 +97,13 @@ def keyword_analysis(pathdict, s, logging):
                 df.loc[acc, 'uniprot_KW'].remove(element)
         if df.loc[acc, 'enzyme']:
             df.loc[acc, 'uniprot_KW'].append('Enzyme')
+
+    # check if enzyme and/or GPCRs present in df
+    if df['enzyme'].any:
+        data_contains_GPCRs = True
+    if df['GPCR'].any:
+        data_contains_GPCRs = True
+
 
     # join all keywords together into a large list
     nested_list_all_KW = list(itertools.chain(*list(df['uniprot_KW'])))
@@ -169,6 +177,7 @@ def keyword_analysis(pathdict, s, logging):
             dfk.loc[keyword, 'AAIMON_slope_keyword_std'] = np.std(df_keyword['AAIMON_slope_mean_all_TMDs'])
             number_of_proteins_keyword = len(df_keyword.index)
             dfk.loc[keyword, 'number_of_proteins_keyword'] = number_of_proteins_keyword
+            dfk.loc[keyword, 'FASTA_ident_mean'] = np.mean(df_keyword['FASTA_ident_mean'])
 
             dfk.loc[keyword, 'AAIMON_no_keyword_mean'] = np.mean(df_no_keyword['AAIMON_mean_all_TMDs'])
             dfk.loc[keyword, 'AAIMON_no_keyword_std'] = np.std(df_no_keyword['AAIMON_mean_all_TMDs'])
@@ -207,6 +216,7 @@ def keyword_analysis(pathdict, s, logging):
                 dfk.loc[keyword, 'AAIMON_slope_keyword_nonenzyme_std'] = np.std(df_keyword_nonenzyme['AAIMON_slope_mean_all_TMDs'])
                 number_of_proteins_keyword_nonenzyme = len(df_keyword_nonenzyme.index)
                 dfk.loc[keyword, 'number_of_proteins_keyword_nonenzyme'] = number_of_proteins_keyword_nonenzyme
+                dfk.loc[keyword, 'FASTA_ident_mean'] = np.mean(df_keyword_nonenzyme['FASTA_ident_mean'])
 
                 dfk.loc[keyword, 'AAIMON_no_keyword_nonenzyme_mean'] = np.mean(df_no_keyword_nonenzyme['AAIMON_mean_all_TMDs'])
                 dfk.loc[keyword, 'AAIMON_no_keyword_nonenzyme_std'] = np.std(df_no_keyword_nonenzyme['AAIMON_mean_all_TMDs'])
@@ -307,31 +317,43 @@ def keyword_analysis(pathdict, s, logging):
                 dfk.loc[keyword, 't-value_AAIMON_slope_excluding_Enzymes+GPCRs'] = t
                 dfk.loc[keyword, 'p-value_AAIMON_slope_excluding_Enzymes+GPCRs'] = p
 
-
-
-            sys.stdout.write('\nmean AAIMON containing keyword  "{a}" : {b:.3f} ± {c:.3f}, n = {d:.0f}\n'
-                             'mean AAIMON   without  keyword  "{a}" : {e:.3f} ± {f:.3f}, n = {g:.0f}\n'
-                             'mean AAIMON_slope containing keyword  "{a}" : {k:.3f} ± {l:.3f}, n = {d:.0f}\n'
+            sys.stdout.write('mean AAIMON_slope containing keyword  "{a}" : {k:.3f} ± {l:.3f}, n = {d:.0f}\n'
                              'mean AAIMON_slope   without  keyword  "{a}" : {m:.3f} ± {n:.3f}, n = {g:.0f}\n'
-                             'odds_ratio_AAIMON = {h:.3f}, t-value_AAIMON = {i:.3f}, p-value_AAIMON = {j:.3f}\n'
                              'odds_ratio_AAIMON_slope = {o:.3f}, t-value_AAIMON_slope = {p:.3f}, p-value_AAIMON_slope = {q:.3f}\n'
                              .format(a=keyword,
-                                     b=dfk.loc[keyword, 'AAIMON_keyword_mean'],
-                                     c=dfk.loc[keyword, 'AAIMON_keyword_std'],
                                      d=dfk.loc[keyword, 'number_of_proteins_keyword'],
-                                     e=dfk.loc[keyword, 'AAIMON_no_keyword_mean'],
-                                     f=dfk.loc[keyword, 'AAIMON_no_keyword_std'],
                                      g=dfk.loc[keyword, 'number_of_proteins_no_keyword'],
-                                     h=dfk.loc[keyword, 'odds_ratio_AAIMON_no_exclusion'],
-                                     i=dfk.loc[keyword, 't-value_AAIMON_no_exclusion'],
-                                     j=dfk.loc[keyword, 'p-value_AAIMON_no_exclusion'],
                                      k=dfk.loc[keyword, 'AAIMON_slope_keyword_mean'],
                                      l=dfk.loc[keyword, 'AAIMON_slope_keyword_std'],
                                      m=dfk.loc[keyword, 'AAIMON_slope_no_keyword_mean'],
                                      n=dfk.loc[keyword, 'AAIMON_slope_no_keyword_std'],
                                      o=dfk.loc[keyword, 'odds_ratio_AAIMON_slope_no_exclusion'],
                                      p=dfk.loc[keyword, 't-value_AAIMON_slope_no_exclusion'],
-                                     q=dfk.loc[keyword, 't-value_AAIMON_slope_no_exclusion']))
+                                     q=dfk.loc[keyword, 'p-value_AAIMON_slope_no_exclusion']))
+
+            # sys.stdout.write('\nmean AAIMON containing keyword  "{a}" : {b:.3f} ± {c:.3f}, n = {d:.0f}\n'
+            #                  'mean AAIMON   without  keyword  "{a}" : {e:.3f} ± {f:.3f}, n = {g:.0f}\n'
+            #                  'mean AAIMON_slope containing keyword  "{a}" : {k:.3f} ± {l:.3f}, n = {d:.0f}\n'
+            #                  'mean AAIMON_slope   without  keyword  "{a}" : {m:.3f} ± {n:.3f}, n = {g:.0f}\n'
+            #                  'odds_ratio_AAIMON = {h:.3f}, t-value_AAIMON = {i:.3f}, p-value_AAIMON = {j:.3f}\n'
+            #                  'odds_ratio_AAIMON_slope = {o:.3f}, t-value_AAIMON_slope = {p:.3f}, p-value_AAIMON_slope = {q:.3f}\n'
+            #                  .format(a=keyword,
+            #                          b=dfk.loc[keyword, 'AAIMON_keyword_mean'],
+            #                          c=dfk.loc[keyword, 'AAIMON_keyword_std'],
+            #                          d=dfk.loc[keyword, 'number_of_proteins_keyword'],
+            #                          e=dfk.loc[keyword, 'AAIMON_no_keyword_mean'],
+            #                          f=dfk.loc[keyword, 'AAIMON_no_keyword_std'],
+            #                          g=dfk.loc[keyword, 'number_of_proteins_no_keyword'],
+            #                          h=dfk.loc[keyword, 'odds_ratio_AAIMON_no_exclusion'],
+            #                          i=dfk.loc[keyword, 't-value_AAIMON_no_exclusion'],
+            #                          j=dfk.loc[keyword, 'p-value_AAIMON_no_exclusion'],
+            #                          k=dfk.loc[keyword, 'AAIMON_slope_keyword_mean'],
+            #                          l=dfk.loc[keyword, 'AAIMON_slope_keyword_std'],
+            #                          m=dfk.loc[keyword, 'AAIMON_slope_no_keyword_mean'],
+            #                          n=dfk.loc[keyword, 'AAIMON_slope_no_keyword_std'],
+            #                          o=dfk.loc[keyword, 'odds_ratio_AAIMON_slope_no_exclusion'],
+            #                          p=dfk.loc[keyword, 't-value_AAIMON_slope_no_exclusion'],
+            #                          q=dfk.loc[keyword, 'p-value_AAIMON_slope_no_exclusion']))
 
 
             if dfk.loc[keyword, 'p-value_AAIMON_no_exclusion'] <= s['p_value_cutoff_for_histograms']:
@@ -483,13 +505,16 @@ def keyword_analysis(pathdict, s, logging):
             correlated_keywords = df_correlation[KW]
             # remove rows with 0
             correlated_keywords = correlated_keywords[(correlated_keywords != 0)]
-            correlated_keywords = correlated_keywords.drop(KW).sort_values(ascending=False).to_string(max_rows=10)
+            correlated_keywords = correlated_keywords.drop(KW).sort_values(ascending=False).head(10).to_string()
             dfk.loc[KW, 'correlated_KW'] = correlated_keywords
+
+        # pretty dataframe
+        dfp = pd.DataFrame()
 
 
         # save pandas dataframes with values
-        dfk.to_csv(os.path.join(pathdict["keywords"], 'keywords.csv'), sep=",", quoting=csv.QUOTE_NONNUMERIC)   # - transpose dataframe here ?!
-        df_correlation.to_csv(os.path.join(pathdict["keywords"], 'cross_KW_correlation.csv'), sep=",", quoting=csv.QUOTE_NONNUMERIC)
+        dfk.to_csv(os.path.join(pathdict["keywords"], 'List%02d_keywords.csv' % list_number), sep=",", quoting=csv.QUOTE_NONNUMERIC)   # - transpose dataframe here ?!
+        df_correlation.to_csv(os.path.join(pathdict["keywords"], 'List%02d_KW_cross_correlation.csv' % list_number), sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     else:
         sys.stdout.write ('no valid keywords found! change "cutoff_major_keywords" setting! current value: {}'.format(s['cutoff_major_keywords']))

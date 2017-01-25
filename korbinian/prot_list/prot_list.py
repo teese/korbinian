@@ -5,6 +5,8 @@ from time import strftime
 import unicodedata
 import korbinian
 import korbinian.utils as utils
+import ast
+import sys
 
 def setup_file_locations_in_df(s, pathdict):
     """ Sets up the file locations in the DataFrame containing the list of proteins for analysis.
@@ -211,6 +213,34 @@ def setup_file_locations_in_df(s, pathdict):
     ########################################################################################
     # indicate that the setup_file_locations_in_df function has been run
     df['setup_file_locations_in_df'] = True
+
+    # add a column that holds all joined TMD sequences, drop proteins with 'X' in full sequence
+    n = 0
+    sys.stdout.write('\njoining TMD sequences, dropping proteins with "X" in full sequence: \n'), sys.stdout.flush()
+    list_dropped_acc = []
+    for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
+        n += 1
+        if n % 20 == 0:
+            sys.stdout.write('.'), sys.stdout.flush()
+            if n % 600 == 0:
+                sys.stdout.write('\n'), sys.stdout.flush()
+        if 'X' in df.loc[acc, 'full_seq']:
+            df = df.drop(acc)
+            list_dropped_acc.append(acc)
+            continue
+        list_of_TMDs = ast.literal_eval(df.loc[acc, 'list_of_TMDs'])
+        if len(list_of_TMDs) > 1:
+            TMD_seq_joined = ''
+            for TMD in list_of_TMDs:
+                seq = df.loc[acc, '%s_seq' % TMD]
+                TMD_seq_joined += seq
+            if not 'X' in TMD_seq_joined:
+                df.loc[acc, 'TMD_seq_joined'] = TMD_seq_joined
+        if len(list_of_TMDs) == 1:
+            SP_TMD_seq = df.loc[acc, 'TM01_seq']
+            if not 'X' in SP_TMD_seq:
+                df.loc[acc, 'TMD_seq_SP'] = SP_TMD_seq
+    sys.stdout.write('\ndropped proteins: {}, n = {}\n'.format(list_dropped_acc, len(list_dropped_acc))), sys.stdout.flush()
     # save to a csv
     df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
