@@ -1,16 +1,8 @@
-import csv
 import pandas as pd
 import numpy as np
-import string
-import numpy
 import random
 import sys
 
-############################################################################################
-#                                                                                          #
-#                        calculation of aa propensity                                      #
-#                                  based on dataset                                        #
-#                                                                                          #
 ############################################################################################
 
 def calc_aa_propensity_TM_nonTM(df, TM_col='TM01_seq', nonTM_col='nonTMD_seq'):

@@ -269,7 +269,7 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
             if n % 10 == 0:
                 sys.stdout.write('.')
                 sys.stdout.flush()
-                if n % 100 == 0:
+                if n % 200 == 0:
                     sys.stdout.write('\n')
                     sys.stdout.flush()
             list_of_TMDs = ast.literal_eval(dfu.loc[acc, 'list_of_TMDs'])
