@@ -1583,11 +1583,13 @@ def send_email_when_finished(s, pathdict, list_number):
     msg['To'] = toaddr
     msg['Subject'] = "korbinian run is finished"
 
-    if s['multiple_lists_to_analyse']:
-        body = '{a}\n\nmultiple lists activated! lists to analyse: {c}\nprocessed list: {b}'.format(a=s['email_message'], b=list_number, c=s['multiple_lists_to_analyse'])
+    # if s['multiple_lists_to_analyse']:
+    #     body = '{a}\n\nmultiple lists activated! lists to analyse: {c}\nprocessed list: {b}'.format(a=s['email_message'], b=list_number, c=s['multiple_lists_to_analyse'])
+    #
+    # else:
+    #     body = '{a}\n\n processed list: {b}'.format(a=s['email_message'], b=list_number)
 
-    else:
-        body = '{a}\n\n processed list: {b}'.format(a=s['email_message'], b=list_number)
+    body = '{a}\n\n processed list: {b}'.format(a=s['email_message'], b=list_number)
     msg.attach(MIMEText(body, 'plain'))
 
     #filename = "Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins_lowres.png"
