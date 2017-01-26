@@ -1,0 +1,5 @@
+aa_prop_norm_factor_output	1.0219015415667896
+full_length_identity_input	0.75
+rand_aa_ident_A_input	0.1256
+rand_aa_ident_B_input	0.06579
+fraction_of_A_in_full_protein	0.3
