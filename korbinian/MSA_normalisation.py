@@ -4,8 +4,7 @@ import numpy as np
 import random
 import sys
 
-
-def calc_aa_propensity_from_csv_col(seq_list_csv_in, aa_prop_csv_out, col_name):
+def calc_aa_propensity_from_csv_col(seq_list_csv_in, aa_prop_csv_out, col_name, sep=","):
     """Calculation of amino acid propensity for TM and non-TM region in dataset.
 
     Parameters
@@ -21,7 +20,7 @@ def calc_aa_propensity_from_csv_col(seq_list_csv_in, aa_prop_csv_out, col_name):
         columns are the input columns plus aap (e.g. "TM01_seq" + "_aap")
     """
     # open csv
-    df = pd.read_csv(seq_list_csv_in)
+    df = pd.read_csv(seq_list_csv_in, sep=sep)
     #extract column of interest, and drop empty rows
     ser = df[col_name].dropna()
 
@@ -249,7 +248,6 @@ def calc_random_aa_ident(aa_prop_csv_in, rand_seq_ident_csv_out, seq_len=1000, n
     output_ser = pd.Series()
     output_ser["random_sequence_identity_output"] = random_aa_identity
     aa_prop_ser.index = aa_prop_ser.index + "_input"
-    print(aa_prop_ser)
     output_ser = pd.concat([output_ser, aa_prop_ser])
     output_ser.to_csv(rand_seq_ident_csv_out, sep="\t")
 
@@ -462,58 +460,109 @@ def OLD_calc_MSA_ident_n_factor(observed_perc_ident_TM, rand_perc_ident_TM, rand
     return MSA_TM_nonTM_aa_ident_norm_factor
 
 
-
 # create a parser object to read user inputs from the command line
 parser = argparse.ArgumentParser()
 # add command-line options
-parser.add_argument("-f", #"--window",
-                    help="""Function to be run. Choices are calc_aa_prop, calc_rand_aa_ident or calc_n_factor""")
-parser.add_argument("s",#"--statistic",
-                    default="mean",
-                    type=str, choices=["mean","std","sum"],
-                    help="The choices are mean, std or sum. Desired method to reduce the weighted values in the to a "
-                         "single value at the central position.")
-parser.add_argument("-r",  # "--rawdata",
+parser.add_argument("-f", "--function",
+                    required=True,
+                    help=r"Function to be run. Choices are calc_aa_prop, calc_rand_aa_ident, or calc_n_factor")
+parser.add_argument("-i", "--input",
                     default=None,
-                    help='Raw data input in the command line. Should be a python list of integers (e.g. "[1,3,5,7,2,4]")'
-                         ' or floats (e.g. "[1.1,3.4,5.2,7.8,2.7,4.5]")')
-parser.add_argument("-i",  # "-infile",
-                    default=None,
-                    help=r'Full path of file containing original data in csv or excel format.'
+                    help=r'Full path of input file.'
                          r'E.g. "C:\Path\to\your\file.xlsx"')
-parser.add_argument("-n", #"--name",
-                    default="",
-                    help="Name of dataset. Should not be longer than 20 characters. Used in output filenames.")
-parser.add_argument("-c", #"--column",
+parser.add_argument("-o",  "--output",
                     default=None,
-                    help='Column name in input file that should be used for analysis. E.g. "data values"')
-parser.add_argument("-o",  # "--overwrite",
-                    type=str, default="False",
-                    help='If True, existing files will be overwritten.')
-parser.add_argument("-e", #"--excel_kwargs",
-                    default="None",
-                    help="Keyword arguments in python dictionary format to be used when opening "
-                         "an excel file using the python pandas module. (E.g. {'sheet_name':'orig_data'}")
-parser.add_argument("-k", #"--csv_kwargs",
+                    help=r'Full path of output file.'
+                         r'E.g. "C:\Path\to\your\file.xlsx"')
+parser.add_argument("-c", "--column_name",
                     default=None,
-                    help="Keyword arguments in python dictionary format to be used when opening "
-                         "your csv file using the python pandas module. (E.g. {'delimeter':',','header'='infer'}")
-
-
-
+                    help='Column name in input file that should be used for analysis.')
+parser.add_argument("-l", "--length",
+                    default=1000,
+                    help='Sequence length for calc_rand_aa_ident.')
+parser.add_argument("-n", "--number_seq",
+                    default=1000,
+                    help='Number of sequences for calc_rand_aa_ident.')
+parser.add_argument("-d", "--ident_in_matrix",
+                    default=0.7,
+                    help='Amino acid identity in mutation matrix for calc_rand_aa_ident.')
+parser.add_argument("-x", "--full_length_identity",
+                    default=None,
+                    help='Average amino acid identity of full sequences in alignment for calc_MSA_n_factor.')
+parser.add_argument("-a", "--rand_aa_ident_A",
+                    default=None,
+                    help='Random aa identity for region A (e.g. transmembrane) for use in calc_MSA_n_factor.')
+parser.add_argument("-b", "--rand_aa_ident_B",
+                    default=None,
+                    help='Random aa identity for region B (e.g. non-transmembrane) for use in calc_MSA_n_factor.')
+parser.add_argument("-af", "--fraction_of_A_in_full_protein",
+                    default=0.3,
+                    help="""Average fraction of sequence that is from region A (e.g. fract of residues that are
+                    transmembrane residues) for use in calc_MSA_n_factor.""")
 
 # if weighslide.py is run as the main python script, obtain the options from the command line.
 if __name__ == '__main__':
-    print("\ninsert example and help here\n\n")
+    #sys.stdout.write("\nFor help, run \npython MSA_normalisation.py -h\n")
 
     # obtain command-line arguments
     args = parser.parse_args()
 
-    print(args)
+    if "h" in args:
+        parser.print_help()
+        sys.stdout.write("")
 
-    # extract the boolean "overwrite" variable from the input arguments
-    if "f" in args:
-        print(args.f)
+    if args.function == "calc_aa_prop":
+        # write a message if any of the necessary arguments are missing
+        if None in [args.input, args.output, args.column_name]:
+            sys.stdout.write("Argument missing. Please run as follows:\npython MSA_normalisation.py "
+                             "-f calc_aa_prop -i INPUTFILE -o OUTPUTFILE -c COLUMN_NAME")
+        else:
+            # use the supplied inputs from the command line to run calc_aa_propensity_from_csv_col
+            calc_aa_propensity_from_csv_col(seq_list_csv_in=args.input, aa_prop_csv_out=args.output, col_name=args.column_name)
+            #sys.stdout.write("\nFinished. Output file : {}".format(args.output))
+    elif args.function == "calc_rand_aa_ident":
+        # write a message if any of the necessary arguments are missing
+        if None in [args.input, args.output]:
+            sys.stdout.write("Input or output file path is missing. Please run as follows:\npython MSA_normalisation.py "
+                             "-f calc_rand_aa_ident -i INPUTFILE -o OUTPUTFILE -s/-l/-n/-d OPTIONAL_ARGUMENTS")
+        else:
+            # use the supplied inputs from the command line to run calc_random_aa_ident
+            calc_random_aa_ident(aa_prop_csv_in=args.input, rand_seq_ident_csv_out=args.output, seq_len=int(args.length),
+                                 number_seq=int(args.number_seq), ident=float(args.ident_in_matrix))
+            #sys.stdout.write("\nFinished. Output file : {}".format(args.output))
+    elif args.function == "calc_n_factor":
+        # write a message if any of the necessary arguments are missing
+        if None in [args.full_length_identity, args.rand_aa_ident_A, args.rand_aa_ident_B]:
+            sys.stdout.write("Input argument missing. Please run as follows:\npython MSA_normalisation.py "
+                             "-f calc_n_factor -x full_length_identity -a rand_aa_ident_A -b rand_aa_ident_B "
+                             "-o OPTIONAL_OUTPUT_FILE -af OPTIONAL_fraction_of_A_in_full_protein")
+        else:
+            # use the supplied inputs from the command line to run calc_MSA_ident_n_factor
+            full_length_identity = float(args.full_length_identity)
+            rand_aa_ident_A = float(args.rand_aa_ident_A)
+            rand_aa_ident_B = float(args.rand_aa_ident_B)
+            fraction_of_A_in_full_protein = float(args.fraction_of_A_in_full_protein)
+            n_factor = calc_MSA_ident_n_factor(observed_perc_ident_full_seq=full_length_identity,
+                                               rand_perc_ident_TM=rand_aa_ident_A,
+                                               rand_perc_ident_nonTM=rand_aa_ident_B,
+                                               proportion_seq_TM_residues=fraction_of_A_in_full_protein)
+
+            # if the user has supplied the path to an output file, add the output aa_prop_norm_factor_output and the inputs to a csv and save
+            if args.output is not None:
+                output_ser = pd.Series()
+                output_ser["aa_prop_norm_factor_output"] = n_factor
+                output_ser["full_length_identity_input"] = full_length_identity
+                output_ser["rand_aa_ident_A_input"] = rand_aa_ident_A
+                output_ser["rand_aa_ident_B_input"] = rand_aa_ident_B
+                output_ser["fraction_of_A_in_full_protein"] = fraction_of_A_in_full_protein
+                output_ser.to_csv(args.output, sep="\t")
+                #sys.stdout.write("\nFinished. Output file : {}".format(args.output))
+            else:
+                # there is no output file, print the result on the screen
+                sys.stdout.write("norm_factor =\t{:0.4f}".format(n_factor))
+                sys.stdout.write("(normalisation factor to be applied to the scores of MSA_region_A, "
+                      "so that the aa propensity would match the scores of MSA_region_B, "
+                      "if the amino acid propensity was the only difference in the sequences)")
     else:
-        raise ValueError('Overwrite variable "{}" is not recognised. '
-                             'Accepted values are "True" or "False".'.format(args.o))
+        raise ValueError('Function to be run "{}" is not recognised. '
+                        'Accepted values are calc_aa_prop, calc_rand_aa_ident, or calc_n_factor'.format(args.f))
