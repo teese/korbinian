@@ -1,9 +1,39 @@
+import argparse
 import pandas as pd
 import numpy as np
 import random
 import sys
 
-############################################################################################
+
+def calc_aa_propensity_from_csv_col(seq_list_csv_in, aa_prop_csv_out, col_name):
+    """Calculation of amino acid propensity for TM and non-TM region in dataset.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        dataframe which contains the TM and non-TM sequences for each protein
+
+    Returns
+    -------
+    prob_table : pd.DataFrame
+        show the aa propensity in TM and non-TM region, respectively
+        index is the AA
+        columns are the input columns plus aap (e.g. "TM01_seq" + "_aap")
+    """
+    # open csv
+    df = pd.read_csv(seq_list_csv_in)
+    #extract column of interest, and drop empty rows
+    ser = df[col_name].dropna()
+
+    # create a string to hold segments from all proteins in list
+    massive_string_all_prot = ""
+    for seq in ser:
+        if type(seq) == str:
+            massive_string_all_prot += seq
+
+    # calculate aa propensity in TM region
+    aa_propensity_ser = calc_aa_propensity(massive_string_all_prot)
+    aa_propensity_ser.to_csv(aa_prop_csv_out, sep="\t")
 
 def calc_aa_propensity_TM_nonTM(df, TM_col='TM01_seq', nonTM_col='nonTMD_seq'):
     """Calculation of amino acid propensity for TM and non-TM region in dataset.
@@ -82,7 +112,7 @@ def calc_aa_propensity(seq):
     return aa_prop_norm_ser
 
 
-def calc_random_aa_ident(aa_prop_ser, seq_len=1000, number_seq=1000, ident=0.7):
+def calc_random_aa_ident(aa_prop_csv_in, rand_seq_ident_csv_out, seq_len=1000, number_seq=1000, ident=0.7):
     """Calculation of random amino acid identity based on a particular amino acid propensity.
 
     Protein regions with a limited aa propensity (e.g. transmembrane regions) have a measurable amino
@@ -115,6 +145,9 @@ def calc_random_aa_ident(aa_prop_ser, seq_len=1000, number_seq=1000, ident=0.7):
         random identity due to limited aa propensity
         effectively the average back mutation rate for all amino acids
     """
+
+    aa_prop_ser = pd.Series.from_csv(aa_prop_csv_in, sep="\t")
+
     # extract aa array and propensity array
     aa_propensities = np.array(aa_prop_ser)
     aa_arr = np.array(aa_prop_ser.index)
@@ -212,7 +245,13 @@ def calc_random_aa_ident(aa_prop_ser, seq_len=1000, number_seq=1000, ident=0.7):
     # calculate the random identity in TM region in form of back mutation" rate", which represents the fraction of mutation which have
     # resulted in the same aa residue as in the original reference sequence
     random_aa_identity = (observed_mean_cons_rate_all_pos - ident ) / (1 - ident)
-    return random_aa_identity
+
+    output_ser = pd.Series()
+    output_ser["random_sequence_identity_output"] = random_aa_identity
+    aa_prop_ser.index = aa_prop_ser.index + "_input"
+    print(aa_prop_ser)
+    output_ser = pd.concat([output_ser, aa_prop_ser])
+    output_ser.to_csv(rand_seq_ident_csv_out, sep="\t")
 
 
 def generate_random_seq(seq_len, number_seq, number_mutations, list_all_20_aa, probabilities_all_20_aa):
@@ -297,8 +336,6 @@ def generate_random_seq(seq_len, number_seq, number_mutations, list_all_20_aa, p
 
 def calc_MSA_ident_n_factor(observed_perc_ident_full_seq, rand_perc_ident_TM, rand_perc_ident_nonTM, proportion_seq_TM_residues=0.3):
     """Calculation of the MSA identity normalisation factor
-
-
 
     For this formula, we assume most proteins are multi-pass, and that approximately 30% of the
     residues are TM residues. Therefore a rand_30TM_70nonTM can be calculated, that roughly
@@ -423,3 +460,60 @@ def OLD_calc_MSA_ident_n_factor(observed_perc_ident_TM, rand_perc_ident_TM, rand
     #sys.stdout.write('\nnormalisation factor: %.3f' %MSA_TM_nonTM_aa_ident_norm_factor)
 
     return MSA_TM_nonTM_aa_ident_norm_factor
+
+
+
+# create a parser object to read user inputs from the command line
+parser = argparse.ArgumentParser()
+# add command-line options
+parser.add_argument("-f", #"--window",
+                    help="""Function to be run. Choices are calc_aa_prop, calc_rand_aa_ident or calc_n_factor""")
+parser.add_argument("s",#"--statistic",
+                    default="mean",
+                    type=str, choices=["mean","std","sum"],
+                    help="The choices are mean, std or sum. Desired method to reduce the weighted values in the to a "
+                         "single value at the central position.")
+parser.add_argument("-r",  # "--rawdata",
+                    default=None,
+                    help='Raw data input in the command line. Should be a python list of integers (e.g. "[1,3,5,7,2,4]")'
+                         ' or floats (e.g. "[1.1,3.4,5.2,7.8,2.7,4.5]")')
+parser.add_argument("-i",  # "-infile",
+                    default=None,
+                    help=r'Full path of file containing original data in csv or excel format.'
+                         r'E.g. "C:\Path\to\your\file.xlsx"')
+parser.add_argument("-n", #"--name",
+                    default="",
+                    help="Name of dataset. Should not be longer than 20 characters. Used in output filenames.")
+parser.add_argument("-c", #"--column",
+                    default=None,
+                    help='Column name in input file that should be used for analysis. E.g. "data values"')
+parser.add_argument("-o",  # "--overwrite",
+                    type=str, default="False",
+                    help='If True, existing files will be overwritten.')
+parser.add_argument("-e", #"--excel_kwargs",
+                    default="None",
+                    help="Keyword arguments in python dictionary format to be used when opening "
+                         "an excel file using the python pandas module. (E.g. {'sheet_name':'orig_data'}")
+parser.add_argument("-k", #"--csv_kwargs",
+                    default=None,
+                    help="Keyword arguments in python dictionary format to be used when opening "
+                         "your csv file using the python pandas module. (E.g. {'delimeter':',','header'='infer'}")
+
+
+
+
+# if weighslide.py is run as the main python script, obtain the options from the command line.
+if __name__ == '__main__':
+    print("\ninsert example and help here\n\n")
+
+    # obtain command-line arguments
+    args = parser.parse_args()
+
+    print(args)
+
+    # extract the boolean "overwrite" variable from the input arguments
+    if "f" in args:
+        print(args.f)
+    else:
+        raise ValueError('Overwrite variable "{}" is not recognised. '
+                             'Accepted values are "True" or "False".'.format(args.o))
