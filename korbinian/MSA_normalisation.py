@@ -4,11 +4,6 @@ import random
 import sys
 
 ############################################################################################
-#                                                                                          #
-#                        calculation of aa propensity                                      #
-#                                  based on dataset                                        #
-#                                                                                          #
-############################################################################################
 
 def calc_aa_propensity_TM_nonTM(df, TM_col='TM01_seq', nonTM_col='nonTMD_seq'):
     """Calculation of amino acid propensity for TM and non-TM region in dataset.
