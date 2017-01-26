@@ -9,19 +9,23 @@ def calc_aa_propensity_from_csv_col(seq_list_csv_in, aa_prop_csv_out, col_name, 
 
     Parameters
     ----------
-    df : pd.DataFrame
-        dataframe which contains the TM and non-TM sequences for each protein
+    seq_list_csv_in : csv
+        input csv file which contains sequences from region of interest (e.g. TM and nonTM regions), normally as comma separated values
 
-    Returns
-    -------
-    prob_table : pd.DataFrame
-        show the aa propensity in TM and non-TM region, respectively
-        index is the AA
-        columns are the input columns plus aap (e.g. "TM01_seq" + "_aap")
+    aa_prop_csv_out: csv
+        output csv file which contains the aa propensity for the region of interest
+
+    col_name: str
+        specify which column should be used (e.g. TM01_seq or nonTM_seq). This should contain sequences
+        from the interested protein region.
+
+    sep: str
+        data format. Default: comma separated file
     """
+
     # open csv
     df = pd.read_csv(seq_list_csv_in, sep=sep)
-    #extract column of interest, and drop empty rows
+    # extract column of interest, and drop empty rows
     ser = df[col_name].dropna()
 
     # create a string to hold segments from all proteins in list
@@ -30,8 +34,9 @@ def calc_aa_propensity_from_csv_col(seq_list_csv_in, aa_prop_csv_out, col_name, 
         if type(seq) == str:
             massive_string_all_prot += seq
 
-    # calculate aa propensity in TM region
+    # calculate aa propensity in region of interest
     aa_propensity_ser = calc_aa_propensity(massive_string_all_prot)
+    # save aa propensity series to output csv file
     aa_propensity_ser.to_csv(aa_prop_csv_out, sep="\t")
 
 def calc_aa_propensity_TM_nonTM(df, TM_col='TM01_seq', nonTM_col='nonTMD_seq'):
@@ -41,6 +46,12 @@ def calc_aa_propensity_TM_nonTM(df, TM_col='TM01_seq', nonTM_col='nonTMD_seq'):
     ----------
     df : pd.DataFrame
         dataframe which contains the TM and non-TM sequences for each protein
+
+    TM_col: str
+        column that contains TM sequences
+
+    nonTM_col: str
+        column that contains non-TM sequences
 
     Returns
     -------
@@ -84,7 +95,7 @@ def calc_aa_propensity(seq):
 
     Returns
     -------
-    aa_prop_ser : pd.Series
+    aa_prop_norm_ser : pd.Series
         Series containing corresponding aa propensity
     """
 
@@ -107,6 +118,7 @@ def calc_aa_propensity(seq):
     # normalise so that all the aa propensities add up to 1.0
     # this is important if "X" or "U" is in the sequences
     aa_prop_norm_ser = aa_prop_ser / aa_prop_ser.sum()
+    # name the index column
     aa_prop_norm_ser.index.name = "freq"
     return aa_prop_norm_ser
 
@@ -120,31 +132,26 @@ def calc_random_aa_ident(aa_prop_csv_in, rand_seq_ident_csv_out, seq_len=1000, n
 
     Parameters
     ----------
-    aa_prop_ser : pd.Series
-        aa propensity for a particular sequenc or dataset.
-        pandas series with all 20 aa as the index, and a proportion (0.08, 0.09 etc) as the data.
-        Typically obtained from the function calc_aa_propensity
+    aa_prop_csv_in: csv
+        input csv file containing aa propensity for a particular sequence or dataset.
+        Typically obtained from the function calc_aa_propensity_from_csv_col
+
+    rand_seq_ident_csv_out: csv
+        outout csv file contaning calculated random aa identity (due to limited aa propensity), and all the input values
+
+    seq_len: int
+        length of randomly created sequences. To achieve a more plausible result using randomisation method,
+        greater values (> 5000) are recommended. Defalut value: 1000
+
+    number_seq: int
+        number of aligned sequences. Larger values are recommended. Default value: 1000
 
     ident: float
-        desired overall identity of randomly created sequence matrix.
-
-    seq_len: integer
-        length of randomly created sequences. To achieve a more plausible result using randomisation method,
-        greater values (> 5000) are recommended. Defalut value: 10,000
-
-    number_seq: integer
-        number of aligned sequences. Larger values are recommended. Default value: 500
-
-    subset_num: integer
-        currently not in use.
-
-    Returns
-    -------
-    random_aa_identity : float
-        random identity due to limited aa propensity
-        effectively the average back mutation rate for all amino acids
+        desired overall identity of randomly created sequence matrix. This will not affect the random aa identity,
+        but smaller values might increase the presicion of the calculation. Default value: 0.7
     """
 
+    # open csv into a pandas series, normally with all 20 aa as the index, and a proportion (0.08, 0.09 etc) as the data.
     aa_prop_ser = pd.Series.from_csv(aa_prop_csv_in, sep="\t")
 
     # extract aa array and propensity array
@@ -158,6 +165,7 @@ def calc_random_aa_ident(aa_prop_csv_in, rand_seq_ident_csv_out, seq_len=1000, n
     orig_and_mut_seqs = generate_random_seq(seq_len, number_seq, number_mutations, aa_arr, aa_propensities)
     # extract the original sequence, of which the matrix are variants
     orig_seq = orig_and_mut_seqs[0]
+    # calculate aa propensity and find all used aa in the orig_seq
     aa_prop_orig_seq = calc_aa_propensity(orig_seq)
     aa_in_orig_seq_list = list(aa_prop_orig_seq.loc[aa_prop_orig_seq > 0].index)
 
@@ -245,10 +253,12 @@ def calc_random_aa_ident(aa_prop_csv_in, rand_seq_ident_csv_out, seq_len=1000, n
     # resulted in the same aa residue as in the original reference sequence
     random_aa_identity = (observed_mean_cons_rate_all_pos - ident ) / (1 - ident)
 
+    # create a output seires to contain all the output information
     output_ser = pd.Series()
     output_ser["random_sequence_identity_output"] = random_aa_identity
     aa_prop_ser.index = aa_prop_ser.index + "_input"
     output_ser = pd.concat([output_ser, aa_prop_ser])
+    # save the setries as csv file
     output_ser.to_csv(rand_seq_ident_csv_out, sep="\t")
 
 
@@ -300,6 +310,7 @@ def generate_random_seq(seq_len, number_seq, number_mutations, list_all_20_aa, p
     seq_matrix = []
     # firstly, choose a set of positions whoose aa will be replaced
     for n in range(number_seq):
+        # sys.write something to show that the programming is still running
         if n % 10 == 0:
             sys.stdout.write(".")
             if n !=0 and n % 300 == 0:
@@ -320,6 +331,7 @@ def generate_random_seq(seq_len, number_seq, number_mutations, list_all_20_aa, p
         # append each new sequence to the seq_matrix
         seq_matrix.append(list(seq_incl_mutations))
 
+    # convert the seq_matrix into a np.array to ease further steps (slicing columns)
     seq_matrix = np.array(seq_matrix)
 
     return orig_seq, seq_matrix
@@ -362,11 +374,8 @@ def calc_MSA_ident_n_factor(observed_perc_ident_full_seq, rand_perc_ident_TM, ra
 
     Returns
     -------
-    n_factor: float
+    MSA_aa_ident_norm_factor: float
         normalisation factor which will be applied to your observed TM identity
-
-    TM_ident_n: float
-        normalised TM identity for MSA
 
     Example:
     observed_perc_ident_TM = 0,78, rand_perc_ident_TM = 0.126, rand_perc_ident_nonTM = 0.059
@@ -374,6 +383,7 @@ def calc_MSA_ident_n_factor(observed_perc_ident_full_seq, rand_perc_ident_TM, ra
     calculated observed_perc_ident_nonTM = 0.763
     calculated n_factor = 0.78/0.763 = 1.022
     """
+
     # calculate proportion of length of full sequence that is nonTM
     proportion_seq_nonTM_residues = 1 - proportion_seq_TM_residues
     # random percentage identity of the full protein, assuming 30% TM region and 70% nonTM region
@@ -393,11 +403,11 @@ def calc_MSA_ident_n_factor(observed_perc_ident_full_seq, rand_perc_ident_TM, ra
     #calculation of normalisation factor
     # for randomised sequences, the aa propensity is the ONLY factor giving an effect
     # therefore the ratio of the observed identities gives the normalisation factor
-    MSA_TM_nonTM_aa_ident_norm_factor = observed_perc_ident_TM/observed_perc_ident_nonTM
+    MSA_aa_ident_norm_factor = observed_perc_ident_TM/observed_perc_ident_nonTM
 
     #sys.stdout.write('\nnormalisation factor: %.3f' %MSA_TM_nonTM_aa_ident_norm_factor)
 
-    return MSA_TM_nonTM_aa_ident_norm_factor
+    return MSA_aa_ident_norm_factor
 
 def OLD_calc_MSA_ident_n_factor(observed_perc_ident_TM, rand_perc_ident_TM, rand_perc_ident_nonTM):
     """Calculation of the MSA identity normalisation factor
@@ -460,6 +470,13 @@ def OLD_calc_MSA_ident_n_factor(observed_perc_ident_TM, rand_perc_ident_TM, rand
     return MSA_TM_nonTM_aa_ident_norm_factor
 
 
+############################################################################################
+#                                                                                          #
+#                        Using argparse to enable usage from                               #
+#                                  command line                                            #
+#                                                                                          #
+############################################################################################
+
 # create a parser object to read user inputs from the command line
 parser = argparse.ArgumentParser()
 # add command-line options
@@ -500,7 +517,7 @@ parser.add_argument("-af", "--fraction_of_A_in_full_protein",
                     help="""Average fraction of sequence that is from region A (e.g. fract of residues that are
                     transmembrane residues) for use in calc_MSA_n_factor.""")
 
-# if weighslide.py is run as the main python script, obtain the options from the command line.
+# if MSA_normalisation.py is run as the main python script, obtain the options from the command line.
 if __name__ == '__main__':
     #sys.stdout.write("\nFor help, run \npython MSA_normalisation.py -h\n")
 
