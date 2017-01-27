@@ -154,7 +154,7 @@ def filt_and_save_AAIMON_mean(TMD, df_cr, mean_ser, max_gaps, max_hydro, min_ide
     # print number of homologues removed by filtering
     #n_homol_after_filter = df_cr.shape[0]
     #n_homol_removed = n_homol_before_filter - n_homol_after_filter
-    #print("{} n_homol_removed in TMD filter : {}".format(TMD, n_homol_removed))
+    #sys.stdout.write("{} n_homol_removed in TMD filter : {}".format(TMD, n_homol_removed))
 
     ########################################################################################
     ########################################################################################

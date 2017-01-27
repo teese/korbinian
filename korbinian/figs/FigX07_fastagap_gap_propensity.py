@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import pickle
 import matplotlib.pyplot as plt
-#%matplotlib inline
+import sys
 
 #excel_settings_file = r"D:\Dropbox\korbinian\dropbox_korbinian_settings\korbinian_run_settings_schweris_mp.xlsx"
 
@@ -41,8 +41,8 @@ with open(gap_all_pos_path, "rb") as pkl:
 
 pos_arr = np.array(pos_with_gaps_for_all_TMDs_all_proteins)
 pos_arr = pos_arr[pos_arr > -200]
-print("number of gap positions in list", len(pos_with_gaps_for_all_TMDs_all_proteins))
-print("array shape after excluding infinite values", pos_arr.shape)
+sys.stdout.write("number of gap positions in list", len(pos_with_gaps_for_all_TMDs_all_proteins))
+sys.stdout.write("array shape after excluding infinite values", pos_arr.shape)
 
 pd.options.display.float_format = '{:,.2f}'.format
 # define the number of aa surrounding, to be used in bin creation

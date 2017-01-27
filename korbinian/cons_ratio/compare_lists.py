@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import os
+import sys
 
 def compare_rel_con_lists(pathdict, s, logging):
     protein_lists = s["protein_lists"]
@@ -647,7 +648,7 @@ def compare_rel_con_lists(pathdict, s, logging):
         'proportion_JM_region_3aa'] = dfl.number_of_TMDs * 3 * 2 / dfl.len_query_align_seq
         dfl.loc[:,
         'proportion_JM_region_6aa'] = dfl.number_of_TMDs * 6 * 2 / dfl.len_query_align_seq
-        print(
+        sys.stdout.write(
             "dfl%i\nAverage AAIMON ratio all TMDs = %0.3f\nAverage len TMD = %0.2f\nAverage len full sequence = %0.2f\nAverage TMD proportion = %0.4f (%0.2f%%)\nAverage proportion JM (3aa each side) = %0.4f (%0.2f%%)\nAverage proportion JM (6aa each side) = %0.4f (%0.2f%%)" % (
                 n,
                 dfl['AAIMON_mean_all_TMDs'].mean(),

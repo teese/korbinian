@@ -1,12 +1,13 @@
-import logging
 from Bio import SwissProt
-import re
-import numpy as np
-import pandas as pd
+import ast
 import csv
 import korbinian
 import korbinian.utils as utils
-import ast
+import logging
+import numpy as np
+import os
+import pandas as pd
+import re
 import sys
 
 def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_sp, logging, list_summary_csv_path):
@@ -41,6 +42,8 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
 
     """
     logging.info('~~~~~~~~~~~~    starting create_csv_from_uniprot_flatfile     ~~~~~~~~~~~~')
+    if not os.path.isfile(selected_uniprot_records_flatfile):
+        return "create_csv_from_uniprot_flatfile could not be run. Uniprot flatfile not found. ({})".format(selected_uniprot_records_flatfile)
     uniprot_dict_all_proteins = {}
     with open(selected_uniprot_records_flatfile, "r") as f:
         records = SwissProt.parse(f)
@@ -300,7 +303,7 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
         utils.make_sure_path_exists(list_summary_csv_path, isfile=True)
         dfu.to_csv(list_summary_csv_path, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
-    logging.info('\n%i uniprot records parsed to csv\n~~~~~~~~~~~~   create_csv_from_uniprot_flatfile is finished   ~~~~~~~~~~~~' % count_of_uniprot_records_added_to_csv)
+    return '\n%i uniprot records parsed to csv\n~~~~~~~~~~~~   create_csv_from_uniprot_flatfile is finished   ~~~~~~~~~~~~' % count_of_uniprot_records_added_to_csv
 
 
 def create_dictionary_of_comments(uniprot_record_handle):

@@ -10,7 +10,29 @@ import matplotlib.pyplot as plt
 import os
 
 def keyword_analysis(pathdict, s, logging, list_number):
+    """
+
+    Parameters
+    ----------
+    pathdict
+    s
+    logging
+    list_number
+
+    Returns
+    -------
+
+    """
     logging.info("~~~~~~~~~~~~         starting keyword_analysis           ~~~~~~~~~~~~")
+    # load summary file
+    dfu = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    # skip the keyword analysis if there are no keywords
+    if 'uniprot_KW' not in dfu.columns:
+        return "Keyword analysis not conducted. No keywords found in protein summary file."
+    # load cr_summary file
+    dfc = pd.read_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    # merge cr_summary and summary file, if columns are equal in both files, suffix _dfc will be added in cr_summary column names for backwards compatibility
+    df = pd.merge(dfc, dfu, left_index=True, right_index=True, suffixes=('_dfc', ''))
 
     # create folder in list summary directory to hold keyword data
     if not os.path.exists(pathdict["keywords"]):
@@ -29,12 +51,6 @@ def keyword_analysis(pathdict, s, logging, list_number):
     plt.style.use('seaborn-whitegrid')
     fontsize = 12
     alpha = 0.8
-    # load cr_summary file
-    dfc = pd.read_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-    # load summary file
-    dfu = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-    # merge cr_summary and summary file, if columns are equal in both files, suffix _dfc will be added in cr_summary column names for backwards compatibility
-    df = pd.merge(dfc, dfu, left_index=True, right_index=True, suffixes=('_dfc', ''))
 
     ###############################################################
     #                                                             #
@@ -326,6 +342,6 @@ def keyword_analysis(pathdict, s, logging, list_number):
         df_correlation.to_csv(os.path.join(pathdict["keywords"], 'List%02d_KW_cross_correlation.csv' % list_number), sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     else:
-        sys.stdout.write ('no valid keywords found! change "cutoff_major_keywords" setting! current value: {}'.format(s['cutoff_major_keywords']))
+        return 'no valid keywords found! change "cutoff_major_keywords" setting! current value: {}'.format(s['cutoff_major_keywords'])
 
-    logging.info("\n~~~~~~~~~~~~        keyword_analysis is finished         ~~~~~~~~~~~~")
+    return "\n~~~~~~~~~~~~        keyword_analysis is finished         ~~~~~~~~~~~~"

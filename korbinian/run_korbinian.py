@@ -18,6 +18,7 @@ import argparse
 import os
 import korbinian
 import ast
+import sys
 
 # read the command line arguments
 parser = argparse.ArgumentParser()
@@ -27,8 +28,8 @@ parser.add_argument("-s",  # "-settingsfile",
                          r'E.g. "C:\Path\to\your\settingsfile.xlsx"')
 
 if __name__ == "__main__":
-    print('\nRun korbinian as follows:')
-    print(r'python "C:\Path\to\run_korbinian.py" -s "C:\Path\to\your\settingsfile.xlsx"')
+    sys.stdout.write('\nRun korbinian as follows:')
+    sys.stdout.write(r'python "C:\Path\to\run_korbinian.py" -s "C:\Path\to\your\settingsfile.xlsx"')
     # get the command-line arguments
     args = parser.parse_args()
     # args.s is the excel_settings_file input by the user
@@ -40,10 +41,10 @@ if __name__ == "__main__":
         list_number = protein_list_number
         korbinian.run_korbinian.run_statements(s, list_number)
     else:
-        print('\nmultiple lists entered! starting serial analysis of multiple lists!\n\nlists to analyse: {}\n\n'.format(protein_list_number))
+        sys.stdout.write('\nmultiple lists entered! starting serial analysis of multiple lists!\n\nlists to analyse: {}\n\n'.format(protein_list_number))
         for list_number in protein_list_number:
             korbinian.run_korbinian.run_statements(s, list_number)
-            print('\n\n~~~~~~~~~~~~         List {} finished           ~~~~~~~~~~~~\n\n'.format(list_number))
+            sys.stdout.write('\n\n~~~~~~~~~~~~         List {} finished           ~~~~~~~~~~~~\n\n'.format(list_number))
 
 def run_statements(s, list_number):
     # setup error logging
@@ -107,7 +108,8 @@ def run_statements(s, list_number):
         n_aa_before_tmd = s["n_aa_before_tmd"]
         n_aa_after_tmd = s["n_aa_after_tmd"]
         list_summary_csv_path = pathdict["list_summary_csv"]
-        korbinian.prot_list.uniprot_parse.create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, s['analyse_signal_peptides'], logging, list_summary_csv_path)
+        output = korbinian.prot_list.uniprot_parse.create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, s['analyse_signal_peptides'], logging, list_summary_csv_path)
+        logging.info(output)
 
     ########################################################################################
     #                                                                                      #
@@ -188,7 +190,8 @@ def run_statements(s, list_number):
 
 
     if s["run_keyword_analysis"]:
-        korbinian.cons_ratio.keywords.keyword_analysis(pathdict, s, logging, list_number)
+        output = korbinian.cons_ratio.keywords.keyword_analysis(pathdict, s, logging, list_number)
+        logging.info(output)
 
 
     if s['send_email_when_finished']:

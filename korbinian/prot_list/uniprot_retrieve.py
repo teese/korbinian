@@ -1,6 +1,7 @@
 import os
 from Bio import SeqIO
 import pandas as pd
+import sys
 
 def parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, uniprot_dir, list_number, logging, selected_uniprot_records_flatfile):
     """Retrieves UniProt flatfiles from a large flatfile (e.g. All UniProt), based on a list of accession numbers.
@@ -68,4 +69,4 @@ def retrieve_uniprot_data_for_acc_list_in_xlsx_file(excelfile_with_uniprot_acces
                 assert isinstance(uniprot_index_handle, object)
                 output.write(uniprot_index_handle.get_raw(uniprot_accession))
             except KeyError:
-                print("No SwissProt record found in %s for %s." % (input_uniprot_flatfile, uniprot_accession))
+                sys.stdout.write("No SwissProt record found in %s for %s." % (input_uniprot_flatfile, uniprot_accession))
