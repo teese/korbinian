@@ -7,6 +7,7 @@ from time import strftime
 import korbinian
 import korbinian.utils as utils
 import pandas as pd
+import sys
 
 def download_homologues_from_simap(pathdict, s, logging):
     """From the list of proteins in csv format, begins downloading homologues from the SIMAP database.
@@ -156,14 +157,18 @@ def download_homologues_from_simap(pathdict, s, logging):
                 source.write("\n{}".format(acc))
             #add one to the list of consecutive failed downloads.
             number_of_files_not_found += 1
-            # if a large number of downloads failed, then the SIMAP server is probably not working.
-            # Wait some time and try again later.
-            if number_of_files_not_found > 30:
-                utils.sleep_x_hours(24)
-            if number_of_files_not_found == 20:
-                utils.sleep_x_hours(24)
-            if number_of_files_not_found == 15:
-                utils.sleep_x_hours(6)
+            if s["sleep_if_downloads_unsuccessful"]:
+                # if a large number of downloads failed, then the SIMAP server is probably not working.
+                # Wait some time and try again later.
+                if number_of_files_not_found > 30:
+                    sys.stdout.write("\nnumber_of_files_not_found = {}, sleeping for 24 h".format(number_of_files_not_found))
+                    utils.sleep_x_hours(24)
+                if number_of_files_not_found == 20:
+                    sys.stdout.write("\nnumber_of_files_not_found = {}, sleeping for 6 h".format(number_of_files_not_found))
+                    utils.sleep_x_hours(6)
+                if number_of_files_not_found == 15:
+                    sys.stdout.write("\nnumber_of_files_not_found = {}, sleeping for 1 h".format(number_of_files_not_found))
+                    utils.sleep_x_hours(1)
         else:
             # if download is successful or file exists, the SIMAP server must be working,
             # therefore reset the number_of_files_not_found

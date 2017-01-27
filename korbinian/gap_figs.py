@@ -17,8 +17,8 @@ def create_graph_of_gap_density(pathdict, s, logging):
 
     data_names = ["flipped", "not_flipped", "hist_data_juxta_intracellular", "hist_data_juxta_extracellular", "min_value", "list_of_positionfrequency_extra", "list_of_positionfrequency_intra", "n_TMDs_in_all_proteins"]
 
-    print(type(gap_data))
-    print(len(gap_data))
+    sys.stdout.write(type(gap_data))
+    sys.stdout.write(len(gap_data))
     for i in range(len(gap_data)):
         list_or_int_in_gap_data = gap_data[i]
         name = data_names[i]
@@ -29,7 +29,7 @@ def create_graph_of_gap_density(pathdict, s, logging):
             to_print = list_or_int_in_gap_data[0:10]
             length = len(list_or_int_in_gap_data)
 
-        print("name = {}, dtype = {}, len = {}, value (or value[0:10]) = {}".format(name, type(list_or_int_in_gap_data), length, to_print))
+        sys.stdout.write("name = {}, dtype = {}, len = {}, value (or value[0:10]) = {}".format(name, type(list_or_int_in_gap_data), length, to_print))
 
     flipped, not_flipped, hist_data_juxta_intracellular, hist_data_juxta_extracellular, min_value, list_of_positionfrequency_extra, list_of_positionfrequency_intra, n_TMDs_in_all_proteins = gap_data
 
@@ -110,8 +110,8 @@ def create_graph_of_gap_density(pathdict, s, logging):
     # note that the bins=hist_data_juxta_intracellular_ceil is just giving the NUMBER of bins.
     freq_counts_I, bin_array_I = np.histogram(hist_data_juxta_intracellular, bins=hist_data_juxta_intracellular_ceil)
 
-    print("freq_counts_I :")
-    print(len(freq_counts_I), freq_counts_I[0:10])
+    sys.stdout.write("freq_counts_I :")
+    sys.stdout.write(len(freq_counts_I), freq_counts_I[0:10])
 
     # In order to plot a histogram based on the central datapoint (e.g. as a line), the centre of each bin must be calculated
 
@@ -145,15 +145,15 @@ def create_graph_of_gap_density(pathdict, s, logging):
     centre_of_bar_in_x_axis_TM = np.append(centre_of_bar_in_x_axis_TM, centre_of_bar_in_x_axis_TM[-1] + bar_width_TM)
 
     rimma_orig_height = np.array([n / n_TMDs_in_all_proteins for n in freq_counts_TM.tolist()])
-    print("rimma_orig_height", rimma_orig_height)
+    sys.stdout.write("rimma_orig_height", rimma_orig_height)
     rimma_orig_height_by_1000 = rimma_orig_height * 1000
     # plot the TMD data
     ax_b.bar(left=centre_of_bar_in_x_axis_TM,height=rimma_orig_height_by_1000, align='center', width=0.5, color="blue", linewidth=0, zorder=3)  # edgecolor='black',
 
     # freq counts and bin array for the extracellular side
     freq_counts_E, bin_array_E = np.histogram(hist_data_juxta_extracellular, bins=hist_data_juxta_extracellular_ceil)
-    print("freq_counts_E :")
-    print(len(freq_counts_E), freq_counts_E[0:10])
+    sys.stdout.write("freq_counts_E :")
+    sys.stdout.write(len(freq_counts_E), freq_counts_E[0:10])
     # NO IDEA WHY bins=hist_data_juxta_intracellular.max()
     #freq_counts_E, bin_array_E = np.histogram(hist_data_juxta_extracellular)
     #####Extracellular
