@@ -441,7 +441,6 @@ def parse_SIMAP_to_csv(p):
     df_homol['list_disallowed_words_in_descr'] = df_homol['description'].dropna().apply(utils.find_disallowed_words, args=(words_not_allowed_in_description,))
     # create a boolean column to select hits that do not contain these words in the description
     df_homol['disallowed_words_not_in_descr'] = df_homol['list_disallowed_words_in_descr'] == '[]'
-
     # check if there are non-IUPAC amino acids in the sequence (frequently large gaps from NG sequencing data)
     df_homol['X_in_match_seq'] = df_homol['match_align_seq'].str.contains("X")
 
