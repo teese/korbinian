@@ -138,6 +138,10 @@ def calculate_AAIMONs(p):
                     logging.info(message)
                     return acc, False, message
 
+    disallowed_strings = dfh.loc[dfh["list_disallowed_words_in_descr"] != "[]"]["list_disallowed_words_in_descr"].dropna()
+    disallowed_lists = list(disallowed_strings.apply(ast.literal_eval))
+    mean_ser['disallowed_KW'] = list(set(itertools.chain(*disallowed_lists)))
+
     ########################################################################################
     #                                                                                      #
     #           Filter based on homol hit properties (non-TMD-specific)                    #
@@ -162,9 +166,6 @@ def calculate_AAIMONs(p):
     # number of identical residues in each FASTA alignment can be calculated from identity and overlap
     dfh['FASTA_num_ident_res'] = dfh['FASTA_identity'] * dfh['FASTA_overlap']
     mean_ser['FASTA_num_ident_res_mean'] = float('%0.2f' % dfh['FASTA_num_ident_res'].mean())
-
-    list_all_disallowed_KW = list(dfh['list_disallowed_words_in_descr'].dropna().unique())
-    mean_ser['disallowed_KW'] = list(set(itertools.chain(*list_all_disallowed_KW)))
 
     if not os.path.exists(p['fa_cr_sliced_TMDs_zip']):
         message = "{} Protein skipped. File does not exist".format(p['fa_cr_sliced_TMDs_zip'])
