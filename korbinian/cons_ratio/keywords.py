@@ -201,17 +201,17 @@ def keyword_analysis(pathdict, s, logging, list_number):
             dfk.loc[keyword, 'odds_ratio_AAIMON'] = dfk.loc[keyword, 'AAIMON_keyword_mean'] / dfk.loc[keyword, 'AAIMON_no_keyword_mean']
             data1 = df_keyword['AAIMON_mean_all_TMDs'].dropna()
             data2 = df_no_keyword['AAIMON_mean_all_TMDs'].dropna()
-            t, p = ttest_ind(data1, data2, equal_var=True)             # equal_var True or False ?!?!
-            dfk.loc[keyword, 't-value_AAIMON'] = t
-            dfk.loc[keyword, 'p-value_AAIMON'] = p
+            t_AAIMON, p_AAIMON = ttest_ind(data1, data2, equal_var=True)             # equal_var True or False ?!?!
+            dfk.loc[keyword, 't-value_AAIMON'] = t_AAIMON
+            dfk.loc[keyword, 'p-value_AAIMON'] = p_AAIMON
 
             # calculate odds ratio, p- and t-values for AAIMON_slopes
             dfk.loc[keyword, 'odds_ratio_AAIMON_slope'] = dfk.loc[keyword, 'AAIMON_slope_keyword_mean'] / dfk.loc[keyword, 'AAIMON_slope_no_keyword_mean']
             data1 = df_keyword['AAIMON_slope_mean_all_TMDs'].dropna()
             data2 = df_no_keyword['AAIMON_slope_mean_all_TMDs'].dropna()
-            t, p = ttest_ind(data1, data2, equal_var=True)             # equal_var True or False ?!?!
-            dfk.loc[keyword, 't-value_AAIMON_slope'] = t
-            dfk.loc[keyword, 'p-value_AAIMON_slope'] = p
+            t_AAIMON_slope, p_AAIMON_slope = ttest_ind(data1, data2, equal_var=True)             # equal_var True or False ?!?!
+            dfk.loc[keyword, 't-value_AAIMON_slope'] = t_AAIMON_slope
+            dfk.loc[keyword, 'p-value_AAIMON_slope'] = p_AAIMON_slope
 
             sys.stdout.write('\n\nmean AAIMON_slope containing keyword  "{a}" : {k:.3f} ± {l:.3f}, n = {d:.0f}\n'
                              'mean AAIMON_slope   without  keyword  "{a}" : {m:.3f} ± {n:.3f}, n = {g:.0f}\n'
@@ -334,6 +334,8 @@ def keyword_analysis(pathdict, s, logging, list_number):
                 ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', alpha=0.75)
                 # add figure title to top left of subplot
                 ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', alpha=0.75)
+                # add p-value to top left of subplot
+                ax.annotate(s='p-value = {:.5f}'.format(p_AAIMON_slope), xy=(0.1, 0.85), fontsize=fontsize, xytext=None, xycoords='axes fraction', alpha=0.75)
                 # save every individual figure
                 utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
