@@ -378,7 +378,7 @@ def calc_MSA_ident_n_factor(observed_perc_ident_full_seq, rand_perc_ident_TM, ra
         normalisation factor which will be applied to your observed TM identity
 
     Example:
-    observed_perc_ident_TM = 0,78, rand_perc_ident_TM = 0.126, rand_perc_ident_nonTM = 0.059
+    observed_perc_ident_TM = 0.78, rand_perc_ident_TM = 0.126, rand_perc_ident_nonTM = 0.059
     calculated real_perc_identity = 0.748
     calculated observed_perc_ident_nonTM = 0.763
     calculated n_factor = 0.78/0.763 = 1.022

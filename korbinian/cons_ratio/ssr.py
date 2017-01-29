@@ -46,7 +46,7 @@ def conduct_ssr_ratio_calculations(dfs, list_of_TMDs, s, list_of_aa_sub_matrices
        return(score)
 
     for gap_open_penalty in range(s["gap_open_penalty_max"], s["gap_open_penalty_increment"]):
-       #print(gap_open_penalty)
+       #sys.stdout.write(gap_open_penalty)
        #for simplicity, give the gap open and gap extend the same value
        gap_extension_penalty = gap_open_penalty
        for matrix_name in list_of_aa_sub_matrices:
@@ -55,13 +55,13 @@ def conduct_ssr_ratio_calculations(dfs, list_of_TMDs, s, list_of_aa_sub_matrices
            #update the matrix (unsure what this deos! Taken directly from Stackoverflow)
            aa_sub_matrix.update(((b, a), val) for (a, b), val in list(aa_sub_matrix.items()))
            column_basename = 'sim_ratio_%s_gapo%i' % (matrix_name.replace("'", "")[0:-7], gap_open_penalty)
-           #print(column_name)
+           #sys.stdout.write(column_name)
            #scores of query and match. Jan used match-query and query-match because in some cases in his algorithm it gave different scores. In this case, the score is independent of the sequence order, and 2*score_qTMD_mTMD can be used instead of score_qTMD_mTMD + score_mTMD_qTMD
            #score_qTMD_mTMD = sum(utils.score_pairwise(seq1=SW_query_TMD_seq, seq2=SW_match_TMD_seq,
            #                         matrix=aa_sub_matrix,
            #                         gap_open_penalty=gap_open_penalty,
            #                         gap_extension_penalty=gap_extension_penalty))
-           #print(score_qTMD_mTMD)
+           #sys.stdout.write(score_qTMD_mTMD)
            dfs_nonTMD = dfs.query('"X" not in match_align_seq')
            dfs_nonTMD = dfs_nonTMD.loc[dfs_nonTMD['match_align_seq'].notnull()]
            dfs_nonTMD = dfs_nonTMD.loc[dfs_nonTMD['nonTMD_seq_query'].notnull()]

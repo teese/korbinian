@@ -1,17 +1,19 @@
+from multiprocessing import Pool
+from scipy.optimize import leastsq
 import ast
-import os
-import pickle
-import zipfile
+import itertools
 import korbinian
-import korbinian.cons_ratio.calc
-import korbinian.cons_ratio.norm
+# import korbinian.cons_ratio.calc
+# import korbinian.cons_ratio.norm
 import korbinian.utils as utils
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import pandas as pd
-from multiprocessing import Pool
+import pickle
 import sys
-from scipy.optimize import leastsq
+import zipfile
+
 
 def run_calculate_AAIMONs(pathdict, s, logging):
     """Runs calculate_AAIMONs for each protein, using multiprocessing Pool.
@@ -135,6 +137,10 @@ def calculate_AAIMONs(p):
                     message = '{} AAIMONs skipped, file with mean AAIMON ratios exists (in settings, overwrite_prev_calculated_AAIMON_ratios = True)'.format(acc)
                     logging.info(message)
                     return acc, False, message
+
+    disallowed_strings = dfh.loc[dfh["list_disallowed_words_in_descr"] != "[]"]["list_disallowed_words_in_descr"].dropna()
+    disallowed_lists = list(disallowed_strings.apply(ast.literal_eval))
+    mean_ser['disallowed_KW'] = list(set(itertools.chain(*disallowed_lists)))
 
     ########################################################################################
     #                                                                                      #
@@ -351,10 +357,10 @@ def calculate_AAIMONs(p):
                 # number of homologues for TM01. since ALL TMDs have to be in each homologue before AAIMON is calculated, this number is the same for all TMDs
                 mean_ser['TM01_AAIMON_n_homol'] = df_cr['TM01_AAIMON'].dropna().shape[0]
 
-            logging.info('%s AAIMON_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_mean' % TMD]))
-            logging.info('%s AAIMON_n_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_mean_n' % TMD]))
+            #logging.info('%s AAIMON_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_mean' % TMD]))
+            #logging.info('%s AAIMON_n_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_mean_n' % TMD]))
             logging.info('%s AAIMON_slope %s: %0.5f' % (acc, TMD, mean_ser['%s_AAIMON_slope' % TMD]))
-            logging.info('%s AAIMON_n_slope %s: %0.5f' % (acc, TMD, mean_ser['%s_AAIMON_n_slope' % TMD]))
+            #logging.info('%s AAIMON_n_slope %s: %0.5f' % (acc, TMD, mean_ser['%s_AAIMON_n_slope' % TMD]))
             # logging.info('%s AASMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AASMON_ratio_mean'%TMD]))
 
             # use the dictionary to obtain the figure number, plot number in figure, plot indices, etc
@@ -416,7 +422,7 @@ def calculate_AAIMONs(p):
         mean_ser.to_csv(mean_ser_filename)
         zipout.write(mean_ser_filename, arcname=mean_ser_filename)
         os.remove(mean_ser_filename)
-        return acc, True, "0"
+    return acc, True, "0"
 
 
 def throw_out_truncated_sequences(pathdict, s, logging):

@@ -34,14 +34,13 @@ def create_nonred_uniprot_flatfile_via_uniref(s, uniprot_dir_sel, list_number, s
     # output uniprot list with redundancy determined
     nonred_uniprot_acc_csv = os.path.join(uniprot_dir_sel, "List%02d_nonred_list_uniprot_acc.csv" % list_number)
 
-    if os.path.isfile(selected_uniprot_records_flatfile) == False or s["overwrite_selected_ff"] == True:
-        korbinian.prot_list.uniprot_nonredundant.match_list_uniprot_acc_to_uniref_clusters(redundant_uniprot_acc_tab, uniref_clusters_tab, nonred_uniprot_acc_csv, uniref_cutoff, logging)
-        # reopen output file
-        dfu = pd.read_csv(nonred_uniprot_acc_csv, index_col=0)
-        # create a list of uniprot accessions that are nonredundant
-        list_nonred_acc = list(dfu.loc[dfu['nonred'] == True].index)
-        # create a uniprot flatfile containing only the desired nonredundant accessions
-        korbinian.prot_list.uniprot_nonredundant.retrieve_selected_uniprot_records_from_flatfile(list_nonred_acc, redundant_uniprot_flatfile, selected_uniprot_records_flatfile, logging)
+    korbinian.prot_list.uniprot_nonredundant.match_list_uniprot_acc_to_uniref_clusters(redundant_uniprot_acc_tab, uniref_clusters_tab, nonred_uniprot_acc_csv, uniref_cutoff, logging)
+    # reopen output file
+    dfu = pd.read_csv(nonred_uniprot_acc_csv, index_col=0)
+    # create a list of uniprot accessions that are nonredundant
+    list_nonred_acc = list(dfu.loc[dfu['nonred'] == True].index)
+    # create a uniprot flatfile containing only the desired nonredundant accessions
+    korbinian.prot_list.uniprot_nonredundant.retrieve_selected_uniprot_records_from_flatfile(list_nonred_acc, redundant_uniprot_flatfile, selected_uniprot_records_flatfile, logging)
     logging.info('~~~~~~~~~~~~create_nonred_uniprot_flatfile_via_uniref is finished~~~~~~~~~~~~')
 
 def match_list_uniprot_acc_to_uniref_clusters(redundant_uniprot_acc_tab, uniref_clusters_tab, nonred_uniprot_acc_csv, uniref_cutoff, logging):

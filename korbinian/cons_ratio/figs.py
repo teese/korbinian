@@ -41,7 +41,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
     # create number of datapoint dependent alpha_dpd
     alpha_dpd = utils.calc_alpha_from_datapoints(df['AAIMON_mean_all_TMDs'])
-    sys.stdout.write('oppacity of datapoints: {a:.2f}\n'.format(a=alpha_dpd))
+    sys.stdout.write('opacity of datapoints: {a:.2f}\n'.format(a=alpha_dpd))
     # filter to remove proteins that have less than ~5 homologues
     # this is only important for the beta-barrel dataset, which has a lot of these proteins!
     min_n_homol = s["min_n_homol_for_figs"]
@@ -51,7 +51,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     n_removed = n_prot_before_n_homol_cutoff - n_prot_after_n_homol_cutoff
     # if any proteins have been removed, then print the exact number.
     if n_removed >= 1:
-        print("{}/{} proteins were removed, as they contained less than {} valid homologues. "
+        sys.stdout.write("{}/{} proteins were removed, as they contained less than {} valid homologues. "
               "Final number of proteins = {}".format(n_removed, n_prot_before_n_homol_cutoff, min_n_homol, n_prot_after_n_homol_cutoff))
 
     # open list_summary_csv file
@@ -1648,23 +1648,26 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         x = df['AAIMON_mean_all_TMDs_n']
         y = df['AAIMON_n_slope_mean_all_TMDs']
 
-        # calculate linear regression for fitted line
-        linear_regression = np.polyfit(x, y, 1)
-        fit_fn = np.poly1d(linear_regression)
-        fitted_data_x = fit_fn(x)
+        if len(x) > 5:
+            # calculate linear regression for fitted line
+            linear_regression = np.polyfit(x, y, 1)
+            fit_fn = np.poly1d(linear_regression)
+            fitted_data_x = fit_fn(x)
+            ax.plot(x, fitted_data_x, alpha=0.75, color='k')
+            ax.annotate(s='y = {a:.5f}x + {b:.5f}'.format(a=linear_regression[0], b=linear_regression[1]), xy=(0.85, 0.95),
+                        fontsize=fontsize-2, xytext=None, xycoords='axes fraction', alpha=0.75)
+        else:
+            logging.info("The dataset has less than 5 proteins. Lines of best fit will not be calculated.")
 
         ax.scatter(x, y, alpha=alpha_dpd, s=datapointsize)
-        ax.plot(x, fitted_data_x, alpha=0.75, color='k')
         ax.set_ylabel('AAIMON_n_slope', rotation='vertical', fontsize=fontsize)
         ax.set_xlabel('AAIMON_n', fontsize=fontsize)
-
         ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
                     xycoords='axes fraction', alpha=0.75)
         # add figure title to top left of subplot
         ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                     alpha=0.75)
-        ax.annotate(s='y = {a:.5f}x + {b:.5f}'.format(a=linear_regression[0], b=linear_regression[1]), xy=(0.85, 0.95), fontsize=fontsize-2, xytext=None, xycoords='axes fraction',
-                    alpha=0.75)
+
         # change axis font size
         ax.tick_params(labelsize=fontsize)
 
@@ -1737,12 +1740,16 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         x = df['TMD_perc_identity_mean_all_TMDs'] * 100
         y = df['nonTMD_perc_ident_mean'] * 100
 
-        linear_regression = np.polyfit(x, y, 1)
-        fit_fn = np.poly1d(linear_regression)
-        fitted_data_x = fit_fn(x)
+        if len(x) > 5:
+            linear_regression = np.polyfit(x, y, 1)
+            fit_fn = np.poly1d(linear_regression)
+            fitted_data_x = fit_fn(x)
+            ax.plot(x, fitted_data_x, alpha=0.75, color='k')
+            ax.annotate(s='y = {a:.5f}x + {b:.5f}'.format(a=linear_regression[0], b=linear_regression[1]),
+                        xy=(0.85, 0.95), fontsize=fontsize - 2, xytext=None, xycoords='axes fraction',alpha=0.75)
 
         ax.scatter(x, y, s=datapointsize, alpha=alpha_dpd, color='r')
-        ax.plot(x, fitted_data_x, alpha=0.75, color='k')
+
         ax.set_xlabel('TMD_perc_identity_all_TMDs', fontsize=fontsize)
         ax.set_ylabel('nonTMD_perc_ident_mean', rotation='vertical', fontsize=fontsize)
         ax.tick_params(labelsize=fontsize)
@@ -1754,14 +1761,11 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # add figure title to top left of subplot
         ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
                     alpha=0.75)
-        ax.annotate(s='y = {a:.5f}x + {b:.5f}'.format(a=linear_regression[0], b=linear_regression[1]), xy=(0.85, 0.95), fontsize=fontsize-2, xytext=None, xycoords='axes fraction',
-                    alpha=0.75)
+
         # change axis font size
         ax.tick_params(labelsize=fontsize)
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
-
-
 
 
     if s['Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins']:

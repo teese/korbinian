@@ -786,7 +786,7 @@ def create_nested_dict_from_csv(csvfile, fieldlist):
     if this data contains for example a uniprot number, this can be accessed from the nested dictionary as follows:
         nested_dict_with_uniprot_seq = create_nested_dict_from_csv(csv_file_with_uniprot_data, list_of_keys_to_keep)
         uniprot_number_for_seq_in_row_1 = nested_dict_with_uniprot_seq[1]['accession_uniprot']
-        print(uniprot_number_for_seq_in_row_1)
+        sys.stdout.write(uniprot_number_for_seq_in_row_1)
     '''   
     global dict1, output_dict, reader
     #dict1 = {}
@@ -1491,11 +1491,11 @@ class Log_Only_To_Console(object):
     def __init__(self):
         pass
     def info(self, message):
-        print(message)
+        sys.stdout.write(message)
     def warning(self, message):
-        print(message)
+        sys.stdout.write(message)
     def critical(self, message):
-        print(message)
+        sys.stdout.write(message)
 
 def convert_summary_csv_to_input_list(s, pathdict, logging, list_excluded_acc=None):
     # open dataframe with list of proteins
@@ -1517,7 +1517,6 @@ def convert_summary_csv_to_input_list(s, pathdict, logging, list_excluded_acc=No
     list_p = list(df_as_dict.values())
 
     for p in list_p:
-        # print("in for loop", p["acc"])
         p["s"] = s
         p["pathdict"] = pathdict
         p["logging"] = logging
@@ -1605,7 +1604,7 @@ def send_email_when_finished(s, pathdict, list_number):
         for email_fig in email_fig_list:
             Fig_name = email_fig[:-6]
             filepath = os.path.join(pathdict["single_list_fig_path"], Fig_name + ".png")
-            print("filepath", filepath)
+            sys.stdout.write("filepath", filepath)
             if os.path.isfile(filepath):
                 attachment = open(filepath, "rb")
                 part = MIMEBase('application', 'octet-stream')

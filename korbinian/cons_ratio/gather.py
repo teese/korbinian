@@ -131,8 +131,13 @@ def gather_AAIMONs(pathdict, logging, s):
         # initiate empty numpy array
         data = np.empty([0, 3])
         # navigate through filesystem and open pickles from .zip
+        n=0
         for acc in dfg.index:
-            sys.stdout.write('.'), sys.stdout.flush()
+            n += 1
+            if n % 20 == 0:
+                sys.stdout.write('.'), sys.stdout.flush()
+                if n % 600 == 0:
+                    sys.stdout.write('\n'), sys.stdout.flush()
             protein_name = df.loc[acc, "protein_name"]
             homol_cr_ratios_zip = df.loc[acc, "homol_cr_ratios_zip"]
             if not os.path.isfile(homol_cr_ratios_zip):
@@ -167,7 +172,8 @@ def gather_AAIMONs(pathdict, logging, s):
         conf_95 = np.array([1, 2])
         conf95_norm = np.array([1, 2])
         for percentage in linspace_binlist:
-            sys.stdout.write("."), sys.stdout.flush()
+            if percentage % 5 == 0:
+                sys.stdout.write('{}%, '.format(int(percentage))), sys.stdout.flush()
             bin_for_mean = np.empty([0, 3])
             for row in data:
                 if row[0] < percentage and row[0] > percentage - binwidth:
