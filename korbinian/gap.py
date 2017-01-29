@@ -798,9 +798,9 @@ def gather_gap_densities(pathdict, s, logging):
         #for num_TMD in [1, 3, 5, 7 etc]
 
         for num_TMD in range(1, n_TMDs + 1, 2):
-            print("num_TMD", num_TMD)
+            sys.stdout.write("num_TMD", num_TMD)
             list_occurring_gaps = df_gap.loc[acc, "TM%.2d_occurring_gaps" % num_TMD]
-            print("list_occurring_gaps", list_occurring_gaps)
+            sys.stdout.write("list_occurring_gaps", list_occurring_gaps)
             for n in list_occurring_gaps:
                 sys.stdout.write ("n {}".format(n))
                 sys.stdout.write ((df.loc[acc,"TM%.2d_seq"%num_TMD]) )

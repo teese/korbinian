@@ -10,7 +10,29 @@ import matplotlib.pyplot as plt
 import os
 
 def keyword_analysis(pathdict, s, logging, list_number):
+    """
+
+    Parameters
+    ----------
+    pathdict
+    s
+    logging
+    list_number
+
+    Returns
+    -------
+
+    """
     logging.info("~~~~~~~~~~~~         starting keyword_analysis           ~~~~~~~~~~~~")
+    # load summary file
+    dfu = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    # skip the keyword analysis if there are no keywords
+    if 'uniprot_KW' not in dfu.columns:
+        return "Keyword analysis not conducted. No keywords found in protein summary file."
+    # load cr_summary file
+    dfc = pd.read_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    # merge cr_summary and summary file, if columns are equal in both files, suffix _dfc will be added in cr_summary column names for backwards compatibility
+    df = pd.merge(dfc, dfu, left_index=True, right_index=True, suffixes=('_dfc', ''))
 
     # create folder in list summary directory to hold keyword data
     if not os.path.exists(pathdict["keywords"]):
@@ -29,12 +51,6 @@ def keyword_analysis(pathdict, s, logging, list_number):
     plt.style.use('seaborn-whitegrid')
     fontsize = 12
     alpha = 0.8
-    # load cr_summary file
-    dfc = pd.read_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-    # load summary file
-    dfu = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-    # merge cr_summary and summary file, if columns are equal in both files, suffix _dfc will be added in cr_summary column names for backwards compatibility
-    df = pd.merge(dfc, dfu, left_index=True, right_index=True, suffixes=('_dfc', ''))
 
     ###############################################################
     #                                                             #
@@ -185,17 +201,17 @@ def keyword_analysis(pathdict, s, logging, list_number):
             dfk.loc[keyword, 'odds_ratio_AAIMON'] = dfk.loc[keyword, 'AAIMON_keyword_mean'] / dfk.loc[keyword, 'AAIMON_no_keyword_mean']
             data1 = df_keyword['AAIMON_mean_all_TMDs'].dropna()
             data2 = df_no_keyword['AAIMON_mean_all_TMDs'].dropna()
-            t, p = ttest_ind(data1, data2, equal_var=True)             # equal_var True or False ?!?!
-            dfk.loc[keyword, 't-value_AAIMON'] = t
-            dfk.loc[keyword, 'p-value_AAIMON'] = p
+            t_AAIMON, p_AAIMON = ttest_ind(data1, data2, equal_var=True)             # equal_var True or False ?!?!
+            dfk.loc[keyword, 't-value_AAIMON'] = t_AAIMON
+            dfk.loc[keyword, 'p-value_AAIMON'] = p_AAIMON
 
             # calculate odds ratio, p- and t-values for AAIMON_slopes
             dfk.loc[keyword, 'odds_ratio_AAIMON_slope'] = dfk.loc[keyword, 'AAIMON_slope_keyword_mean'] / dfk.loc[keyword, 'AAIMON_slope_no_keyword_mean']
             data1 = df_keyword['AAIMON_slope_mean_all_TMDs'].dropna()
             data2 = df_no_keyword['AAIMON_slope_mean_all_TMDs'].dropna()
-            t, p = ttest_ind(data1, data2, equal_var=True)             # equal_var True or False ?!?!
-            dfk.loc[keyword, 't-value_AAIMON_slope'] = t
-            dfk.loc[keyword, 'p-value_AAIMON_slope'] = p
+            t_AAIMON_slope, p_AAIMON_slope = ttest_ind(data1, data2, equal_var=True)             # equal_var True or False ?!?!
+            dfk.loc[keyword, 't-value_AAIMON_slope'] = t_AAIMON_slope
+            dfk.loc[keyword, 'p-value_AAIMON_slope'] = p_AAIMON_slope
 
             sys.stdout.write('\n\nmean AAIMON_slope containing keyword  "{a}" : {k:.3f} ± {l:.3f}, n = {d:.0f}\n'
                              'mean AAIMON_slope   without  keyword  "{a}" : {m:.3f} ± {n:.3f}, n = {g:.0f}\n'
@@ -318,6 +334,8 @@ def keyword_analysis(pathdict, s, logging, list_number):
                 ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', alpha=0.75)
                 # add figure title to top left of subplot
                 ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', alpha=0.75)
+                # add p-value to top left of subplot
+                ax.annotate(s='p-value = {:.5f}'.format(p_AAIMON_slope), xy=(0.1, 0.85), fontsize=fontsize, xytext=None, xycoords='axes fraction', alpha=0.75)
                 # save every individual figure
                 utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
@@ -326,6 +344,6 @@ def keyword_analysis(pathdict, s, logging, list_number):
         df_correlation.to_csv(os.path.join(pathdict["keywords"], 'List%02d_KW_cross_correlation.csv' % list_number), sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     else:
-        sys.stdout.write ('no valid keywords found! change "cutoff_major_keywords" setting! current value: {}'.format(s['cutoff_major_keywords']))
+        return 'no valid keywords found! change "cutoff_major_keywords" setting! current value: {}'.format(s['cutoff_major_keywords'])
 
-    logging.info("\n~~~~~~~~~~~~        keyword_analysis is finished         ~~~~~~~~~~~~")
+    return "\n~~~~~~~~~~~~        keyword_analysis is finished         ~~~~~~~~~~~~"
