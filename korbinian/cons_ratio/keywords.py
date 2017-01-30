@@ -344,6 +344,6 @@ def keyword_analysis(pathdict, s, logging, list_number):
         df_correlation.to_csv(os.path.join(pathdict["keywords"], 'List%02d_KW_cross_correlation.csv' % list_number), sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     else:
-        return 'no valid keywords found! change "cutoff_major_keywords" setting! current value: {}'.format(s['cutoff_major_keywords'])
+        return 'no valid keywords found! change "cutoff_major_keywords" setting! \ncurrent value: {}'.format(s['cutoff_major_keywords'])
 
     return "\n~~~~~~~~~~~~        keyword_analysis is finished         ~~~~~~~~~~~~"
