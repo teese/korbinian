@@ -60,26 +60,18 @@ def keyword_analysis(pathdict, s, logging, list_number):
     ###############################################################
 
     list_ignored_KW = ['Transmembrane', 'Complete proteome', 'Reference proteome', 'Membrane',
-                       'Transmembrane helix', 'Cell membrane', 'Repeat',
-                       'Alternative splicing', 'Sodium', 'Potassium', 'Direct protein sequencing', 'Transducer',
-                       'Polymorphism', 'Glycoprotein']
+                       'Transmembrane helix', 'Cell membrane', 'Repeat', 'Alternative splicing', 'Sodium', 'Potassium', 'Direct protein sequencing',
+                       'Transducer', 'Polymorphism', 'Glycoprotein', 'Calcium transport', 'Ion transport', 'Transport', 'Protein transport',
+                       'Voltage-gated channel', 'ATP-binding', 'Calcium', 'Zinc', 'Synapse', 'Signal', 'Disulfide bond', '3D-structure', 'Host-virus interaction']
     # check if protein is an enzyme
-    list_enzyme_KW = ['Transferase', 'Hydrolase', 'Glycosyltransferase', 'Protease', 'Kinase', 'Oxidoreductase',
-                      'Metalloprotease',
-                      'Serine protease', 'Protein phosphatase', 'Ligase', 'Acyltransferase',
-                      'Serine/threonine-protein kinase', 'Glycosidase',
-                      'Aminopeptidase', 'Isomerase', 'Methyltransferase', 'Carboxypeptidase', 'Hydroxylation',
-                      'Aspartyl protease',
-                      'Serine esterase', 'Lipid biosynthesis', 'GPI-anchor biosynthesis', 'Steroid biosynthesis',
-                      'Melanin biosynthesis',
-                      'Thyroid hormones biosynthesis', 'Phospholipid biosynthesis', 'Sterol biosynthesis',
-                      'Glutathione biosynthesis',
-                      'Cholesterol biosynthesis', 'Fatty acid biosynthesis', 'Prostaglandin biosynthesis',
-                      'cGMP biosynthesis', 'Leukotriene biosynthesis',
-                      'Catecholamine biosynthesis', 'Lipid metabolism', 'Carbohydrate metabolism',
-                      'Steroid metabolism', 'Sterol metabolism',
-                      'Sphingolipid metabolism', 'Cholesterol metabolism', 'Fatty acid metabolism',
-                      'Phospholipid metabolism', 'Catecholamine metabolism', 'Prostaglandin metabolism',
+    list_enzyme_KW = ['Transferase', 'Hydrolase', 'Glycosyltransferase', 'Protease', 'Kinase', 'Oxidoreductase', 'Metalloprotease', 'Serine protease',
+                      'Protein phosphatase', 'Ligase', 'Acyltransferase', 'Serine/threonine-protein kinase', 'Glycosidase', 'Aminopeptidase',
+                      'Isomerase', 'Methyltransferase', 'Carboxypeptidase', 'Hydroxylation', 'Aspartyl protease', 'Serine esterase',
+                      'Lipid biosynthesis', 'GPI-anchor biosynthesis', 'Steroid biosynthesis', 'Melanin biosynthesis', 'Thyroid hormones biosynthesis',
+                      'Phospholipid biosynthesis', 'Sterol biosynthesis', 'Glutathione biosynthesis', 'Cholesterol biosynthesis',
+                      'Fatty acid biosynthesis', 'Prostaglandin biosynthesis', 'cGMP biosynthesis', 'Leukotriene biosynthesis', 'Catecholamine biosynthesis',
+                      'Lipid metabolism', 'Carbohydrate metabolism', 'Steroid metabolism', 'Sterol metabolism', 'Sphingolipid metabolism',
+                      'Cholesterol metabolism', 'Fatty acid metabolism', 'Phospholipid metabolism', 'Catecholamine metabolism', 'Prostaglandin metabolism',
                       'Glycogen metabolism', 'Fucose metabolism']
     # remove proteins containing nan in AAIMON_slope_mean_all_TMDs
     list_of_acc_without_nan = []
@@ -143,11 +135,21 @@ def keyword_analysis(pathdict, s, logging, list_number):
     list_KW_counts_major = sorted(list(KW_counts_major.index))
     sys.stdout.write ('valid keywords for analysis (n = {a}):\n{b}\n\n'.format(a = len(list_KW_counts_major), b = list_KW_counts_major))
 
+    # define list of keywords that get excluded from analysis related to other keywords, if keyword is analysed, it gets included
+    # move to settings file !?!?
+    keywords_for_exclusion = ['Enzyme', 'Ion channel']
+    # create bool in column for keyword to remove
+    for element in keywords_for_exclusion:
+        excl_list = ['{}'.format(element)]
+        df[element] = df['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args=(excl_list,))
+
     if list_KW_counts_major:
         # initialise pandas dataframe with keywords as index
         dfk = pd.DataFrame(index=list_KW_counts_major)
         # initialise pandas dataframe holding data from correlation analysis
         df_correlation = pd.DataFrame(index=list_KW_counts_major, columns=list_KW_counts_major)
+        # initialise pandas dataframe that holds significant raw data for histogram re-creation
+        dfs = pd.DataFrame(index=df.index)
         # initialise figure number
         Fig_Nr = 0
         # add mean and std of whole dataset (AAIMON and AAIMON_slope)
@@ -155,24 +157,26 @@ def keyword_analysis(pathdict, s, logging, list_number):
         dfk['AAIMON_whole_dataset_std'] = np.std(df['AAIMON_mean_all_TMDs'])
         dfk['AAIMON_slope_whole_dataset_mean'] = np.mean(df['AAIMON_slope_mean_all_TMDs'])
         dfk['AAIMON_slope_whole_dataset_std'] = np.std(df['AAIMON_slope_mean_all_TMDs'])
+
+        # exclude KW from analysis based on analysed KW, i.e. if Enzymes are excluded and the KW Enzyme is analysed, Enzymes get included again
         for keyword in list_KW_counts_major:
             # copy initial dataframe to drop enzymes and GPCRs dependent on keyword
             dfq = df.copy()
-            # exclude enzymes or GPCRs from analysis dependent on keyword
-            if keyword == 'Enzyme':
-                dfq = dfq[dfq.GPCR == False]
-            elif keyword == 'G-protein coupled receptor':
-                dfq = dfq[dfq.enzyme == False]
-            # exclude GPCRs and enzymes for analysis != keywords Enzyme and GPCR
-            else:
-                dfq = dfq[dfq.enzyme == False]
-                dfq = dfq[dfq.GPCR == False]
+            acc_to_keep = []
+            list_to_exclude = keywords_for_exclusion.copy()
+            if keyword in list_to_exclude:
+                list_to_exclude.remove(keyword)
+            for element in list_to_exclude:
+                dfq = dfq[dfq[element] == False]
 
             # create a new columns describing if the KW is in the KW list of that protein
             dfq['contains_KW'] = dfq['uniprot_KW'].apply(lambda x: keyword in x)
             # slice dataframe to view only entries with that keyword
             df_keyword = dfq.loc[dfq['contains_KW'] == True]
             df_no_keyword = dfq.loc[dfq['contains_KW'] == False]
+            # check if keyword-dataframe still matches cutoff_major_keywords requirements
+            if len(df_keyword) < cutoff_major_keywords:
+                continue
 
             ###############################################################
             #                                                             #
@@ -207,9 +211,9 @@ def keyword_analysis(pathdict, s, logging, list_number):
 
             # calculate odds ratio, p- and t-values for AAIMON_slopes
             dfk.loc[keyword, 'odds_ratio_AAIMON_slope'] = dfk.loc[keyword, 'AAIMON_slope_keyword_mean'] / dfk.loc[keyword, 'AAIMON_slope_no_keyword_mean']
-            data1 = df_keyword['AAIMON_slope_mean_all_TMDs'].dropna()
-            data2 = df_no_keyword['AAIMON_slope_mean_all_TMDs'].dropna()
-            t_AAIMON_slope, p_AAIMON_slope = ttest_ind(data1, data2, equal_var=True)             # equal_var True or False ?!?!
+            KW_slope = df_keyword['AAIMON_slope_mean_all_TMDs'].dropna()
+            no_KW_slope = df_no_keyword['AAIMON_slope_mean_all_TMDs'].dropna()
+            t_AAIMON_slope, p_AAIMON_slope = ttest_ind(KW_slope, no_KW_slope, equal_var=True)             # equal_var True or False ?!?!
             dfk.loc[keyword, 't-value_AAIMON_slope'] = t_AAIMON_slope
             dfk.loc[keyword, 'p-value_AAIMON_slope'] = p_AAIMON_slope
 
@@ -256,10 +260,13 @@ def keyword_analysis(pathdict, s, logging, list_number):
             ###############################################################
             #                                                             #
             #        create normalised line histogram per keyword         #
+            #                 save significant raw data                   #
             #                                                             #
             ###############################################################
             if dfk.loc[keyword, 'p-value_AAIMON_slope'] <= s['p_value_cutoff_for_histograms']:
                 Fig_Nr += 1
+                dfs['RAW_KW_{}_{}'.format(Fig_Nr, keyword)] = KW_slope
+                dfs['RAW_no_KW_{}_{}'.format(Fig_Nr, keyword)] = no_KW_slope
                 title = str(keyword)
                 Fig_name = str(str(Fig_Nr) + '._' + 'Keyword_' + title)
                 fig, ax = plt.subplots()
@@ -340,8 +347,9 @@ def keyword_analysis(pathdict, s, logging, list_number):
                 utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
         # save pandas dataframes with values
-        dfk.to_csv(os.path.join(pathdict["keywords"], 'List%02d_keywords.csv' % list_number), sep=",", quoting=csv.QUOTE_NONNUMERIC)   # - transpose dataframe here ?!
+        dfk.to_csv(os.path.join(pathdict["keywords"], 'List%02d_keywords.csv' % list_number), sep=",", quoting=csv.QUOTE_NONNUMERIC)
         df_correlation.to_csv(os.path.join(pathdict["keywords"], 'List%02d_KW_cross_correlation.csv' % list_number), sep=",", quoting=csv.QUOTE_NONNUMERIC)
+        dfs.to_csv(os.path.join(pathdict["keywords"], 'List%02d_keywords_significant_RAW_data.csv' % list_number), sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     else:
         return 'no valid keywords found! change "cutoff_major_keywords" setting! \ncurrent value: {}'.format(s['cutoff_major_keywords'])
