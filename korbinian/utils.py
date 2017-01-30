@@ -1557,16 +1557,6 @@ def send_email_when_finished(s, pathdict, list_number):
     nothing but sends an email
 
     """
-    # server = smtplib.SMTP('smtp.gmail.com', 587)
-    # server.starttls()
-    # server.login("***REMOVED***", "***REMOVED***")
-    #
-    # msg = '{a}\n\n processed list: {b}'.format(a=s['email_message'], b=s['protein_list_number'])
-    # send_to = s['send_email_to']
-    # server.sendmail("***REMOVED***", send_to, msg)
-    # server.quit()
-    # sys.stdout.write('Email sent to {}'.format(send_to))
-
     import smtplib
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
@@ -1591,9 +1581,6 @@ def send_email_when_finished(s, pathdict, list_number):
     body = '{a}\n\n processed list: {b}'.format(a=s['email_message'], b=list_number)
     msg.attach(MIMEText(body, 'plain'))
 
-    #filename = "Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins_lowres.png"
-    #filepath = os.path.join(pathdict["single_list_fig_path"], "Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins_lowres.png")
-
     email_fig_list = []
     for settings_parameter in s.keys():
         if settings_parameter[-5:] == "email":
@@ -1604,7 +1591,7 @@ def send_email_when_finished(s, pathdict, list_number):
         for email_fig in email_fig_list:
             Fig_name = email_fig[:-6]
             filepath = os.path.join(pathdict["single_list_fig_path"], Fig_name + ".png")
-            sys.stdout.write("filepath", filepath)
+            sys.stdout.write("filepath : {}".format(filepath))
             if os.path.isfile(filepath):
                 attachment = open(filepath, "rb")
                 part = MIMEBase('application', 'octet-stream')
@@ -1619,7 +1606,7 @@ def send_email_when_finished(s, pathdict, list_number):
     text = msg.as_string()
     server.sendmail(fromaddr, toaddr, text)
     server.quit()
-    sys.stdout.write('Email sent to {}\n'.format(toaddr))
+    sys.stdout.write('\nEmail sent to {}\n'.format(toaddr))
 
 def filter_for_truncated_sequences(nonTMD_truncation_cutoff, df_cr):
     if nonTMD_truncation_cutoff != 1:
