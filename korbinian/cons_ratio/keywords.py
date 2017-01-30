@@ -92,8 +92,8 @@ def keyword_analysis(pathdict, s, logging, list_number):
 
     # remove ignored keywords; replace Enzyme keywords with single keyword 'Enzyme
     sys.stdout.write('removing ignored keywords; replacing enzyme associated keywords with "Enzyme"\n')
-    n = 0
-    for acc in df.index:
+    #n = 0
+    for n, acc in enumerate(df.index):
         n += 1
         if n % 20 == 0:
             sys.stdout.write('.'), sys.stdout.flush()
@@ -149,7 +149,7 @@ def keyword_analysis(pathdict, s, logging, list_number):
         # initialise pandas dataframe holding data from correlation analysis
         df_correlation = pd.DataFrame(index=list_KW_counts_major, columns=list_KW_counts_major)
         # initialise pandas dataframe that holds significant raw data for histogram re-creation
-        dfs = pd.DataFrame(index=df.index)
+        dfr = pd.DataFrame(index=df.index)
         # initialise figure number
         Fig_Nr = 0
         # add mean and std of whole dataset (AAIMON and AAIMON_slope)
@@ -265,8 +265,8 @@ def keyword_analysis(pathdict, s, logging, list_number):
             ###############################################################
             if dfk.loc[keyword, 'p-value_AAIMON_slope'] <= s['p_value_cutoff_for_histograms']:
                 Fig_Nr += 1
-                dfs['RAW_KW_{}_{}'.format(Fig_Nr, keyword)] = KW_slope
-                dfs['RAW_no_KW_{}_{}'.format(Fig_Nr, keyword)] = no_KW_slope
+                dfr['RAW_KW_{}_{}'.format(Fig_Nr, keyword)] = KW_slope
+                dfr['RAW_no_KW_{}_{}'.format(Fig_Nr, keyword)] = no_KW_slope
                 title = str(keyword)
                 Fig_name = str(str(Fig_Nr) + '._' + 'Keyword_' + title)
                 fig, ax = plt.subplots()
@@ -349,7 +349,7 @@ def keyword_analysis(pathdict, s, logging, list_number):
         # save pandas dataframes with values
         dfk.to_csv(os.path.join(pathdict["keywords"], 'List%02d_keywords.csv' % list_number), sep=",", quoting=csv.QUOTE_NONNUMERIC)
         df_correlation.to_csv(os.path.join(pathdict["keywords"], 'List%02d_KW_cross_correlation.csv' % list_number), sep=",", quoting=csv.QUOTE_NONNUMERIC)
-        dfs.to_csv(os.path.join(pathdict["keywords"], 'List%02d_keywords_significant_RAW_data.csv' % list_number), sep=",", quoting=csv.QUOTE_NONNUMERIC)
+        dfr.to_csv(os.path.join(pathdict["keywords"], 'List%02d_keywords_significant_RAW_data.csv' % list_number), sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     else:
         return 'no valid keywords found! change "cutoff_major_keywords" setting! \ncurrent value: {}'.format(s['cutoff_major_keywords'])
