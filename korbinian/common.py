@@ -212,6 +212,8 @@ def create_pathdict(base_filename_summaries):
     pathdict["failed_downloads_txt"] = '%s_failed_downloads.txt' % base_filename_summaries
     # for SIMAP or BLAST, a list of accessions not found in the homologue database
     pathdict["acc_not_in_homol_db_txt"] = '%s_acc_not_in_homol_db.txt' % base_filename_summaries
+    # for SIMAP or BLAST downloads in Windows OS, give a list of acc that are too large to run in the command line
+    pathdict["too_large_to_download_txt"] = '%s_too_large_to_download.txt' % base_filename_summaries
     # add the base path for the sub-sequences (SE01, SE02, etc) added by the user
     pathdict["list_user_subseqs_csv"] = '%s_user_subseqs.csv' % base_filename_summaries
     pathdict["list_user_subseqs_xlsx"] = '%s_user_subseqs.xlsx' % base_filename_summaries
@@ -222,6 +224,8 @@ def create_pathdict(base_filename_summaries):
     pathdict["single_list_fig_path"] = '%s_figs' %base_filename_summaries
     pathdict["save_df_characterising_each_homol_TMD"] = '%s_characterising_each_homol_TMD.zip' % base_filename_summaries
     pathdict["keywords"] = '%s_keywords' % base_filename_summaries
+    # create path to csv with the pretty alignments for each homologue and TMD with the highest and lowest AAIMON
+    pathdict["pretty_alignments_csv"] = '%s_pretty_alignments.csv' % base_filename_summaries
 
 
     """OUTPUT FILES FOR OLD SCRIPTS"""

@@ -221,3 +221,107 @@ def gather_AAIMONs(pathdict, logging, s):
 
     logging.info("\n~~~~~~~~~~~~        gather_AAIMONs is finished         ~~~~~~~~~~~~")
 
+def gather_pretty_alignments(pathdict, logging, s):
+    """
+
+    Parameters
+    ----------
+    pathdict
+    logging
+    s
+
+    Returns
+    -------
+
+    """
+    logging.info("\n~~~~~~~~~~~~    starting gather_pretty_alignments      ~~~~~~~~~~~~")
+    #create an empty output file
+    open(pathdict["pretty_alignments_csv"], 'w').close()
+    #reopen to add match details iteratively from dictionary
+    csvfile = open(pathdict["pretty_alignments_csv"], 'a')
+
+    df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    # drop proteins that have no list of TMDs
+    df = df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan']
+    # iterate over the dataframe for proteins with an existing list_of_TMDs. acc = uniprot accession.
+    num_TMDs_in_all_proteins_processed = 0
+    for num, acc in enumerate(df.index):
+        homol_cr_ratios_zip = df.loc[acc, "homol_cr_ratios_zip"]
+        sys.stdout.write("{}, ".format(acc))
+        # create an output dictionary, d, to hold the data for that TMD of that protein
+        d = {}
+        protein_name = df.loc[acc, "protein_name"]
+        if os.path.isfile(homol_cr_ratios_zip):
+            homol_df_orig_zip = df.loc[acc, "homol_df_orig_zip"]
+            if os.path.isfile(homol_df_orig_zip):
+                SIMAP_align_pretty_csv_filename = os.path.basename(df.loc[acc, "SIMAP_align_pretty_csv"])
+                dfp = utils.open_df_from_csv_zip(homol_df_orig_zip, SIMAP_align_pretty_csv_filename)
+                for TMD in ast.literal_eval(df.loc[acc, "list_of_TMDs"]):
+                    TM_cr_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
+                    # open dataframe  with function from korbinian, extract required columns, convert to np array
+                    df_TMD = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, TM_cr_pickle)
+                    # if the pickle doesn't seem to hold the correct file
+                    if df_TMD.empty:
+                        # skip to next TMD
+                        continue
+                    # add protein and TMD-specific values
+                    d["protein_name"] = protein_name
+                    d["TMD"] = TMD
+                    AAIMON_ser = df_TMD["{}_AAIMON".format(TMD)].dropna()
+                    print(AAIMON_ser.value_counts())
+                    min_ = AAIMON_ser.idxmin()
+                    max_ = AAIMON_ser.idxmax()
+                    median_value = AAIMON_ser.median()
+                    AAMON_minus_median = AAIMON_ser - median_value
+                    index_with_med_value = AAMON_minus_median.ix[AAMON_minus_median.abs().argsort()].index[0]
+                    med_ = index_with_med_value
+                    print("index_with_med_value", index_with_med_value)
+                    print(AAMON_minus_median.ix[AAMON_minus_median.abs().argsort()])
+                    # d["min_hit"] = min_
+                    # d["max_hit"] = max_
+                    # d["med_hit"] = med_
+                    list_outliers = [min_, max_, med_]
+                    list_outlier_names = ["min", "max", "med"]
+                    # add/or overwrite values specific for that particular outlier
+                    for m, outlier_index in enumerate(list_outliers):
+                        outlier_name = list_outlier_names[m]
+                        d["outlier"] = outlier_name
+                        d["hit"] = outlier_index
+                        columns = ['FASTA_gapped_identity', 'obs_changes', "{}_AAIMON", '{}_perc_ident', 'nonTMD_perc_ident', '{}_start_in_SW_alignment', '{}_SW_query_seq', '{}_SW_markup_seq',
+                                   '{}_SW_match_seq', '{}_ratio_len_TMD_to_len_nonTMD', '{}_SW_align_len']
+                        col_names = ['FASTA_gapped_identity', 'obs_changes', "AAIMON", 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
+                                     'ratio_len_TMD_to_len_nonTMD', 'SW_align_len']
+                        for n, col in enumerate(columns):
+                            col_name = col_names[n]
+                            print(df_TMD.index)
+                            value = df_TMD.loc[outlier_index, col.format(TMD)]
+                            # add each one to the dictionary
+                            d[col_name] = value
+                        d["TM_align"] = "{}\r\r\n\r\r{}\r\r\n\r\r{}".format(d['SW_query_seq'], d['SW_markup_seq'], d['SW_match_seq'])
+                        # # remove individual seqs from dictionary
+                        # del d['SW_query_seq']
+                        # del d['SW_markup_seq']
+                        # del d['SW_match_seq']
+                        # add the pretty alignment
+                        d["align_pretty"] = dfp.loc[min_, "align_pretty"]
+
+
+                        if num_TMDs_in_all_proteins_processed == 0:
+                            # sort
+                            csv_header = ["protein_name", "TMD", "outlier", "TM_align", "align_pretty", 'FASTA_gapped_identity', 'obs_changes', "AAIMON", "hit", 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
+                                     'ratio_len_TMD_to_len_nonTMD', 'SW_align_len']
+                            # make sure that the csv header is up-to-date, and isn't missing items from dict
+                            assert len(csv_header) is len(d)
+                            # save the csv header to the csv file
+                            writer = csv.writer(csvfile, delimiter=',', quotechar='"', lineterminator='\n', quoting=csv.QUOTE_NONNUMERIC, doublequote=True)
+                            writer.writerow(csv_header)
+                        # save the dict values as a line in the csv file
+                        writer = csv.DictWriter(csvfile, fieldnames=csv_header,
+                                                extrasaction='ignore', delimiter=',', quotechar='"',
+                                                lineterminator='\n', quoting=csv.QUOTE_NONNUMERIC,
+                                                doublequote=True)
+                        writer.writerow(d)
+                        num_TMDs_in_all_proteins_processed += 1
+
+    csvfile.close()
+    logging.info("\n~~~~~~~~~~~~    finished gather_pretty_alignments      ~~~~~~~~~~~~")

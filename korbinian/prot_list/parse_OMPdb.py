@@ -138,7 +138,7 @@ def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_
     logging.info("parse_OMPdb_all_selected_to_csv is completed. Dataframe shape = {}".format(dfKW.shape))
 
 
-def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list_summary_csv, logging):
+def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list_summary_csv, OMPdb_topology_reliability_cutoff, logging):
     """ Take a csv parsed from OMPdb, get the TM indices and slice the TMDs for each protein
 
     Parameters:
@@ -206,7 +206,7 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list
 
     num_proteins_AFTER_dropping_those_without_TMs_between_8_and_24 = df_KW.shape[0]
 
-    df_KW = df_KW[df_KW["Topology_Reli"] > 90]
+    df_KW = df_KW[df_KW["Topology_Reli"] > OMPdb_topology_reliability_cutoff]
 
     num_proteins_AFTER_dropping_those_with_topology_reliability_below_90 = df_KW.shape[0]
 

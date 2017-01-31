@@ -83,7 +83,8 @@ def run_statements(s, list_number):
     if s["OMPdb_get_TM_indices_and_slice"]:
         OMPdb_list_summary_csv = os.path.join(s["data_dir"], "OMPdb", "List{:02d}_OMPdb_summary.csv".format(list_number))
         list_summary_csv = pathdict["list_summary_csv"]
-        korbinian.prot_list.parse_OMPdb.get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list_summary_csv, logging)
+        OMPdb_topology_reliability_cutoff = s["OMPdb_topology_reliability_cutoff"]
+        korbinian.prot_list.parse_OMPdb.get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list_summary_csv, OMPdb_topology_reliability_cutoff, logging)
 
     ########################################################################################
     #                                                                                      #
@@ -197,6 +198,9 @@ def run_statements(s, list_number):
         output = korbinian.cons_ratio.keywords.keyword_analysis(pathdict, s, logging, list_number)
         logging.info(output)
 
+    if "gather_pretty_alignments" in s.keys():
+        if s["gather_pretty_alignments"]:
+            korbinian.cons_ratio.gather.gather_pretty_alignments(pathdict, logging, s)
 
     if s['send_email_when_finished']:
         korbinian.utils.send_email_when_finished(s, pathdict, list_number)
