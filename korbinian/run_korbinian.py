@@ -36,15 +36,19 @@ if __name__ == "__main__":
     # convert the excel settings file to a python dictionary, s
     s = korbinian.common.create_settingsdict(args.s)
 
-    protein_list_number = ast.literal_eval(str(s['protein_list_number']))
-    if type(protein_list_number) is int:
-        list_number = protein_list_number
-        korbinian.run_korbinian.run_statements(s, list_number)
+    if s['protein_list_number'] == 'compare':
+        korbinian.cons_ratio.compare_lists.compare_lists(s)
     else:
-        sys.stdout.write('\nmultiple lists entered! starting serial analysis of multiple lists!\n\nlists to analyse: {}\n\n'.format(protein_list_number))
-        for list_number in protein_list_number:
+
+        protein_list_number = ast.literal_eval(str(s['protein_list_number']))
+        if type(protein_list_number) is int:
+            list_number = protein_list_number
             korbinian.run_korbinian.run_statements(s, list_number)
-            sys.stdout.write('\n\n~~~~~~~~~~~~         List {} finished           ~~~~~~~~~~~~\n\n'.format(list_number))
+        else:
+            sys.stdout.write('\nmultiple lists entered! starting serial analysis of multiple lists!\n\nlists to analyse: {}\n\n'.format(protein_list_number))
+            for list_number in protein_list_number:
+                korbinian.run_korbinian.run_statements(s, list_number)
+                sys.stdout.write('\n\n~~~~~~~~~~~~         List {} finished           ~~~~~~~~~~~~\n\n'.format(list_number))
 
 def run_statements(s, list_number):
     # setup error logging
@@ -186,7 +190,7 @@ def run_statements(s, list_number):
 
     '''+++++++++++++++ Summary figures describing the conservation ratios of proteins in the list ++++++++++++++++++'''
     if s["run_compare_lists"]:
-        korbinian.cons_ratio.compare_lists.compare_rel_con_lists(pathdict, s, logging)
+        korbinian.cons_ratio.compare_lists_old.compare_rel_con_lists(pathdict, s, logging)
 
 
     if s["run_keyword_analysis"]:
