@@ -455,7 +455,7 @@ def throw_out_truncated_sequences(pathdict, s, logging):
         with Pool(processes=n_processes) as pool:
             calc_AAIMON_list = pool.map(korbinian.cons_ratio.cons_ratio.truncation_filter, list_p)
             # log the list of protein results (e.g. acc, "simap", True) to the actual logfile, not just the console
-            logging.info("calc_AAIMON_list : {}".format(calc_AAIMON_list))
+            logging.info("\ncalc_AAIMON_list : {}".format(calc_AAIMON_list))
     else:
         for p in list_p:
             korbinian.cons_ratio.cons_ratio.truncation_filter(p)

@@ -119,9 +119,15 @@ def download_homologues_from_simap(pathdict, s, logging):
             Limit protein length according to settings (typically max length = 3000)
         '''
         if 'Windows' in str(platform.system()):
+            too_large_to_download_list = utils.get_list_too_large_to_download(pathdict)
             if seqlen > s["max_query_sequence_length"]:
                 logging.warning('%s homologue download will be skipped. It cannot be processed into a java command in windows OS,'
                                 'as the sequence is longer than %i characters (%i). Moving to next sequence' % (protein_name, s["max_query_sequence_length"],seqlen))
+                # if the accession is not already in the text file, add it
+                if acc not in too_large_to_download_list:
+                    # add accession number to the list of failed downloads
+                    with open(pathdict["too_large_to_download_txt"], "a") as source:
+                        source.write("\n{}".format(acc))
                 # skip this protein
                 continue
 

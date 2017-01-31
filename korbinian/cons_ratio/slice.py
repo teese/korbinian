@@ -41,7 +41,7 @@ def run_slice_TMDs_from_homologues(pathdict, s, logging):
         with Pool(processes=n_processes) as pool:
             slice_list = pool.map(korbinian.cons_ratio.slice.slice_TMD_1_prot_from_homol, list_p)
             # log the list of protein results (e.g. acc, "simap", True) to the actual logfile, not just the console
-        logging.info("slice_list : {}".format(slice_list))
+        logging.info("\nslice_list : {}".format(slice_list))
     else:
         for p in list_p:
             korbinian.cons_ratio.slice.slice_TMD_1_prot_from_homol(p)

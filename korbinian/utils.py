@@ -1491,11 +1491,11 @@ class Log_Only_To_Console(object):
     def __init__(self):
         pass
     def info(self, message):
-        sys.stdout.write(message)
+        sys.stdout.write("\n{}".format(message))
     def warning(self, message):
-        sys.stdout.write(message)
+        sys.stdout.write("\n{}".format(message))
     def critical(self, message):
-        sys.stdout.write(message)
+        sys.stdout.write("\n{}".format(message))
 
 def convert_summary_csv_to_input_list(s, pathdict, logging, list_number, list_excluded_acc=None):
     # open dataframe with list of proteins
@@ -1549,6 +1549,17 @@ def get_list_failed_downloads(pathdict):
                 line = line.strip()
                 acc_list_failed_downloads.append(line)
     return acc_list_failed_downloads
+
+def get_list_too_large_to_download(pathdict):
+    acc_list = []
+    if os.path.isfile(pathdict["too_large_to_download_txt"]):
+        # Extracts accession numbers out of file
+        with open(pathdict["too_large_to_download_txt"], "r") as source:
+            for line in source:
+                line = line.strip()
+                acc_list.append(line)
+    return acc_list
+
 
 def send_email_when_finished(s, pathdict, list_number):
     """ Sends an email to specified address when job is finished
