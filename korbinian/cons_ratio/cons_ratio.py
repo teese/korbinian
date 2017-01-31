@@ -15,7 +15,7 @@ import sys
 import zipfile
 
 
-def run_calculate_AAIMONs(pathdict, s, logging):
+def run_calculate_AAIMONs(pathdict, s, logging, list_number):
     """Runs calculate_AAIMONs for each protein, using multiprocessing Pool.
 
     Parameters
@@ -36,7 +36,7 @@ def run_calculate_AAIMONs(pathdict, s, logging):
     # get list of accessions that could not be downloaded, and can immediately be excluded
     not_in_homol_db = utils.get_list_not_in_homol_db(pathdict)
     # create list of protein dictionaries to process
-    list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging, list_excluded_acc=not_in_homol_db)
+    list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging, list_number, list_excluded_acc=not_in_homol_db)
     # number of processes is the number the settings, or the number of proteins, whichever is smallest
     n_processes = s["multiprocessing_cores"] if s["multiprocessing_cores"] < len(list_p) else len(list_p)
 
@@ -99,6 +99,8 @@ def calculate_AAIMONs(p):
     pathdict, s, logging = p["pathdict"], p["s"], p["logging"]
     acc = p["acc"]
     protein_name = p["protein_name"]
+    rand_TM = p["rand_TM"]
+    rand_nonTM = p["rand_nonTM"]
     if not os.path.exists(p['homol_df_orig_zip']):
         message = "{} Protein skipped. File does not exist".format(p['homol_df_orig_zip'])
         logging.info(message)
@@ -204,7 +206,7 @@ def calculate_AAIMONs(p):
     #                Calculation of normalization factor for each homologue                #
     #                                                                                      #
     ########################################################################################
-    dfh['norm_factor'] = dfh['FASTA_gapped_identity'].apply(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor, args=(0.136, 0.055)) # random factors according to Oberai 2009
+    dfh['norm_factor'] = dfh['FASTA_gapped_identity'].apply(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor, args=(rand_TM, rand_nonTM))
 
     with zipfile.ZipFile(homol_cr_ratios_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
 

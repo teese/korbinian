@@ -1497,7 +1497,7 @@ class Log_Only_To_Console(object):
     def critical(self, message):
         sys.stdout.write(message)
 
-def convert_summary_csv_to_input_list(s, pathdict, logging, list_excluded_acc=None):
+def convert_summary_csv_to_input_list(s, pathdict, logging, list_number, list_excluded_acc=None):
     # open dataframe with list of proteins
     df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     # exclude any proteins where there is no list_of_TMDs
@@ -1516,10 +1516,16 @@ def convert_summary_csv_to_input_list(s, pathdict, logging, list_excluded_acc=No
     # convert values to list
     list_p = list(df_as_dict.values())
 
+    # extract values from settings file based on entered list number
+    rand_TM = s["rand_TM_List_{}".format(list_number)]
+    rand_nonTM = s["rand_nonTM_List_{}".format(list_number)]
+
     for p in list_p:
         p["s"] = s
         p["pathdict"] = pathdict
         p["logging"] = logging
+        p["rand_TM"] = rand_TM
+        p["rand_nonTM"] = rand_nonTM
 
     return list_p
 
