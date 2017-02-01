@@ -208,7 +208,7 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list
 
     df_KW = df_KW[df_KW["Topology_Reli"] > OMPdb_topology_reliability_cutoff]
 
-    num_proteins_AFTER_dropping_those_with_topology_reliability_below_90 = df_KW.shape[0]
+    num_proteins_AFTER_dropping_those_with_topology_reliability_below_cutoff = df_KW.shape[0]
 
     # Creating new dataframe without nan
     df_KW = df_KW[df_KW["number_of_TMDs"].notnull()]
@@ -310,6 +310,7 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list
     df_KW.rename(columns=dict_, inplace=True)
     df_KW["acc"] = df_KW["uniprot_acc"]
     df_KW["protein_name"] = df_KW["uniprot_acc"]
+    num_proteins_AFTER_get_omp_TM_indices_and_slice_from_summary_table = df_KW.shape[0]
 
     # save to csv (presumably in summaries folder as a list number, so it is accessible by the rest of the scripts)
     utils.make_sure_path_exists(list_summary_csv, isfile=True)
@@ -319,7 +320,8 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list
     logging.info("num_proteins_AFTER_dropping_those_without_mem_indices : {}".format(num_proteins_AFTER_dropping_those_without_mem_indices))
     logging.info("num_proteins_AFTER_dropping_those_with_coverage_below_85 : {}".format(num_proteins_AFTER_dropping_those_with_coverage_below_85))
     logging.info("num_proteins_AFTER_dropping_those_without_TMs_between_8_and_24 : {}".format(num_proteins_AFTER_dropping_those_without_TMs_between_8_and_24))
-    logging.info("num_proteins_AFTER_dropping_those_with_topology_reliability_below_90 : {}".format(num_proteins_AFTER_dropping_those_with_topology_reliability_below_90))
+    logging.info("num_proteins_AFTER_dropping_those_with_topology_reliability_below_cutoff : {}".format(num_proteins_AFTER_dropping_those_with_topology_reliability_below_cutoff))
+    logging.info("num_proteins_AFTER_get_omp_TM_indices_and_slice_from_summary_table : {}".format(num_proteins_AFTER_get_omp_TM_indices_and_slice_from_summary_table))
 
 
 # Function which returns list of all M-indices

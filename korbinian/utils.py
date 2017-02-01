@@ -1143,7 +1143,7 @@ def convert_falselike_to_bool(input_item, convert_int=False, convert_float=False
 
     return return_value
 
-def calc_hydrophob(seq):
+def calc_hydrophob(seq, method = "mean"):
     """ Calculates the average hydrophobicity of a sequence according to the Hessa biological scale.
 
     Hessa T, Kim H, Bihlmaier K, Lundin C, Boekel J, Andersson H, Nilsson I, White SH, von Heijne G. Nature. 2005 Jan 27;433(7024):377-81
@@ -1165,6 +1165,11 @@ def calc_hydrophob(seq):
     -----------
     seq : string
         Sequence to be analysed. Gaps (-) and unknown amino acids (x) should be ignored.
+    method : string
+        Method to be used to average the hydrophobicity values over the whole sequence.
+        The hydrophobicity score is positive for polar/charged aa, negative for hydrophobic aa.
+            "sum" will return the sum of the hydrophobicity scores over the sequence
+            "mean" will return the mean of the hydrophobicity scores over the sequence
 
     Returns:
     --------
@@ -1197,7 +1202,10 @@ def calc_hydrophob(seq):
     # convert dictionary to array, sorted by aa
     aa_counts_arr = np.array([value for (key, value) in sorted(aa_counts_dict.items())])
     multiplied = aa_counts_arr * hessa_scale
-    return multiplied.sum()
+    if method == "mean":
+        return multiplied.mean()
+    if method == "sum":
+        return multiplied.sum()
 
 def make_sure_path_exists(path, isfile=False):
     """ If path to directory or folder doesn't exist, creates the necessary folders.
