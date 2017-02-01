@@ -428,7 +428,7 @@ def calculate_AAIMONs(p):
     return acc, True, "0"
 
 
-def throw_out_truncated_sequences(pathdict, s, logging):
+def throw_out_truncated_sequences(pathdict, s, logging, list_number):
     '''
     :param pathdict: dict
         Dictionary of the key paths and files associated with that List number.
@@ -448,7 +448,7 @@ def throw_out_truncated_sequences(pathdict, s, logging):
     # get list of accessions that could not be downloaded, and can immediately be excluded
     not_in_homol_db = utils.get_list_not_in_homol_db(pathdict)
     # create list of protein dictionaries to process
-    list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging, list_excluded_acc=not_in_homol_db)
+    list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging, list_number, list_excluded_acc=not_in_homol_db)
     # number of processes is the number the settings, or the number of proteins, whichever is smallest
     n_processes = s["multiprocessing_cores"] if s["multiprocessing_cores"] < len(list_p) else len(list_p)
 
