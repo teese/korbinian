@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-
+import math
 
 def save_hist_AAIMON_single_protein (fig_nr, fig, axarr, df_cr, s, TMD, binarray, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix):
     """Save histogram showing the AAIMON ratio for homologues of a single TMD, for a single protein.
@@ -131,6 +131,14 @@ def save_hist_AAIMON_single_protein (fig_nr, fig, axarr, df_cr, s, TMD, binarray
         os.remove(AAIMON_hist_path_prefix + '_%01d.png' % fig_nr)
         #os.remove(AAIMON_hist_path_prefix + '_%01d.pdf' % fig_nr)
 
+# code from http://stackoverflow.com/questions/13226038/calculating-angle-between-two-lines-in-python
+def angle_between_slopes(pt1, pt2):
+    x1, y1 = pt1
+    x2, y2 = pt2
+    inner_product = x1*x2 + y1*y2
+    len1 = math.hypot(x1, y1)
+    len2 = math.hypot(x2, y2)
+    return math.acos(inner_product/(len1*len2))
 
 def save_scatter_AAIMON_norm_and_AAIMON_slope_single_protein (fig_nr, fig, axarr, df_cr, x_data, y_data, y_data_n, AAIMON_slope, AAIMON_n_slope,
                                                                     TMD, zipout, row_nr, col_nr, fontsize, savefig, norm_scatter_path_prefix):
@@ -140,7 +148,6 @@ def save_scatter_AAIMON_norm_and_AAIMON_slope_single_protein (fig_nr, fig, axarr
     scatter_data_AAIMON = df_cr['%s_AAIMON'%TMD]
     scatter_data_AAIMON_n = df_cr['%s_AAIMON_n'%TMD]
 
-
     xlim_min = 0
     xlim_max = 60
 
@@ -148,11 +155,14 @@ def save_scatter_AAIMON_norm_and_AAIMON_slope_single_protein (fig_nr, fig, axarr
     axarr[row_nr, col_nr].scatter(x_data_obs_changes, scatter_data_AAIMON_n, color='red', marker='^', alpha=0.2, s=datapointsize)
     axarr[row_nr, col_nr].plot(x_data, y_data, color="k", alpha=0.75)
     axarr[row_nr, col_nr].plot(x_data, y_data_n, color="g", alpha=0.75)
+    # calculate angle between AAIMON_slope and AAIMON_n_slope
+    angle = angle_between_slopes((x_data[0], y_data[0]), (x_data[1], y_data[1]))
 
     axarr[row_nr, col_nr].set_ylabel('%s AAIMON' % TMD, rotation='vertical', fontsize=fontsize)
     #axarr[row_nr, col_nr].set_xlabel('% identity')
     axarr[row_nr, col_nr].set_ylim(0.2, 1.8)
-    axarr[row_nr, col_nr].annotate(s='AAIMON_slope: {a}\nAAIMON_n_slope {b}'.format(a=AAIMON_slope, b=AAIMON_n_slope), xy=(0.01, 1.01), xytext=None, xycoords='axes fraction', alpha=0.75, fontsize=fontsize)
+    axarr[row_nr, col_nr].annotate(s='AAIMON_slope: {a}\nAAIMON_n_slope {b}\nangle {c:.4f}°'.format(a=AAIMON_slope, b=AAIMON_n_slope, c=angle),
+                                   xy=(0.01, 1.01), xytext=None, xycoords='axes fraction', alpha=0.75, fontsize=fontsize)
     #axarr[row_nr, col_nr].set_xticks(range(xlim_min,xlim_max+1,10))
 
     if savefig:
