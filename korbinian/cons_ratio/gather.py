@@ -196,9 +196,18 @@ def gather_AAIMONs(pathdict, logging, s):
                 binned_data = np.concatenate((mean_data_in_bin.reshape(1, 8), binned_data))
         # drop every row containing nan in array
         binned_data = binned_data[~np.isnan(binned_data).any(axis=1)]
+        '''
+        description of columns in numpy arrays:
 
+        numpy array data:
+        |       0       |   1    |    2     |
+        | % obs_changes | AAIMON | AAIMON_n |
+
+        numpy array binned_Data:
+        |       0       |      1      |       2       |     3    |    4    |      5     |     6     |         7          |
+        | % obs_changes | mean AAIMON | mean AAIMON_n | CI95_low | CI95_hi | CI95_low_n | CI95_hi_n | number of Proteins |
+        '''
         # save data and binned_data as zipped pickle
-
         with zipfile.ZipFile(pathdict['save_df_characterising_each_homol_TMD'], mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
 
             # save dataframe "data_filt" as pickle
@@ -206,12 +215,6 @@ def gather_AAIMONs(pathdict, logging, s):
                 pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
             zipout.write('data_characterising_each_homol_TMD.pickle', arcname='data_characterising_each_homol_TMD.pickle')
             os.remove('data_characterising_each_homol_TMD.pickle')
-
-            # # save dataframe "dropped_data" as pickle
-            # with open('dropped_data_characterising_each_homol_TMD.pickle', "wb") as f:
-            #     pickle.dump(dropped_data, f, protocol=pickle.HIGHEST_PROTOCOL)
-            # zipout.write('dropped_data_characterising_each_homol_TMD.pickle', arcname='dropped_data_characterising_each_homol_TMD.pickle')
-            # os.remove('dropped_data_characterising_each_homol_TMD.pickle')
 
             # save dataframe "binned_data" as pickle
             with open('binned_data_characterising_each_homol_TMD.pickle', "wb") as f:
