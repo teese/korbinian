@@ -251,6 +251,9 @@ def gather_pretty_alignments(pathdict, logging, s):
     for num, acc in enumerate(df.index):
         homol_cr_ratios_zip = df.loc[acc, "homol_cr_ratios_zip"]
         sys.stdout.write("{}, ".format(acc))
+        if num % 20 == 0:
+            sys.stdout.write("\n")
+        sys.stdout.flush()
         # create an output dictionary, d, to hold the data for that TMD of that protein
         d = {}
         protein_name = df.loc[acc, "protein_name"]
@@ -267,22 +270,52 @@ def gather_pretty_alignments(pathdict, logging, s):
                     if df_TMD.empty:
                         # skip to next TMD
                         continue
+
+                    max_gaps = s["cr_max_n_gaps_in_TMD"]
+                    max_hydro = s["cr_max_hydrophilicity_Hessa"]
+                    min_ident = s["cr_min_identity_of_TMD"]
+
+                    """This is used as a filter in filter_and_save_fasta, therefore is conducted earlier in the slicing function. """
+                    ## count the number of gaps in the query and match sequences
+                    cr_TMD_query_str = '{TMD}_perc_ident >= {min_ident} & ' \
+                                       '{TMD}_SW_query_num_gaps <= {max_gaps} & ' \
+                                       '{TMD}_SW_match_num_gaps <= {max_gaps} & ' \
+                                       '{TMD}_SW_match_seq_hydro <= {max_hydro}'.format(TMD=TMD, max_gaps=max_gaps,
+                                                                                        max_hydro=max_hydro,
+                                                                                        min_ident=min_ident)
+                    # n_homol_before_filter = df_cr.shape[0]
+                    # filter by the above query
+                    df_TMD.query(cr_TMD_query_str, inplace=True)
+
                     # add protein and TMD-specific values
                     d["protein_name"] = protein_name
                     d["TMD"] = TMD
+                    ########################################################################################
+                    #                                                                                      #
+                    #                Getting the hit number with the median AAIMON is                      #
+                    #                    rather painful in pandas, but it works                            #
+                    #                                                                                      #
+                    ########################################################################################
+
                     AAIMON_ser = df_TMD["{}_AAIMON".format(TMD)].dropna()
-                    print(AAIMON_ser.value_counts())
+                    # print(AAIMON_ser)
+                    # print("AAIMON_ser.empty()", AAIMON_ser.empty())
+                    if len(AAIMON_ser) == 0:
+                        # skip to next TMD
+                        continue
+
                     min_ = AAIMON_ser.idxmin()
                     max_ = AAIMON_ser.idxmax()
                     median_value = AAIMON_ser.median()
                     AAMON_minus_median = AAIMON_ser - median_value
-                    index_with_med_value = AAMON_minus_median.ix[AAMON_minus_median.abs().argsort()].index[0]
-                    med_ = index_with_med_value
-                    print("index_with_med_value", index_with_med_value)
-                    print(AAMON_minus_median.ix[AAMON_minus_median.abs().argsort()])
-                    # d["min_hit"] = min_
-                    # d["max_hit"] = max_
-                    # d["med_hit"] = med_
+
+
+                    # convert all to positive numbers
+                    AAMON_minus_median = AAMON_minus_median.abs()
+                    # sort so that the 0.00 is the first hit
+                    AAMON_minus_median = AAMON_minus_median.sort_values()
+                    # get index of first value (when AAIMON - median == 0, must be a hit with an AAIMON very close to the median)
+                    med_ = AAMON_minus_median.index[0]
                     list_outliers = [min_, max_, med_]
                     list_outlier_names = ["min", "max", "med"]
                     # add/or overwrite values specific for that particular outlier
@@ -291,12 +324,11 @@ def gather_pretty_alignments(pathdict, logging, s):
                         d["outlier"] = outlier_name
                         d["hit"] = outlier_index
                         columns = ['FASTA_gapped_identity', 'obs_changes', "{}_AAIMON", '{}_perc_ident', 'nonTMD_perc_ident', '{}_start_in_SW_alignment', '{}_SW_query_seq', '{}_SW_markup_seq',
-                                   '{}_SW_match_seq', '{}_ratio_len_TMD_to_len_nonTMD', '{}_SW_align_len']
+                                   '{}_SW_match_seq', '{}_ratio_len_TMD_to_len_nonTMD', '{}_SW_align_len', "{}_SW_match_seq_hydro"]
                         col_names = ['FASTA_gapped_identity', 'obs_changes', "AAIMON", 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
-                                     'ratio_len_TMD_to_len_nonTMD', 'SW_align_len']
+                                     'ratio_len_TMD_to_len_nonTMD', 'SW_align_len', "SW_match_seq_hydro"]
                         for n, col in enumerate(columns):
                             col_name = col_names[n]
-                            print(df_TMD.index)
                             value = df_TMD.loc[outlier_index, col.format(TMD)]
                             # add each one to the dictionary
                             d[col_name] = value
@@ -311,7 +343,7 @@ def gather_pretty_alignments(pathdict, logging, s):
 
                         if num_TMDs_in_all_proteins_processed == 0:
                             # sort
-                            csv_header = ["protein_name", "TMD", "outlier", "TM_align", "align_pretty", 'FASTA_gapped_identity', 'obs_changes', "AAIMON", "hit", 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
+                            csv_header = ["protein_name", "TMD", "outlier", "TM_align","SW_match_seq_hydro", "align_pretty", 'FASTA_gapped_identity', 'obs_changes', "AAIMON", "hit", 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
                                      'ratio_len_TMD_to_len_nonTMD', 'SW_align_len']
                             # make sure that the csv header is up-to-date, and isn't missing items from dict
                             assert len(csv_header) is len(d)
