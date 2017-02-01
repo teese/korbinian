@@ -152,7 +152,7 @@ def run_statements(s, list_number):
         korbinian.cons_ratio.cons_ratio.run_calculate_AAIMONs(pathdict, s, logging, list_number)
 
     if s['run_filter_truncated_alignments']:
-        korbinian.cons_ratio.cons_ratio.throw_out_truncated_sequences(pathdict, s, logging)
+        korbinian.cons_ratio.cons_ratio.throw_out_truncated_sequences(pathdict, s, logging, list_number)
 
     if s["run_gather_AAIMON_ratios"]:
         korbinian.cons_ratio.gather.gather_AAIMONs(pathdict, logging, s)
