@@ -9,7 +9,7 @@ import pandas as pd
 import sys
 import unicodedata
 
-def setup_file_locations_in_df(s, pathdict):
+def prepare_protein_list(s, pathdict):
     """ Sets up the file locations in the DataFrame containing the list of proteins for analysis.
 
     Parameters
@@ -228,8 +228,8 @@ def setup_file_locations_in_df(s, pathdict):
     #       X in sequence, joined TMD and nonTMD seq, lipophilicity calc                   #
     #                                                                                      #
     ########################################################################################
-    # indicate that the setup_file_locations_in_df function has been run
-    df['setup_file_locations_in_df'] = True
+    # indicate that the prepare_protein_list function has been run
+    df['prepare_protein_list'] = True
 
     # add a column that holds all joined TMD sequences, drop proteins with 'X' in full sequence
     n = 0
@@ -246,7 +246,6 @@ def setup_file_locations_in_df(s, pathdict):
         ########################################################################################
         if 'X' in df.loc[acc, 'full_seq']:
             # remove protein from dataframe if sequence contains "X". Add acc to list.
-            df = df.drop(acc)
             list_acc_X_in_seq.append(acc)
             # skip to next protein
             continue
@@ -283,9 +282,17 @@ def setup_file_locations_in_df(s, pathdict):
     df = df.drop(list_acc_X_in_seq)
     n_prot_AFTER_dropping_with_X_in_seq = df.shape[0]
 
-    lipo_cutoff = s["cr_max_hydrophilicity_Hessa"]
+    lipo_cutoff = s["max_lipo_list"]
     list_acc_lipo_mean_above_cutoff = list(df['lipo_mean_all_TMDs'].loc[df['lipo_mean_all_TMDs'] > lipo_cutoff].index)
-    df = df.drop(list_acc_lipo_mean_above_cutoff)
+
+    # convert current dataframe index to a set
+    index_set = set(df.index)
+    # convert list of acc to drop to a set
+    set_acc_lipo_mean_above_cutoff = set(list_acc_lipo_mean_above_cutoff)
+    # find acc to drop that are actually still in the index by looking for the overlap of both sets
+    acc_lipo_mean_above_cutoff_to_remove = index_set.intersection(set_acc_lipo_mean_above_cutoff)
+    # drop rows
+    df = df.drop(acc_lipo_mean_above_cutoff_to_remove)
     n_prot_AFTER_dropping_above_lipo_cutoff = df.shape[0]
 
     ########################################################################################

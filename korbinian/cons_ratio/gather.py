@@ -272,7 +272,7 @@ def gather_pretty_alignments(pathdict, logging, s):
                         continue
 
                     max_gaps = s["cr_max_n_gaps_in_TMD"]
-                    max_lipo = s["cr_max_hydrophilicity_Hessa"]
+                    max_lipo_homol = s["cr_max_hydrophilicity_Hessa"]
                     min_ident = s["cr_min_identity_of_TMD"]
 
                     """This is used as a filter in filter_and_save_fasta, therefore is conducted earlier in the slicing function. """
@@ -280,8 +280,8 @@ def gather_pretty_alignments(pathdict, logging, s):
                     cr_TMD_query_str = '{TMD}_perc_ident >= {min_ident} & ' \
                                        '{TMD}_SW_query_num_gaps <= {max_gaps} & ' \
                                        '{TMD}_SW_match_num_gaps <= {max_gaps} & ' \
-                                       '{TMD}_SW_match_lipo <= {max_lipo}'.format(TMD=TMD, max_gaps=max_gaps,
-                                                                                        max_lipo=max_lipo,
+                                       '{TMD}_SW_match_lipo <= {max_lipo_homol}'.format(TMD=TMD, max_gaps=max_gaps,
+                                                                                        max_lipo_homol=max_lipo_homol,
                                                                                         min_ident=min_ident)
                     # n_homol_before_filter = df_cr.shape[0]
                     # filter by the above query

@@ -1505,7 +1505,7 @@ class Log_Only_To_Console(object):
     def critical(self, message):
         sys.stdout.write("\n{}".format(message))
 
-def convert_summary_csv_to_input_list(s, pathdict, logging, list_number, list_excluded_acc=None):
+def convert_summary_csv_to_input_list(s, pathdict, logging, list_excluded_acc=None):
     # open dataframe with list of proteins
     df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     # exclude any proteins where there is no list_of_TMDs
@@ -1525,8 +1525,8 @@ def convert_summary_csv_to_input_list(s, pathdict, logging, list_number, list_ex
     list_p = list(df_as_dict.values())
 
     # extract values from settings file based on entered list number
-    rand_TM = s["rand_TM_List_{}".format(list_number)]
-    rand_nonTM = s["rand_nonTM_List_{}".format(list_number)]
+    rand_TM = s["rand_TM"]
+    rand_nonTM = s["rand_nonTM"]
 
     for p in list_p:
         p["s"] = s
@@ -1569,7 +1569,7 @@ def get_list_too_large_to_download(pathdict):
     return acc_list
 
 
-def send_email_when_finished(s, pathdict, list_number):
+def send_email_when_finished(s, pathdict):
     """ Sends an email to specified address when job is finished
 
     Parameters
@@ -1603,7 +1603,7 @@ def send_email_when_finished(s, pathdict, list_number):
     # else:
     #     body = '{a}\n\n processed list: {b}'.format(a=s['email_message'], b=list_number)
 
-    body = '{a}\n\n processed list: {b}'.format(a=s['email_message'], b=list_number)
+    body = '{a}\n\n processed list: {b}'.format(a=s['email_message'], b=s["list_number"])
     msg.attach(MIMEText(body, 'plain'))
 
     email_fig_list = []

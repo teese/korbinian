@@ -11,7 +11,7 @@ import sys
 from Bio import AlignIO
 import numpy as np
 
-def run_fastagap_save(pathdict, s, logging):
+def save_fastagap(pathdict, s, logging):
     """Runs fastagap_save for each protein, using multiprocessing Pool.
 
     Parameters
@@ -26,7 +26,7 @@ def run_fastagap_save(pathdict, s, logging):
 
     """
 
-    logging.info('~~~~~~~~~~~~           starting run_fastagap_save             ~~~~~~~~~~~~')
+    logging.info('~~~~~~~~~~~~           starting save_fastagap             ~~~~~~~~~~~~')
     # if multiprocessing is used, log only to the console
     p_dict_logging = logging if s["use_multiprocessing"] != True else utils.Log_Only_To_Console()
     # create list of protein dictionaries to process
@@ -43,7 +43,7 @@ def run_fastagap_save(pathdict, s, logging):
     else:
         for p in list_p:
             korbinian.fastagap.fastagap_save(p)
-    logging.info('~~~~~~~~~~~~           finished run_fastagap_save             ~~~~~~~~~~~~')
+    logging.info('~~~~~~~~~~~~           finished save_fastagap             ~~~~~~~~~~~~')
 
 def fastagap_save(p):
     """ Saves TMD_plus_surr for homologues that contain gaps, for the fastagap analysis.

@@ -19,6 +19,7 @@ import os
 import korbinian
 import ast
 import sys
+import pandas as pd
 
 # read the command line arguments
 parser = argparse.ArgumentParser()
@@ -36,32 +37,50 @@ if __name__ == "__main__":
     # convert the excel settings file to a python dictionary, s
     s = korbinian.common.create_settingsdict(args.s)
 
+    # to run "compare lists", replace the list_number with "compare"
     if s['protein_list_number'] == 'compare':
         korbinian.cons_ratio.compare_lists.compare_lists(s)
     else:
-
+        # if list_number is not "compare", run either a single list, or a list of protein lists
         protein_list_number = ast.literal_eval(str(s['protein_list_number']))
+        # run for a single protein list
         if type(protein_list_number) is int:
-            list_number = protein_list_number
-            korbinian.run_korbinian.run_statements(s, list_number)
-        else:
-            sys.stdout.write('\nmultiple lists entered! starting serial analysis of multiple lists!\n\nlists to analyse: {}\n\n'.format(protein_list_number))
+            # there is only one list to run, so add the provided number to settings and run
+            s["list_number"] = protein_list_number
+            korbinian.run_korbinian.run_statements(s)
+        elif type(protein_list_number) in (list, tuple):
+            # run for multiple lists, ONE AFTER ANOTHER
+            # note this is different from the compare_lists function, which compares the output for multiple lists, and creates figures
+            sys.stdout.write('\nStarting serial analysis of multiple lists. Any python errors will stop all processing. \n\nlists to analyse: {}\n\n'.format(protein_list_number))
             for list_number in protein_list_number:
-                korbinian.run_korbinian.run_statements(s, list_number)
+                # for each number in the list, add to settings and run
+                s["list_number"] = list_number
+                korbinian.run_korbinian.run_statements(s)
                 sys.stdout.write('\n\n~~~~~~~~~~~~         List {} finished           ~~~~~~~~~~~~\n\n'.format(list_number))
+        else:
+            raise ValueError("protein_list_number is neither an int nor a list. Panic and check your code and settings file!")
 
-def run_statements(s, list_number):
+def run_statements(s):
+    list_number = s["list_number"]
     # setup error logging
     logging = korbinian.common.setup_keyboard_interrupt_and_error_logging(s, list_number)
     # print the list number describing the protein list
-    logging.warning("list_number : {}".format(list_number))
+    logging.warning("list_number : {}".format(s["list_number"]))
+
+    # open the tab containing the list-specific settings as a dataframe
+    df_list_settings = pd.read_excel(s["excel_file_with_settings"], sheetname="lists", index_col=0)
+    # add the relevant row (e.g. for List01) to the existing settings dictionary
+    # this adds max_lipo_homol, rand_TM, rand_nonTM, etc to the dictionary
+    s.update(df_list_settings.loc[list_number, :].to_dict())
 
     # set a base folder for the summaries, e.g. "D:\Databases\summaries\05\" for list 05
     base_filename_summaries = os.path.join(s["data_dir"], "summaries", '%02d' % list_number, 'List%02d' % list_number)
 
     # create dictionary of paths for output files
     # for example the basic pathdict["list_summary_csv"] for list 5 is "D:\Databases\summaries\05\List05_summary.csv"
-    pathdict = korbinian.common.create_pathdict(base_filename_summaries)
+    pathdict = korbinian.common.create_pathdict(base_filename_summaries, s)
+
+    pd.Series(s).to_csv(pathdict["settings_copy_csv"])
 
     ########################################################################################
     #                                                                                      #
@@ -98,17 +117,17 @@ def run_statements(s, list_number):
     excelfile_with_uniprot_accessions = os.path.join(base_filename_summaries, '.xlsx')
 
     if s["create_nonred_uniprot_flatfile_via_uniref"] == True:
-        korbinian.prot_list.uniprot_nonredundant.create_nonred_uniprot_flatfile_via_uniref(s, uniprot_dir_sel, list_number, selected_uniprot_records_flatfile, logging)
+        korbinian.prot_list.uniprot_nonredundant.create_nonred_uniprot_flatfile_via_uniref(s, uniprot_dir_sel, selected_uniprot_records_flatfile, logging)
 
-    if s["run_parse_large_flatfile_with_list_uniprot_accessions"]:
+    if s["parse_large_flatfile_with_list_uniprot_accessions"]:
         input_accession_list_path = os.path.join(s["data_dir"], "uniprot", "selected", "List{:02d}_uniprot_accessions.txt".format(list_number))
-        korbinian.prot_list.uniprot_retrieve.parse_large_flatfile_with_list_uniprot_accessions(input_accession_list_path, uniprot_dir_sel, list_number, logging, selected_uniprot_records_flatfile)
+        korbinian.prot_list.uniprot_retrieve.parse_large_flatfile_with_list_uniprot_accessions(input_accession_list_path, uniprot_dir_sel, logging, selected_uniprot_records_flatfile)
 
-    if s["run_retrieve_uniprot_data_for_acc_list_in_xlsx_file"]:
+    if s["retrieve_uniprot_data_for_acc_list_in_xlsx_file"]:
         input_uniprot_flatfile = "needs to be defined if you use this function!"
         korbinian.prot_list.uniprot_retrieve.retrieve_uniprot_data_for_acc_list_in_xlsx_file(excelfile_with_uniprot_accessions, input_uniprot_flatfile, selected_uniprot_records_flatfile, logging)
 
-    if s["run_create_csv_from_uniprot_flatfile"]:
+    if s["create_csv_from_uniprot_flatfile"]:
         ''' ~~ DETERMINE START AND STOP INDICES FOR TMD PLUS SURROUNDING SEQ ~~ '''
         n_aa_before_tmd = s["n_aa_before_tmd"]
         n_aa_after_tmd = s["n_aa_after_tmd"]
@@ -118,22 +137,22 @@ def run_statements(s, list_number):
 
     ########################################################################################
     #                                                                                      #
-    #                            run_setup_df_file_locations                               #
+    #                            prepare_protein_list                               #
     #                                                                                      #
     ########################################################################################
 
-    if s["run_setup_df_file_locations"]:
-        korbinian.prot_list.prot_list.setup_file_locations_in_df(s, pathdict)
+    if s["prepare_protein_list"]:
+        korbinian.prot_list.prot_list.prepare_protein_list(s, pathdict)
 
     ########################################################################################
     #                                                                                      #
     #                         run simap download, parse simap                              #
     #                                                                                      #
     ########################################################################################
-    if s["run_download_homologues"]:
+    if s["download_homologues"]:
         korbinian.simap_download.download_homologues_from_simap(pathdict, s, logging)
 
-    if s["run_parse_simap_to_csv"]:
+    if s["parse_simap_to_csv"]:
         korbinian.simap_parse.run_parse_simap_to_csv(pathdict, s, logging)
 
     ########################################################################################
@@ -142,19 +161,19 @@ def run_statements(s, list_number):
     #                                                                                      #
     ########################################################################################
 
-    if s["run_slice_TMDs_from_homologues"]:
-        korbinian.cons_ratio.slice.run_slice_TMDs_from_homologues(pathdict, s, logging, list_number)
+    if s["slice_TMDs_from_homologues"]:
+        korbinian.cons_ratio.slice.run_slice_TMDs_from_homologues(pathdict, s, logging)
 
-    if s["run_create_fasta"]:
-        korbinian.fasta.run_create_fasta(pathdict, s, logging, list_number)
+    if s["create_fasta"]:
+        korbinian.fasta.run_create_fasta(pathdict, s, logging)
 
-    if s["run_calculate_AAIMON_ratios"]:
-        korbinian.cons_ratio.cons_ratio.run_calculate_AAIMONs(pathdict, s, logging, list_number)
+    if s["calculate_AAIMON_ratios"]:
+        korbinian.cons_ratio.cons_ratio.run_calculate_AAIMONs(pathdict, s, logging)
 
-    if s['run_filter_truncated_alignments']:
-        korbinian.cons_ratio.cons_ratio.throw_out_truncated_sequences(pathdict, s, logging, list_number)
+    if s['filter_truncated_alignments']:
+        korbinian.cons_ratio.cons_ratio.throw_out_truncated_sequences(pathdict, s, logging)
 
-    if s["run_gather_AAIMON_ratios"]:
+    if s["gather_AAIMON_ratios"]:
         korbinian.cons_ratio.gather.gather_AAIMONs(pathdict, logging, s)
 
     ########################################################################################
@@ -163,19 +182,19 @@ def run_statements(s, list_number):
     #                                                                                      #
     ########################################################################################
 
-    if s["run_calculate_gap_densities"]:
+    if s["calculate_gap_densities"]:
         korbinian.gap.run_calculate_gap_densities(pathdict, s, logging)
 
-    if s["run_gather_gap_densities"]:
+    if s["gather_gap_densities"]:
         korbinian.gap.gather_gap_densities(pathdict, s, logging)
 
-    if s["run_create_graph_of_gap_density"]:
+    if s["create_graph_of_gap_density"]:
         korbinian.gap_figs.create_graph_of_gap_density(pathdict, s, logging)
 
-    if s["run_fastagap_save"]:
-        korbinian.fastagap.run_fastagap_save(pathdict, s, logging)
+    if s["save_fastagap"]:
+        korbinian.fastagap.save_fastagap(pathdict, s, logging)
 
-    if s["run_calc_fastagap_densities"]:
+    if s["calc_fastagap_densities"]:
         korbinian.fastagap.run_calc_fastagap_densities(pathdict, s, logging)
 
 
@@ -186,16 +205,16 @@ def run_statements(s, list_number):
     ########################################################################################
 
     '''+++++++++++++++ Summary figures describing the conservation ratios of proteins in the list ++++++++++++++++++'''
-    if s["run_save_figures_describing_proteins_in_list"]:
+    if s["save_figures_describing_proteins_in_list"]:
         korbinian.cons_ratio.figs.save_figures_describing_proteins_in_list(pathdict, s, logging)
 
     '''+++++++++++++++ Summary figures describing the conservation ratios of proteins in the list ++++++++++++++++++'''
-    if s["run_compare_lists"]:
-        korbinian.cons_ratio.compare_lists_old.compare_rel_con_lists(pathdict, s, logging)
+    # if s["compare_lists"]:
+    #     korbinian.cons_ratio.compare_lists_old.compare_rel_con_lists(pathdict, s, logging)
 
 
     if s["run_keyword_analysis"]:
-        output = korbinian.cons_ratio.keywords.keyword_analysis(pathdict, s, logging, list_number)
+        output = korbinian.cons_ratio.keywords.keyword_analysis(pathdict, s, logging)
         logging.info(output)
 
     if "gather_pretty_alignments" in s.keys():
@@ -203,4 +222,4 @@ def run_statements(s, list_number):
             korbinian.cons_ratio.gather.gather_pretty_alignments(pathdict, logging, s)
 
     if s['send_email_when_finished']:
-        korbinian.utils.send_email_when_finished(s, pathdict, list_number)
+        korbinian.utils.send_email_when_finished(s, pathdict)
