@@ -1143,7 +1143,7 @@ def convert_falselike_to_bool(input_item, convert_int=False, convert_float=False
 
     return return_value
 
-def calc_hydrophob(seq, method = "mean"):
+def calc_lipophilicity(seq, method = "mean"):
     """ Calculates the average hydrophobicity of a sequence according to the Hessa biological scale.
 
     Hessa T, Kim H, Bihlmaier K, Lundin C, Boekel J, Andersson H, Nilsson I, White SH, von Heijne G. Nature. 2005 Jan 27;433(7024):377-81
@@ -1177,13 +1177,13 @@ def calc_hydrophob(seq, method = "mean"):
 
     Usage:
     ------
-    from korbinian.utils import calc_hydrophob
+    from korbinian.utils import calc_lipophilicity
     # for a single sequence
     s = "SAESVGEVYIKSTETGQYLAG"
-    calc_hydrophob(s)
+    calc_lipophilicity(s)
     # for a series of sequences
     TMD_ser = df2.TM01_SW_match_seq.dropna()
-    hydro = TMD_ser.apply(lambda x : calc_hydrophob(x))
+    hydro = TMD_ser.apply(lambda x : calc_lipophilicity(x))
 
     Notes:
     ------

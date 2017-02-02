@@ -93,7 +93,10 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
             output_dict.update(regex_subcell_loc_dict)
 
             # print accession number
-            logging.info(record.accessions[0])
+            sys.stdout.write("{}, ".format(record.accessions[0]))
+            if count_of_uniprot_records_processed % 20 == 0:
+                sys.stdout.write("\n".format(record.accessions[0]))
+            sys.stdout.flush()
 
             # add data to dictionary
             output_dict['uniprot_acc'] = record.accessions[0]
@@ -266,7 +269,7 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
         dfu['list_of_TMDs'] = dfu['list_of_TMDs'].astype(str)
 
         ''' ~~   SLICE nonTMD sequence FROM UNIPROT SEQ    ~~ '''
-        sys.stdout.write ('slicing nonTMD sequences:')
+        sys.stdout.write ('\nslicing nonTMD sequences:')
         valid_acc_list = dfu.loc[dfu['list_of_TMDs'].notnull()].loc[dfu['list_of_TMDs'] != "nan"].index
         for n, acc in enumerate(valid_acc_list):
             if n % 10 == 0:

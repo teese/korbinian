@@ -322,8 +322,8 @@ def calculate_AAIMONs(p):
             # fitted_data_AAIMON_n = fit_fn_AAIMON_n(FASTA_gapped_identity)
             # mean_ser['%s_AAIMON_n_slope' %TMD] = linear_regression_AAIMON_n[0]
 
-            if '{TMD}_SW_match_seq_hydro'.format(TMD=TMD) not in df_cr.columns:
-                message = "{} {}_SW_match_seq_hydro not found in columns. Slice file is out of date and will be deleted.".format(acc, TMD)
+            if '{TMD}_SW_match_lipo'.format(TMD=TMD) not in df_cr.columns:
+                message = "{} {}_SW_match_lipo not found in columns. Slice file is out of date and will be deleted.".format(acc, TMD)
                 os.remove(p['fa_cr_sliced_TMDs_zip'])
                 return acc, False, message
 
@@ -350,11 +350,11 @@ def calculate_AAIMONs(p):
 
 
             max_gaps  = s["cr_max_n_gaps_in_TMD"]
-            max_hydro = s["cr_max_hydrophilicity_Hessa"]
+            max_lipo = s["cr_max_hydrophilicity_Hessa"]
             min_ident = s["cr_min_identity_of_TMD"]
             # filter by TMD-specific values (e.g. max_gaps_in_TMD and then calculate all the mean values for AAIMON, etc)
             # note that this is done AFTER the full df_cr is saved, so df_cr can be filtered and reduced directly without losing data
-            mean_ser = korbinian.cons_ratio.calc.filt_and_save_AAIMON_mean(TMD, df_cr, mean_ser, max_gaps, max_hydro, min_ident)
+            mean_ser = korbinian.cons_ratio.calc.filt_and_save_AAIMON_mean(TMD, df_cr, mean_ser, max_gaps, max_lipo, min_ident)
 
             if TMD == "TM01":
                 # number of homologues for TM01. since ALL TMDs have to be in each homologue before AAIMON is calculated, this number is the same for all TMDs

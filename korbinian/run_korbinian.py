@@ -143,10 +143,10 @@ def run_statements(s, list_number):
     ########################################################################################
 
     if s["run_slice_TMDs_from_homologues"]:
-        korbinian.cons_ratio.slice.run_slice_TMDs_from_homologues(pathdict, s, logging)
+        korbinian.cons_ratio.slice.run_slice_TMDs_from_homologues(pathdict, s, logging, list_number)
 
     if s["run_create_fasta"]:
-        korbinian.fasta.run_create_fasta(pathdict, s, logging)
+        korbinian.fasta.run_create_fasta(pathdict, s, logging, list_number)
 
     if s["run_calculate_AAIMON_ratios"]:
         korbinian.cons_ratio.cons_ratio.run_calculate_AAIMONs(pathdict, s, logging, list_number)

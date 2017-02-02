@@ -202,7 +202,9 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list
     df_KW["number_of_TMDs"] = df_KW.Membrane_Borders.apply(lambda x: len(x) / 2)
 
     # Filter, filters out, if less than 8 or more than 24 TMDs
-    df_KW["number_of_TMDs"] = df_KW["number_of_TMDs"].apply(lambda x: int(x) if 8 <= x <= 24 else np.nan)
+    df_KW["number_of_TMDs"] = df_KW["number_of_TMDs"].apply(lambda x: int(x) if 5 <= x <= 36 else np.nan)
+    # Creating new dataframe without nan
+    df_KW = df_KW[df_KW["number_of_TMDs"].notnull()]
 
     num_proteins_AFTER_dropping_those_without_TMs_between_8_and_24 = df_KW.shape[0]
 
@@ -210,8 +212,7 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list
 
     num_proteins_AFTER_dropping_those_with_topology_reliability_below_cutoff = df_KW.shape[0]
 
-    # Creating new dataframe without nan
-    df_KW = df_KW[df_KW["number_of_TMDs"].notnull()]
+
 
     df_KW["TM_indices"] = df_KW["Membrane_Borders"].apply(lambda x: tuple(zip(x[::2], x[1::2])))
 
