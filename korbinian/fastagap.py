@@ -172,9 +172,9 @@ def fastagap_save(p):
        # df_fa['%s_fa_SW_match_acceptable_n_gaps'%TMD] = df_fa['%s_SW_match_num_gaps'%TMD] <= s["fa_max_n_gaps_in_match_TMD"]
         # measure the hydrophobicity of each TMD
         # %timeit 46.6 ms per loop for 325 homologues
-        df_fa['%s_SW_match_seq_hydro' % TMD] = df_fa['%s_SW_match_seq'%TMD].dropna().apply(lambda x: utils.calc_hydrophob(x))
+        df_fa['%s_SW_match_lipo' % TMD] = df_fa['%s_SW_match_seq'%TMD].dropna().apply(lambda x: utils.calc_lipophilicity(x))
 
-        above_hessa_cutoff = df_fa['%s_SW_match_seq_hydro' % TMD] > s["gap_max_hydrophilicity_Hessa"]
+        above_hessa_cutoff = df_fa['%s_SW_match_lipo' % TMD] > s["gap_max_hydrophilicity_Hessa"]
         vc = above_hessa_cutoff.value_counts()
         if True in vc.index:
             n = vc[True]
@@ -204,7 +204,7 @@ def fastagap_save(p):
 
         # create string for the pandas.query syntax NOTE: gaps are not mentioned. Assume that gaps are NOT allowed in full protein.
         fa_query_filt_str = '{min_} <= {TMD}_SW_match_plus_surr_num_gaps <= {max_} &' \
-                            '{TMD}_SW_match_seq_hydro <= {hydro_limit} & ' \
+                            '{TMD}_SW_match_lipo <= {hydro_limit} & ' \
                             '{TMD}_plus_surr_is_truncated == False'.format(TMD=TMD,min_=min_number_of_gaps,max_=max_number_of_gaps,
                                                                                hydro_limit = s["gap_max_hydrophilicity_Hessa"])
 

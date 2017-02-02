@@ -6,12 +6,12 @@ import sys
 import zipfile
 from multiprocessing import Pool
 
-def run_create_fasta(pathdict, s, logging):
+def run_create_fasta(pathdict, s, logging, list_number):
     logging.info('~~~~~~~~~~~~         starting filter_and_save_fasta           ~~~~~~~~~~~~')
     # if multiprocessing is used, log only to the console
     p_dict_logging = logging if s["use_multiprocessing"] != True else utils.Log_Only_To_Console()
     # create list of protein dictionaries to process
-    list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging)
+    list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging, list_number)
     # number of processes is the number the settings, or the number of proteins, whichever is smallest
     n_processes = s["multiprocessing_cores"] if s["multiprocessing_cores"] < len(list_p) else len(list_p)
 
@@ -159,12 +159,12 @@ def filter_and_save_fasta(p):
        # df_fa['%s_fa_SW_match_acceptable_n_gaps'%TMD] = df_fa['%s_SW_match_num_gaps'%TMD] <= s["fa_max_n_gaps_in_match_TMD"]
         # measure the hydrophobicity of each TMD
         # %timeit 46.6 ms per loop for 325 homologues
-        df_fa['%s_SW_match_seq_hydro' % TMD] = df_fa['%s_SW_match_seq'%TMD].dropna().apply(lambda x: utils.calc_hydrophob(x))
+        df_fa['%s_SW_match_lipo' % TMD] = df_fa['%s_SW_match_seq'%TMD].dropna().apply(lambda x: utils.calc_lipophilicity(x))
 
         # create string for the pandas.query syntax
         fa_query_filt_str =  '{TMD}_SW_query_num_gaps <= {fa_max_n_gaps_in_query_TMD} & ' \
                              '{TMD}_SW_match_num_gaps <= {fa_max_n_gaps_in_match_TMD} &' \
-                             '{TMD}_SW_match_seq_hydro <= {hydro_limit}' \
+                             '{TMD}_SW_match_lipo <= {hydro_limit}' \
                              '{Xsel}'.format(TMD=TMD, Xsel=fa_X_filt_sel_str, fa_max_n_gaps_in_query_TMD=s["fa_max_n_gaps_in_query_TMD"],
                                              fa_max_n_gaps_in_match_TMD=s["fa_max_n_gaps_in_match_TMD"], hydro_limit=s["fa_max_hydrophilicity_Hessa"])
 

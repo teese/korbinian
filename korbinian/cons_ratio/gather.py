@@ -272,7 +272,7 @@ def gather_pretty_alignments(pathdict, logging, s):
                         continue
 
                     max_gaps = s["cr_max_n_gaps_in_TMD"]
-                    max_hydro = s["cr_max_hydrophilicity_Hessa"]
+                    max_lipo = s["cr_max_hydrophilicity_Hessa"]
                     min_ident = s["cr_min_identity_of_TMD"]
 
                     """This is used as a filter in filter_and_save_fasta, therefore is conducted earlier in the slicing function. """
@@ -280,8 +280,8 @@ def gather_pretty_alignments(pathdict, logging, s):
                     cr_TMD_query_str = '{TMD}_perc_ident >= {min_ident} & ' \
                                        '{TMD}_SW_query_num_gaps <= {max_gaps} & ' \
                                        '{TMD}_SW_match_num_gaps <= {max_gaps} & ' \
-                                       '{TMD}_SW_match_seq_hydro <= {max_hydro}'.format(TMD=TMD, max_gaps=max_gaps,
-                                                                                        max_hydro=max_hydro,
+                                       '{TMD}_SW_match_lipo <= {max_lipo}'.format(TMD=TMD, max_gaps=max_gaps,
+                                                                                        max_lipo=max_lipo,
                                                                                         min_ident=min_ident)
                     # n_homol_before_filter = df_cr.shape[0]
                     # filter by the above query
@@ -324,9 +324,9 @@ def gather_pretty_alignments(pathdict, logging, s):
                         d["outlier"] = outlier_name
                         d["hit"] = outlier_index
                         columns = ['FASTA_gapped_identity', 'obs_changes', "{}_AAIMON", '{}_perc_ident', 'nonTMD_perc_ident', '{}_start_in_SW_alignment', '{}_SW_query_seq', '{}_SW_markup_seq',
-                                   '{}_SW_match_seq', '{}_ratio_len_TMD_to_len_nonTMD', '{}_SW_align_len', "{}_SW_match_seq_hydro"]
+                                   '{}_SW_match_seq', '{}_ratio_len_TMD_to_len_nonTMD', '{}_SW_align_len', "{}_SW_match_lipo"]
                         col_names = ['FASTA_gapped_identity', 'obs_changes', "AAIMON", 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
-                                     'ratio_len_TMD_to_len_nonTMD', 'SW_align_len', "SW_match_seq_hydro"]
+                                     'ratio_len_TMD_to_len_nonTMD', 'SW_align_len', "SW_match_lipo"]
                         for n, col in enumerate(columns):
                             col_name = col_names[n]
                             value = df_TMD.loc[outlier_index, col.format(TMD)]
@@ -343,7 +343,7 @@ def gather_pretty_alignments(pathdict, logging, s):
 
                         if num_TMDs_in_all_proteins_processed == 0:
                             # sort
-                            csv_header = ["protein_name", "TMD", "outlier", "TM_align","SW_match_seq_hydro", "align_pretty", 'FASTA_gapped_identity', 'obs_changes', "AAIMON", "hit", 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
+                            csv_header = ["protein_name", "TMD", "outlier", "TM_align","SW_match_lipo", "align_pretty", 'FASTA_gapped_identity', 'obs_changes', "AAIMON", "hit", 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
                                      'ratio_len_TMD_to_len_nonTMD', 'SW_align_len']
                             # make sure that the csv header is up-to-date, and isn't missing items from dict
                             assert len(csv_header) is len(d)

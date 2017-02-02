@@ -1,12 +1,13 @@
-import csv
-import os
-import pandas as pd
 from time import strftime
-import unicodedata
+import ast
+import csv
 import korbinian
 import korbinian.utils as utils
-import ast
+import numpy as np
+import os
+import pandas as pd
 import sys
+import unicodedata
 
 def setup_file_locations_in_df(s, pathdict):
     """ Sets up the file locations in the DataFrame containing the list of proteins for analysis.
@@ -26,12 +27,16 @@ def setup_file_locations_in_df(s, pathdict):
 
     """
     df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
+    n_initial_prot = df.shape[0]
     if "uniprot_entry_name" in df.columns:
         # join the accession and entry name to create a "protein name" for naming files
         df['protein_name'] = df.uniprot_acc + '_' + df.uniprot_entry_name
     else:
         # the list of proteins did not come from UniProt. Simply use the accession to name the files.
         df['protein_name'] = df.index
+
+    # convert the list_of_TMDs to a python object, if it is a string
+    df['list_of_TMDs'] = df['list_of_TMDs'].dropna().apply(lambda x : ast.literal_eval(x))
 
     if s["add_user_subseqs"] == True:
         ########################################################################################
@@ -82,12 +87,24 @@ def setup_file_locations_in_df(s, pathdict):
         # convert nested list to pandas series
         list_of_SEs_ser = pd.Series(nested_list_of_SEs, index=df_SE.index)
 
+
+        # SHOULD NO LONGER BE A STRING; SHOULD ALL BE PYTHON LIST FORMAT
+        # if type(df["list_of_TMDs"][0]) == str:
+        #     df["list_of_TMDs"] = df["list_of_TMDs"].str.strip("'[]'").str.split("', '")
+
         # append the list of SEs (selected sequences) to the list of TMDs e.g. [TM01, TM02, SE01]
-        if type(df["list_of_TMDs"][0]) == str:
-            df["list_of_TMDs"] = df["list_of_TMDs"].str.strip("'[]'").str.split("', '")
         df["list_of_TMDs"] = df["list_of_TMDs"] + list_of_SEs_ser
         # add the sequences (SE01_seq etc) to the main dataframe
         df = pd.concat([df, df_SE], axis=1)
+
+    ########################################################################################
+    #                                                                                      #
+    #               drop any proteins that do not have a valid list_of_TMDs                #
+    #                                                                                      #
+    ########################################################################################
+    n_prot_BEFORE_dropping_without_list_TMDs = df.shape[0]
+    df = df.loc[df['list_of_TMDs'].notnull()]
+    n_prot_AFTER_dropping_without_list_TMDs = df.shape[0]
 
     ########################################################################################
     #                                                                                      #
@@ -208,7 +225,7 @@ def setup_file_locations_in_df(s, pathdict):
 
     ########################################################################################
     #                                                                                      #
-    #                                     Save to CSV                                      #
+    #       X in sequence, joined TMD and nonTMD seq, lipophilicity calc                   #
     #                                                                                      #
     ########################################################################################
     # indicate that the setup_file_locations_in_df function has been run
@@ -216,34 +233,86 @@ def setup_file_locations_in_df(s, pathdict):
 
     # add a column that holds all joined TMD sequences, drop proteins with 'X' in full sequence
     n = 0
-    sys.stdout.write('\njoining TMD sequences, dropping proteins with "X" in full sequence: \n'), sys.stdout.flush()
-    list_dropped_acc = []
-    for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
+    sys.stdout.write('\njoining TMD sequences, dropping proteins with "X", calculating lipophilicity: \n'), sys.stdout.flush()
+    list_acc_X_in_seq = []
+    for acc in df.index:
         n += 1
         if n % 20 == 0:
             sys.stdout.write('.'), sys.stdout.flush()
             if n % 600 == 0:
                 sys.stdout.write('\n'), sys.stdout.flush()
+        ########################################################################################
+        #                               X in sequence                                          #
+        ########################################################################################
         if 'X' in df.loc[acc, 'full_seq']:
+            # remove protein from dataframe if sequence contains "X". Add acc to list.
             df = df.drop(acc)
-            list_dropped_acc.append(acc)
+            list_acc_X_in_seq.append(acc)
+            # skip to next protein
             continue
-        list_of_TMDs = ast.literal_eval(df.loc[acc, 'list_of_TMDs'])
-        if len(list_of_TMDs) > 1:
-            TMD_seq_joined = ''
-            for TMD in list_of_TMDs:
-                seq = df.loc[acc, '%s_seq' % TMD]
-                TMD_seq_joined += seq
-            if not 'X' in TMD_seq_joined:
-                df.loc[acc, 'TMD_seq_joined'] = TMD_seq_joined
-        if len(list_of_TMDs) == 1:
-            SP_TMD_seq = df.loc[acc, 'TM01_seq']
-            if not 'X' in SP_TMD_seq:
-                df.loc[acc, 'TMD_seq_SP'] = SP_TMD_seq
-    sys.stdout.write('\ndropped proteins: {}, n = {}\n'.format(list_dropped_acc, len(list_dropped_acc))), sys.stdout.flush()
+
+        list_of_TMDs = df.loc[acc, 'list_of_TMDs']
+        # if len(list_of_TMDs) == 1:
+        #     # there is only one TMD, add it as the TMD_seq_joined and as the lipo mean
+        #     df.loc[acc, 'TMD_seq_joined'] = df.loc[acc, 'TM01_seq']
+        #
+        #     df.loc[acc, 'lipo_mean_all_TMDs'
+
+        # elif len(list_of_TMDs) > 1:
+        ########################################################################################
+        #                    create joined string with all TM sequences                        #
+        #                       measure lipophilicity all TM sequences                         #
+        ########################################################################################
+        TMD_seq_joined = ''
+        lipo_list = []
+        for TMD in list_of_TMDs:
+            seq = df.loc[acc, '%s_seq' % TMD]
+            # add each TM sequence to the end of the growing string
+            TMD_seq_joined += seq
+
+            # calculate lipophilicity, add new col for each TMD, add to list in order to calc mean for all TMDs
+            lipo = utils.calc_lipophilicity(seq)
+            df.loc[acc, '%s_lipo' % TMD] = lipo
+            lipo_list.append(lipo)
+
+        df.loc[acc, 'TMD_seq_joined'] = TMD_seq_joined
+        # calc the mean lipophilicity
+        # note this is the mean of each TMD separately, not the lipo of the joined sequence
+        df.loc[acc, 'lipo_mean_all_TMDs'] = np.array(lipo_list).mean()
+
+    df = df.drop(list_acc_X_in_seq)
+    n_prot_AFTER_dropping_with_X_in_seq = df.shape[0]
+
+    lipo_cutoff = s["cr_max_hydrophilicity_Hessa"]
+    list_acc_lipo_mean_above_cutoff = list(df['lipo_mean_all_TMDs'].loc[df['lipo_mean_all_TMDs'] > lipo_cutoff].index)
+    df = df.drop(list_acc_lipo_mean_above_cutoff)
+    n_prot_AFTER_dropping_above_lipo_cutoff = df.shape[0]
+
+    ########################################################################################
+    #                                                                                      #
+    #                           Print record of dropped proteins                           #
+    #                                                                                      #
+    ########################################################################################
+    sys.stdout.write('\nn_initial_prot: {}'.format(n_initial_prot))
+
+    sys.stdout.write('\nn_prot_BEFORE_dropping_without_list_TMDs: {}'.format(n_prot_BEFORE_dropping_without_list_TMDs))
+    sys.stdout.write('\nn_prot_AFTER_dropping_without_list_TMDs: {}'.format(n_prot_AFTER_dropping_without_list_TMDs))
+
+    sys.stdout.write('\nn_prot_AFTER_dropping_with_X_in_seq: {}'.format(n_prot_AFTER_dropping_with_X_in_seq))
+    if list_acc_X_in_seq != []:
+        sys.stdout.write('\nlist_acc_X_in_seq: {}'.format(list_acc_X_in_seq))
+
+    sys.stdout.write('\nn_prot_AFTER_dropping_above_lipo_cutoff: {}'.format(n_prot_AFTER_dropping_above_lipo_cutoff))
+    sys.stdout.write('\nlist_acc_lipo_mean_above_cutoff: {}\n'.format(list_acc_lipo_mean_above_cutoff))
+    sys.stdout.flush()
+
+    ########################################################################################
+    #                                                                                      #
+    #                                     Save to CSV                                      #
+    #                                                                                      #
+    ########################################################################################
     # save to a csv
     df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
-
 
 def get_indices_TMD_plus_surr_for_summary_file(dfsumm, TMD, n_aa_before_tmd, n_aa_after_tmd):
     """Takes a summary dataframe (1 row for each protein) and slices out the TMD seqs.
