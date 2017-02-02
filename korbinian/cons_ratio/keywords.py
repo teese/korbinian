@@ -9,7 +9,7 @@ import korbinian.utils as utils
 import matplotlib.pyplot as plt
 import os
 
-def keyword_analysis(pathdict, s, logging, list_number):
+def keyword_analysis(pathdict, s, logging):
     """
 
     Parameters
@@ -347,9 +347,9 @@ def keyword_analysis(pathdict, s, logging, list_number):
                 utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
         # save pandas dataframes with values
-        dfk.to_csv(os.path.join(pathdict["keywords"], 'List%02d_keywords.csv' % list_number), sep=",", quoting=csv.QUOTE_NONNUMERIC)
-        df_correlation.to_csv(os.path.join(pathdict["keywords"], 'List%02d_KW_cross_correlation.csv' % list_number), sep=",", quoting=csv.QUOTE_NONNUMERIC)
-        dfr.to_csv(os.path.join(pathdict["keywords"], 'List%02d_keywords_significant_RAW_data.csv' % list_number), sep=",", quoting=csv.QUOTE_NONNUMERIC)
+        dfk.to_csv(os.path.join(pathdict["keywords"], 'List%02d_keywords.csv' % s["list_number"]), sep=",", quoting=csv.QUOTE_NONNUMERIC)
+        df_correlation.to_csv(os.path.join(pathdict["keywords"], 'List%02d_KW_cross_correlation.csv' % s["list_number"]), sep=",", quoting=csv.QUOTE_NONNUMERIC)
+        dfr.to_csv(os.path.join(pathdict["keywords"], 'List%02d_keywords_significant_RAW_data.csv' % s["list_number"]), sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     else:
         return 'no valid keywords found! change "cutoff_major_keywords" setting! \ncurrent value: {}'.format(s['cutoff_major_keywords'])

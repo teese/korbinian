@@ -3,7 +3,7 @@ from Bio import SeqIO
 import pandas as pd
 import sys
 
-def parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, uniprot_dir, list_number, logging, selected_uniprot_records_flatfile):
+def parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, uniprot_dir, logging, selected_uniprot_records_flatfile):
     """Retrieves UniProt flatfiles from a large flatfile (e.g. All UniProt), based on a list of accession numbers.
 
     Parameters
@@ -27,7 +27,7 @@ def parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, unip
     # parse_large_flatfile_with_list_uniprot_accessions(list_of_uniprot_accessions, uniprot_flatfile_all_single_pass, selected_uniprot_records_flatfile)
     # def parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, input_uniprot_flatfile, output_uniprot_flatfile):
     # define path to large uniprot flatfile containing the protein records to be extracted
-    input_uniprot_flatfile = os.path.join(uniprot_dir, "List%02d_large_uniprot_flatfile.txt" % list_number)
+    input_uniprot_flatfile = os.path.join(uniprot_dir, "List%02d_large_uniprot_flatfile.txt" % s["list_number"])
     output_uniprot_flatfile = selected_uniprot_records_flatfile
     # from Bio import SeqIO
     # create a list of all the uniprot accessions of the proteins to be selected from the larger uniprot file

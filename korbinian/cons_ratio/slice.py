@@ -9,7 +9,7 @@ from korbinian import utils as utils
 from multiprocessing import Pool
 import sys
 
-def run_slice_TMDs_from_homologues(pathdict, s, logging, list_number):
+def run_slice_TMDs_from_homologues(pathdict, s, logging):
     """For a list of proteins, slice TMD sequences from homologues and count gaps.
 
     Parameters
@@ -32,7 +32,7 @@ def run_slice_TMDs_from_homologues(pathdict, s, logging, list_number):
     # get list of accessions that could not be downloaded, and can immediately be excluded
     not_in_homol_db = utils.get_list_not_in_homol_db(pathdict)
     # create list of protein dictionaries to process
-    list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging, list_number, list_excluded_acc=not_in_homol_db)
+    list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging, list_excluded_acc=not_in_homol_db)
 
     # number of processes is the number the settings, or the number of proteins, whichever is smallest
     n_processes = s["multiprocessing_cores"] if s["multiprocessing_cores"] < len(list_p) else len(list_p)

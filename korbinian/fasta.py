@@ -6,12 +6,12 @@ import sys
 import zipfile
 from multiprocessing import Pool
 
-def run_create_fasta(pathdict, s, logging, list_number):
+def run_create_fasta(pathdict, s, logging):
     logging.info('~~~~~~~~~~~~         starting filter_and_save_fasta           ~~~~~~~~~~~~')
     # if multiprocessing is used, log only to the console
     p_dict_logging = logging if s["use_multiprocessing"] != True else utils.Log_Only_To_Console()
     # create list of protein dictionaries to process
-    list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging, list_number)
+    list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging)
     # number of processes is the number the settings, or the number of proteins, whichever is smallest
     n_processes = s["multiprocessing_cores"] if s["multiprocessing_cores"] < len(list_p) else len(list_p)
 

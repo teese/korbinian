@@ -101,7 +101,7 @@ def calc_AAIMON(TMD, df_cr, len_query_TMD):
 
     return df_cr
 
-def filt_and_save_AAIMON_mean(TMD, df_cr, mean_ser, max_gaps, max_lipo, min_ident):
+def filt_and_save_AAIMON_mean(TMD, df_cr, mean_ser, max_gaps, max_lipo_homol, min_ident):
     """ Filter df_cr with homologues for that particular TMD, and save mean AAIMON values.
 
     Parameters
@@ -116,8 +116,8 @@ def filt_and_save_AAIMON_mean(TMD, df_cr, mean_ser, max_gaps, max_lipo, min_iden
         using the gather scripts for plotting.
     max_gaps : int
         Maximum number of gaps allowed in the TMD sequence.
-    max_lipo : int
-        Maximum hydrophilicity according to the Hessa scale.
+    max_lipo_homol : int
+        Maximum hydrophilicity according to the chosen hydrophobicity scale (usually Hessa).
     min_ident : int
         Minimum % identity of the TMD region. A very low % identity usually indicates a splice variant or
         sequence error. To avoid biasing the AAIMON ratio, this should be set significantly lower than the
@@ -144,8 +144,8 @@ def filt_and_save_AAIMON_mean(TMD, df_cr, mean_ser, max_gaps, max_lipo, min_iden
     cr_TMD_query_str = '{TMD}_perc_ident >= {min_ident} & ' \
                 '{TMD}_SW_query_num_gaps <= {max_gaps} & ' \
                 '{TMD}_SW_match_num_gaps <= {max_gaps} & ' \
-                '{TMD}_SW_match_lipo <= {max_lipo}'.format(TMD=TMD, max_gaps=max_gaps,
-                                                                 max_lipo=max_lipo,
+                '{TMD}_SW_match_lipo <= {max_lipo_homol}'.format(TMD=TMD, max_gaps=max_gaps,
+                                                                 max_lipo_homol=max_lipo_homol,
                                                                  min_ident=min_ident)
     #n_homol_before_filter = df_cr.shape[0]
     # filter by the above query

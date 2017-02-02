@@ -25,7 +25,7 @@ def create_settingsdict(excel_file_with_settings):
         Dictionary derived from the settings file, with the "parameter" column as keys,
         and the "value" column as values. Notes are excluded.
     """
-    sheetnames = ["run_settings", "file_locations", "variables", "figs_settings", "norm_settings"]
+    sheetnames = ["run", "files", "variables", "figs"]
     s = {}
     for sheetname in sheetnames:
         # open excel file as pandas dataframe
@@ -53,6 +53,9 @@ def create_settingsdict(excel_file_with_settings):
         sheet_as_dict = dfset.to_dict()["value"]
         # join dictionaries together
         s.update(sheet_as_dict)
+
+    # add the path of the excel file to the settings dictionary
+    s["excel_file_with_settings"] = excel_file_with_settings
 
     # normalise the paths for the data directory
     s["data_dir"] = os.path.normpath(s["data_dir"])
@@ -197,8 +200,11 @@ def setup_error_logging(logfile, level_console="DEBUG", level_logfile="DEBUG"):
     return logging
 
 
-def create_pathdict(base_filename_summaries):
+def create_pathdict(base_filename_summaries, s):
     pathdict = {}
+    # define path to csv that holds a backup of s (settings dictionary)
+    pathdict["settings_copy_csv"] = '%s_settings_copy.csv' % base_filename_summaries
+    # add base_filename_summaries itself to the path dictionary
     pathdict["base_filename_summaries"] = base_filename_summaries
     # currently the protein list summary (each row is a protein, from uniprot etc) is a csv file
     pathdict["list_summary_csv"] = '%s_summary.csv' % base_filename_summaries
