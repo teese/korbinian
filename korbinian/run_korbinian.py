@@ -39,6 +39,11 @@ if __name__ == "__main__":
 
     # to run "compare lists", replace the list_number with "compare"
     if s['protein_list_number'] == 'compare':
+        # open the tab containing the list-specific settings as a dataframe
+        df_list_settings = pd.read_excel(s["excel_file_with_settings"], sheetname="lists", index_col=0)
+        # add the relevant row (e.g. for List01) to the existing settings dictionary
+        # this adds max_lipo_homol, rand_TM, rand_nonTM, etc to the dictionary
+        s.update(df_list_settings.to_dict())
         korbinian.cons_ratio.compare_lists.compare_lists(s)
     else:
         # if list_number is not "compare", run either a single list, or a list of protein lists
@@ -67,11 +72,11 @@ def run_statements(s):
     # print the list number describing the protein list
     logging.warning("list_number : {}".format(s["list_number"]))
 
-    # open the tab containing the list-specific settings as a dataframe
-    df_list_settings = pd.read_excel(s["excel_file_with_settings"], sheetname="lists", index_col=0)
-    # add the relevant row (e.g. for List01) to the existing settings dictionary
-    # this adds max_lipo_homol, rand_TM, rand_nonTM, etc to the dictionary
-    s.update(df_list_settings.loc[list_number, :].to_dict())
+    # # open the tab containing the list-specific settings as a dataframe
+    # df_list_settings = pd.read_excel(s["excel_file_with_settings"], sheetname="lists", index_col=0)
+    # # add the relevant row (e.g. for List01) to the existing settings dictionary
+    # # this adds max_lipo_homol, rand_TM, rand_nonTM, etc to the dictionary
+    # s.update(df_list_settings.loc[list_number, :].to_dict())
 
     # set a base folder for the summaries, e.g. "D:\Databases\summaries\05\" for list 05
     base_filename_summaries = os.path.join(s["data_dir"], "summaries", '%02d' % list_number, 'List%02d' % list_number)

@@ -176,6 +176,8 @@ def keyword_analysis(pathdict, s, logging):
             df_no_keyword = dfq.loc[dfq['contains_KW'] == False]
             # check if keyword-dataframe still matches cutoff_major_keywords requirements
             if len(df_keyword) < cutoff_major_keywords:
+                dfk = dfk.drop(keyword)
+                sys.stdout.write('\n\nkeyword "{}" does not match the requirements after excluding {}\n'.format(keyword, list_to_exclude))
                 continue
 
             ###############################################################
@@ -210,7 +212,7 @@ def keyword_analysis(pathdict, s, logging):
             dfk.loc[keyword, 'p-value_AAIMON'] = p_AAIMON
 
             # calculate odds ratio, p- and t-values for AAIMON_slopes
-            dfk.loc[keyword, 'odds_ratio_AAIMON_slope'] = dfk.loc[keyword, 'AAIMON_slope_keyword_mean'] / dfk.loc[keyword, 'AAIMON_slope_no_keyword_mean']
+            dfk.loc[keyword, 'difference_AAIMON_slope'] = abs(dfk.loc[keyword, 'AAIMON_slope_keyword_mean'] - dfk.loc[keyword, 'AAIMON_slope_no_keyword_mean'])
             KW_slope = df_keyword['AAIMON_slope_mean_all_TMDs'].dropna()
             no_KW_slope = df_no_keyword['AAIMON_slope_mean_all_TMDs'].dropna()
             t_AAIMON_slope, p_AAIMON_slope = ttest_ind(KW_slope, no_KW_slope, equal_var=True)             # equal_var True or False ?!?!
@@ -219,7 +221,7 @@ def keyword_analysis(pathdict, s, logging):
 
             sys.stdout.write('\n\nmean AAIMON_slope containing keyword  "{a}" : {k:.3f} ± {l:.3f}, n = {d:.0f}\n'
                              'mean AAIMON_slope   without  keyword  "{a}" : {m:.3f} ± {n:.3f}, n = {g:.0f}\n'
-                             'odds_ratio_AAIMON_slope = {o:.3f}, t-value_AAIMON_slope = {p:.3f}, p-value_AAIMON_slope = {q:.3f}\n'
+                             'difference_AAIMON_slope = {o:.3f}, t-value_AAIMON_slope = {p:.3f}, p-value_AAIMON_slope = {q:.3f}\n'
                              .format(a=keyword,
                                      d=dfk.loc[keyword, 'number_of_proteins_keyword'],
                                      g=dfk.loc[keyword, 'number_of_proteins_no_keyword'],
@@ -227,7 +229,7 @@ def keyword_analysis(pathdict, s, logging):
                                      l=dfk.loc[keyword, 'AAIMON_slope_keyword_std'],
                                      m=dfk.loc[keyword, 'AAIMON_slope_no_keyword_mean'],
                                      n=dfk.loc[keyword, 'AAIMON_slope_no_keyword_std'],
-                                     o=dfk.loc[keyword, 'odds_ratio_AAIMON_slope'],
+                                     o=dfk.loc[keyword, 'difference_AAIMON_slope'],
                                      p=dfk.loc[keyword, 't-value_AAIMON_slope'],
                                      q=dfk.loc[keyword, 'p-value_AAIMON_slope']))
 

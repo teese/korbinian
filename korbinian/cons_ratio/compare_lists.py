@@ -9,19 +9,19 @@ import datetime
 import korbinian.utils as utils
 
 
-def compare_lists (s,):
+def compare_lists (s):
     sys.stdout.write("\n\n~~~~~~~~~~~~         starting compare_lists           ~~~~~~~~~~~~\n\n")
     save_png = s['save_png']
     save_pdf = s['save_pdf']
     color_list = ['#949494', '#EE762C', '#005C96', '#A1B11A', '#9ECEEC', '#0076B8', '#454545']
     protein_lists = ast.literal_eval(s['protein_lists'])
-    protein_list_names = ast.literal_eval(s['protein_list_names'])
+    # initialise dataframe that hols all variables for every protein list
     dfv = pd.DataFrame(index=protein_lists)
-    dfv['protein_list_names'] = protein_list_names
     # get current date and time for folder name, join elements in protein_lists to string
     str_protein_lists = '-'.join(map(str, sorted(protein_lists)))
     now = datetime.datetime.now()
     #folder_name = '{}{:02}{}-{:02}{:02}_Lists-{}'.format(now.year, now.month, now.day, now.hour, now.minute, str_protein_lists)
+
     # folder_name for testing
     folder_name = 'Folder_Test'
 
@@ -36,19 +36,24 @@ def compare_lists (s,):
     # import datasets, load data and hold pandas dataframes in dictionary
     df_dict = {}
     for n, prot_list in enumerate(protein_lists):
+        dfv.loc[prot_list, 'list_description'] = s['list_description'][prot_list]
         dfv.loc[prot_list, 'base_filename_summaries'] = os.path.join(s["data_dir"], "summaries", '%02d' % prot_list, 'List%02d_summary.csv' % prot_list)
         dfv.loc[prot_list, 'base_filename_cr_summaries'] = os.path.join(s["data_dir"], "summaries", '%02d' % prot_list, 'List%02d_cr_summary.csv' % prot_list)
         dfv.loc[prot_list, 'compare_dir'] = base_filepath
         dfv.loc[prot_list, 'color'] = color_list[n]
+        dfv.loc[prot_list, 'min_homol'] = s['min_homol'][prot_list]
 
+        # read list summary.csv and cr_summary.csv from disk, join them to one big dataframe
         dfx = pd.read_csv(dfv.loc[prot_list, 'base_filename_summaries'], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
         dfy = pd.read_csv(dfv.loc[prot_list, 'base_filename_cr_summaries'], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
         df_temp = pd.merge(dfy, dfx, left_index=True, right_index=True, suffixes=('_dfy', ''))
+        # count proteins before and after dropping proteins with less than x homologues (x from settings file "lists"), drop proteins
         proteins_before_dropping = len(df_temp)
         df_temp = df_temp[np.isfinite(df_temp['AAIMON_mean_all_TMDs'])]
-        df_temp = df_temp[df_temp.TM01_AAIMON_n_homol > 4]
+        df_temp = df_temp[df_temp.TM01_AAIMON_n_homol >= dfv.loc[prot_list, 'min_homol']]
         proteins_after_dropping = len(df_temp)
-        sys.stdout.write('List{:02} - {}: number of dropped proteins {}\n'.format(prot_list, protein_list_names[n], proteins_before_dropping - proteins_after_dropping))
+        sys.stdout.write('List{:02} - {}: number of dropped proteins {}\n'.format(prot_list, dfv.loc[prot_list,'list_description'], proteins_before_dropping - proteins_after_dropping))
+        # add dataframe to a dictionary of dataframes
         df_dict[prot_list] = df_temp
 
 
@@ -62,7 +67,7 @@ def compare_lists (s,):
     alpha = 1
     fontsize = 10
     linewidth = 2
-    color_list = ['#949494', '#EE762C', '#005C96', '#A1B11A', '#9ECEEC']
+    #color_list = ['#949494', '#EE762C', '#005C96', '#A1B11A', '#9ECEEC']
 
 
     Fig_Nr = 1
@@ -89,7 +94,7 @@ def compare_lists (s,):
         centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
         linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
                                             alpha=alpha, linewidth=linewidth,
-                                            label=dfv.loc[prot_list, 'protein_list_names'])
+                                            label=dfv.loc[prot_list, 'list_description'])
 
         ###   normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
@@ -176,7 +181,7 @@ def compare_lists (s,):
         centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
         linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
                                             alpha=alpha, linewidth=linewidth,
-                                            label=dfv.loc[prot_list, 'protein_list_names'])
+                                            label=dfv.loc[prot_list, 'list_description'])
 
         ###   normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
@@ -236,6 +241,11 @@ def compare_lists (s,):
               fontsize=fontsize-3, frameon=True, bbox_to_anchor=(1.07, 1.12))
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
+
+
+
+
+
 
 
 
