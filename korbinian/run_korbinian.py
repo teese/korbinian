@@ -72,17 +72,17 @@ def run_statements(s):
     # print the list number describing the protein list
     logging.warning("list_number : {}".format(s["list_number"]))
 
-    # # open the tab containing the list-specific settings as a dataframe
-    # df_list_settings = pd.read_excel(s["excel_file_with_settings"], sheetname="lists", index_col=0)
-    # # add the relevant row (e.g. for List01) to the existing settings dictionary
-    # # this adds max_lipo_homol, rand_TM, rand_nonTM, etc to the dictionary
-    # s.update(df_list_settings.loc[list_number, :].to_dict())
+    # open the tab containing the list-specific settings as a dataframe
+    df_list_settings = pd.read_excel(s["excel_file_with_settings"], sheetname="lists", index_col=0)
+    # add the relevant row (e.g. for List01) to the existing settings dictionary
+    # this adds max_lipo_homol, rand_TM, rand_nonTM, etc to the dictionary
+    s.update(df_list_settings.loc[list_number, :].to_dict())
 
     # set a base folder for the summaries, e.g. "D:\Databases\summaries\05\" for list 05
     base_filename_summaries = os.path.join(s["data_dir"], "summaries", '%02d' % list_number, 'List%02d' % list_number)
 
     # create dictionary of paths for output files
-    # for example the basic pathdict["list_summary_csv"] for list 5 is "D:\Databases\summaries\05\List05_summary.csv"
+    # for example the basic pathdict["list_csv"] for list 5 is "D:\Databases\summaries\05\List05_summary.csv"
     pathdict = korbinian.common.create_pathdict(base_filename_summaries, s)
 
     pd.Series(s).to_csv(pathdict["settings_copy_csv"])
@@ -101,14 +101,14 @@ def run_statements(s):
     if s["OMPdb_parse_OMPdb_all_selected_to_csv"]:
         ListXX_OMPdb_nr_acc = os.path.join(s["data_dir"], "OMPdb", "List{:02d}_OMPdb_nr_acc.txt".format(list_number))
         ListXX_OMPdb_redundant_flatfile = os.path.join(s["data_dir"], "OMPdb", "List{:02d}_OMPdb_redundant_flatfile.flat".format(list_number))
-        OMPdb_list_summary_csv = os.path.join(s["data_dir"], "OMPdb", "List{:02d}_OMPdb_summary.csv".format(list_number))
-        korbinian.prot_list.parse_OMPdb.parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_flatfile, OMPdb_list_summary_csv, logging)
+        OMPdb_list_csv = os.path.join(s["data_dir"], "OMPdb", "List{:02d}_OMPdb_summary.csv".format(list_number))
+        korbinian.prot_list.parse_OMPdb.parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_flatfile, OMPdb_list_csv, logging)
 
     if s["OMPdb_get_TM_indices_and_slice"]:
-        OMPdb_list_summary_csv = os.path.join(s["data_dir"], "OMPdb", "List{:02d}_OMPdb_summary.csv".format(list_number))
-        list_summary_csv = pathdict["list_summary_csv"]
+        OMPdb_list_csv = os.path.join(s["data_dir"], "OMPdb", "List{:02d}_OMPdb_summary.csv".format(list_number))
+        list_parsed_csv = pathdict["list_parsed_csv"]
         OMPdb_topology_reliability_cutoff = s["OMPdb_topology_reliability_cutoff"]
-        korbinian.prot_list.parse_OMPdb.get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list_summary_csv, OMPdb_topology_reliability_cutoff, logging)
+        korbinian.prot_list.parse_OMPdb.get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_csv, list_parsed_csv, OMPdb_topology_reliability_cutoff, logging)
 
     ########################################################################################
     #                                                                                      #
@@ -136,8 +136,8 @@ def run_statements(s):
         ''' ~~ DETERMINE START AND STOP INDICES FOR TMD PLUS SURROUNDING SEQ ~~ '''
         n_aa_before_tmd = s["n_aa_before_tmd"]
         n_aa_after_tmd = s["n_aa_after_tmd"]
-        list_summary_csv_path = pathdict["list_summary_csv"]
-        output = korbinian.prot_list.uniprot_parse.create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, s['analyse_signal_peptides'], logging, list_summary_csv_path)
+        list_parsed_csv = pathdict["list_parsed_csv"]
+        output = korbinian.prot_list.uniprot_parse.create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, s['analyse_signal_peptides'], logging, list_parsed_csv)
         logging.info(output)
 
     ########################################################################################
@@ -147,7 +147,7 @@ def run_statements(s):
     ########################################################################################
 
     if s["prepare_protein_list"]:
-        korbinian.prot_list.prot_list.prepare_protein_list(s, pathdict)
+        korbinian.prot_list.prot_list.prepare_protein_list(s, pathdict, logging)
 
     ########################################################################################
     #                                                                                      #

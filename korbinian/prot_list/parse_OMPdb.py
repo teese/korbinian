@@ -31,7 +31,7 @@ def extract_omp_IDs_from_nr_fasta(ListXX_OMPdb_nr_fasta, ListXX_OMPdb_nr_acc, lo
                 f_out.write("%s\n" % ID)
     logging.info("extract_omp_IDs_from_nr_fasta is completed")
 
-def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_flatfile, OMPdb_list_summary_csv, logging):
+def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_flatfile, OMPdb_list_csv, logging):
     """ Extracts ID, seq and topology data from the full OMPdb flatfile, saves to csv.
 
     Parameters
@@ -40,12 +40,12 @@ def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_
         Path to OMPdb list of non-redundant IDs, textfile.
     ListXX_OMPdb_redundant_flatfile : str
         Path to full OMPdb flatfile, all proteins, unzipped.
-    OMPdb_list_summary_csv : str
+    OMPdb_list_csv : str
         Path to output csv file.
 
     Saved Files
     -----------
-    OMPdb_list_summary_csv : csv
+    OMPdb_list_csv : csv
         csv file derived from dfKW
         contains a row for each protein
         contains indices for TM regions
@@ -133,24 +133,25 @@ def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_
     # set the uniprot_acc as the index
     dfKW.set_index("Uniprot", inplace=True, drop=False)
     dfKW.index.name = "acc"
-    utils.make_sure_path_exists(OMPdb_list_summary_csv, isfile=True)
-    dfKW.to_csv(OMPdb_list_summary_csv)
+    utils.make_sure_path_exists(OMPdb_list_csv, isfile=True)
+    dfKW.to_csv(OMPdb_list_csv)
     logging.info("parse_OMPdb_all_selected_to_csv is completed. Dataframe shape = {}".format(dfKW.shape))
 
 
-def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list_summary_csv, OMPdb_topology_reliability_cutoff, logging):
+def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_csv, list_parsed_csv, OMPdb_topology_reliability_cutoff, logging):
     """ Take a csv parsed from OMPdb, get the TM indices and slice the TMDs for each protein
 
     Parameters:
     -----------
-    OMPdb_list_summary_csv : str
+    OMPdb_list_csv : str
         Path to input csv with OMP sequences and membrane annotation
     list_summary_csv : str
         Path to output csv with the sliced TM sequences
     logging : logging.Logger
         Logger for printing to console and logfile.
     """
-    df_KW = pd.read_csv(OMPdb_list_summary_csv, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    logging.info('~~~~~~~~~starting get_omp_TM_indices_and_slice_from_summary_table~~~~~~~~~')
+    df_KW = pd.read_csv(OMPdb_list_csv, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
 
     # get sequence length
     df_KW["seqlen"] = df_KW["Sequence"].str.len()
@@ -202,11 +203,13 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list
     df_KW["number_of_TMDs"] = df_KW.Membrane_Borders.apply(lambda x: len(x) / 2)
 
     # Filter, filters out, if less than 8 or more than 24 TMDs
-    df_KW["number_of_TMDs"] = df_KW["number_of_TMDs"].apply(lambda x: int(x) if 5 <= x <= 36 else np.nan)
+    # REMOVED. FILTERING BY NUMBER OF TMDS IS NOW DONE LATER, in PROT_LIST
+    #df_KW["number_of_TMDs"] = df_KW["number_of_TMDs"].apply(lambda x: int(x) if 5 <= x <= 36 else np.nan)
+
     # Creating new dataframe without nan
     df_KW = df_KW[df_KW["number_of_TMDs"].notnull()]
 
-    num_proteins_AFTER_dropping_those_without_TMs_between_8_and_24 = df_KW.shape[0]
+    num_proteins_AFTER_dropping_those_without_TMDs = df_KW.shape[0]
 
     df_KW = df_KW[df_KW["Topology_Reli"] > OMPdb_topology_reliability_cutoff]
 
@@ -314,16 +317,16 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_summary_csv, list
     num_proteins_AFTER_get_omp_TM_indices_and_slice_from_summary_table = df_KW.shape[0]
 
     # save to csv (presumably in summaries folder as a list number, so it is accessible by the rest of the scripts)
-    utils.make_sure_path_exists(list_summary_csv, isfile=True)
-    df_KW.to_csv(list_summary_csv, sep=",", quoting=csv.QUOTE_NONNUMERIC)
+    utils.make_sure_path_exists(list_parsed_csv, isfile=True)
+    df_KW.to_csv(list_parsed_csv, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     logging.info("\nnum_proteins_BEFORE_dropping_those_without_mem_indices : {}".format(num_proteins_BEFORE_dropping_those_without_mem_indices))
     logging.info("num_proteins_AFTER_dropping_those_without_mem_indices : {}".format(num_proteins_AFTER_dropping_those_without_mem_indices))
     logging.info("num_proteins_AFTER_dropping_those_with_coverage_below_85 : {}".format(num_proteins_AFTER_dropping_those_with_coverage_below_85))
-    logging.info("num_proteins_AFTER_dropping_those_without_TMs_between_8_and_24 : {}".format(num_proteins_AFTER_dropping_those_without_TMs_between_8_and_24))
+    logging.info("num_proteins_AFTER_dropping_those_without_TMDs : {}".format(num_proteins_AFTER_dropping_those_without_TMDs))
     logging.info("num_proteins_AFTER_dropping_those_with_topology_reliability_below_cutoff : {}".format(num_proteins_AFTER_dropping_those_with_topology_reliability_below_cutoff))
     logging.info("num_proteins_AFTER_get_omp_TM_indices_and_slice_from_summary_table : {}".format(num_proteins_AFTER_get_omp_TM_indices_and_slice_from_summary_table))
-
+    logging.info('~~~~~~~~~finished get_omp_TM_indices_and_slice_from_summary_table~~~~~~~~~')
 
 # Function which returns list of all M-indices
 def getting_membrane_indices(Topo_data):

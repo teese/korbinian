@@ -35,7 +35,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # load cr_summary file
     dfc = pd.read_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     # load summary file
-    dfu = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    dfu = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     # merge cr_summary and summary file, if columns are equal in both files, suffix _dfc will be added in cr_summary column names for backwards compatibility
     df = pd.merge(dfc, dfu, left_index=True, right_index=True, suffixes=('_dfc', ''))
 
@@ -54,8 +54,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         sys.stdout.write("{}/{} proteins were removed, as they contained less than {} valid homologues. "
               "Final number of proteins = {}".format(n_removed, n_prot_before_n_homol_cutoff, min_n_homol, n_prot_after_n_homol_cutoff))
 
-    # open list_summary_csv file
-    #df_uniprot = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    # open list_csv file
+    #df_uniprot = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
 
     if 'uniprot_KW' in df.columns:
         # convert the keywords from a stringlist to a python list

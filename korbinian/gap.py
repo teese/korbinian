@@ -552,7 +552,7 @@ def calculate_gap_densities(p):
     # # At the end, sets analysed to true, this is important to not overwrite
     # gapout_dict["gaps_analysed"] = "True"
     # # save to csv
-    # df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+    # df.to_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
 def gather_gap_densities(pathdict, s, logging):
     """Gathers the gap density data saved in the gapout_csv for each protein, and processes data for figure creation.
@@ -586,7 +586,7 @@ def gather_gap_densities(pathdict, s, logging):
     #                                                                                                                    #
     ######################################################################################################################
 
-    df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    df = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     # get list of accessions that could not be downloaded, and can immediately be excluded
     not_in_homol_db = utils.get_list_not_in_homol_db(pathdict)
     acc_kept = set(df.index) - set(not_in_homol_db)
@@ -636,7 +636,7 @@ def gather_gap_densities(pathdict, s, logging):
     #         'No gap analysis has been done yet. %s is not found. Please run calculate calculate_gap_densities' % pathdict[
     #             "dfout10_uniprot_gaps"])
 
-    #df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
+    #df = pd.read_csv(pathdict["list_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
     ######################################################################################################################
     #                                                                                                                    #
     #               Get juxtamembrane regions from all proteins. Code is modified from slice_TMD_1_prot_from_homol,      #

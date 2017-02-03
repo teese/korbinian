@@ -45,7 +45,7 @@ def run_calculate_AAIMONs(pathdict, s, logging):
         with Pool(processes=n_processes) as pool:
             calc_AAIMON_list = pool.map(korbinian.cons_ratio.cons_ratio.calculate_AAIMONs, list_p)
             # log the list of protein results (e.g. acc, "simap", True) to the actual logfile, not just the console
-            logging.info("calc_AAIMON_list : {}".format(calc_AAIMON_list))
+            logging.info("\ncalc_AAIMON_list : {}".format(calc_AAIMON_list))
     else:
         for p in list_p:
             korbinian.cons_ratio.cons_ratio.calculate_AAIMONs(p)

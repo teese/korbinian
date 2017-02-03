@@ -174,12 +174,12 @@ def fastagap_save(p):
         # %timeit 46.6 ms per loop for 325 homologues
         df_fa['%s_SW_match_lipo' % TMD] = df_fa['%s_SW_match_seq'%TMD].dropna().apply(lambda x: utils.calc_lipophilicity(x))
 
-        above_hessa_cutoff = df_fa['%s_SW_match_lipo' % TMD] > s["gap_max_hydrophilicity_Hessa"]
+        above_hessa_cutoff = df_fa['%s_SW_match_lipo' % TMD] > s["max_lipo_homol"]
         vc = above_hessa_cutoff.value_counts()
         if True in vc.index:
             n = vc[True]
             logging.info("{acc} {TMD} {n}/{m} homologues have hydrophilicity above_hessa_cutoff "
-                         "of {c}".format(acc=acc, TMD=TMD, n=n, c=s["gap_max_hydrophilicity_Hessa"],m=df_fa.shape[0]))
+                         "of {c}".format(acc=acc, TMD=TMD, n=n, c=s["max_lipo_homol"],m=df_fa.shape[0]))
 
         min_number_of_gaps = s["fa_min_n_gaps_in_match_TMD_plus_surr"]
         max_number_of_gaps = s["fa_max_n_gaps_in_match_TMD_plus_surr"]
@@ -206,7 +206,7 @@ def fastagap_save(p):
         fa_query_filt_str = '{min_} <= {TMD}_SW_match_plus_surr_num_gaps <= {max_} &' \
                             '{TMD}_SW_match_lipo <= {hydro_limit} & ' \
                             '{TMD}_plus_surr_is_truncated == False'.format(TMD=TMD,min_=min_number_of_gaps,max_=max_number_of_gaps,
-                                                                               hydro_limit = s["gap_max_hydrophilicity_Hessa"])
+                                                                               hydro_limit = s["max_lipo_homol"])
 
         # filter based on TMD-specific features
         df_fa.query(fa_query_filt_str, inplace=True)
@@ -316,7 +316,7 @@ def fastagap_save(p):
 
 def run_calc_fastagap_densities(pathdict, s, logging):
     logging.info("~~~~~~~~~~~~         starting calc_fastagap_densities           ~~~~~~~~~~~~")
-    df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    df = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     # get list of accessions that could not be downloaded, and can immediately be excluded
     not_in_homol_db = utils.get_list_not_in_homol_db(pathdict)
     acc_kept = set(df.index) - set(not_in_homol_db)

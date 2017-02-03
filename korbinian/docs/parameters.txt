@@ -81,9 +81,9 @@
         Path to output UniProt flatfile of selected records. E.g. List08_selected_uniprot_records_flatfile.txt
     logging : logging.Logger
         Logger for printing to console and logfile.
-    OMPdb_list_summary_csv : str
+    OMPdb_list_csv : str
         Path to input csv with OMP sequences and membrane annotation
-    list_summary_csv : str
+    list_csv : str
         Path to output csv with the sliced TM sequences
     input_accession_list : list
         List of accessions.

@@ -10,7 +10,7 @@ import pandas as pd
 import re
 import sys
 
-def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_sp, logging, list_summary_csv_path):
+def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_sp, logging, list_parsed_csv):
     """ Parses a flatfile of UniProt records to csv.
 
     Parameters
@@ -25,7 +25,7 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
         Whether to analyse the signal peptides.
     logging : logging.Logger
         Logger for printing to console and logfile.
-    list_summary_csv_path : str
+    list_parsed_csv : str
         Path to output csv file containing the list of proteins for analysis.
 
     Dataframes
@@ -303,8 +303,8 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
         # indicate that the create_csv_from_uniprot_flatfile function has been run
         dfu['create_csv_from_uniprot_flatfile'] = True
         # save to a csv
-        utils.make_sure_path_exists(list_summary_csv_path, isfile=True)
-        dfu.to_csv(list_summary_csv_path, sep=",", quoting=csv.QUOTE_NONNUMERIC)
+        utils.make_sure_path_exists(list_parsed_csv, isfile=True)
+        dfu.to_csv(list_parsed_csv, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     return '\n%i uniprot records parsed to csv\n~~~~~~~~~~~~   create_csv_from_uniprot_flatfile is finished   ~~~~~~~~~~~~' % count_of_uniprot_records_added_to_csv
 
