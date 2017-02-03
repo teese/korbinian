@@ -198,9 +198,9 @@ def calc_random_aa_ident(aa_prop_csv_in, rand_seq_ident_csv_out, seq_len=1000, n
         # in the matrix, the amino acids at that positions can be extracted from the nested list created previously
         string_aa_in_matrix_at_that_pos = list_of_columnwise_strings[n]
         # create a series of amino acid propensities from that nested list (of course, mostly the aa is the original one)
-        aa_prop_ser = calc_aa_propensity(string_aa_in_matrix_at_that_pos)
+        aa_prop_ser_at_that_pos = calc_aa_propensity(string_aa_in_matrix_at_that_pos)
         # add the amino acid propensities as a new column in the dataframe, with the orig_aa number as the column name
-        columnwise_aa_propensities_df[n] = aa_prop_ser
+        columnwise_aa_propensities_df[n] = aa_prop_ser_at_that_pos
     # replace the orig_aa numbers as column names with the orig_aa itself
     columnwise_aa_propensities_df.columns = list(orig_seq)
     """
