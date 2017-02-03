@@ -50,7 +50,7 @@ def download_homologues_from_simap(pathdict, s, logging):
         if this file exists. If it doesn't exist, it will be created. If it exists, the settings file
         determines whether the previously failed downloads will be re-attempted.
     """
-    df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
+    df = pd.read_csv(pathdict["list_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
 
     if s["attempt_prev_failed_downloads"] == False:
         # get list of accessions that could not be downloaded, and can immediately be excluded
@@ -153,7 +153,7 @@ def download_homologues_from_simap(pathdict, s, logging):
                                                                max_memory_allocation=max_memory_allocation, taxid=taxid,
                                                                eaSimap_path=eaSimap_path)
             # sometimes the SIMAP server seems to like a little rest in between downloads?
-            utils.sleep_x_seconds(120)
+            utils.sleep_x_seconds(30)
         #now check again if the files exist
         ft_XML_exists, homol_XML_exists, SIMAP_tar_exists, ff, hh = utils.check_SIMAP_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path,
                                                                                                                acc, logging)

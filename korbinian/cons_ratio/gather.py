@@ -11,7 +11,7 @@ import zipfile
 
 def gather_AAIMONs(pathdict, logging, s):
     logging.info("~~~~~~~~~~~~         starting gather_AAIMONs           ~~~~~~~~~~~~")
-    df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    df = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
 
     dfg = pd.DataFrame()
 
@@ -243,7 +243,7 @@ def gather_pretty_alignments(pathdict, logging, s):
     #reopen to add match details iteratively from dictionary
     csvfile = open(pathdict["pretty_alignments_csv"], 'a')
 
-    df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    df = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     # drop proteins that have no list of TMDs
     df = df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan']
     # iterate over the dataframe for proteins with an existing list_of_TMDs. acc = uniprot accession.
@@ -272,7 +272,7 @@ def gather_pretty_alignments(pathdict, logging, s):
                         continue
 
                     max_gaps = s["cr_max_n_gaps_in_TMD"]
-                    max_lipo_homol = s["cr_max_hydrophilicity_Hessa"]
+                    max_lipo_homol = s["max_lipo_homol"]
                     min_ident = s["cr_min_identity_of_TMD"]
 
                     """This is used as a filter in filter_and_save_fasta, therefore is conducted earlier in the slicing function. """
@@ -298,8 +298,6 @@ def gather_pretty_alignments(pathdict, logging, s):
                     ########################################################################################
 
                     AAIMON_ser = df_TMD["{}_AAIMON".format(TMD)].dropna()
-                    # print(AAIMON_ser)
-                    # print("AAIMON_ser.empty()", AAIMON_ser.empty())
                     if len(AAIMON_ser) == 0:
                         # skip to next TMD
                         continue

@@ -2513,5 +2513,5 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     '''
     save the updated dataframe, containing the various extra columns used for the figure
     '''
-    # df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+    # df.to_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
     logging.info("~~~~~~~~~~~~        run_save_figures_describing_proteins_in_list is finished         ~~~~~~~~~~~~")

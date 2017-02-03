@@ -9,7 +9,7 @@ import pandas as pd
 import sys
 import unicodedata
 
-def prepare_protein_list(s, pathdict):
+def prepare_protein_list(s, pathdict, logging):
     """ Sets up the file locations in the DataFrame containing the list of proteins for analysis.
 
     Parameters
@@ -26,7 +26,8 @@ def prepare_protein_list(s, pathdict):
         Input CSV file is overwritten at end of function, including the extra file locations.
 
     """
-    df = pd.read_csv(pathdict["list_summary_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
+    logging.info('~~~~~~~~~               starting prepare_protein_list            ~~~~~~~~~')
+    df = pd.read_csv(pathdict["list_parsed_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
     n_initial_prot = df.shape[0]
     if "uniprot_entry_name" in df.columns:
         # join the accession and entry name to create a "protein name" for naming files
@@ -201,7 +202,16 @@ def prepare_protein_list(s, pathdict):
     df['csv_file_av_cons_ratios_hits_BASENAME'] = df.protein_name + '_cons_ratios_'
     df['csv_file_av_cons_ratios_hits_BASENAMEPATH'] = df.simap_filename_base + '_cons_ratios_'
 
+    ########################################################################################
+    #                                                                                      #
+    #                drop based on the accepted number of TMDs for that dataset            #
+    #                                                                                      #
+    ########################################################################################
 
+    min_TMDs = s["min_TMDs"]
+    max_TMDs = s["max_TMDs"]
+    df = df.loc[df["number_of_TMDs"].apply(lambda x: min_TMDs <= x <= max_TMDs)]
+    n_prot_AFTER_n_TMDs_cutoff = df.shape[0]
 
     ########################################################################################
     #                                                                                      #
@@ -222,6 +232,7 @@ def prepare_protein_list(s, pathdict):
         df = korbinian.prot_list.prot_list.get_indices_TMD_plus_surr_for_summary_file(df, TMD, n_aa_before_tmd, n_aa_after_tmd)
         # slice out the TMD_seq_plus_surr for each TMD
         df['%s_seq_plus_surr' % TMD] = df[df['%s_start' % TMD].notnull()].apply(utils.slice_uniprot_TMD_plus_surr_seq, args=(TMD,), axis=1)
+
 
     ########################################################################################
     #                                                                                      #
@@ -283,6 +294,7 @@ def prepare_protein_list(s, pathdict):
     n_prot_AFTER_dropping_with_X_in_seq = df.shape[0]
 
     lipo_cutoff = s["max_lipo_list"]
+
     list_acc_lipo_mean_above_cutoff = list(df['lipo_mean_all_TMDs'].loc[df['lipo_mean_all_TMDs'] > lipo_cutoff].index)
 
     # convert current dataframe index to a set
@@ -293,7 +305,7 @@ def prepare_protein_list(s, pathdict):
     acc_lipo_mean_above_cutoff_to_remove = index_set.intersection(set_acc_lipo_mean_above_cutoff)
     # drop rows
     df = df.drop(acc_lipo_mean_above_cutoff_to_remove)
-    n_prot_AFTER_dropping_above_lipo_cutoff = df.shape[0]
+    n_prot_AFTER_lipo_cutoff = df.shape[0]
 
     ########################################################################################
     #                                                                                      #
@@ -305,11 +317,13 @@ def prepare_protein_list(s, pathdict):
     sys.stdout.write('\nn_prot_BEFORE_dropping_without_list_TMDs: {}'.format(n_prot_BEFORE_dropping_without_list_TMDs))
     sys.stdout.write('\nn_prot_AFTER_dropping_without_list_TMDs: {}'.format(n_prot_AFTER_dropping_without_list_TMDs))
 
+    sys.stdout.write('\nn_prot_AFTER_n_TMDs_cutoff: {}'.format(n_prot_AFTER_n_TMDs_cutoff))
+
     sys.stdout.write('\nn_prot_AFTER_dropping_with_X_in_seq: {}'.format(n_prot_AFTER_dropping_with_X_in_seq))
     if list_acc_X_in_seq != []:
         sys.stdout.write('\nlist_acc_X_in_seq: {}'.format(list_acc_X_in_seq))
 
-    sys.stdout.write('\nn_prot_AFTER_dropping_above_lipo_cutoff: {}'.format(n_prot_AFTER_dropping_above_lipo_cutoff))
+    sys.stdout.write('\nn_prot_AFTER_lipo_cutoff: {}'.format(n_prot_AFTER_lipo_cutoff))
     sys.stdout.write('\nlist_acc_lipo_mean_above_cutoff: {}\n'.format(list_acc_lipo_mean_above_cutoff))
     sys.stdout.flush()
 
@@ -319,7 +333,8 @@ def prepare_protein_list(s, pathdict):
     #                                                                                      #
     ########################################################################################
     # save to a csv
-    df.to_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+    df.to_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+    logging.info('~~~~~~~~~               finished prepare_protein_list            ~~~~~~~~~')
 
 def get_indices_TMD_plus_surr_for_summary_file(dfsumm, TMD, n_aa_before_tmd, n_aa_after_tmd):
     """Takes a summary dataframe (1 row for each protein) and slices out the TMD seqs.

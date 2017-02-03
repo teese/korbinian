@@ -206,8 +206,10 @@ def create_pathdict(base_filename_summaries, s):
     pathdict["settings_copy_csv"] = '%s_settings_copy.csv' % base_filename_summaries
     # add base_filename_summaries itself to the path dictionary
     pathdict["base_filename_summaries"] = base_filename_summaries
+    # cadd path to csv after parsing from UniProt or OMPdb
+    pathdict["list_parsed_csv"] = '%s_parsed.csv' % base_filename_summaries
     # currently the protein list summary (each row is a protein, from uniprot etc) is a csv file
-    pathdict["list_summary_csv"] = '%s_summary.csv' % base_filename_summaries
+    pathdict["list_csv"] = '%s.csv' % base_filename_summaries
     # define path for csv with conservation ratios(mean AAIMON) (output from the gather_AAIMONs function)
     pathdict["list_cr_summary_csv"] = '%s_cr_summary.csv' % base_filename_summaries
     # define path for csv with gap densities (from gather_gap_densities)

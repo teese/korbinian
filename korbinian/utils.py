@@ -1507,7 +1507,7 @@ class Log_Only_To_Console(object):
 
 def convert_summary_csv_to_input_list(s, pathdict, logging, list_excluded_acc=None):
     # open dataframe with list of proteins
-    df = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    df = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     # exclude any proteins where there is no list_of_TMDs
     df = df.loc[df['list_of_TMDs'].notnull()]
     # add the accession

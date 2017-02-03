@@ -25,7 +25,7 @@ def keyword_analysis(pathdict, s, logging):
     """
     logging.info("~~~~~~~~~~~~         starting keyword_analysis           ~~~~~~~~~~~~")
     # load summary file
-    dfu = pd.read_csv(pathdict["list_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    dfu = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     # skip the keyword analysis if there are no keywords
     if 'uniprot_KW' not in dfu.columns:
         return "Keyword analysis not conducted. No keywords found in protein summary file."
