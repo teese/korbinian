@@ -20,10 +20,10 @@ def compare_lists (s):
     # get current date and time for folder name, join elements in protein_lists to string
     str_protein_lists = '-'.join(map(str, sorted(protein_lists)))
     now = datetime.datetime.now()
-    #folder_name = '{}{:02}{}-{:02}{:02}_Lists-{}'.format(now.year, now.month, now.day, now.hour, now.minute, str_protein_lists)
+    folder_name = '{}{:02}{}-{:02}{:02}_Lists-{}'.format(now.year, now.month, now.day, now.hour, now.minute, str_protein_lists)
 
     # folder_name for testing
-    folder_name = 'Folder_Test'
+    #folder_name = 'Folder_Test'
 
     base_filepath = os.path.join(s["data_dir"], "compare_lists", folder_name)
 
@@ -249,7 +249,7 @@ def compare_lists (s):
 
 
 
-    dfv.to_csv(os.path.join(base_filepath, 'Lists_%s_variables.csv'%str_protein_lists))
+    #dfv.to_csv(os.path.join(base_filepath, 'Lists_%s_variables.csv'%str_protein_lists))
 
     sys.stdout.write("\n~~~~~~~~~~~~         compare_lists finished           ~~~~~~~~~~~~\n")
 
