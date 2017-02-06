@@ -210,8 +210,12 @@ def prepare_protein_list(s, pathdict, logging):
 
     min_TMDs = s["min_TMDs"]
     max_TMDs = s["max_TMDs"]
+    if s["analyse_signal_peptides"] == True:
+        max_TMDs += 1
     df = df.loc[df["number_of_TMDs"].apply(lambda x: min_TMDs <= x <= max_TMDs)]
     n_prot_AFTER_n_TMDs_cutoff = df.shape[0]
+    if n_prot_AFTER_n_TMDs_cutoff == 0:
+        raise ValueError("The list {} has no valid proteins after n_TMDs_cutoff.".format(s["list_number"]))
 
     ########################################################################################
     #                                                                                      #
