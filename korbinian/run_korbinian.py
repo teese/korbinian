@@ -15,11 +15,13 @@ Further Details:For details regarding the java access to SIMAP, see here: E:\Ste
 
 """
 import argparse
-import os
-import korbinian
 import ast
-import sys
+import korbinian
+import korbinian.utils as utils
+import numpy as np
+import os
 import pandas as pd
+import sys
 
 # read the command line arguments
 parser = argparse.ArgumentParser()
@@ -70,13 +72,16 @@ def run_statements(s):
     # setup error logging
     logging = korbinian.common.setup_keyboard_interrupt_and_error_logging(s, list_number)
     # print the list number describing the protein list
-    logging.warning("list_number : {}".format(s["list_number"]))
+    logging.warning("list_number : {}".format(list_number))
 
     # open the tab containing the list-specific settings as a dataframe
     df_list_settings = pd.read_excel(s["excel_file_with_settings"], sheetname="lists", index_col=0)
+    relevant_row = df_list_settings.loc[list_number, :].to_dict()
+    if np.nan in relevant_row.values():
+        raise ValueError("The row for List{} in the lists tab of the settings file is missing some values.".format(list_number))
     # add the relevant row (e.g. for List01) to the existing settings dictionary
     # this adds max_lipo_homol, rand_TM, rand_nonTM, etc to the dictionary
-    s.update(df_list_settings.loc[list_number, :].to_dict())
+    s.update(relevant_row)
 
     # set a base folder for the summaries, e.g. "D:\Databases\summaries\05\" for list 05
     base_filename_summaries = os.path.join(s["data_dir"], "summaries", '%02d' % list_number, 'List%02d' % list_number)
@@ -85,6 +90,7 @@ def run_statements(s):
     # for example the basic pathdict["list_csv"] for list 5 is "D:\Databases\summaries\05\List05_summary.csv"
     pathdict = korbinian.common.create_pathdict(base_filename_summaries, s)
 
+    utils.make_sure_path_exists(pathdict["settings_copy_csv"], isfile=True)
     pd.Series(s).to_csv(pathdict["settings_copy_csv"])
 
     ########################################################################################
