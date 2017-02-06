@@ -147,6 +147,9 @@ def gather_AAIMONs(pathdict, logging, s):
             for TMD in ast.literal_eval(df.loc[acc, "list_of_TMDs"]):
                 # generate column names necessary for current file
                 columns = ['obs_changes', '{}_AAIMON'.format(TMD), '{}_AAIMON_n'.format(TMD)]
+                # Open pickle file with conservation-ratios.
+                # NOTE that these have already been filtered according to cons_ratio.py.
+                # if the homologues were not acceptable, AAIMON ratios WERE NOT CALCULATED
                 TM_cr_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
                 # open dataframe  with function from korbinian, extract required columns, convert to np array
                 df_TMD = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, TM_cr_pickle)
@@ -321,9 +324,9 @@ def gather_pretty_alignments(pathdict, logging, s):
                         outlier_name = list_outlier_names[m]
                         d["outlier"] = outlier_name
                         d["hit"] = outlier_index
-                        columns = ['obs_changes', "{}_AAIMON", 'truncation_ratio_nonTMD', '{}_perc_ident', 'nonTMD_perc_ident', '{}_start_in_SW_alignment', '{}_SW_query_seq', '{}_SW_markup_seq',
+                        columns = ['obs_changes', "{}_AAIMON", 'perc_nonTMD_coverage', '{}_perc_ident', 'nonTMD_perc_ident', '{}_start_in_SW_alignment', '{}_SW_query_seq', '{}_SW_markup_seq',
                                    '{}_SW_match_seq', '{}_ratio_len_TMD_to_len_nonTMD', '{}_SW_align_len', "{}_SW_match_lipo"] # 'FASTA_gapped_identity',
-                        col_names = ['obs_changes', "AAIMON", 'truncation_ratio_nonTMD', 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
+                        col_names = ['obs_changes', "AAIMON", 'perc_nonTMD_coverage', 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
                                      'ratio_len_TMD_to_len_nonTMD', 'SW_align_len', "SW_match_lipo"] # 'FASTA_gapped_identity',
                         for n, col in enumerate(columns):
                             col_name = col_names[n]
@@ -336,7 +339,7 @@ def gather_pretty_alignments(pathdict, logging, s):
 
                         if num_TMDs_in_all_proteins_processed == 0:
                             # sort
-                            csv_header = ["protein_name", "TMD", "outlier", "TM_align","SW_match_lipo", "align_pretty", 'obs_changes', "AAIMON", 'truncation_ratio_nonTMD', "hit", 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
+                            csv_header = ["protein_name", "TMD", "outlier", "TM_align","SW_match_lipo", "align_pretty", 'obs_changes', "AAIMON", 'perc_nonTMD_coverage', "hit", 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
                                      'ratio_len_TMD_to_len_nonTMD', 'SW_align_len'] # 'FASTA_gapped_identity',
                             # make sure that the csv header is up-to-date, and isn't missing items from dict
                             assert len(csv_header) is len(d)

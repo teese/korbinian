@@ -1633,13 +1633,13 @@ def send_email_when_finished(s, pathdict):
     server.quit()
     sys.stdout.write('\nEmail sent to {}\n'.format(toaddr))
 
-def filter_for_truncated_sequences(nonTMD_truncation_cutoff, df_cr):
-    if nonTMD_truncation_cutoff != 1:
+def filter_for_truncated_sequences(min_perc_nonTMD_coverage, df_cr):
+    if min_perc_nonTMD_coverage != 1:
         list_of_hits_to_keep = []
         list_of_hits_to_drop = []
         number_of_hits = len(df_cr.index)
         for hit in df_cr.index:
-            if df_cr.loc[hit, 'truncation_ratio_nonTMD'] >= nonTMD_truncation_cutoff:
+            if df_cr.loc[hit, 'perc_nonTMD_coverage'] >= min_perc_nonTMD_coverage:
                 list_of_hits_to_keep.append(hit)
             else:
                 list_of_hits_to_drop.append(hit)
@@ -1647,7 +1647,7 @@ def filter_for_truncated_sequences(nonTMD_truncation_cutoff, df_cr):
         df_cr = df_cr.loc[list_of_hits_to_keep, :]
         sys.stdout.write('Truncated alignments; homologues dropped: {}/{}\n'.format(len(list_of_hits_to_drop), number_of_hits))
     else:
-        sys.stdout.write('nonTMD_truncation_cutoff = 1 ; no filtering for truncated sequences \n')
+        sys.stdout.write('min_perc_nonTMD_coverage = 1 ; no filtering for truncated sequences \n')
     return df_cr
 
 def calc_alpha_from_datapoints(data):

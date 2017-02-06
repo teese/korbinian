@@ -90,6 +90,8 @@ def calc_AAIMON(TMD, df_cr, len_query_TMD):
     df_cr['%s_AAIMON'%TMD] = df_cr['%s_perc_ident'%TMD] / df_cr['nonTMD_perc_ident']
     # calculate the Amino Acid Similarity : Membranous Over Nonmembranous (AASMON) (includes similarity + identity based on the matrix used in the SW alignment of SIMAP)
     df_cr['%s_AASMON_ratio'%TMD] = df_cr['%s_perc_sim_plus_ident'%TMD] / df_cr['nonTMD_perc_sim_plus_ident']
+    # calculate the AAIMON normalised by the random_AA_identity, to exclude identity due to lipophilicity
+    df_cr['%s_AAIMON_n' % TMD] = df_cr['%s_AAIMON' % TMD] / df_cr['norm_factor']
 
     ########################################################################################
     #                                                                                      #
@@ -101,99 +103,101 @@ def calc_AAIMON(TMD, df_cr, len_query_TMD):
 
     return df_cr
 
-def filt_and_save_AAIMON_mean(TMD, df_cr, mean_ser, max_gaps, max_lipo_homol, min_ident):
-    """ Filter df_cr with homologues for that particular TMD, and save mean AAIMON values.
 
-    Parameters
-    ----------
-    TMD : str
-        String denoting transmembrane domain number (e.g. "TM01")
-    df_cr : pd.DataFrame
-        Dataframe with conservation ratios for a particular TMD (or region).
-    mean_ser : pd.Series
-        Pandas Series containing the mean values for AAIMON ratios etc, over all
-        homologues for that particular protein. Will be saved as a csv, and gathered
-        using the gather scripts for plotting.
-    max_gaps : int
-        Maximum number of gaps allowed in the TMD sequence.
-    max_lipo_homol : int
-        Maximum hydrophilicity according to the chosen hydrophobicity scale (usually Hessa).
-    min_ident : int
-        Minimum % identity of the TMD region. A very low % identity usually indicates a splice variant or
-        sequence error. To avoid biasing the AAIMON ratio, this should be set significantly lower than the
-        cr_min_identity_of_full_protein (typically 40% lower).
-
-    Returns
-    -------
-    mean_ser : pd.Series
-        Pandas Series containing the mean values for AAIMON ratios etc, over all
-        homologues for that particular protein. Will be saved as a csv, and gathered
-        using the gather scripts for plotting.
-    """
-
-    ########################################################################################
-    ########################################################################################
-    #                                                                                      #
-    #                                 FILTERING TMD SEQS                                   #
-    #                                                                                        #
-    ########################################################################################
-    ########################################################################################
-
-    """This is used as a filter in filter_and_save_fasta, therefore is conducted earlier in the slicing function. """
-    ## count the number of gaps in the query and match sequences
-    cr_TMD_query_str = '{TMD}_perc_ident >= {min_ident} & ' \
-                '{TMD}_SW_query_num_gaps <= {max_gaps} & ' \
-                '{TMD}_SW_match_num_gaps <= {max_gaps} & ' \
-                '{TMD}_SW_match_lipo <= {max_lipo_homol}'.format(TMD=TMD, max_gaps=max_gaps,
-                                                                 max_lipo_homol=max_lipo_homol,
-                                                                 min_ident=min_ident)
-    #n_homol_before_filter = df_cr.shape[0]
-    # filter by the above query
-    df_cr.query(cr_TMD_query_str, inplace=True)
-
-    # print number of homologues removed by filtering
-    #n_homol_after_filter = df_cr.shape[0]
-    #n_homol_removed = n_homol_before_filter - n_homol_after_filter
-    #sys.stdout.write("{} n_homol_removed in TMD filter : {}".format(TMD, n_homol_removed))
-
-    ########################################################################################
-    ########################################################################################
-    #                                                                                      #
-    #                SAVING MEAN VALUES TO SERIES FOR LATER GATHER SCRIPT                  #
-    #                                                                                      #
-    ########################################################################################
-    ########################################################################################
-    # percentage identities
-    mean_ser['%s_perc_ident_mean' % TMD] = df_cr['%s_perc_ident' % TMD].mean()
-    mean_ser['%s_perc_sim_mean' % TMD] = df_cr['%s_perc_sim' % TMD].mean()
-    mean_ser['%s_perc_sim_plus_ident_mean' % TMD] = df_cr['%s_perc_sim_plus_ident' % TMD].mean()
-    # AAIMON ratios
-    mean_ser['%s_AAIMON_mean' % TMD] = float(df_cr['%s_AAIMON' % TMD].mean())
-    mean_ser['%s_AAIMON_mean_n' % TMD] = float(df_cr['%s_AAIMON_n' % TMD].mean())
-    mean_ser['%s_AAIMON_std' % TMD] = df_cr['%s_AAIMON' % TMD].std()
-    mean_ser['%s_AASMON_ratio_mean' % TMD] = df_cr['%s_AASMON_ratio' % TMD].mean()
-    mean_ser['%s_AASMON_ratio_std' % TMD] = df_cr['%s_AASMON_ratio' % TMD].std()
-    # ratios for length of TMDs
-    mean_ser['%s_ratio_len_TMD_to_len_nonTMD_mean' % TMD] = float('%0.2f' % df_cr['%s_ratio_len_TMD_to_len_nonTMD' % TMD].dropna().mean())
-    mean_ser['%s_ratio_len_TMD_to_len_full_match_seq_mean' % TMD] = float('%0.2f' % df_cr['%s_ratio_len_TMD_to_len_full_match_seq' % TMD].dropna().mean())
-    # gaps per residue
-    mean_ser['%s_SW_q_gaps_per_q_residue_mean' % TMD] = df_cr['%s_SW_q_gaps_per_q_residue' % TMD].dropna().mean()
-
-    ## calculate the length of the match TMD seq excluding gaps
-    # df_cr['%s_SW_m_seq_len' % TMD] = df_cr['%s_SW_match_seq' % TMD].str.len()
-    # len_query_TMD = len(query_TMD_sequence)
-    # for the alignment length, take the smallest value from the length of query or match
-    # this will exclude gaps from the length in the following calculations, preventing false "low conservation" where the query TMD is much longer than the match TMD)
-    # note that for most calculations this is somewhat redundant, because the max number of acceptable gaps in sequence is probable ~2
-    # use the mask function (faster than a lambda function) to replace any lengths larger than the query, with the query
-    # df_cr['%s_SW_align_len' % TMD] = df_cr['%s_SW_m_seq_len' % TMD].mask(df_cr['%s_SW_m_seq_len' % TMD] > len_query_TMD, len_query_TMD)
-    # # create a boolean column that allows filtering by the accepted number of gaps, according to the settings file
-    # check that the TMD seq in match is not just 100% gaps!
-    # df_cr['%s_in_SW_align_match' % TMD] = df_cr['%s_SW_num_ident_res' % TMD].dropna() != 0
-    # df_cr['%s_in_SW_align_match' % TMD].fillna(value=False)
-    # logging.info('%s_SW_q_gaps_per_q_residue Average: %0.3e' %(TMD, mean_ser['%s_SW_q_gaps_per_q_residue_mean'%TMD]))
-    # add to original dataframe with the list of uniprot sequences
-    return mean_ser
+# AFTER REFACTORING, ALL OF THIS WAS ADDED TO CONS_RATIO.PY
+# def filt_and_save_AAIMON_mean(TMD, df_cr, mean_ser, max_gaps, max_lipo_homol, min_ident):
+#     """ Filter df_cr with homologues for that particular TMD, and save mean AAIMON values.
+#
+#     Parameters
+#     ----------
+#     TMD : str
+#         String denoting transmembrane domain number (e.g. "TM01")
+#     df_cr : pd.DataFrame
+#         Dataframe with conservation ratios for a particular TMD (or region).
+#     mean_ser : pd.Series
+#         Pandas Series containing the mean values for AAIMON ratios etc, over all
+#         homologues for that particular protein. Will be saved as a csv, and gathered
+#         using the gather scripts for plotting.
+#     max_gaps : int
+#         Maximum number of gaps allowed in the TMD sequence.
+#     max_lipo_homol : int
+#         Maximum hydrophilicity according to the chosen hydrophobicity scale (usually Hessa).
+#     min_ident : int
+#         Minimum % identity of the TMD region. A very low % identity usually indicates a splice variant or
+#         sequence error. To avoid biasing the AAIMON ratio, this should be set significantly lower than the
+#         cr_min_identity_of_full_protein (typically 40% lower).
+#
+#     Returns
+#     -------
+#     mean_ser : pd.Series
+#         Pandas Series containing the mean values for AAIMON ratios etc, over all
+#         homologues for that particular protein. Will be saved as a csv, and gathered
+#         using the gather scripts for plotting.
+#     """
+#
+#     ########################################################################################
+#     ########################################################################################
+#     #                                                                                      #
+#     #                                 FILTERING TMD SEQS                                   #
+#     #                                                                                        #
+#     ########################################################################################
+#     ########################################################################################
+#
+#     """This is used as a filter in filter_and_save_fasta, therefore is conducted earlier in the slicing function. """
+#     ## count the number of gaps in the query and match sequences
+#     cr_TMD_query_str = '{TMD}_perc_ident >= {min_ident} & ' \
+#                 '{TMD}_SW_query_num_gaps <= {max_gaps} & ' \
+#                 '{TMD}_SW_match_num_gaps <= {max_gaps} & ' \
+#                 '{TMD}_SW_match_lipo <= {max_lipo_homol}'.format(TMD=TMD, max_gaps=max_gaps,
+#                                                                  max_lipo_homol=max_lipo_homol,
+#                                                                  min_ident=min_ident)
+#     #n_homol_before_filter = df_cr.shape[0]
+#     # filter by the above query
+#     df_cr.query(cr_TMD_query_str, inplace=True)
+#
+#     # print number of homologues removed by filtering
+#     #n_homol_after_filter = df_cr.shape[0]
+#     #n_homol_removed = n_homol_before_filter - n_homol_after_filter
+#     #sys.stdout.write("{} n_homol_removed in TMD filter : {}".format(TMD, n_homol_removed))
+#
+#     ########################################################################################
+#     ########################################################################################
+#     #                                                                                      #
+#     #                SAVING MEAN VALUES TO SERIES FOR LATER GATHER SCRIPT                  #
+#     #                                                                                      #
+#     ########################################################################################
+#     ########################################################################################
+#     # percentage identities
+#     mean_ser['%s_perc_ident_mean' % TMD] = df_cr['%s_perc_ident' % TMD].mean()
+#     mean_ser['%s_perc_sim_mean' % TMD] = df_cr['%s_perc_sim' % TMD].mean()
+#     mean_ser['%s_perc_sim_plus_ident_mean' % TMD] = df_cr['%s_perc_sim_plus_ident' % TMD].mean()
+#     # AAIMON ratios
+#     mean_ser['%s_AAIMON_mean' % TMD] = float(df_cr['%s_AAIMON' % TMD].mean())
+#     mean_ser['%s_AAIMON_mean_n' % TMD] = float(df_cr['%s_AAIMON_n' % TMD].mean())
+#     mean_ser['%s_AAIMON_std' % TMD] = df_cr['%s_AAIMON' % TMD].std()
+#     mean_ser['%s_AASMON_ratio_mean' % TMD] = df_cr['%s_AASMON_ratio' % TMD].mean()
+#     mean_ser['%s_AASMON_ratio_std' % TMD] = df_cr['%s_AASMON_ratio' % TMD].std()
+#     # ratios for length of TMDs
+#     mean_ser['%s_ratio_len_TMD_to_len_nonTMD_mean' % TMD] = float('%0.2f' % df_cr['%s_ratio_len_TMD_to_len_nonTMD' % TMD].dropna().mean())
+#     mean_ser['%s_ratio_len_TMD_to_len_full_match_seq_mean' % TMD] = float('%0.2f' % df_cr['%s_ratio_len_TMD_to_len_full_match_seq' % TMD].dropna().mean())
+#     # gaps per residue
+#     mean_ser['%s_SW_q_gaps_per_q_residue_mean' % TMD] = df_cr['%s_SW_q_gaps_per_q_residue' % TMD].dropna().mean()
+#
+#     ## calculate the length of the match TMD seq excluding gaps
+#     # df_cr['%s_SW_m_seq_len' % TMD] = df_cr['%s_SW_match_seq' % TMD].str.len()
+#     # len_query_TMD = len(query_TMD_sequence)
+#     # for the alignment length, take the smallest value from the length of query or match
+#     # this will exclude gaps from the length in the following calculations, preventing false "low conservation" where the query TMD is much longer than the match TMD)
+#     # note that for most calculations this is somewhat redundant, because the max number of acceptable gaps in sequence is probable ~2
+#     # use the mask function (faster than a lambda function) to replace any lengths larger than the query, with the query
+#     # df_cr['%s_SW_align_len' % TMD] = df_cr['%s_SW_m_seq_len' % TMD].mask(df_cr['%s_SW_m_seq_len' % TMD] > len_query_TMD, len_query_TMD)
+#     # # create a boolean column that allows filtering by the accepted number of gaps, according to the settings file
+#     # check that the TMD seq in match is not just 100% gaps!
+#     # df_cr['%s_in_SW_align_match' % TMD] = df_cr['%s_SW_num_ident_res' % TMD].dropna() != 0
+#     # df_cr['%s_in_SW_align_match' % TMD].fillna(value=False)
+#     # logging.info('%s_SW_q_gaps_per_q_residue Average: %0.3e' %(TMD, mean_ser['%s_SW_q_gaps_per_q_residue_mean'%TMD]))
+#     # add to original dataframe with the list of uniprot sequences
+#     return mean_ser
 
 
 def calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser, len_nonTMD_orig_q):
@@ -266,7 +270,7 @@ def calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser, len_nonTMD_orig_q):
     df_nonTMD['nonTMD_SW_align_len_excl_gaps'] = df_nonTMD['nonTMD_SW_align_len_excl_gaps'].replace(0,np.nan)
     # len_nonTMD_orig_q = 100  # to be replaced with a real number!
     df_nonTMD['len_nonTMD_orig_q_minus_nonTMD_SW_align_len_excl_gaps'] = len_nonTMD_orig_q - df_nonTMD['nonTMD_SW_align_len_excl_gaps']
-    df_nonTMD['truncation_ratio_nonTMD'] = df_nonTMD['nonTMD_SW_align_len_excl_gaps'] / len_nonTMD_orig_q
+    df_nonTMD['perc_nonTMD_coverage'] = df_nonTMD['nonTMD_SW_align_len_excl_gaps'] / len_nonTMD_orig_q
     mean_ser['len_nonTMD_orig_q_minus_nonTMD_SW_align_len_excl_gaps_mean'] = float('%0.2f' % df_nonTMD['len_nonTMD_orig_q_minus_nonTMD_SW_align_len_excl_gaps'].dropna().mean())
 
     ########################################################################################
@@ -277,6 +281,11 @@ def calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser, len_nonTMD_orig_q):
     ########################################################################################
     # calculate the percentage identity of the nonTMD region (number of identical residues divided by the length excluding gaps)
     df_nonTMD['nonTMD_perc_ident'] = df_nonTMD['nonTMD_num_ident_res'] / df_nonTMD['nonTMD_SW_align_len_excl_gaps']
+
+    # drop any rows where there is no nonTMD_perc_ident
+    df_nonTMD.nonTMD_perc_ident.notnull()
+    df_nonTMD.dropna(subset=["nonTMD_perc_ident"], inplace=True)
+
     df_nonTMD['nonTMD_perc_sim'] = df_nonTMD['nonTMD_num_sim_res'] / df_nonTMD['nonTMD_SW_align_len_excl_gaps']
     df_nonTMD['nonTMD_perc_sim_plus_ident'] = df_nonTMD['nonTMD_perc_ident'] +  df_nonTMD['nonTMD_perc_sim']
     # add to output dictionary with mean values for all homologues
@@ -311,7 +320,7 @@ def calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser, len_nonTMD_orig_q):
 
     ########################################################################################
     #                                                                                      #
-    #    OLD: SSR ratio calculations take a long time and show no difference to AAIMON     #
+    # OLD: SSR ratio calculations take a long time and show no real difference to AASMON   #
     #                                                                                      #
     ########################################################################################
     SSR_ratio_calculations = False
