@@ -102,6 +102,9 @@ def calculate_AAIMONs(p):
     protein_name = p["protein_name"]
     rand_TM = p["rand_TM"]
     rand_nonTM = p["rand_nonTM"]
+    max_gaps = s["cr_max_n_gaps_in_TMD"]
+    max_lipo_homol = s["max_lipo_homol"]
+    min_ident = s["cr_min_identity_of_TMD"]
     if not os.path.exists(p['homol_df_orig_zip']):
         message = "{} Protein skipped. File does not exist".format(p['homol_df_orig_zip'])
         logging.info(message)
@@ -147,7 +150,7 @@ def calculate_AAIMONs(p):
 
     ########################################################################################
     #                                                                                      #
-    #           Filter based on homol hit properties (non-TMD-specific)                    #
+    #           Filter based on homol hit properties (% identity of full protein, etc)     #
     #                                                                                      #
     ########################################################################################
     cr_homol_query_str = 'FASTA_gapped_identity > {min_ident} & ' \
@@ -198,9 +201,7 @@ def calculate_AAIMONs(p):
     #                                                                                      #
     ########################################################################################
     # extract the length of the nonTMD region in the original query here, which should be in the original list summary file, created during uniprot_parse or OMPdb_get_TM_indices_and_slice
-    len_nonTMD_orig_q = p['len_nonTMD']
-
-    df_nonTMD, mean_ser = korbinian.cons_ratio.calc.calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser, len_nonTMD_orig_q)
+    df_nonTMD, mean_ser = korbinian.cons_ratio.calc.calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser, p['len_nonTMD'])
 
     ########################################################################################
     #                                                                                      #
@@ -208,6 +209,8 @@ def calculate_AAIMONs(p):
     #                                                                                      #
     ########################################################################################
     dfh['norm_factor'] = dfh['FASTA_gapped_identity'].apply(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor, args=(rand_TM, rand_nonTM))
+    # filter so that dfh is the same size as df_nonTMD
+    dfh = dfh.loc[df_nonTMD.index, :]
 
     with zipfile.ZipFile(homol_cr_ratios_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
 
@@ -222,9 +225,21 @@ def calculate_AAIMONs(p):
         # filter to remove short nonTMD regions
         # note this filtering is AFTER the full dataframe has been saved to file, preventing loss of data
         nonTMD_query_str = "nonTMD_perc_ident != 0 & " \
-                           "nonTMD_len >= {min_nonTMD_len}".format(min_nonTMD_len=s["cr_min_len_nonTMD"])
+                           "perc_nonTMD_coverage > {min_perc_nonTMD_coverage} & "\
+                           "nonTMD_len >= {min_nonTMD_len}".format(min_nonTMD_len=s["cr_min_len_nonTMD"],
+                                                                   min_perc_nonTMD_coverage=s["min_perc_nonTMD_coverage"])
 
+        n_homol_before_nonTMD_query = df_nonTMD.shape[0]
         df_nonTMD.query(nonTMD_query_str, inplace=True)
+        n_homol_after_nonTMD_query = df_nonTMD.shape[0]
+        mean_ser["n_homol_excluded_after_nonTMD_query"] = "{}/{}".format(n_homol_before_nonTMD_query - n_homol_after_nonTMD_query, n_homol_before_nonTMD_query)
+        #sys.stdout.write("\nn_homol_excluded_after_nonTMD_query {}".format(mean_ser["n_homol_excluded_after_nonTMD_query"]))
+
+        ########################################################################################
+        #                                                                                      #
+        #                       Prepare some variables for the histograms                      #
+        #                                                                                      #
+        ########################################################################################
 
         linspace_binlist = np.linspace(s["1p_smallest_bin"],
                                        s["1p_largest_bin"],
@@ -250,39 +265,124 @@ def calculate_AAIMONs(p):
         for TMD_Nr, TMD in enumerate(list_of_TMDs):
             # find the TMD number (starting from 1)
             TMD_Nr = list_of_TMDs.index(TMD) + 1
-            ########################################################################################
-            #                                                                                      #
-            #                    Add nonTMD info to df_cr for each TMD.                            #
-            #                                                                                      #
-            ########################################################################################
             # open the dataframe containing the sequences, gap counts, etc for that TMD only
             df_cr = utils.open_df_from_pickle_zip(p['fa_cr_sliced_TMDs_zip'], filename="{}_{}_sliced_df.pickle".format(protein_name, TMD), delete_corrupt=True)
-            # add the nonTMD percentage identity, etc. NOTE THAT THE INDEX SHOULD STILL BE COMPATIBLE, as the hit_num!
-            df_cr['nonTMD_perc_ident'] = df_nonTMD['nonTMD_perc_ident']
-            df_cr['nonTMD_perc_sim_plus_ident'] = df_nonTMD['nonTMD_perc_sim_plus_ident']
-            df_cr['nonTMD_SW_align_len_excl_gaps'] = df_nonTMD['nonTMD_SW_align_len_excl_gaps']
-            df_cr['len_full_match_seq'] = dfh['len_full_match_seq']
-            df_cr['truncation_ratio_nonTMD'] = df_nonTMD['truncation_ratio_nonTMD']
-            df_cr['len_nonTMD_orig_q_minus_nonTMD_SW_align_len_excl_gaps'] = df_nonTMD['len_nonTMD_orig_q_minus_nonTMD_SW_align_len_excl_gaps']
-            # filter based on dfh above, for general homologue settings (e.g. % identity of full protein), and df_nonTMD (for nonTMD_perc_ident is not zero, etc)
-            df_cr = df_cr.loc[df_nonTMD.index,:]
-            """FILTERING BY TMD IDENTITY HERE SHOULD NO LONGER BE NECESSARY. DIVIDE BY 0 AVOIDED WITH THE REPLACE FUNCTION LATER"""
-            ## following the general filters, filter to only analyse sequences with TMD identity above cutoff, and a nonTMD_perc_ident above zero ,to avoid a divide by zero error
-            #df_cr = df_cr.loc[df_cr['%s_perc_ident' % TMD] >= s['cr_min_identity_of_TMD_initial_filter']]
 
+            ########################################################################################
+            #                                                                                      #
+            #           Add columns from dfh and df_nonTMD to the df_cr for that TMD               #
+            #                                                                                      #
+            ########################################################################################
+            # Add several columns from the original dataframe with homologues, directly parsed from SIMAP XML
+            # SOME OF THIS MIGHT NOT BE NECESSARY ANY MORE
+            df_cr['obs_changes'] = dfh['obs_changes']
+            # df_cr['FASTA_gapped_identity'] = dfh['FASTA_gapped_identity']
+            # df_cr['norm_factor'] = dfh['norm_factor']
+            # df_cr['len_full_match_seq'] = dfh['len_full_match_seq']
+            #
+            # # add several columns from the df_nonTMD, such as the nonTMD percentage identity
+            # # SOME OF THIS MIGHT NOT BE NECESSARY ANY MORE
+            # df_cr['nonTMD_perc_ident'] = df_nonTMD['nonTMD_perc_ident']
+            # df_cr['nonTMD_perc_sim_plus_ident'] = df_nonTMD['nonTMD_perc_sim_plus_ident']
+            # df_cr['nonTMD_SW_align_len_excl_gaps'] = df_nonTMD['nonTMD_SW_align_len_excl_gaps']
+            # df_cr['perc_nonTMD_coverage'] = df_nonTMD['perc_nonTMD_coverage']
+            # df_cr['len_nonTMD_orig_q_minus_nonTMD_SW_align_len_excl_gaps'] = df_nonTMD['len_nonTMD_orig_q_minus_nonTMD_SW_align_len_excl_gaps']
+
+            # FILTER BASED ON df_nonTMD, which already has excluded homologues that are unsuitable (e.g. % identity of full protein, nonTMD_perc_ident is not zero, etc)
+            df_cr = df_cr.loc[df_nonTMD.index,:]
+
+            ########################################################################################
             ########################################################################################
             #                                                                                      #
             #                       Calculate AAIMON, AASMON for each TMD                          #
             #                                                                                      #
             ########################################################################################
-            len_query_TMD = p["%s_end"%TMD] - p["%s_start"%TMD]
-            df_cr = korbinian.cons_ratio.calc.calc_AAIMON(TMD, df_cr, len_query_TMD)
-            df_cr['norm_factor'] = dfh['norm_factor']
-            df_cr['%s_AAIMON_n'%TMD] = df_cr['%s_AAIMON'%TMD] / df_cr['norm_factor']
-            df_cr['FASTA_gapped_identity'] = dfh['FASTA_gapped_identity']
-            df_cr['obs_changes'] = dfh['obs_changes']
+            ########################################################################################
 
-            list_of_AAIMON_all_TMD['%s_AAIMON'%TMD]= df_cr['%s_AAIMON'%TMD].dropna()
+            len_query_TMD = p["%s_end"%TMD] - p["%s_start"%TMD]
+            #df_cr = korbinian.cons_ratio.calc.calc_AAIMON(TMD, df_cr, len_query_TMD)
+
+            ########################################################################################
+            #                                                                                      #
+            #              count number of identical (and/or similar) residues in                  #
+            #                  the TMD region of interest, for each homologue                      #
+            #                                                                                      #
+            ########################################################################################
+            # count identical residues between query and match TMDs by counting the number of pipes in the markup string
+            # NOTE THAT df_cr['%s_SW_markup_seq'%TMD].str.count('|') DOES NOT WORK, as "|" has a function in regex and needs to be escaped
+            df_cr['%s_SW_num_ident_res' % TMD] = df_cr['%s_SW_markup_seq' % TMD].str.count('\|')
+            df_cr['%s_SW_num_sim_res' % TMD] = df_cr['%s_SW_markup_seq' % TMD].str.count(':')
+
+            ########################################################################################
+            #                                                                                      #
+            #     calculate the length of the alignment of the TMD region, including gaps          #
+            #          (should equal the len_query_TMD + n_gaps_in_q + n_gaps_in_m)                #
+            #                                                                                      #
+            ########################################################################################
+            df_cr['%s_SW_align_len' % TMD] = df_cr['%s_SW_match_seq' % TMD].str.len()
+
+            ##############################################################################################################
+            #                                                                                                            #
+            #            calculate the length of the alignment of the TMD region, EXCLUDING GAPS                         #
+            #    TM01_SW_align_len_excl_gaps = TM01_SW_align_len - TM01_SW_query_num_gaps - TM01_SW_match_num_gaps       #
+            #                                                                                                            #
+            ##############################################################################################################
+            df_cr['%s_SW_align_len_excl_gaps' % TMD] = df_cr['%s_SW_align_len' % TMD] - df_cr['%s_SW_query_num_gaps' % TMD] - df_cr['%s_SW_match_num_gaps' % TMD]
+
+            ########################################################################################
+            #                                                                                      #
+            #              calculate the percentage identity of the TMD region                     #
+            #       TM01_perc_ident = TM01_SW_num_ident_res / TM01_SW_align_len_excl_gaps          #
+            #                                                                                      #
+            ########################################################################################
+            # the percentage identity of that TMD is defined as the number of identical residues (pipes in markup)
+            # divided by the length of the the aligned residues (excluding gaps)
+            # note that the nonTMD percentage identity is calculated the same way
+            df_cr['%s_perc_ident' % TMD] = df_cr['%s_SW_num_ident_res' % TMD] / df_cr['%s_SW_align_len_excl_gaps' % TMD]
+            # calculate percentage similar residues
+            df_cr['%s_perc_sim' % TMD] = df_cr['%s_SW_num_sim_res' % TMD] / df_cr['%s_SW_align_len' % TMD]
+            # add together to obtain the percentage similar + identical residues
+            df_cr['%s_perc_sim_plus_ident' % TMD] = df_cr['%s_perc_ident' % TMD] + df_cr['%s_perc_sim' % TMD]
+
+            ########################################################################################
+            #                                                                                      #
+            #          calculate Amino Acid Identity : Membranous Over Nonmembranous               #
+            #             (number of gaps)/(length of sequence excluding gaps)                     #
+            #                                                                                      #
+            ########################################################################################
+            df_cr['%s_AAIMON' % TMD] = df_cr['%s_perc_ident' % TMD] / df_nonTMD['nonTMD_perc_ident']
+            # calculate the Amino Acid Similarity : Membranous Over Nonmembranous (AASMON) (includes similarity + identity based on the matrix used in the SW alignment of SIMAP)
+            df_cr['%s_AASMON_ratio' % TMD] = df_cr['%s_perc_sim_plus_ident' % TMD] / df_nonTMD['nonTMD_perc_sim_plus_ident']
+            # calculate the AAIMON normalised by the random_AA_identity, to exclude identity due to lipophilicity
+            df_cr['%s_AAIMON_n' % TMD] = df_cr['%s_AAIMON' % TMD] / dfh['norm_factor']
+
+            ########################################################################################
+            #                                                                                      #
+            #  calculate ratio of length of TMD to length of nonTMD excl gaps & full match seq     #
+            #                                                                                      #
+            ########################################################################################
+            df_cr['%s_ratio_len_TMD_to_len_nonTMD' % TMD] = len_query_TMD / df_nonTMD['nonTMD_SW_align_len_excl_gaps']
+            df_cr['%s_ratio_len_TMD_to_len_full_match_seq' % TMD] = len_query_TMD / dfh['len_full_match_seq']
+
+            ########################################################################################
+            #                                                                                      #
+            #             FILTERING TMD SEQS based on lipophilicity, etc                           #
+            #                                                                                      #
+            ########################################################################################
+            """This is used as a filter in filter_and_save_fasta, therefore is conducted earlier in the slicing function. """
+            ## count the number of gaps in the query and match sequences
+            cr_TMD_query_str = '{TMD}_perc_ident >= {min_ident} & ' \
+                               '{TMD}_SW_query_num_gaps <= {max_gaps} & ' \
+                               '{TMD}_SW_match_num_gaps <= {max_gaps} & ' \
+                               '{TMD}_SW_match_lipo <= {max_lipo_homol}'.format(TMD=TMD, max_gaps=max_gaps,
+                                                                                max_lipo_homol=max_lipo_homol,
+                                                                                min_ident=min_ident)
+            n_homol_before_TMD_filter = df_cr.shape[0]
+            # filter by the above query
+            df_cr.query(cr_TMD_query_str, inplace=True)
+            n_homol_after_TMD_filter = df_cr.shape[0]
+            mean_ser["n_homol_excluded_after_TMD_filter"] = "{}/{}".format(n_homol_before_TMD_filter - n_homol_after_TMD_filter, n_homol_before_TMD_filter)
+            #sys.stdout.write("\nn_homol_excluded_after_TMD_filter", mean_ser["n_homol_excluded_after_TMD_filter"]), sys.stdout.flush()
 
             ########################################################################################
             #                                                                                      #
@@ -290,12 +390,8 @@ def calculate_AAIMONs(p):
             #                                                                                      #
             ########################################################################################
             # drop every row (hit) in df_cr that contains NaN in column TMxy_AAIMON - important for line fit that can't handle NAN
-            df_cr = df_cr[np.isfinite(df_cr['%s_AAIMON'%TMD])]
-
-            # set up variables
-            # FASTA_gapped_identity_0_to_1 = df_cr['FASTA_gapped_identity']  # x-axis of plot
-            # # convert from 0.94 to 94%
-            # FASTA_gapped_identity = FASTA_gapped_identity_0_to_1 * 100
+            #df_cr = df_cr[np.isfinite(df_cr['%s_AAIMON'%TMD])]
+            df_cr.dropna(subset=['%s_AAIMON'%TMD], inplace=True)
 
             obs_changes = df_cr['obs_changes']
             AAIMON = df_cr['%s_AAIMON'%TMD]            # y-axis
@@ -342,23 +438,43 @@ def calculate_AAIMONs(p):
             os.remove(TM_cr_outfile_pickle)
             """
 
+            # OLD FUNCTION TO filter by TMD-specific values (e.g. max_gaps_in_TMD and then calculate all the mean values for AAIMON, etc)
+            # mean_ser = korbinian.cons_ratio.calc.filt_and_save_AAIMON_mean(TMD, df_cr, mean_ser, max_gaps, max_lipo_homol, min_ident)
+
+            ########################################################################################
+            ########################################################################################
+            #                                                                                      #
+            #                SAVING MEAN VALUES TO SERIES FOR LATER GATHER SCRIPT                  #
+            #                                                                                      #
+            ########################################################################################
+            ########################################################################################
+            # percentage identities
+            mean_ser['%s_perc_ident_mean' % TMD] = df_cr['%s_perc_ident' % TMD].mean()
+            mean_ser['%s_perc_sim_mean' % TMD] = df_cr['%s_perc_sim' % TMD].mean()
+            mean_ser['%s_perc_sim_plus_ident_mean' % TMD] = df_cr['%s_perc_sim_plus_ident' % TMD].mean()
+            # AAIMON ratios
+            mean_ser['%s_AAIMON_mean' % TMD] = float(df_cr['%s_AAIMON' % TMD].mean())
+            mean_ser['%s_AAIMON_mean_n' % TMD] = float(df_cr['%s_AAIMON_n' % TMD].mean())
+            mean_ser['%s_AAIMON_std' % TMD] = df_cr['%s_AAIMON' % TMD].std()
+            mean_ser['%s_AASMON_ratio_mean' % TMD] = df_cr['%s_AASMON_ratio' % TMD].mean()
+            mean_ser['%s_AASMON_ratio_std' % TMD] = df_cr['%s_AASMON_ratio' % TMD].std()
+            # ratios for length of TMDs
+            mean_ser['%s_ratio_len_TMD_to_len_nonTMD_mean' % TMD] = float('%0.2f' % df_cr['%s_ratio_len_TMD_to_len_nonTMD' % TMD].dropna().mean())
+            mean_ser['%s_ratio_len_TMD_to_len_full_match_seq_mean' % TMD] = float('%0.2f' % df_cr['%s_ratio_len_TMD_to_len_full_match_seq' % TMD].dropna().mean())
+            # gaps per residue
+            mean_ser['%s_SW_q_gaps_per_q_residue_mean' % TMD] = df_cr['%s_SW_q_gaps_per_q_residue' % TMD].dropna().mean()
+
+            # number of homologues with valid AAIMON ratios for that TMD.
+            # since ALL TMDs have to be in each homologue before AAIMON is calculated, this number is often the same for all TMDs
+            # this will be different for each TMD when some are excluded due to low lipophilicity, for example
+            mean_ser['{}_AAIMON_n_homol'] = df_cr.shape[0]
+            #sys.stdout.write("_AAIMON_n_homol", mean_ser['{}_AAIMON_n_homol']), sys.stdout.flush()
+
             TM_cr_outfile_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
             with open(TM_cr_outfile_pickle, "wb") as f:
                 pickle.dump(df_cr, f, protocol=pickle.HIGHEST_PROTOCOL)
             zipout.write(TM_cr_outfile_pickle, arcname=TM_cr_outfile_pickle)
             os.remove(TM_cr_outfile_pickle)
-
-
-            max_gaps  = s["cr_max_n_gaps_in_TMD"]
-            max_lipo_homol = s["max_lipo_homol"]
-            min_ident = s["cr_min_identity_of_TMD"]
-            # filter by TMD-specific values (e.g. max_gaps_in_TMD and then calculate all the mean values for AAIMON, etc)
-            # note that this is done AFTER the full df_cr is saved, so df_cr can be filtered and reduced directly without losing data
-            mean_ser = korbinian.cons_ratio.calc.filt_and_save_AAIMON_mean(TMD, df_cr, mean_ser, max_gaps, max_lipo_homol, min_ident)
-
-            if TMD == "TM01":
-                # number of homologues for TM01. since ALL TMDs have to be in each homologue before AAIMON is calculated, this number is the same for all TMDs
-                mean_ser['TM01_AAIMON_n_homol'] = df_cr['TM01_AAIMON'].dropna().shape[0]
 
             #logging.info('%s AAIMON_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_mean' % TMD]))
             #logging.info('%s AAIMON_n_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_mean_n' % TMD]))
@@ -393,6 +509,13 @@ def calculate_AAIMONs(p):
             korbinian.cons_ratio.histogram.save_hist_AAIMON_single_protein(fig_nr, fig, axarr, df_cr, s, TMD, binarray, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix)
             # create scatterplots for this protein
             korbinian.cons_ratio.histogram.save_scatter_AAIMON_norm_and_AAIMON_slope_single_protein(fig_nr, fig2, axarr2, df_cr, x_data, y_data, y_data_n, AAIMON_slope, AAIMON_n_slope, TMD, zipout, row_nr, col_nr, fontsize, savefig, norm_scatter_path_prefix)
+
+            ########################################################################################
+            #                                                                                      #
+            #       Add this TMD to list_of_AAIMON_all_TMD, to aid figure creation??               #
+            #                                                                                      #
+            ########################################################################################
+            list_of_AAIMON_all_TMD['%s_AAIMON' % TMD] = df_cr['%s_AAIMON' % TMD].dropna()
 
         ########################################################################################
         #                                                                                      #
@@ -470,7 +593,7 @@ def truncation_filter(p):
     uniprot_acc = p['uniprot_acc']
     homol_cr_ratios_zip = p['homol_cr_ratios_zip']
     list_of_TMDs = ast.literal_eval(p['list_of_TMDs'])
-    nonTMD_truncation_cutoff = s['truncation_cutoff']
+    min_perc_nonTMD_coverage = s['min_perc_nonTMD_coverage']
 
     if not os.path.exists(homol_cr_ratios_zip):
         message = "{} Protein skipped. File does not exist".format(homol_cr_ratios_zip)
@@ -487,7 +610,7 @@ def truncation_filter(p):
             df_cr = pickle.load(zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED).open(in_file, "r"))
             sys.stdout.write('{}, {}: ' .format(uniprot_acc, TMD))
             # filtering step
-            df_cr = utils.filter_for_truncated_sequences(nonTMD_truncation_cutoff, df_cr)
+            df_cr = utils.filter_for_truncated_sequences(min_perc_nonTMD_coverage, df_cr)
             # save filtered dataframe to pickle
             out_file = "{}_{}_cr_df.pickle".format(protein_name, TMD)
             with zipfile.ZipFile(in_zipfile, mode="a", compression=zipfile.ZIP_DEFLATED) as zipout:
