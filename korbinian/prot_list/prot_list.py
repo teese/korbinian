@@ -26,7 +26,7 @@ def prepare_protein_list(s, pathdict, logging):
         Input CSV file is overwritten at end of function, including the extra file locations.
 
     """
-    logging.info('~~~~~~~~~               starting prepare_protein_list            ~~~~~~~~~')
+    logging.info('~~~~~~~~~~~~                     starting prepare_protein_list                      ~~~~~~~~~~~~')
     df = pd.read_csv(pathdict["list_parsed_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
     n_initial_prot = df.shape[0]
     if "uniprot_entry_name" in df.columns:
@@ -103,7 +103,6 @@ def prepare_protein_list(s, pathdict, logging):
     #               drop any proteins that do not have a valid list_of_TMDs                #
     #                                                                                      #
     ########################################################################################
-    n_prot_BEFORE_dropping_without_list_TMDs = df.shape[0]
     df = df.loc[df['list_of_TMDs'].notnull()]
     n_prot_AFTER_dropping_without_list_TMDs = df.shape[0]
 
@@ -248,8 +247,9 @@ def prepare_protein_list(s, pathdict, logging):
 
     # add a column that holds all joined TMD sequences, drop proteins with 'X' in full sequence
     n = 0
-    sys.stdout.write('\njoining TMD sequences, dropping proteins with "X", calculating lipophilicity: \n'), sys.stdout.flush()
+    logging.info('joining TMD sequences, dropping proteins with "X", calculating lipophilicity:')
     list_acc_X_in_seq = []
+    list_acc_missing_TM_indices = []
     for acc in df.index:
         n += 1
         if n % 20 == 0:
@@ -280,7 +280,15 @@ def prepare_protein_list(s, pathdict, logging):
         TMD_seq_joined = ''
         lipo_list = []
         for TMD in list_of_TMDs:
+            if "{}_seq".format(TMD) not in df.columns:
+                list_acc_missing_TM_indices.append(acc)
+                # skip this TMD. Add protein to list to be dropped.
+                continue
             seq = df.loc[acc, '%s_seq' % TMD]
+            if type(seq) is float:
+                list_acc_missing_TM_indices.append(acc)
+                # skip this TMD. Add protein to list to be dropped.
+                continue
             # add each TM sequence to the end of the growing string
             TMD_seq_joined += seq
 
@@ -296,6 +304,11 @@ def prepare_protein_list(s, pathdict, logging):
 
     df = df.drop(list_acc_X_in_seq)
     n_prot_AFTER_dropping_with_X_in_seq = df.shape[0]
+
+    # the ones without TMD_seq are actually proteins where the indices were a string, for example
+    # TM01_start was "?"
+    df = df.drop(list_acc_missing_TM_indices)
+    n_prot_AFTER_dropping_missing_TM_indices = df.shape[0]
 
     lipo_cutoff = s["max_lipo_list"]
 
@@ -316,20 +329,23 @@ def prepare_protein_list(s, pathdict, logging):
     #                           Print record of dropped proteins                           #
     #                                                                                      #
     ########################################################################################
-    sys.stdout.write('\nn_initial_prot: {}'.format(n_initial_prot))
+    logging.info('n_initial_prot: {}'.format(n_initial_prot))
 
-    sys.stdout.write('\nn_prot_BEFORE_dropping_without_list_TMDs: {}'.format(n_prot_BEFORE_dropping_without_list_TMDs))
-    sys.stdout.write('\nn_prot_AFTER_dropping_without_list_TMDs: {}'.format(n_prot_AFTER_dropping_without_list_TMDs))
+    logging.info('n_prot_AFTER_dropping_without_list_TMDs: {}'.format(n_prot_AFTER_dropping_without_list_TMDs)) # line 107
 
-    sys.stdout.write('\nn_prot_AFTER_n_TMDs_cutoff: {}'.format(n_prot_AFTER_n_TMDs_cutoff))
+    logging.info('n_prot_AFTER_n_TMDs_cutoff: {}'.format(n_prot_AFTER_n_TMDs_cutoff)) # line 215
 
-    sys.stdout.write('\nn_prot_AFTER_dropping_with_X_in_seq: {}'.format(n_prot_AFTER_dropping_with_X_in_seq))
+    logging.info('n_prot_AFTER_dropping_with_X_in_seq: {}'.format(n_prot_AFTER_dropping_with_X_in_seq)) # line 297
     if list_acc_X_in_seq != []:
-        sys.stdout.write('\nlist_acc_X_in_seq: {}'.format(list_acc_X_in_seq))
+        logging.info('list_acc_X_in_seq: {}'.format(list_acc_X_in_seq))
 
-    sys.stdout.write('\nn_prot_AFTER_lipo_cutoff: {}'.format(n_prot_AFTER_lipo_cutoff))
-    sys.stdout.write('\nlist_acc_lipo_mean_above_cutoff: {}\n'.format(list_acc_lipo_mean_above_cutoff))
-    sys.stdout.flush()
+    logging.info('n_prot_AFTER_dropping_missing_TM_indices: {}'.format(n_prot_AFTER_dropping_missing_TM_indices)) # line 297
+    if list_acc_missing_TM_indices != []:
+        logging.info('list_acc_missing_TM_indices: {}'.format(list_acc_missing_TM_indices))
+
+    logging.info('n_prot_AFTER_lipo_cutoff: {}'.format(n_prot_AFTER_lipo_cutoff))# line 311
+    if list_acc_lipo_mean_above_cutoff != []:
+        logging.info('list_acc_lipo_mean_above_cutoff: {}\n'.format(list_acc_lipo_mean_above_cutoff))
 
     ########################################################################################
     #                                                                                      #
@@ -338,7 +354,7 @@ def prepare_protein_list(s, pathdict, logging):
     ########################################################################################
     # save to a csv
     df.to_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
-    logging.info('~~~~~~~~~               finished prepare_protein_list            ~~~~~~~~~')
+    logging.info('~~~~~~~~~~~~                     finished prepare_protein_list                      ~~~~~~~~~~~~')
 
 def get_indices_TMD_plus_surr_for_summary_file(dfsumm, TMD, n_aa_before_tmd, n_aa_after_tmd):
     """Takes a summary dataframe (1 row for each protein) and slices out the TMD seqs.

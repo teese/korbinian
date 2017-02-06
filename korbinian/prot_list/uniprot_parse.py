@@ -1,6 +1,7 @@
 from Bio import SwissProt
 import ast
 import csv
+import itertools
 import korbinian
 import korbinian.utils as utils
 import logging
@@ -41,7 +42,7 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
         CSV from dfu, with info for a protein on each row.
 
     """
-    logging.info('~~~~~~~~~~~~    starting create_csv_from_uniprot_flatfile     ~~~~~~~~~~~~')
+    logging.info('~~~~~~~~~~~~                 starting create_csv_from_uniprot_flatfile              ~~~~~~~~~~~~')
     if not os.path.isfile(selected_uniprot_records_flatfile):
         return "create_csv_from_uniprot_flatfile could not be run. Uniprot flatfile not found. ({})".format(selected_uniprot_records_flatfile)
     uniprot_dict_all_proteins = {}
@@ -238,27 +239,45 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
         # count records in dataframe
         count_of_uniprot_records_added_to_csv = dfu.shape[0]
 
-        # determine max number of TMD columns that need to be created
-        max_num_TMDs = dfu['number_of_TMDs'].max()
-        # currently the loop is run for each TMD, based on the sequence with the most TMDs
-        for i in range(1, max_num_TMDs + 1):
-            TMD = 'TM%02d' % i
+        unique_TMD_combinations_orig = dfu.list_of_TMDs.astype(str).unique()
+        unique_TMD_combinations_lists = [ast.literal_eval(s) for s in unique_TMD_combinations_orig]
+        unique_TMD_combinations_single_list = [i for i in itertools.chain.from_iterable(unique_TMD_combinations_lists)]
+        list_all_TMDs_in_dataset = sorted(list(set(unique_TMD_combinations_single_list)))
+
+        for TMD in list_all_TMDs_in_dataset:
             dfu = korbinian.prot_list.prot_list.get_indices_TMD_plus_surr_for_summary_file(dfu, TMD, n_aa_before_tmd, n_aa_after_tmd)
 
-        # slicing out the signal peptide sequence
-        if analyse_sp == True:
-            if 'SP01_start' in dfu.columns:
-                dfu['SP01_seq'] = dfu[dfu['SP01_start'].notnull()].apply(utils.slice_uniprot_SP_seg, args=(SP,), axis=1)
+        # # THIS SECTION IS RATHER INELEGANT
+        # # slicing out the signal peptide sequence
+        # if analyse_sp == True:
+        #     if 'SP01_start' in dfu.columns:
+        #         SP = 'SP01'
+        #         dfu['SP01_start'] = pd.to_numeric(dfu['SP01_start'])
+        #         dfu['SP01_end'] = pd.to_numeric(dfu['SP01_end'])
+        #         dfu['SP01_seq'] = dfu[dfu['SP01_start'].notnull()].loc[dfu['SP01_end'].notnull()].apply(utils.slice_uniprot_SP_seg, args=(SP,), axis=1)
 
-        ''' ~~   SLICE TMDS FROM UNIPROT SEQ    ~~ '''
+
         # iterate through each TMD, slicing out the relevant sequence.
         # If there is no TMD, the cells will contain np.nan
-        for i in range(1, max_num_TMDs + 1):
-            TMD = 'TM%02d' % i
+        # for i in range(1, max_num_TMDs + 1):
+        #     TMD = 'TM%02d' % i
+        #     # slice TMD
+        #     dfu['%s_seq'%TMD] = dfu[dfu['%s_start'%TMD].notnull()].apply(utils.slice_uniprot_TMD_seq, args=(TMD,), axis=1)
+        #     # slice TMD plus surrounding seq
+        #     dfu['%s_seq_plus_surr'%TMD] = dfu[dfu['%s_start'%TMD].notnull()].apply(utils.slice_uniprot_TMD_plus_surr_seq, args=(TMD,), axis=1)
+
+        ''' ~~   SLICE TMDS FROM UNIPROT SEQ    ~~ '''
+        for TMD in list_all_TMDs_in_dataset:
+            df_proteins_with_start_and_end = dfu.loc[dfu['%s_start' % TMD].notnull()].loc[dfu['%s_end' % TMD].notnull()]
+            if df_proteins_with_start_and_end.empty:
+                # For this TMD, none of the proteins have an appropriate start and stop. skip to next TMD
+                logging.info("For {}, none of the proteins had valid indices! This may cause errors later.".format(TMD))
+                continue
             # slice TMD
-            dfu['%s_seq'%TMD] = dfu[dfu['%s_start'%TMD].notnull()].apply(utils.slice_uniprot_TMD_seq, args=(TMD,), axis=1)
+            dfu['%s_seq'%TMD] = df_proteins_with_start_and_end.apply(utils.slice_uniprot_TMD_seq, args=(TMD,), axis=1)
             # slice TMD plus surrounding seq
-            dfu['%s_seq_plus_surr'%TMD] = dfu[dfu['%s_start'%TMD].notnull()].apply(utils.slice_uniprot_TMD_plus_surr_seq, args=(TMD,), axis=1)
+            dfu['%s_seq_plus_surr'%TMD] = df_proteins_with_start_and_end.apply(utils.slice_uniprot_TMD_plus_surr_seq, args=(TMD,), axis=1)
+
         # extract the organism domain (e.g. Eukaryota)
         dfu['uniprot_orgclass'] = dfu['uniprot_orgclass'].astype(str)
         dfu['organism_domain'] = dfu.uniprot_orgclass.apply(lambda x: x.strip("'[]").split("', '")[0])
@@ -272,10 +291,10 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
         sys.stdout.write ('\nslicing nonTMD sequences:')
         valid_acc_list = dfu.loc[dfu['list_of_TMDs'].notnull()].loc[dfu['list_of_TMDs'] != "nan"].index
         for n, acc in enumerate(valid_acc_list):
-            if n % 10 == 0:
+            if n % 10 == 0 and n is not 0:
                 sys.stdout.write('.')
                 sys.stdout.flush()
-                if n % 200 == 0:
+                if n % 200 == 0 and n is not 0:
                     sys.stdout.write('\n')
                     sys.stdout.flush()
             list_of_TMDs = ast.literal_eval(dfu.loc[acc, 'list_of_TMDs'])
@@ -306,8 +325,7 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
         utils.make_sure_path_exists(list_parsed_csv, isfile=True)
         dfu.to_csv(list_parsed_csv, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
-    return '\n%i uniprot records parsed to csv\n~~~~~~~~~~~~   create_csv_from_uniprot_flatfile is finished   ~~~~~~~~~~~~' % count_of_uniprot_records_added_to_csv
-
+    return '\n%i uniprot records parsed to csv\n~~~~~~~~~~~~                 finished create_csv_from_uniprot_flatfile              ~~~~~~~~~~~~' % count_of_uniprot_records_added_to_csv
 
 def create_dictionary_of_comments(uniprot_record_handle):
     """ Create a dictionary of the comments from a UniProt record.

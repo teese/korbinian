@@ -41,7 +41,7 @@ def run_parse_simap_to_csv(pathdict, s, logging):
                     This can be large, as it contains the full query, markup and match sequences
 
     """
-    logging.info('~~~~~~~~~~~~            starting parse_SIMAP_to_csv           ~~~~~~~~~~~~')
+    logging.info('~~~~~~~~~~~~                       starting parse_SIMAP_to_csv                      ~~~~~~~~~~~~')
     acc_not_in_homol_db = []
     if os.path.isfile(pathdict["acc_not_in_homol_db_txt"]):
         # Extracts accession numbers out of file
@@ -90,7 +90,7 @@ def run_parse_simap_to_csv(pathdict, s, logging):
     else:
         for p in list_p:
             parse_SIMAP_to_csv(p)
-        logging.info('\n~~~~~~~~~~~~          parse_SIMAP_to_csv is finished          ~~~~~~~~~~~~')
+        logging.info('\n~~~~~~~~~~~~                       finished parse_SIMAP_to_csv                      ~~~~~~~~~~~~')
 
 def parse_SIMAP_to_csv(p):
     """ Parses the SIMAP XML file to csv for a single protein.
