@@ -20,8 +20,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # set resolution for plots in png format
     dpi = 300
 
-    print ('Preparing data for plotting', flush=True)
-
     backgroundcolour = '0.95'
     plt.style.use('seaborn-whitegrid')
 
@@ -34,6 +32,10 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
     # load cr_summary file
     dfc = pd.read_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    if dfc.shape[0] < s["min_n_proteins_in_list"]:
+        return "~~~~~~~~~~~~            run_save_figures skipped, only {} proteins in list           ~~~~~~~~~~~~".format(dfc.shape[0])
+
+    sys.stdout.write('Preparing data for plotting'), sys.stdout.flush()
     # load summary file
     dfu = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     # merge cr_summary and summary file, if columns are equal in both files, suffix _dfc will be added in cr_summary column names for backwards compatibility
@@ -1896,4 +1898,4 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    logging.info("~~~~~~~~~~~~        run_save_figures_describing_proteins_in_list is finished        ~~~~~~~~~~~~")
+    return "~~~~~~~~~~~~        run_save_figures_describing_proteins_in_list is finished        ~~~~~~~~~~~~"

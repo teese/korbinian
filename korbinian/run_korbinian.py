@@ -217,7 +217,8 @@ def run_statements(s):
 
     '''+++++++++++++++ Summary figures describing the conservation ratios of proteins in the list ++++++++++++++++++'''
     if s["save_figures_describing_proteins_in_list"]:
-        korbinian.cons_ratio.figs.save_figures_describing_proteins_in_list(pathdict, s, logging)
+        return_statement = korbinian.cons_ratio.figs.save_figures_describing_proteins_in_list(pathdict, s, logging)
+        logging.info(return_statement)
 
     '''+++++++++++++++ Summary figures describing the conservation ratios of proteins in the list ++++++++++++++++++'''
     # if s["compare_lists"]:

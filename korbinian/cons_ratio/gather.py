@@ -10,7 +10,7 @@ import sys
 import zipfile
 
 def gather_AAIMONs(pathdict, logging, s):
-    logging.info("~~~~~~~~~~~~         starting gather_AAIMONs           ~~~~~~~~~~~~")
+    logging.info("~~~~~~~~~~~~                           starting gather_AAIMONs                      ~~~~~~~~~~~~")
     df = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
 
     dfg = pd.DataFrame()
@@ -18,7 +18,8 @@ def gather_AAIMONs(pathdict, logging, s):
     # iterate over the dataframe for proteins with an existing list_of_TMDs. acc = uniprot accession.
     for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
         protein_name = df.loc[acc, 'protein_name']
-        logging.info(protein_name)
+        #logging.info(protein_name)
+        sys.stdout.write("{}, ".format(acc))
         if not os.path.exists(df.loc[acc, 'homol_cr_ratios_zip']):
             logging.info("{} Protein skipped. File does not exist".format(df.loc[acc, 'homol_cr_ratios_zip']))
             continue
@@ -116,7 +117,7 @@ def gather_AAIMONs(pathdict, logging, s):
         min_match_to_query_ratio = 0.9 # allowed length of truncated alignment is 90% coverage
 
         # filter summary file for min and max number of homologues based on TM01 number of homologues
-        sys.stdout.write('Dropped homologues after filtering: \n')
+        #sys.stdout.write('Dropped homologues after filtering: \n')
         list_of_acc_to_keep = []
         for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
             TM01_AAIMON_n_homol = pd.to_numeric(dfg.loc[acc, 'TM01_AAIMON_n_homol'])
@@ -127,7 +128,7 @@ def gather_AAIMONs(pathdict, logging, s):
         dfg = dfg.loc[list_of_acc_to_keep, :]
         df = df.loc[list_of_acc_to_keep, :]
 
-        sys.stdout.write("\nLoading data\n")
+        #sys.stdout.write("\nLoading data\n")
         # initiate empty numpy array
         data = np.empty([0, 3])
         # navigate through filesystem and open pickles from .zip
@@ -164,7 +165,7 @@ def gather_AAIMONs(pathdict, logging, s):
         #data[:, 0] = data[:, 0] * 100
 
         # create bins, calculate mean and 95% confidence interval
-        sys.stdout.write('\nBinning data - calculating 95% confidence interval\n')
+        sys.stdout.write('Binning data - calculating 95% confidence interval\n')
         number_of_bins = s['specify_number_of_bins_characterising_TMDs']
         linspace_binlist = np.linspace(1, 100, number_of_bins)
         binwidth = 100/number_of_bins
@@ -222,7 +223,7 @@ def gather_AAIMONs(pathdict, logging, s):
             zipout.write('binned_data_characterising_each_homol_TMD.pickle', arcname='binned_data_characterising_each_homol_TMD.pickle')
             os.remove('binned_data_characterising_each_homol_TMD.pickle')
 
-    logging.info("\n~~~~~~~~~~~~        gather_AAIMONs is finished         ~~~~~~~~~~~~")
+    logging.info("\n~~~~~~~~~~~~                           finished gather_AAIMONs                      ~~~~~~~~~~~~")
 
 def gather_pretty_alignments(pathdict, logging, s):
     """
@@ -307,7 +308,6 @@ def gather_pretty_alignments(pathdict, logging, s):
                     median_value = AAIMON_ser.median()
                     AAMON_minus_median = AAIMON_ser - median_value
 
-
                     # convert all to positive numbers
                     AAMON_minus_median = AAMON_minus_median.abs()
                     # sort so that the 0.00 is the first hit
@@ -321,28 +321,23 @@ def gather_pretty_alignments(pathdict, logging, s):
                         outlier_name = list_outlier_names[m]
                         d["outlier"] = outlier_name
                         d["hit"] = outlier_index
-                        columns = ['FASTA_gapped_identity', 'obs_changes', "{}_AAIMON", '{}_perc_ident', 'nonTMD_perc_ident', '{}_start_in_SW_alignment', '{}_SW_query_seq', '{}_SW_markup_seq',
-                                   '{}_SW_match_seq', '{}_ratio_len_TMD_to_len_nonTMD', '{}_SW_align_len', "{}_SW_match_lipo"]
-                        col_names = ['FASTA_gapped_identity', 'obs_changes', "AAIMON", 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
-                                     'ratio_len_TMD_to_len_nonTMD', 'SW_align_len', "SW_match_lipo"]
+                        columns = ['obs_changes', "{}_AAIMON", 'truncation_ratio_nonTMD', '{}_perc_ident', 'nonTMD_perc_ident', '{}_start_in_SW_alignment', '{}_SW_query_seq', '{}_SW_markup_seq',
+                                   '{}_SW_match_seq', '{}_ratio_len_TMD_to_len_nonTMD', '{}_SW_align_len', "{}_SW_match_lipo"] # 'FASTA_gapped_identity',
+                        col_names = ['obs_changes', "AAIMON", 'truncation_ratio_nonTMD', 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
+                                     'ratio_len_TMD_to_len_nonTMD', 'SW_align_len', "SW_match_lipo"] # 'FASTA_gapped_identity',
                         for n, col in enumerate(columns):
                             col_name = col_names[n]
                             value = df_TMD.loc[outlier_index, col.format(TMD)]
                             # add each one to the dictionary
                             d[col_name] = value
                         d["TM_align"] = "{}\r\r\n\r\r{}\r\r\n\r\r{}".format(d['SW_query_seq'], d['SW_markup_seq'], d['SW_match_seq'])
-                        # # remove individual seqs from dictionary
-                        # del d['SW_query_seq']
-                        # del d['SW_markup_seq']
-                        # del d['SW_match_seq']
-                        # add the pretty alignment
-                        d["align_pretty"] = dfp.loc[min_, "align_pretty"]
-
+                        # add the pretty alignment, which is extracted from the csv in the homol_df_orig_zip, and not from the pickle file with the other calculated variables
+                        d["align_pretty"] = dfp.loc[outlier_index, "align_pretty"]
 
                         if num_TMDs_in_all_proteins_processed == 0:
                             # sort
-                            csv_header = ["protein_name", "TMD", "outlier", "TM_align","SW_match_lipo", "align_pretty", 'FASTA_gapped_identity', 'obs_changes', "AAIMON", "hit", 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
-                                     'ratio_len_TMD_to_len_nonTMD', 'SW_align_len']
+                            csv_header = ["protein_name", "TMD", "outlier", "TM_align","SW_match_lipo", "align_pretty", 'obs_changes', "AAIMON", 'truncation_ratio_nonTMD', "hit", 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
+                                     'ratio_len_TMD_to_len_nonTMD', 'SW_align_len'] # 'FASTA_gapped_identity',
                             # make sure that the csv header is up-to-date, and isn't missing items from dict
                             assert len(csv_header) is len(d)
                             # save the csv header to the csv file

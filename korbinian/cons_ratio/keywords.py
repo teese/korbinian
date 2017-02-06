@@ -23,9 +23,11 @@ def keyword_analysis(pathdict, s, logging):
     -------
 
     """
-    logging.info("~~~~~~~~~~~~         starting keyword_analysis           ~~~~~~~~~~~~")
+    logging.info("~~~~~~~~~~~~                      starting keyword_analysis                         ~~~~~~~~~~~~")
     # load summary file
     dfu = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    if dfu.shape[0] < s["min_n_proteins_in_list"]:
+        return "~~~~~~~~~~~~           keyword_analysis skipped, only {} proteins in list            ~~~~~~~~~~~~".format(dfu.shape[0])
     # skip the keyword analysis if there are no keywords
     if 'uniprot_KW' not in dfu.columns:
         return "Keyword analysis not conducted. No keywords found in protein summary file."
@@ -356,4 +358,4 @@ def keyword_analysis(pathdict, s, logging):
     else:
         return 'no valid keywords found! change "cutoff_major_keywords" setting! \ncurrent value: {}'.format(s['cutoff_major_keywords'])
 
-    return "\n~~~~~~~~~~~~        keyword_analysis is finished         ~~~~~~~~~~~~"
+    return "\n~~~~~~~~~~~~                      finished keyword_analysis                         ~~~~~~~~~~~~"

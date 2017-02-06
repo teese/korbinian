@@ -29,7 +29,7 @@ def run_calculate_AAIMONs(pathdict, s, logging):
         Logger for printing to console and/or logfile.
         If multiprocessing == True, logging.info etc will only print to console.
     """
-    logging.info('~~~~~~~~~~~~      starting run_calculate_AAIMONs        ~~~~~~~~~~~~')
+    logging.info('~~~~~~~~~~~~                      starting run_calculate_AAIMONs                    ~~~~~~~~~~~~')
     # if multiprocessing is used, log only to the console
     p_dict_logging = logging if s["use_multiprocessing"] != True else utils.Log_Only_To_Console()
     # set current working directory as the data_dir/homol, where temp files will be saved before moving to zip
@@ -49,7 +49,7 @@ def run_calculate_AAIMONs(pathdict, s, logging):
     else:
         for p in list_p:
             korbinian.cons_ratio.cons_ratio.calculate_AAIMONs(p)
-    logging.info("~~~~~~~~~~~~     run_calculate_AAIMONs is finished      ~~~~~~~~~~~~")
+    logging.info('~~~~~~~~~~~~                      finished run_calculate_AAIMONs                    ~~~~~~~~~~~~')
 
 def calculate_AAIMONs(p):
     """Calculate the AAIMON ratios for a particular protein

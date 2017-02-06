@@ -50,6 +50,7 @@ def download_homologues_from_simap(pathdict, s, logging):
         if this file exists. If it doesn't exist, it will be created. If it exists, the settings file
         determines whether the previously failed downloads will be re-attempted.
     """
+    logging.info("~~~~~~~~~~~~                 starting download_homologues_from_simap                ~~~~~~~~~~~~")
     df = pd.read_csv(pathdict["list_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
 
     if s["attempt_prev_failed_downloads"] == False:
@@ -198,7 +199,7 @@ def download_homologues_from_simap(pathdict, s, logging):
                     os.remove(ft_xml_path)
             except FileNotFoundError:
                 pass
-    logging.info('download_homologues is finished')
+    logging.info("~~~~~~~~~~~~                 finished download_homologues_from_simap                ~~~~~~~~~~~~")
 
 def retrieve_simap_feature_table(input_sequence, java_exec_str, max_memory_allocation, output_file, eaSimap_path):
     """ Runs eaSimap.jar from the command line, to download the feature table XML from SIMAP.

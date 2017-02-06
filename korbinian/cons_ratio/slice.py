@@ -26,7 +26,7 @@ def run_slice_TMDs_from_homologues(pathdict, s, logging):
     see slice_1_TMD_from_homol
     """
 
-    logging.info('~~~~~~~~~~~~       starting run_slice_TMDs_from_homologues        ~~~~~~~~~~~~')
+    logging.info('~~~~~~~~~~~~                 starting run_slice_TMDs_from_homologues                ~~~~~~~~~~~~')
     # if multiprocessing is used, log only to the console
     p_dict_logging = logging if s["use_multiprocessing"] != True else utils.Log_Only_To_Console()
     # get list of accessions that could not be downloaded, and can immediately be excluded
@@ -45,7 +45,7 @@ def run_slice_TMDs_from_homologues(pathdict, s, logging):
     else:
         for p in list_p:
             korbinian.cons_ratio.slice.slice_TMD_1_prot_from_homol(p)
-    logging.info("~~~~~~~~~~~~     run_slice_TMDs_from_homologues is finished       ~~~~~~~~~~~~")
+    logging.info('\n~~~~~~~~~~~~                 finished run_slice_TMDs_from_homologues                ~~~~~~~~~~~~')
 
 def slice_TMD_1_prot_from_homol(p):
     """ Slices TMDs from homologues, for a single protein in the list.
