@@ -232,7 +232,7 @@ def calculate_AAIMONs(p):
         n_homol_before_nonTMD_query = df_nonTMD.shape[0]
         df_nonTMD.query(nonTMD_query_str, inplace=True)
         n_homol_after_nonTMD_query = df_nonTMD.shape[0]
-        mean_ser["n_homol_excluded_after_nonTMD_query"] = "{}/{}".format(n_homol_before_nonTMD_query - n_homol_after_nonTMD_query, n_homol_before_nonTMD_query)
+        mean_ser["n_homol_excluded_after_nonTMD_query"] = "-- {}/{} --".format(n_homol_before_nonTMD_query - n_homol_after_nonTMD_query, n_homol_before_nonTMD_query)
         #sys.stdout.write("\nn_homol_excluded_after_nonTMD_query {}".format(mean_ser["n_homol_excluded_after_nonTMD_query"]))
 
         ########################################################################################
@@ -381,7 +381,7 @@ def calculate_AAIMONs(p):
             # filter by the above query
             df_cr.query(cr_TMD_query_str, inplace=True)
             n_homol_after_TMD_filter = df_cr.shape[0]
-            mean_ser["n_homol_excluded_after_TMD_filter"] = "{}/{}".format(n_homol_before_TMD_filter - n_homol_after_TMD_filter, n_homol_before_TMD_filter)
+            mean_ser["n_homol_excluded_after_TMD_filter"] = "-- {}/{} --".format(n_homol_before_TMD_filter - n_homol_after_TMD_filter, n_homol_before_TMD_filter)
             #sys.stdout.write("\nn_homol_excluded_after_TMD_filter", mean_ser["n_homol_excluded_after_TMD_filter"]), sys.stdout.flush()
 
             ########################################################################################
@@ -467,7 +467,7 @@ def calculate_AAIMONs(p):
             # number of homologues with valid AAIMON ratios for that TMD.
             # since ALL TMDs have to be in each homologue before AAIMON is calculated, this number is often the same for all TMDs
             # this will be different for each TMD when some are excluded due to low lipophilicity, for example
-            mean_ser['{}_AAIMON_n_homol'] = df_cr.shape[0]
+            mean_ser['{}_AAIMON_n_homol'.format(TMD)] = df_cr.shape[0]
             #sys.stdout.write("_AAIMON_n_homol", mean_ser['{}_AAIMON_n_homol']), sys.stdout.flush()
 
             TM_cr_outfile_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)

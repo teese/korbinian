@@ -100,7 +100,7 @@ def gather_AAIMONs(pathdict, logging, s):
         #     dfg.loc[acc, 'uniprot_KW'] = df.loc[acc, 'uniprot_KW']
 
 
-    dfg.copy().to_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+    dfg.to_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     ########################################################################################
     #                                                                                      #
@@ -274,22 +274,32 @@ def gather_pretty_alignments(pathdict, logging, s):
                     if df_TMD.empty:
                         # skip to next TMD
                         continue
+                    # open dataframe with the nonTMD calculations
+                    nonTMD_cr_pickle = "{}_nonTMD_cr_df.pickle".format(protein_name)
+                    df_nonTMD = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, nonTMD_cr_pickle)
 
-                    max_gaps = s["cr_max_n_gaps_in_TMD"]
-                    max_lipo_homol = s["max_lipo_homol"]
-                    min_ident = s["cr_min_identity_of_TMD"]
-
-                    """This is used as a filter in filter_and_save_fasta, therefore is conducted earlier in the slicing function. """
-                    ## count the number of gaps in the query and match sequences
-                    cr_TMD_query_str = '{TMD}_perc_ident >= {min_ident} & ' \
-                                       '{TMD}_SW_query_num_gaps <= {max_gaps} & ' \
-                                       '{TMD}_SW_match_num_gaps <= {max_gaps} & ' \
-                                       '{TMD}_SW_match_lipo <= {max_lipo_homol}'.format(TMD=TMD, max_gaps=max_gaps,
-                                                                                        max_lipo_homol=max_lipo_homol,
-                                                                                        min_ident=min_ident)
-                    # n_homol_before_filter = df_cr.shape[0]
-                    # filter by the above query
-                    df_TMD.query(cr_TMD_query_str, inplace=True)
+                    # ########################################################################################
+                    # #                                                                                      #
+                    # #                      FILTERING HAS BEEN REMOVED.                                     #
+                    # #               AAIMONS ARE NOW ONLY CALCULATED FOR VALID HOMOLOGUES                   #
+                    # #                                                                                      #
+                    # ########################################################################################
+                    #
+                    # max_gaps = s["cr_max_n_gaps_in_TMD"]
+                    # max_lipo_homol = s["max_lipo_homol"]
+                    # min_ident = s["cr_min_identity_of_TMD"]
+                    #
+                    # """This is used as a filter in filter_and_save_fasta, therefore is conducted earlier in the slicing function. """
+                    # ## count the number of gaps in the query and match sequences
+                    # cr_TMD_query_str = '{TMD}_perc_ident >= {min_ident} & ' \
+                    #                    '{TMD}_SW_query_num_gaps <= {max_gaps} & ' \
+                    #                    '{TMD}_SW_match_num_gaps <= {max_gaps} & ' \
+                    #                    '{TMD}_SW_match_lipo <= {max_lipo_homol}'.format(TMD=TMD, max_gaps=max_gaps,
+                    #                                                                     max_lipo_homol=max_lipo_homol,
+                    #                                                                     min_ident=min_ident)
+                    # # n_homol_before_filter = df_cr.shape[0]
+                    # # filter by the above query
+                    # df_TMD.query(cr_TMD_query_str, inplace=True)
 
                     # add protein and TMD-specific values
                     d["protein_name"] = protein_name
@@ -324,18 +334,39 @@ def gather_pretty_alignments(pathdict, logging, s):
                         outlier_name = list_outlier_names[m]
                         d["outlier"] = outlier_name
                         d["hit"] = outlier_index
-                        columns = ['obs_changes', "{}_AAIMON", 'perc_nonTMD_coverage', '{}_perc_ident', 'nonTMD_perc_ident', '{}_start_in_SW_alignment', '{}_SW_query_seq', '{}_SW_markup_seq',
+                        TMD_cols = ['obs_changes', "{}_AAIMON", '{}_perc_ident', '{}_start_in_SW_alignment', '{}_SW_query_seq', '{}_SW_markup_seq',
                                    '{}_SW_match_seq', '{}_ratio_len_TMD_to_len_nonTMD', '{}_SW_align_len', "{}_SW_match_lipo"] # 'FASTA_gapped_identity',
-                        col_names = ['obs_changes', "AAIMON", 'perc_nonTMD_coverage', 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
+                        TMD_col_names = ['obs_changes', "AAIMON", 'TM_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
                                      'ratio_len_TMD_to_len_nonTMD', 'SW_align_len', "SW_match_lipo"] # 'FASTA_gapped_identity',
-                        for n, col in enumerate(columns):
-                            col_name = col_names[n]
-                            value = df_TMD.loc[outlier_index, col.format(TMD)]
-                            # add each one to the dictionary
-                            d[col_name] = value
-                        d["TM_align"] = "{}\r\r\n\r\r{}\r\r\n\r\r{}".format(d['SW_query_seq'], d['SW_markup_seq'], d['SW_match_seq'])
+
+                        nonTMD_cols = ['perc_nonTMD_coverage', 'nonTMD_perc_ident']
+                        nonTMD_col_names = ['perc_nonTMD_coverage', 'nonTMD_perc_ident']
+
+                        TMD_tuple = (TMD_cols, TMD_col_names, df_TMD)
+                        nonTMD_tuple = (nonTMD_cols, nonTMD_col_names, df_nonTMD)
+                        tuples_to_process = (TMD_tuple, nonTMD_tuple)
+
+                        # iterate through the TMD and nonTMD dataframes, extracting the relevant information
+                        for tup in tuples_to_process:
+                            columns = tup[0]
+                            col_names = tup[1]
+                            dfx = tup[2]
+                            for n, col in enumerate(columns):
+                                col_name = col_names[n]
+                                if col.format(TMD) not in dfx.columns:
+                                    # skip
+                                    logging.info("{} skipped, {} not in columns".format(acc, col))
+                                    continue
+                                value = dfx.loc[outlier_index, col.format(TMD)]
+                                # add each one to the dictionary
+                                d[col_name] = value
+
                         # add the pretty alignment, which is extracted from the csv in the homol_df_orig_zip, and not from the pickle file with the other calculated variables
                         d["align_pretty"] = dfp.loc[outlier_index, "align_pretty"]
+
+                        # create a "TMD alignment" by joining the query, markup and match sequences together.
+                        # leave the individual columns in the dataframe, as they could be useful for other analyses (e.g. aa abundance tests)
+                        d["TM_align"] = "{}\r\r\n\r\r{}\r\r\n\r\r{}".format(d['SW_query_seq'], d['SW_markup_seq'], d['SW_match_seq'])
 
                         if num_TMDs_in_all_proteins_processed == 0:
                             # sort

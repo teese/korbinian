@@ -1645,7 +1645,7 @@ def filter_for_truncated_sequences(min_perc_nonTMD_coverage, df_cr):
                 list_of_hits_to_drop.append(hit)
         # keep only hits that were not excluded due to truncation
         df_cr = df_cr.loc[list_of_hits_to_keep, :]
-        sys.stdout.write('Truncated alignments; homologues dropped: {}/{}\n'.format(len(list_of_hits_to_drop), number_of_hits))
+        sys.stdout.write('Truncated alignments; homologues dropped: -- {}/{} --\n'.format(len(list_of_hits_to_drop), number_of_hits))
     else:
         sys.stdout.write('min_perc_nonTMD_coverage = 1 ; no filtering for truncated sequences \n')
     return df_cr

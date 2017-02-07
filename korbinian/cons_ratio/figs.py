@@ -53,7 +53,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     n_removed = n_prot_before_n_homol_cutoff - n_prot_after_n_homol_cutoff
     # if any proteins have been removed, then print the exact number.
     if n_removed >= 1:
-        sys.stdout.write("{}/{} proteins were removed, as they contained less than {} valid homologues. "
+        sys.stdout.write("-- {}/{} -- proteins were removed, as they contained less than {} valid homologues. "
               "Final number of proteins = {}".format(n_removed, n_prot_before_n_homol_cutoff, min_n_homol, n_prot_after_n_homol_cutoff))
 
     # open list_csv file
@@ -327,7 +327,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s['Fig05_Scattergram_comparing_number_of_TMDs_with_mean_AAIMON']:
+    if s['Fig05_Scattergram_comparing_number_of_TMDs_with_mean_AAIMON'] and s["max_TMDs"] >= 2:
         Fig_Nr = 5
         title = 'num_TMDs vs AAIMON'
         Fig_name = 'Fig05_Scattergram_comparing_number_of_TMDs_with_mean_AAIMON'
@@ -463,7 +463,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                                        alpha=0.75)
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s['Fig09_Histogram_of_mean_AAIMON_ratios_for_each_TMD_separately']:
+    if s['Fig09_Histogram_of_mean_AAIMON_ratios_for_each_TMD_separately'] and s["max_TMDs"] >= 2:
         Fig_Nr = 9
         title = 'Histogram of mean AAIMON ratios'
         Fig_name = 'Fig09_Histogram_of_mean_AAIMON_ratios_for_each_TMD_separately'
@@ -541,7 +541,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s['Fig10_Line_histogram_of_mean_AAIMON_ratios_for_each_TMD_separately']:
+    if s['Fig10_Line_histogram_of_mean_AAIMON_ratios_for_each_TMD_separately'] and s["max_TMDs"] >= 2:
         Fig_Nr = 10
         title = 'Line histogram each TMD'
         Fig_name = 'Fig10_Line_histogram_of_mean_AAIMON_ratios_for_each_TMD_separately'
@@ -614,7 +614,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s['Fig11_Line_histogram_of_mean_AAIMON_ratios_for_selected_TMDs,_highlighting_difference_for_TM07']:
+    if s['Fig11_Line_histogram_of_mean_AAIMON_ratios_for_selected_TMDs,_highlighting_difference_for_TM07'] and s["max_TMDs"] >= 2:
         # these graphs are only applicable for multi-pass proteins. Use where at least 2 proteins have a 7th TMD
         if "TM07_AAIMON_mean" in df_mean_AAIMON_each_TM.columns:
             if df_mean_AAIMON_each_TM['TM07_AAIMON_mean'].dropna().shape[0] >= 2:
@@ -698,7 +698,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                                            alpha=0.75)
             utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s['Fig12_TMD_1-5_only']:
+    if s['Fig12_TMD_1-5_only'] and s["max_TMDs"] >= 2:
         Fig_Nr = 12
         col_start = 0
         col_end = 5
@@ -771,7 +771,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                                        alpha=0.75)
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s['Fig13_TMD_5-10_only']:
+    if s['Fig13_TMD_5-10_only'] and s["max_TMDs"] >= 2:
         Fig_Nr = 13
         title = 'TMD 5-10, all data'
         Fig_name = 'Fig13_TMD_5-10_only'
@@ -847,7 +847,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                                        alpha=0.75)
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s['Fig14_TMD_10-15_only']:
+    if s['Fig14_TMD_10-15_only'] and s["max_TMDs"] >= 2:
         Fig_Nr = 14
         title = 'TMD 10-15, all data'
         Fig_name = 'Fig14_TMD_10-15_only'
@@ -923,7 +923,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                                        alpha=0.75)
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s['Fig15_TMD_15-20_only']:
+    if s['Fig15_TMD_15-20_only'] and s["max_TMDs"] >= 2:
         Fig_Nr = 15
         title = 'TMD 15-20, all data'
         Fig_name = 'Fig15_TMD_15-20_only'
@@ -998,7 +998,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                                        alpha=0.75)
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s['Fig16_ONLY_proteins_with_7_TMDs']:
+    if s['Fig16_ONLY_proteins_with_7_TMDs'] and s["max_TMDs"] >= 2:
         Fig_Nr = 16
         title = 'ONLY prot with 7 TMDs'
         Fig_name = 'Fig16_ONLY_proteins_with_7_TMDs'
@@ -1079,7 +1079,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s['Fig17_Less_than_12_TMDs_vs_at_least_12_TMDs']:
+    if s['Fig17_Less_than_12_TMDs_vs_at_least_12_TMDs'] and s["max_TMDs"] >= 2:
         Fig_Nr = 17
         title = '<12 TMDs vs >12 TMDs'
         Fig_name = 'Fig17_Less_than_12_TMDs_vs_at_least_12_TMDs'
