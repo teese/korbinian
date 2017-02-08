@@ -20,14 +20,14 @@ def compare_lists (s):
     # get current date and time for folder name, join elements in protein_lists to string
     str_protein_lists = '-'.join(map(str, sorted(protein_lists)))
     now = datetime.datetime.now()
-    folder_name = '{}{:02}{}-{:02}{:02}_Lists-{}'.format(now.year, now.month, now.day, now.hour, now.minute, str_protein_lists)
+    folder_name = '{}{:02}{:02}-{:02}{:02}_Lists-{}'.format(now.year, now.month, now.day, now.hour, now.minute, str_protein_lists)
 
     # folder_name for testing
-    #folder_name = 'Folder_Test'
+    folder_name = 'Folder_Test'
 
     base_filepath = os.path.join(s["data_dir"], "compare_lists", folder_name)
 
-    sys.stdout.write('data gets saved to "{}"\n'.format(base_filepath))
+    sys.stdout.write('data is saved to "{}"\n'.format(base_filepath))
 
     # create folder in list summary directory to hold keyword data
     if not os.path.exists(base_filepath):
@@ -73,7 +73,7 @@ def compare_lists (s):
     Fig_Nr = 1
     title = 'histograms AAIMON and AAIMON_n'
     Fig_name = 'Fig01_Histograms_of_mean_AAIMON_and_AAIMON_n'
-    binlist = np.linspace(0, 2, 31)
+    binlist = np.linspace(0, 2, 61)
     plt.style.use('seaborn-whitegrid')
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
@@ -128,12 +128,11 @@ def compare_lists (s):
     xlim_max = 2
     ax.set_xlim(xlim_min, xlim_max)
     ylim_min = -0.01
-    ylim_max = len(protein_lists) + 0.1
+    ylim_max = len(protein_lists) + 0.01
     ax.set_ylim(ylim_min, ylim_max)
-    # set x-axis ticks
-    # use the slide selection to select every second item in the list as an xtick(axis label)
-    # ax.set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
-    ax.get_yaxis().set_ticks([])
+    # set y-axis grid lines without tick labels
+    ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
+    ax.yaxis.set_ticklabels([])
     ax.set_ylabel('relative freqency', rotation='vertical', fontsize=fontsize)
     # change axis font size
     ax.tick_params(labelsize=fontsize)
@@ -154,19 +153,13 @@ def compare_lists (s):
               [label for i, label in enumerate(labels) if i in display] + ['AAIMON', 'AAIMON norm.'],
               fontsize=fontsize-3, frameon=True, bbox_to_anchor=(1.07, 1.12))
 
-    # add figure number to top left of subplot
-    ax.annotate(s=str(Fig_Nr) + '.', xy=(0.01, 0.97), fontsize=fontsize, xytext=None, xycoords='axes fraction',
-                alpha=0.75)
-    # add figure title to top left of subplot
-    ax.annotate(s=title, xy=(0.05, 0.97 ), fontsize=fontsize, xytext=None, xycoords='axes fraction', alpha=0.75)
-
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
 
 
     Fig_Nr = 2
     title = 'histograms AAIMON_slope and AAIMON_n_slope'
     Fig_name = 'Fig02_Histograms_of_mean_AAIMON_slope_and_AAIMON_n_slope'
-    binlist = np.linspace(-0.04, 0.04, 41)
+    binlist = np.linspace(-0.04, 0.04, 61)
     plt.style.use('seaborn-whitegrid')
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
@@ -221,12 +214,11 @@ def compare_lists (s):
     xlim_max = 0.03
     ax.set_xlim(xlim_min, xlim_max)
     ylim_min = -0.01
-    ylim_max = len(protein_lists) + 0.1
+    ylim_max = len(protein_lists) + 0.01
     ax.set_ylim(ylim_min, ylim_max)
-    # set x-axis ticks
-    # use the slide selection to select every second item in the list as an xtick(axis label)
-    # ax.set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
-    ax.get_yaxis().set_ticks([])
+    # set y-axis grid lines without tick labels
+    ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
+    ax.yaxis.set_ticklabels([])
     ax.set_ylabel('relative freqency', rotation='vertical', fontsize=fontsize)
     # change axis font size
     ax.tick_params(labelsize=fontsize)
@@ -245,12 +237,6 @@ def compare_lists (s):
     ax.legend([handle for i, handle in enumerate(handles) if i in display] + [AAIMON, AAIMON_norm],
               [label for i, label in enumerate(labels) if i in display] + ['AAIMON_slope', 'AAIMON_slope norm.'],
               fontsize=fontsize-3, frameon=True, bbox_to_anchor=(1.07, 1.12))
-
-    # add figure number to top left of subplot
-    ax.annotate(s=str(Fig_Nr) + '.', xy=(0.01, 0.97), fontsize=fontsize, xytext=None, xycoords='axes fraction',
-                alpha=0.75)
-    # add figure title to top left of subplot
-    ax.annotate(s=title, xy=(0.05, 0.97 ), fontsize=fontsize, xytext=None, xycoords='axes fraction', alpha=0.75)
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
@@ -291,7 +277,7 @@ def compare_lists (s):
     #                                                             #
     ###############################################################
 
-    ax.set_xlabel('nonTMD_SW_align_len_excl_gaps_mean', fontsize=fontsize)
+    ax.set_xlabel('nonTMD Smith-Waterman alignment length excluding gaps mean', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
     ax.xaxis.set_label_coords(0.45, -0.085)
     # x and y axes min and max
@@ -299,9 +285,11 @@ def compare_lists (s):
     xlim_max = 1150
     ax.set_xlim(xlim_min, xlim_max)
     ylim_min = -0.01
-    ylim_max = len(protein_lists) + 0.1
+    ylim_max = len(protein_lists) + 0.01
     ax.set_ylim(ylim_min, ylim_max)
-    ax.get_yaxis().set_ticks([])
+    # set y-axis grid lines without tick labels
+    ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
+    ax.yaxis.set_ticklabels([])
     ax.set_ylabel('relative freqency', rotation='vertical', fontsize=fontsize)
     # change axis font size
     ax.tick_params(labelsize=fontsize)
@@ -322,12 +310,6 @@ def compare_lists (s):
     ax.legend([handle for i, handle in enumerate(handles) if i in display],
               [label for i, label in enumerate(labels) if i in display],
               fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
-
-    # add figure number to top left of subplot
-    ax.annotate(s=str(Fig_Nr) + '.', xy=(0.01, 0.97), fontsize=fontsize, xytext=None, xycoords='axes fraction',
-                alpha=0.75)
-    # add figure title to top left of subplot
-    ax.annotate(s=title, xy=(0.05, 0.97 ), fontsize=fontsize, xytext=None, xycoords='axes fraction', alpha=0.75)
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
@@ -366,7 +348,7 @@ def compare_lists (s):
     #                                                             #
     ###############################################################
 
-    ax.set_xlabel('number_of_TMDs', fontsize=fontsize)
+    ax.set_xlabel('number of TMDs', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
     ax.xaxis.set_label_coords(0.45, -0.085)
     # x and y axes min and max
@@ -374,9 +356,11 @@ def compare_lists (s):
     xlim_max = 31
     ax.set_xlim(xlim_min, xlim_max)
     ylim_min = -0.01
-    ylim_max = len(protein_lists) + 0.1
+    ylim_max = len(protein_lists) + 0.01
     ax.set_ylim(ylim_min, ylim_max)
-    ax.get_yaxis().set_ticks([])
+    # set y-axis grid lines without tick labels
+    ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
+    ax.yaxis.set_ticklabels([])
     ax.set_ylabel('relative freqency', rotation='vertical', fontsize=fontsize)
     # change axis font size
     ax.tick_params(labelsize=fontsize)
@@ -395,12 +379,6 @@ def compare_lists (s):
     ax.legend([handle for i, handle in enumerate(handles) if i in display],
               [label for i, label in enumerate(labels) if i in display],
               fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
-
-    # add figure number to top left of subplot
-    ax.annotate(s=str(Fig_Nr) + '.', xy=(0.01, 0.97), fontsize=fontsize, xytext=None, xycoords='axes fraction',
-                alpha=0.75)
-    # add figure title to top left of subplot
-    ax.annotate(s=title, xy=(0.05, 0.97 ), fontsize=fontsize, xytext=None, xycoords='axes fraction', alpha=0.75)
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
@@ -447,9 +425,11 @@ def compare_lists (s):
     xlim_max = 100
     ax.set_xlim(xlim_min, xlim_max)
     ylim_min = -0.01
-    ylim_max = len(protein_lists) + 0.1
+    ylim_max = len(protein_lists) + 0.01
     ax.set_ylim(ylim_min, ylim_max)
-    ax.get_yaxis().set_ticks([])
+    # set y-axis grid lines without tick labels
+    ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
+    ax.yaxis.set_ticklabels([])
     ax.set_ylabel('relative freqency', rotation='vertical', fontsize=fontsize)
     # change axis font size
     ax.tick_params(labelsize=fontsize)
@@ -469,12 +449,6 @@ def compare_lists (s):
     ax.legend([handle for i, handle in enumerate(handles) if i in display],
               [label for i, label in enumerate(labels) if i in display],
               fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
-
-    # add figure number to top left of subplot
-    ax.annotate(s=str(Fig_Nr) + '.', xy=(0.01, 0.97), fontsize=fontsize, xytext=None, xycoords='axes fraction',
-                alpha=0.75)
-    # add figure title to top left of subplot
-    ax.annotate(s=title, xy=(0.05, 0.97), fontsize=fontsize, xytext=None, xycoords='axes fraction', alpha=0.75)
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
@@ -523,9 +497,11 @@ def compare_lists (s):
     xlim_max = 1800
     ax.set_xlim(xlim_min, xlim_max)
     ylim_min = -0.01
-    ylim_max = len(protein_lists) + 0.1
+    ylim_max = len(protein_lists) + 0.01
     ax.set_ylim(ylim_min, ylim_max)
-    ax.get_yaxis().set_ticks([])
+    # set y-axis grid lines without tick labels
+    ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
+    ax.yaxis.set_ticklabels([])
     ax.set_ylabel('relative freqency', rotation='vertical', fontsize=fontsize)
     # change axis font size
     ax.tick_params(labelsize=fontsize)
@@ -545,12 +521,6 @@ def compare_lists (s):
     ax.legend([handle for i, handle in enumerate(handles) if i in display],
               [label for i, label in enumerate(labels) if i in display],
               fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
-
-    # add figure number to top left of subplot
-    ax.annotate(s=str(Fig_Nr) + '.', xy=(0.01, 0.97), fontsize=fontsize, xytext=None, xycoords='axes fraction',
-                alpha=0.75)
-    # add figure title to top left of subplot
-    ax.annotate(s=title, xy=(0.05, 0.97), fontsize=fontsize, xytext=None, xycoords='axes fraction', alpha=0.75)
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 

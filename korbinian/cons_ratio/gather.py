@@ -168,13 +168,14 @@ def gather_AAIMONs(pathdict, logging, s):
         #data[:, 0] = data[:, 0] * 100
 
         # create bins, calculate mean and 95% confidence interval
-        sys.stdout.write('Binning data - calculating 95% confidence interval\n')
+        sys.stdout.write('Binning data - calculating confidence interval\n')
+        confidence_interval = (100 - s['CI'])/100
         number_of_bins = s['specify_number_of_bins_characterising_TMDs']
         linspace_binlist = np.linspace(1, 100, number_of_bins)
         binwidth = 100/number_of_bins
         binned_data = np.empty([0, 8])
-        conf_95 = np.array([1, 2])
-        conf95_norm = np.array([1, 2])
+        # conf_95 = np.array([1, 2])
+        # conf95_norm = np.array([1, 2])
         for percentage in linspace_binlist:
             if percentage % 5 == 0:
                 sys.stdout.write('{}%, '.format(int(percentage))), sys.stdout.flush()
@@ -182,18 +183,18 @@ def gather_AAIMONs(pathdict, logging, s):
             for row in data:
                 if row[0] < percentage and row[0] > percentage - binwidth:
                     bin_for_mean = np.concatenate((bin_for_mean, row.reshape(1, 3)))
-            # calculate 95% conf. interv. in bin
             if bin_for_mean.size != 0:
-                conf_95 = sms.DescrStatsW(bin_for_mean[:, 1]).tconfint_mean()
-                # calculate 95% conf. interv. in bin _n
-                conf95_norm = sms.DescrStatsW(bin_for_mean[:, 2]).tconfint_mean()
+                # calculate conf. interv. in bin, alpha describes the significance level in the style 1-alpha
+                conf = sms.DescrStatsW(bin_for_mean[:, 1]).tconfint_mean(alpha=confidence_interval)
+                # calculate conf. interv. in bin _n, alpha describes the significance level in the style 1-alpha
+                conf_norm = sms.DescrStatsW(bin_for_mean[:, 2]).tconfint_mean(alpha=confidence_interval)
                 mean_data_in_bin = np.array([percentage - binwidth/2,
                                              # calculate mean in bin
                                              bin_for_mean[:, 1].mean(),
                                              # calculate mean in bin _n
                                              bin_for_mean[:, 2].mean(),
-                                             # add 95% conf. interv. results to np array
-                                             conf_95[0], conf_95[1], conf95_norm[0], conf95_norm[1],
+                                             # add conf. interv. results to np array
+                                             conf[0], conf[1], conf_norm[0], conf_norm[1],
                                              # add the number of TMDs in bin to bin
                                              len(bin_for_mean[:, 0])])
                 # merge data from bin to the others
@@ -209,7 +210,7 @@ def gather_AAIMONs(pathdict, logging, s):
 
         numpy array binned_Data:
         |       0       |      1      |       2       |     3    |    4    |      5     |     6     |         7          |
-        | % obs_changes | mean AAIMON | mean AAIMON_n | CI95_low | CI95_hi | CI95_low_n | CI95_hi_n | number of Proteins |
+        | % obs_changes | mean AAIMON | mean AAIMON_n |  CI_low  |  CI_hi  |  CI_low_n  |  CI_hi_n  | number of Proteins |
         '''
         # save data and binned_data as zipped pickle
         with zipfile.ZipFile(pathdict['save_df_characterising_each_homol_TMD'], mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
