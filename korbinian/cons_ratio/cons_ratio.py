@@ -550,7 +550,7 @@ def calculate_AAIMONs(p):
         os.remove(mean_ser_filename)
     return acc, True, "0"
 
-
+# DEPRECATED FUNCTION
 def throw_out_truncated_sequences(pathdict, s, logging):
     '''
     :param pathdict: dict
