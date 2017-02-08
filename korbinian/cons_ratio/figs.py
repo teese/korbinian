@@ -43,7 +43,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
     # create number of datapoint dependent alpha_dpd
     alpha_dpd = utils.calc_alpha_from_datapoints(df['AAIMON_mean_all_TMDs'])
-    sys.stdout.write('opacity of datapoints: {a:.2f}\n'.format(a=alpha_dpd))
+    sys.stdout.write('\nopacity of datapoints: {a:.2f}\n'.format(a=alpha_dpd))
     # filter to remove proteins that have less than ~5 homologues
     # this is only important for the beta-barrel dataset, which has a lot of these proteins!
     min_n_homol = s["min_n_homol_for_figs"]
@@ -99,7 +99,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             df_mean_AAIMON_each_TM.loc[acc, '{a}_AAIMON_mean'.format(a=TMD)] = df.loc[acc, '{b}_AAIMON_mean'.format(b=TMD)]
 
     # logging saved data types
-    sys.stdout.write('Saving figures as: ')
+    sys.stdout.write('\nSaving figures as: ')
     if s['save_pdf']:
         sys.stdout.write(' .pdf ')
     if s['save_png']:

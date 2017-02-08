@@ -168,7 +168,7 @@ def gather_AAIMONs(pathdict, logging, s):
         #data[:, 0] = data[:, 0] * 100
 
         # create bins, calculate mean and 95% confidence interval
-        sys.stdout.write('Binning data - calculating confidence interval\n')
+        sys.stdout.write('\nBinning data - calculating confidence interval\n')
         confidence_interval = (100 - s['CI'])/100
         number_of_bins = s['specify_number_of_bins_characterising_TMDs']
         linspace_binlist = np.linspace(1, 100, number_of_bins)

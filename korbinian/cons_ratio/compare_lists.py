@@ -64,6 +64,7 @@ def compare_lists (s):
     ###############################################################
 
     # set up general plotting parameters
+    plt.style.use('seaborn-whitegrid')
     alpha = 1
     fontsize = 10
     linewidth = 2
@@ -72,7 +73,6 @@ def compare_lists (s):
     title = 'histograms AAIMON and AAIMON_n'
     Fig_name = 'Fig01_Histograms_of_mean_AAIMON_and_AAIMON_n'
     binlist = np.linspace(0, 2, 61)
-    plt.style.use('seaborn-whitegrid')
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
 
@@ -158,7 +158,6 @@ def compare_lists (s):
     title = 'histograms AAIMON_slope and AAIMON_n_slope'
     Fig_name = 'Fig02_Histograms_of_mean_AAIMON_slope_and_AAIMON_n_slope'
     binlist = np.linspace(-0.04, 0.04, 61)
-    plt.style.use('seaborn-whitegrid')
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
 
@@ -244,7 +243,6 @@ def compare_lists (s):
     Fig_name = 'Fig03_comparing_alignable_nonTMD_sequence_excl_gaps'
     linspace_binlist = np.linspace(0, 1000, 21)
     binlist = np.append(linspace_binlist, 5000)
-    plt.style.use('seaborn-whitegrid')
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
 
@@ -316,7 +314,6 @@ def compare_lists (s):
     Fig_name = 'Fig04_comparing_number_of_TMDs'
     linspace_binlist = np.linspace(0, 26, 14)
     binlist = np.append(linspace_binlist, 100)
-    plt.style.use('seaborn-whitegrid')
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
 
@@ -384,7 +381,6 @@ def compare_lists (s):
     title = 'observed changes mean'
     Fig_name = 'Fig05_comparing_observed_changes_mean'
     binlist = np.linspace(0, 100, 11)
-    plt.style.use('seaborn-whitegrid')
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
 
@@ -455,7 +451,6 @@ def compare_lists (s):
     Fig_name = 'Fig06_comparison_number_of_homologues'
     linspace_binlist = np.linspace(0, 1000, 11)
     binlist = np.append(linspace_binlist, [2000, 3000, 4000, 5000])
-    plt.style.use('seaborn-whitegrid')
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
 
@@ -529,7 +524,6 @@ def compare_lists (s):
     min_ = -0.5
     max_ = 0.8
     binlist = np.linspace(min_, max_, 41)
-    plt.style.use('seaborn-whitegrid')
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
 
@@ -612,6 +606,73 @@ def compare_lists (s):
     # Create legend from custom artist/label lists
     ax.legend([handle for i, handle in enumerate(handles) if i in display] + [mean_, TM01_],
               [label for i, label in enumerate(labels) if i in display] + ['mean all TMDs', 'TM01'],
+              fontsize=fontsize-3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+
+    utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
+
+
+    Fig_Nr = 8
+    title = 'perc of TMD region in protein'
+    Fig_name = 'Fig08_perc_of_TMD_region_in_protein'
+    min_ = 0
+    max_ = 100
+    binlist = np.linspace(min_, max_, 21)
+    fig, ax = plt.subplots()
+    offset = len(protein_lists) - 1
+
+    for prot_list in protein_lists:
+        ###   non-normalised AAIMON   ###
+        # create numpy array of membranous over nonmembranous conservation ratios (identity)
+        hist_data = np.array(df_dict[prot_list]['perc_TMD'])
+        # use numpy to create a histogram
+        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+        freq_counts_normalised = freq_counts / freq_counts.max() + offset
+        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+        # add the final bin, which is physically located just after the last regular bin but represents all higher values
+        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
+                                            alpha=alpha, linewidth=linewidth,
+                                            label=dfv.loc[prot_list, 'list_description'])
+
+        offset = offset - 1
+
+    ###############################################################
+    #                                                             #
+    #                       set up plot style                     #
+    #                                                             #
+    ###############################################################
+
+    ax.set_xlabel('% of TMD region in protein', fontsize=fontsize)
+    # move the x-axis label closer to the x-axis
+    ax.xaxis.set_label_coords(0.45, -0.085)
+    # x and y axes min and max
+    xlim_min = min_
+    xlim_max = max_
+    ax.set_xlim(xlim_min, xlim_max)
+    ylim_min = -0.01
+    ylim_max = len(protein_lists) + 0.01
+    ax.set_ylim(ylim_min, ylim_max)
+    # set y-axis grid lines without tick labels
+    ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
+    ax.yaxis.set_ticklabels([])
+    ax.set_ylabel('relative freqency', rotation='vertical', fontsize=fontsize)
+    # change axis font size
+    ax.tick_params(labelsize=fontsize)
+    # create legend
+    ax.xaxis.set_label_coords(0.5, -0.07)
+    ax.yaxis.set_label_coords(-0.005, 0.5)
+    plt.xticks(np.arange(xlim_min, xlim_max + 0.1, 5))
+
+    # Get artists and labels for legend and chose which ones to display
+    handles, labels = ax.get_legend_handles_labels()
+    display = (list(range(0, len(protein_lists)+1, 1)))
+    # Create legend from custom artist/label lists
+    ax.legend([handle for i, handle in enumerate(handles) if i in display],
+              [label for i, label in enumerate(labels) if i in display],
               fontsize=fontsize-3, frameon=True, bbox_to_anchor=(1.07, 1.12))
 
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
