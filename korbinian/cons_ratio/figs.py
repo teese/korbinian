@@ -87,23 +87,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
     binlist = np.append(linspace_binlist, s["mp_final_highest_bin"])
 
-    # THE MEAN CALCULATIONS ARE QUITE SLOW FOR THOUSANDS OF PROTEINS,
-    # # iterate through the proteins that have a list of TMDs
-    # for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
-    #     dict_AAIMON_mean = {}
-    #     dict_AAIMON_std = {}
-    #     dict_AASMON_ratio_mean = {}
-    #     dict_AASMON_ratio_std = {}
-    #     for TMD in ast.literal_eval(df.loc[acc, 'list_of_TMDs']):
-    #         dict_AAIMON_mean[TMD] = df.loc[acc, '%s_AAIMON_mean' % TMD]
-    #         dict_AAIMON_std[TMD] = df.loc[acc, '%s_AAIMON_std' % TMD]
-    #         dict_AASMON_ratio_mean[TMD] = df.loc[acc, '%s_AASMON_ratio_mean' % TMD]
-    #         dict_AASMON_ratio_std[TMD] = df.loc[acc, '%s_AASMON_ratio_std' % TMD]
-    #     df.loc[acc, 'AAIMON_mean_all_TMDs'] = np.mean(list(dict_AAIMON_mean.values()))
-    #     df.loc[acc, 'AAIMON_std_all_TMDs'] = np.mean(list(dict_AAIMON_std.values()))
-    #     df.loc[acc, 'AASMON_ratio_mean_all_TMDs'] = np.mean(list(dict_AASMON_ratio_mean.values()))
-    #     df.loc[acc, 'AASMON_ratio_std_all_TMDs'] = np.mean(list(dict_AASMON_ratio_std.values()))
-
     # create list of colours to use in figures
     colour_lists = utils.create_colour_lists()
     tableau20 = colour_lists['tableau20']
@@ -113,8 +96,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # add AAIMON each TMD to dataframe
     for acc in df.index:
         for TMD in ast.literal_eval(df.loc[acc, 'list_of_TMDs']):
-            df_mean_AAIMON_each_TM.loc[acc, '{a}_AAIMON_mean'.format(a=TMD)] = df.loc[
-                acc, '{b}_AAIMON_mean'.format(b=TMD)]
+            df_mean_AAIMON_each_TM.loc[acc, '{a}_AAIMON_mean'.format(a=TMD)] = df.loc[acc, '{b}_AAIMON_mean'.format(b=TMD)]
 
     # logging saved data types
     sys.stdout.write('Saving figures as: ')
@@ -614,89 +596,95 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s['Fig11_Line_histogram_of_mean_AAIMON_ratios_for_selected_TMDs,_highlighting_difference_for_TM07'] and s["max_TMDs"] >= 2:
-        # these graphs are only applicable for multi-pass proteins. Use where at least 2 proteins have a 7th TMD
-        if "TM07_AAIMON_mean" in df_mean_AAIMON_each_TM.columns:
-            if df_mean_AAIMON_each_TM['TM07_AAIMON_mean'].dropna().shape[0] >= 2:
-                dataset_contains_multipass_prots = True
-            else:
-                dataset_contains_multipass_prots = False
-                sys.stdout.write('Dataset does not contain proteins with 7 TMDs; cannot create figure 11 \n')
-        else:
-            dataset_contains_multipass_prots = False
-            sys.stdout.write('Dataset does not contain multipass proteins; figure 11 cannot be created \n')
 
-        if dataset_contains_multipass_prots:
-            Fig_Nr = 11
-            title = 'Select TMDs, all data'
-            Fig_name = 'Fig11_Line_histogram_of_mean_AAIMON_ratios_for_selected_TMDs'
-            #cols_for_analysis = ['TM01', 'TM07', 'TM08', 'last_TM_AAIMON_mean']
-            cols_for_analysis = ['TM01_AAIMON_mean', 'TM07_AAIMON_mean', 'TM08_AAIMON_mean', 'TM{last_TM:02d}_AAIMON_mean'.format(last_TM=len(df_mean_AAIMON_each_TM.columns))]
-            fig, ax = plt.subplots()
-            num_bins = 50
-            # "#0489B1"
-            alpha = 0.7
-            col_width_value = 0.95
-            ylabel = 'freq'
-            xlabel = 'average conservation ratio (membranous over nonmembranous)'
-
-            for n, TM in enumerate(cols_for_analysis):
-                # define the colour for that TMD
-                # if there are more TMDs than colours, simply start from the beginning of the list again
-                if n < len(tableau20):
-                    color_num = n
-                else:
-                    color_num = n - len(tableau20)
-                color = tableau20[color_num]
-
-                hist_data = np.array(df_mean_AAIMON_each_TM[TM].dropna())
-                '''
-                Calculated the bins for a histogram, even for highly non-normal data
-                '''
-                # calculate 5th percentile
-                percentile_5 = np.percentile(hist_data, 5)  # hist_data.min()
-                # calculate 9th percentile
-                percentile_95 = np.percentile(hist_data, 95)  # hist_data.max()
-                # calculate difference
-                percentile_95_minus_5 = percentile_95 - percentile_5
-                # create buffer for bins
-                extra_xaxis_range = percentile_95_minus_5 / 4
-                # lowest bin is the 5th percentile minus the buffer, except where that is below zero
-                data_min = percentile_5 - extra_xaxis_range  # hist_data.min()
-                # ata_min = 0 if data_max < 0 else data_max
-                # highest bin is the 95th percentile
-                data_max = percentile_95 + extra_xaxis_range  # hist_data.max()
-                # create bins using the min and max
-                binlist = np.linspace(data_min, data_max, num_bins)
-                # use numpy to create a histogram
-                freq_counts_I, bin_array_I = np.histogram(hist_data, bins=binlist)
-                # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
-                col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
-                # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-                centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
-                # add the final bin, which is physically located just after the last regular bin but represents all higher values
-                bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-                centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-                linecontainer = ax.plot(centre_of_bar_in_x_axis, freq_counts_I, alpha=alpha,
-                                                           linewidth=0.3)  # edgecolor='black',
-            # label the x-axis for each plot, based on the TMD
-            ax.set_xlabel(xlabel, fontsize=fontsize)
-            # move the x-axis label closer to the x-axis
-            ax.xaxis.set_label_coords(0.45, -0.085)
-            ax.set_ylabel(ylabel, rotation='vertical', fontsize=fontsize)
-            # change axis font size
-            ax.tick_params(labelsize=fontsize)
-            # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
-            legend_obj = ax.legend(cols_for_analysis, loc='upper right', fontsize=fontsize)
-            # add title
-            # ax.set_title(title,fontsize=fontsize)
-            # add figure number to top left of subplot
-            ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
-                                           xycoords='axes fraction', alpha=0.75)
-            # add figure title to top left of subplot
-            ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
-                                           alpha=0.75)
-            utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+    # DEPRECATED. WILL BE REPLACED WITH A FIGURE THAT COMPARES TM01 with the LAST TM
+    # if s['Fig11_Line_histogram_of_mean_AAIMON_ratios_for_selected_TMDs,_highlighting_difference_for_TM07'] and s["max_TMDs"] >= 2:
+    #     # these graphs are only applicable for multi-pass proteins. Use where at least 2 proteins have a 7th TMD
+    #     if "TM07_AAIMON_mean" in df_mean_AAIMON_each_TM.columns:
+    #         if df_mean_AAIMON_each_TM['TM07_AAIMON_mean'].dropna().shape[0] >= 2:
+    #             dataset_contains_multipass_prots = True
+    #         else:
+    #             dataset_contains_multipass_prots = False
+    #             sys.stdout.write('Dataset does not contain proteins with 7 TMDs; cannot create figure 11 \n')
+    #     else:
+    #         dataset_contains_multipass_prots = False
+    #         sys.stdout.write('Dataset does not contain multipass proteins; figure 11 cannot be created \n')
+    #
+    #     if dataset_contains_multipass_prots:
+    #         Fig_Nr = 11
+    #         title = 'Select TMDs, all data'
+    #         Fig_name = 'Fig11_Line_histogram_of_mean_AAIMON_ratios_for_selected_TMDs'
+    #         #cols_for_analysis = ['TM01', 'TM07', 'TM08', 'last_TM_AAIMON_mean']
+    #         # The number of TMDs is not a good indicator of the last TMD, if there are signal peptides.
+    #         # use the len_ - 1 if there is a SP01 in the columns
+    #         len_ = len(df_mean_AAIMON_each_TM.columns)
+    #         number_TMDs_excluding_SP = len_ if "SP01" not in df_mean_AAIMON_each_TM.columns else len_ - 1
+    #
+    #         cols_for_analysis = ['TM01_AAIMON_mean', 'TM07_AAIMON_mean', 'TM08_AAIMON_mean', 'TM{last_TM:02d}_AAIMON_mean'.format(last_TM=number_TMDs_excluding_SP)]
+    #         fig, ax = plt.subplots()
+    #         num_bins = 50
+    #         # "#0489B1"
+    #         alpha = 0.7
+    #         col_width_value = 0.95
+    #         ylabel = 'freq'
+    #         xlabel = 'average conservation ratio (membranous over nonmembranous)'
+    #
+    #         for n, TM in enumerate(cols_for_analysis):
+    #             # define the colour for that TMD
+    #             # if there are more TMDs than colours, simply start from the beginning of the list again
+    #             if n < len(tableau20):
+    #                 color_num = n
+    #             else:
+    #                 color_num = n - len(tableau20)
+    #             color = tableau20[color_num]
+    #             hist_data = np.array(df_mean_AAIMON_each_TM[TM].dropna())
+    #             '''
+    #             Calculated the bins for a histogram, even for highly non-normal data
+    #             '''
+    #             # calculate 5th percentile
+    #             percentile_5 = np.percentile(hist_data, 5)  # hist_data.min()
+    #             # calculate 9th percentile
+    #             percentile_95 = np.percentile(hist_data, 95)  # hist_data.max()
+    #             # calculate difference
+    #             percentile_95_minus_5 = percentile_95 - percentile_5
+    #             # create buffer for bins
+    #             extra_xaxis_range = percentile_95_minus_5 / 4
+    #             # lowest bin is the 5th percentile minus the buffer, except where that is below zero
+    #             data_min = percentile_5 - extra_xaxis_range  # hist_data.min()
+    #             # ata_min = 0 if data_max < 0 else data_max
+    #             # highest bin is the 95th percentile
+    #             data_max = percentile_95 + extra_xaxis_range  # hist_data.max()
+    #             # create bins using the min and max
+    #             binlist = np.linspace(data_min, data_max, num_bins)
+    #             # use numpy to create a histogram
+    #             freq_counts_I, bin_array_I = np.histogram(hist_data, bins=binlist)
+    #             # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
+    #             col_width = float('%0.3f' % (col_width_value * (bin_array_I[1] - bin_array_I[0])))
+    #             # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+    #             centre_of_bar_in_x_axis = (bin_array_I[:-2] + bin_array_I[1:-1]) / 2
+    #             # add the final bin, which is physically located just after the last regular bin but represents all higher values
+    #             bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+    #             centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+    #             linecontainer = ax.plot(centre_of_bar_in_x_axis, freq_counts_I, alpha=alpha,
+    #                                                        linewidth=0.3)  # edgecolor='black',
+    #         # label the x-axis for each plot, based on the TMD
+    #         ax.set_xlabel(xlabel, fontsize=fontsize)
+    #         # move the x-axis label closer to the x-axis
+    #         ax.xaxis.set_label_coords(0.45, -0.085)
+    #         ax.set_ylabel(ylabel, rotation='vertical', fontsize=fontsize)
+    #         # change axis font size
+    #         ax.tick_params(labelsize=fontsize)
+    #         # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
+    #         legend_obj = ax.legend(cols_for_analysis, loc='upper right', fontsize=fontsize)
+    #         # add title
+    #         # ax.set_title(title,fontsize=fontsize)
+    #         # add figure number to top left of subplot
+    #         ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+    #                                        xycoords='axes fraction', alpha=0.75)
+    #         # add figure title to top left of subplot
+    #         ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+    #                                        alpha=0.75)
+    #         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig12_TMD_1-5_only'] and s["max_TMDs"] >= 2:
         Fig_Nr = 12
@@ -1566,7 +1554,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
     if s['Fig23_Boxplot_comparing_seqlen_with_mean_AAIMON']:
         Fig_Nr = 23
-        title = 'num_TMDs vs seqlen'
+        title = 'seqlen_vs_mean_AAIMON'
         Fig_name = 'Fig23_Boxplot_comparing_seqlen_with_mean_AAIMON'
         fig, ax = plt.subplots()
 
@@ -1584,7 +1572,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         for i in range(1, max_seqlen.astype(np.int64) + 1000, size_of_bin):
             hist_data = []
-            for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
+            sys.stdout.write(".")
+            sys.stdout.flush()
+            for n, acc in enumerate(df.index):
                 if df.loc[acc, 'seqlen'] > i and df.loc[acc, 'seqlen'] < i + size_of_bin:
                     hist_data.append(df.loc[acc, 'AAIMON_mean_all_TMDs'])
             data_to_plot.append(hist_data)
@@ -1599,6 +1589,10 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                           linestyle='none')
         boxplotcontainer = ax.boxplot(data_to_plot, sym='+', whis=1.5, showmeans=True,
                                       meanprops=meanpointprops)
+        list_n_datapoints = [len(x) for x in data_to_plot]
+        ax2 = ax.twinx()
+        line_graph_container = ax2.plot(list_n_datapoints, color = "#53A7D5", alpha=0.8)
+
         ax.tick_params(labelsize=fontsize)
         for box in boxplotcontainer['boxes']:
             # change outline color
