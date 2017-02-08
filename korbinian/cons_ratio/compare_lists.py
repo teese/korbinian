@@ -22,8 +22,9 @@ def compare_lists (s):
     now = datetime.datetime.now()
     folder_name = '{}{:02}{:02}-{:02}{:02}_Lists-{}'.format(now.year, now.month, now.day, now.hour, now.minute, str_protein_lists)
 
-    # folder_name for testing
-    folder_name = 'Folder_Test'
+    if s["testing_mode"]:
+        # folder_name for testing
+        folder_name = 'Folder_Test'
 
     base_filepath = os.path.join(s["data_dir"], "compare_lists", folder_name)
 
@@ -56,7 +57,6 @@ def compare_lists (s):
         # add dataframe to a dictionary of dataframes
         df_dict[prot_list] = df_temp
 
-
     ###############################################################
     #                                                             #
     #                           plot data                         #
@@ -67,8 +67,6 @@ def compare_lists (s):
     alpha = 1
     fontsize = 10
     linewidth = 2
-    #color_list = ['#949494', '#EE762C', '#005C96', '#A1B11A', '#9ECEEC']
-
 
     Fig_Nr = 1
     title = 'histograms AAIMON and AAIMON_n'
@@ -525,8 +523,98 @@ def compare_lists (s):
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
 
+    Fig_Nr = 7
+    title = 'hist_lipo_mean_all_TMDs'
+    Fig_name = 'Fig07_hist_lipo_mean_all_TMDs'
+    min_ = -0.5
+    max_ = 0.8
+    binlist = np.linspace(min_, max_, 41)
+    plt.style.use('seaborn-whitegrid')
+    fig, ax = plt.subplots()
+    offset = len(protein_lists) - 1
+
+    for prot_list in protein_lists:
+        ###   non-normalised AAIMON   ###
+        # create numpy array of membranous over nonmembranous conservation ratios (identity)
+        hist_data = np.array(df_dict[prot_list]['lipo_mean_all_TMDs'])
+        # use numpy to create a histogram
+        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+        freq_counts_normalised = freq_counts / freq_counts.max() + offset
+        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+        # add the final bin, which is physically located just after the last regular bin but represents all higher values
+        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
+                                            alpha=alpha, linewidth=linewidth,
+                                            label=dfv.loc[prot_list, 'list_description'])
+
+        ###   normalised AAIMON   ###
+        # create numpy array of membranous over nonmembranous conservation ratios (identity)
+        hist_data = np.array(df_dict[prot_list]['TM01_lipo'])
+        # use numpy to create a histogram
+        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+        freq_counts_normalised = freq_counts / freq_counts.max() + offset
+        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+        # add the final bin, which is physically located just after the last regular bin but represents all higher values
+        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, ':', color=dfv.loc[prot_list, 'color'],
+                                            alpha=alpha,
+                                            linewidth=linewidth)
 
 
+        offset = offset - 1
+
+    ###############################################################
+    #                                                             #
+    #                       set up plot style                     #
+    #                                                             #
+    ###############################################################
+
+    ax.set_xlabel('lipophilicity (Hessa scale)', fontsize=fontsize)
+    # move the x-axis label closer to the x-axis
+    ax.xaxis.set_label_coords(0.45, -0.085)
+    # x and y axes min and max
+    xlim_min = min_
+    xlim_max = max_
+    ax.set_xlim(xlim_min, xlim_max)
+    ylim_min = -0.01
+    ylim_max = len(protein_lists) + 0.01
+    ax.set_ylim(ylim_min, ylim_max)
+    # set y-axis grid lines without tick labels
+    ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
+    ax.yaxis.set_ticklabels([])
+    ax.set_ylabel('relative freqency', rotation='vertical', fontsize=fontsize)
+    # change axis font size
+    ax.tick_params(labelsize=fontsize)
+    # create legend
+    ax.xaxis.set_label_coords(0.5, -0.07)
+    ax.yaxis.set_label_coords(-0.005, 0.5)
+    plt.xticks(np.arange(xlim_min, xlim_max + 0.1, 0.2))
+
+    # add annotations
+    ax.annotate(s="more lipophilic", xy=(0, -0.07), fontsize=fontsize, xytext=None, xycoords='axes fraction')
+    ax.annotate(s="less lipophilic", xy=(0.87, -0.07), fontsize=fontsize, xytext=None, xycoords='axes fraction')
+
+    ### create legend with additional 2 elements corresponding to AAIMON and AAIMON_n ###
+    # Get artists and labels for legend and chose which ones to display
+    handles, labels = ax.get_legend_handles_labels()
+    display = (list(range(0, len(protein_lists)+1, 1)))
+    # Create custom artists
+    mean_ = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
+    TM01_ = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
+    # Create legend from custom artist/label lists
+    ax.legend([handle for i, handle in enumerate(handles) if i in display] + [mean_, TM01_],
+              [label for i, label in enumerate(labels) if i in display] + ['mean all TMDs', 'TM01'],
+              fontsize=fontsize-3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+
+    utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
 
 
     #dfv.to_csv(os.path.join(base_filepath, 'Lists_%s_variables.csv'%str_protein_lists))
