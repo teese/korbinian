@@ -192,5 +192,7 @@ def save_scatter_AAIMON_norm_and_AAIMON_slope_single_protein (fig_nr, fig, axarr
         # delete temporory files
         os.remove(norm_scatter_path_prefix + '_%01d.png' % fig_nr)
 
+    return angle
+
 
 
