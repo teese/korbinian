@@ -201,6 +201,7 @@ def prepare_protein_list(s, pathdict, logging):
     df['csv_file_av_cons_ratios_hits_BASENAME'] = df.protein_name + '_cons_ratios_'
     df['csv_file_av_cons_ratios_hits_BASENAMEPATH'] = df.simap_filename_base + '_cons_ratios_'
 
+
     ########################################################################################
     #                                                                                      #
     #                drop based on the accepted number of TMDs for that dataset            #
@@ -323,6 +324,14 @@ def prepare_protein_list(s, pathdict, logging):
     # drop rows
     df = df.drop(acc_lipo_mean_above_cutoff_to_remove)
     n_prot_AFTER_lipo_cutoff = df.shape[0]
+
+    ########################################################################################
+    #                                                                                      #
+    #                add percentage length of TMD region in full protein                   #
+    #                                                                                      #
+    ########################################################################################
+    df['TMD_seq_joined_len'] = df['TMD_seq_joined'].str.len()
+    df['perc_TMD'] = df['TMD_seq_joined_len'] / df['seqlen'] * 100
 
     ########################################################################################
     #                                                                                      #
