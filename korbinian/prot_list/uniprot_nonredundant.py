@@ -239,6 +239,7 @@ def retrieve_selected_uniprot_records_from_flatfile(input_accession_list, large_
     uniprot_index_handle = SeqIO.index(large_input_uniprot_flatfile, "swiss")
     #create an empty list to hold all the accessions that are not in the flatfile
     list_acc_not_in_flatfile = []
+    n = 0
     with open(output_flatfile, "wb") as output:
         for n, acc in enumerate(input_accession_list):
             try:
@@ -250,7 +251,7 @@ def retrieve_selected_uniprot_records_from_flatfile(input_accession_list, large_
             if n % 50 == 0:
                 if n!= 0:
                     logging.info('%i records retrieved from large flatfile' % n)
-    logging.info('%i-%i records retrieved from large flatfile' % (n, len(list_acc_not_in_flatfile)))
+    logging.info('%i-%i records retrieved from large flatfile' % (n + 1, len(list_acc_not_in_flatfile)))
     if len(list_acc_not_in_flatfile) > 0:
         logging.info("SwissProt records not found in %s:\n%s." % (large_input_uniprot_flatfile, list_acc_not_in_flatfile))
     logging.info("~~~~~~~~~~~~retrieve_selected_uniprot_records_from_flatfile is finished~~~~~~~~~~~~")

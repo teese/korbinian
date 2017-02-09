@@ -1778,8 +1778,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             raise FileNotFoundError("{} not found".format(in_zipfile))
 
         fontsize = 14
-        datapointsize = 0.00007
-        alpha = 0.2
+        #datapointsize = 0.00007
+        datapointsize = 0.0007
+        alpha = 0.3
         linewidth = 2
         color_nonnorm = "#EE762C"
         color_norm = "#0076B8"
@@ -1795,7 +1796,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # pylab.rcParams['figure.figsize'] = (50.0, 40.0)
         x = data[:, 0]  # FASTA_gapped_identity
         y = data[:, 1]  # AAIMON for each TMD
-        ax.scatter(x=x, y=y, color=color_nonnorm, alpha=alpha, s=datapointsize)  # color="#003366" is TUM-blue
+        ax.scatter(x=x, y=y, color=color_nonnorm, alpha=alpha, s=datapointsize, marker="x")  # color="#003366" is TUM-blue
         plt.ylim(ymin=0, ymax=3)
         plt.xlim(xmin=0, xmax=60)
         # label the x-axis for each plot, based on the TMD
@@ -1812,7 +1813,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # plot normalised data
         x = data[:, 0]  # FASTA_gapped_identity
         y = data[:, 2]  # AAIMON_n for each TMD
-        ax.scatter(x=x, y=y, color=color_norm, alpha=alpha, s=datapointsize)  # color="#FF6633" is TUM-orange
+        ax.scatter(x=x, y=y, color=color_norm, alpha=alpha, s=datapointsize, marker="x")  # color="#FF6633" is TUM-orange
         x_line = binned_data[:, 0]
         y_line = binned_data[:, 2]
         plt.plot(x_line, y_line, linewidth=linewidth, color=color_norm_line)  # plot linegraph

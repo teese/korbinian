@@ -11,6 +11,7 @@ import korbinian.utils as utils
 
 def compare_lists (s):
     sys.stdout.write("\n\n~~~~~~~~~~~~         starting compare_lists           ~~~~~~~~~~~~\n\n")
+    create_legend = False
     save_png = s['save_png']
     save_pdf = s['save_pdf']
     color_list = ['#949494', '#EE762C', '#005C96', '#A1B11A', '#9ECEEC', '#0076B8', '#454545']
@@ -66,7 +67,7 @@ def compare_lists (s):
     # set up general plotting parameters
     plt.style.use('seaborn-whitegrid')
     alpha = 1
-    fontsize = 10
+    fontsize = 16
     linewidth = 2
 
     Fig_Nr = 1
@@ -131,7 +132,7 @@ def compare_lists (s):
     # set y-axis grid lines without tick labels
     ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
     ax.yaxis.set_ticklabels([])
-    ax.set_ylabel('relative freqency', rotation='vertical', fontsize=fontsize)
+    ax.set_ylabel('relative frequency', rotation='vertical', fontsize=fontsize)
     # change axis font size
     ax.tick_params(labelsize=fontsize)
     # create legend
@@ -139,17 +140,26 @@ def compare_lists (s):
     ax.yaxis.set_label_coords(-0.005, 0.5)
     plt .xticks(np.arange(xlim_min, xlim_max + 0.1, 0.2))
 
-    ### create legend with additional 2 elements corresponding to AAIMON and AAIMON_n ###
-    # Get artists and labels for legend and chose which ones to display
-    handles, labels = ax.get_legend_handles_labels()
-    display = (list(range(0, len(protein_lists)+1, 1)))
-    # Create custom artists
-    AAIMON = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
-    AAIMON_norm = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
-    # Create legend from custom artist/label lists
-    ax.legend([handle for i, handle in enumerate(handles) if i in display] + [AAIMON, AAIMON_norm],
-              [label for i, label in enumerate(labels) if i in display] + ['AAIMON', 'AAIMON norm.'],
-              fontsize=fontsize-3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+    if create_legend:
+        ### create legend with additional 2 elements corresponding to AAIMON and AAIMON_n ###
+        # Get artists and labels for legend and chose which ones to display
+        handles, labels = ax.get_legend_handles_labels()
+        display = (list(range(0, len(protein_lists) + 1, 1)))
+        # Create custom artists
+        AAIMON = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
+        AAIMON_norm = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
+        # Create legend from custom artist/label lists
+        ax.legend([handle for i, handle in enumerate(handles) if i in display] + [AAIMON, AAIMON_norm],
+                  [label for i, label in enumerate(labels) if i in display] + ['AAIMON', 'AAIMON norm.'],
+                  fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+    else:
+        # Create custom artists
+        AAIMON = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
+        AAIMON_norm = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
+        # Create legend from custom artist/label lists
+        ax.legend([AAIMON, AAIMON_norm],
+                  ['AAIMON', 'AAIMON norm.'],
+                  fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
 
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
 
@@ -216,33 +226,43 @@ def compare_lists (s):
     # set y-axis grid lines without tick labels
     ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
     ax.yaxis.set_ticklabels([])
-    ax.set_ylabel('relative freqency', rotation='vertical', fontsize=fontsize)
+    ax.set_ylabel('relative frequency', rotation='vertical', fontsize=fontsize)
     # change axis font size
     ax.tick_params(labelsize=fontsize)
     # create legend
     ax.xaxis.set_label_coords(0.5, -0.07)
     ax.yaxis.set_label_coords(-0.005, 0.5)
 
-    ### create legend with additional 2 elements corresponding to AAIMON and AAIMON_n ###
-    # Get artists and labels for legend and chose which ones to display
-    handles, labels = ax.get_legend_handles_labels()
-    display = (list(range(0, len(protein_lists) + 1, 1)))
-    # Create custom artists
-    AAIMON = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
-    AAIMON_norm = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
-    # Create legend from custom artist/label lists
-    ax.legend([handle for i, handle in enumerate(handles) if i in display] + [AAIMON, AAIMON_norm],
-              [label for i, label in enumerate(labels) if i in display] + ['AAIMON_slope', 'AAIMON_slope norm.'],
-              fontsize=fontsize-3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+    if create_legend:
+        ### create legend with additional 2 elements corresponding to AAIMON and AAIMON_n ###
+        # Get artists and labels for legend and chose which ones to display
+        handles, labels = ax.get_legend_handles_labels()
+        display = (list(range(0, len(protein_lists) + 1, 1)))
+        # Create custom artists
+        AAIMON = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
+        AAIMON_norm = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
+        # Create legend from custom artist/label lists
+        ax.legend([handle for i, handle in enumerate(handles) if i in display] + [AAIMON, AAIMON_norm],
+                  [label for i, label in enumerate(labels) if i in display] + ['AAIMON_slope', 'AAIMON_slope norm.'],
+                  fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+    else:
+        # Create custom artists
+        AAIMON = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
+        AAIMON_norm = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
+        # Create legend from custom artist/label lists
+        ax.legend([AAIMON, AAIMON_norm],
+                  ['AAIMON_slope', 'AAIMON_slope norm.'],
+                  fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
 
     Fig_Nr = 3
-    title = 'nonTMD_SW_align_len_excl_gaps_mean'
-    Fig_name = 'Fig03_comparing_alignable_nonTMD_sequence_excl_gaps'
-    linspace_binlist = np.linspace(0, 1000, 21)
-    binlist = np.append(linspace_binlist, 5000)
+    title = 'seqlen'
+    Fig_name = 'Fig03_compare_seqlen'
+    linspace_binlist = np.linspace(0, 2500, 100)
+    binlist = np.append(linspace_binlist, 10000)
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
 
@@ -250,7 +270,7 @@ def compare_lists (s):
         ###   non-normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
         # hist_data = np.array(df_dict[prot_list]['nonTMD_SW_align_len_excl_gaps_mean'])
-        hist_data = np.array(df_dict[prot_list]['nonTMD_SW_align_len_excl_gaps_mean'])
+        hist_data = np.array(df_dict[prot_list]['seqlen'])
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -260,7 +280,7 @@ def compare_lists (s):
         centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
         # add the final bin, which is physically located just after the last regular bin but represents all higher values
         # bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + 125)
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + 500)
         linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
                                             alpha=alpha, linewidth=linewidth,
                                             label=dfv.loc[prot_list, 'list_description'])
@@ -273,12 +293,12 @@ def compare_lists (s):
     #                                                             #
     ###############################################################
 
-    ax.set_xlabel('nonTMD Smith-Waterman alignment length excluding gaps mean', fontsize=fontsize)
+    ax.set_xlabel('sequence length', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
     ax.xaxis.set_label_coords(0.45, -0.085)
     # x and y axes min and max
     xlim_min = 0
-    xlim_max = 1150
+    xlim_max = 3000
     ax.set_xlim(xlim_min, xlim_max)
     ylim_min = -0.01
     ylim_max = len(protein_lists) + 0.01
@@ -286,34 +306,35 @@ def compare_lists (s):
     # set y-axis grid lines without tick labels
     ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
     ax.yaxis.set_ticklabels([])
-    ax.set_ylabel('relative freqency', rotation='vertical', fontsize=fontsize)
+    ax.set_ylabel('relative frequency', rotation='vertical', fontsize=fontsize)
     # change axis font size
     ax.tick_params(labelsize=fontsize)
     ax.xaxis.set_label_coords(0.5, -0.07)
     ax.yaxis.set_label_coords(-0.005, 0.5)
 
     # set custom x-ticks
-    list_xticks = list(np.arange(xlim_min, xlim_max + 50, 100))
+    list_xticks = list(np.arange(xlim_min, xlim_max + 50, 500))
     ax.xaxis.set_ticks(list_xticks)
     # modify last x-tick with string
-    list_xticks[11] = '1001-5000'
+    list_xticks[-1] = '>2500'
     ax.set_xticklabels(list_xticks)
 
-    # Get artists and labels for legend and chose which ones to display
-    handles, labels = ax.get_legend_handles_labels()
-    display = (list(range(0, len(protein_lists) + 1, 1)))
-    # Create legend
-    ax.legend([handle for i, handle in enumerate(handles) if i in display],
-              [label for i, label in enumerate(labels) if i in display],
-              fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+    if create_legend:
+        # Get artists and labels for legend and chose which ones to display
+        handles, labels = ax.get_legend_handles_labels()
+        display = (list(range(0, len(protein_lists) + 1, 1)))
+        # Create legend
+        ax.legend([handle for i, handle in enumerate(handles) if i in display],
+                  [label for i, label in enumerate(labels) if i in display],
+                  fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
     Fig_Nr = 4
     title = 'number of TMDs'
     Fig_name = 'Fig04_comparing_number_of_TMDs'
-    linspace_binlist = np.linspace(0, 26, 14)
-    binlist = np.append(linspace_binlist, 100)
+    binlist = np.linspace(0, 25, 100)
+    binlist = np.append(binlist, [50])
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
 
@@ -331,7 +352,7 @@ def compare_lists (s):
         centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
         # add the final bin, which is physically located just after the last regular bin but represents all higher values
         # bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + 5)
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + 3)
         linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
                                             alpha=alpha, linewidth=linewidth,
                                             label=dfv.loc[prot_list, 'list_description'])
@@ -348,7 +369,7 @@ def compare_lists (s):
     ax.xaxis.set_label_coords(0.45, -0.085)
     # x and y axes min and max
     xlim_min = 0
-    xlim_max = 31
+    xlim_max = 30
     ax.set_xlim(xlim_min, xlim_max)
     ylim_min = -0.01
     ylim_max = len(protein_lists) + 0.01
@@ -356,31 +377,32 @@ def compare_lists (s):
     # set y-axis grid lines without tick labels
     ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
     ax.yaxis.set_ticklabels([])
-    ax.set_ylabel('relative freqency', rotation='vertical', fontsize=fontsize)
+    ax.set_ylabel('relative frequency', rotation='vertical', fontsize=fontsize)
     # change axis font size
     ax.tick_params(labelsize=fontsize)
     ax.xaxis.set_label_coords(0.5, -0.07)
     ax.yaxis.set_label_coords(-0.005, 0.5)
 
-    list_xticks = list(np.arange(xlim_min, xlim_max, 5))
+    list_xticks = list(np.arange(xlim_min, xlim_max, 4))
     ax.xaxis.set_ticks(list_xticks)
-    list_xticks[6] = '26-100'
+    list_xticks[7] = '>24'
     ax.set_xticklabels(list_xticks)
 
-    # Get artists and labels for legend and chose which ones to display
-    handles, labels = ax.get_legend_handles_labels()
-    display = (list(range(0, len(protein_lists) + 1, 1)))
-    # Create legend
-    ax.legend([handle for i, handle in enumerate(handles) if i in display],
-              [label for i, label in enumerate(labels) if i in display],
-              fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+    if create_legend:
+        # Get artists and labels for legend and chose which ones to display
+        handles, labels = ax.get_legend_handles_labels()
+        display = (list(range(0, len(protein_lists) + 1, 1)))
+        # Create legend
+        ax.legend([handle for i, handle in enumerate(handles) if i in display],
+                  [label for i, label in enumerate(labels) if i in display],
+                  fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
     Fig_Nr = 5
     title = 'observed changes mean'
     Fig_name = 'Fig05_comparing_observed_changes_mean'
-    binlist = np.linspace(0, 100, 11)
+    binlist = np.linspace(0, 100, 31)
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
 
@@ -411,7 +433,7 @@ def compare_lists (s):
     #                                                             #
     ###############################################################
 
-    ax.set_xlabel('% observed changes', fontsize=fontsize)
+    ax.set_xlabel('average % observed changes in homologues', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
     ax.xaxis.set_label_coords(0.45, -0.085)
     # x and y axes min and max
@@ -424,7 +446,7 @@ def compare_lists (s):
     # set y-axis grid lines without tick labels
     ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
     ax.yaxis.set_ticklabels([])
-    ax.set_ylabel('relative freqency', rotation='vertical', fontsize=fontsize)
+    ax.set_ylabel('relative frequency', rotation='vertical', fontsize=fontsize)
     # change axis font size
     ax.tick_params(labelsize=fontsize)
     ax.xaxis.set_label_coords(0.5, -0.07)
@@ -436,20 +458,21 @@ def compare_lists (s):
     # list_xticks[11]='1-5000'
     # ax.set_xticklabels(list_xticks)
 
-    # Get artists and labels for legend and chose which ones to display
-    handles, labels = ax.get_legend_handles_labels()
-    display = (list(range(0, len(protein_lists) + 1, 1)))
-    # Create legend
-    ax.legend([handle for i, handle in enumerate(handles) if i in display],
-              [label for i, label in enumerate(labels) if i in display],
-              fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+    if create_legend:
+        # Get artists and labels for legend and chose which ones to display
+        handles, labels = ax.get_legend_handles_labels()
+        display = (list(range(0, len(protein_lists) + 1, 1)))
+        # Create legend
+        ax.legend([handle for i, handle in enumerate(handles) if i in display],
+                  [label for i, label in enumerate(labels) if i in display],
+                  fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
     Fig_Nr = 6
     title = 'number of homologues'
     Fig_name = 'Fig06_comparison_number_of_homologues'
-    linspace_binlist = np.linspace(0, 1000, 11)
+    linspace_binlist = np.linspace(0, 1000, 41)
     binlist = np.append(linspace_binlist, [2000, 3000, 4000, 5000])
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
@@ -482,7 +505,7 @@ def compare_lists (s):
     #                                                             #
     ###############################################################
 
-    ax.set_xlabel('number of homologues', fontsize=fontsize)
+    ax.set_xlabel('number of valid homologues', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
     ax.xaxis.set_label_coords(0.45, -0.085)
     # x and y axes min and max
@@ -495,7 +518,7 @@ def compare_lists (s):
     # set y-axis grid lines without tick labels
     ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
     ax.yaxis.set_ticklabels([])
-    ax.set_ylabel('relative freqency', rotation='vertical', fontsize=fontsize)
+    ax.set_ylabel('relative frequency', rotation='vertical', fontsize=fontsize)
     # change axis font size
     ax.tick_params(labelsize=fontsize)
     ax.xaxis.set_label_coords(0.5, -0.07)
@@ -507,13 +530,14 @@ def compare_lists (s):
     list_xticks[-4:] = binlist[-4:].astype(int)
     ax.set_xticklabels(list_xticks)
 
-    # Get artists and labels for legend and chose which ones to display
-    handles, labels = ax.get_legend_handles_labels()
-    display = (list(range(0, len(protein_lists) + 1, 1)))
-    # Create legend
-    ax.legend([handle for i, handle in enumerate(handles) if i in display],
-              [label for i, label in enumerate(labels) if i in display],
-              fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+    if create_legend:
+        # Get artists and labels for legend and chose which ones to display
+        handles, labels = ax.get_legend_handles_labels()
+        display = (list(range(0, len(protein_lists) + 1, 1)))
+        # Create legend
+        ax.legend([handle for i, handle in enumerate(handles) if i in display],
+                  [label for i, label in enumerate(labels) if i in display],
+                  fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
@@ -584,7 +608,7 @@ def compare_lists (s):
     # set y-axis grid lines without tick labels
     ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
     ax.yaxis.set_ticklabels([])
-    ax.set_ylabel('relative freqency', rotation='vertical', fontsize=fontsize)
+    ax.set_ylabel('relative frequency', rotation='vertical', fontsize=fontsize)
     # change axis font size
     ax.tick_params(labelsize=fontsize)
     # create legend
@@ -593,20 +617,28 @@ def compare_lists (s):
     plt.xticks(np.arange(xlim_min, xlim_max + 0.1, 0.2))
 
     # add annotations
-    ax.annotate(s="more lipophilic", xy=(0, -0.07), fontsize=fontsize, xytext=None, xycoords='axes fraction')
-    ax.annotate(s="less lipophilic", xy=(0.87, -0.07), fontsize=fontsize, xytext=None, xycoords='axes fraction')
+    ax.annotate(s="more lipophilic", xy=(0, -0.08), fontsize=fontsize, xytext=None, xycoords='axes fraction')
+    ax.annotate(s="less lipophilic", xy=(1.0, -0.08), fontsize=fontsize, xytext=None, horizontalalignment='right', xycoords='axes fraction')
 
-    ### create legend with additional 2 elements corresponding to AAIMON and AAIMON_n ###
-    # Get artists and labels for legend and chose which ones to display
-    handles, labels = ax.get_legend_handles_labels()
-    display = (list(range(0, len(protein_lists)+1, 1)))
-    # Create custom artists
-    mean_ = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
-    TM01_ = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
-    # Create legend from custom artist/label lists
-    ax.legend([handle for i, handle in enumerate(handles) if i in display] + [mean_, TM01_],
-              [label for i, label in enumerate(labels) if i in display] + ['mean all TMDs', 'TM01'],
-              fontsize=fontsize-3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+    if create_legend:
+        ### create legend with additional 2 elements corresponding to AAIMON and AAIMON_n ###
+        # Get artists and labels for legend and chose which ones to display
+        handles, labels = ax.get_legend_handles_labels()
+        display = (list(range(0, len(protein_lists)+1, 1)))
+        # Create custom artists
+        mean_ = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
+        TM01_ = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
+        # Create legend from custom artist/label lists
+        ax.legend([handle for i, handle in enumerate(handles) if i in display] + [mean_, TM01_],
+                  [label for i, label in enumerate(labels) if i in display] + ['mean all TMDs', 'TM01'],
+                  fontsize=fontsize-3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+    else:
+        # Create custom artists
+        mean_ = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
+        TM01_ = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
+        # Create legend from custom artist/label lists
+        ax.legend([mean_, TM01_],['mean all TMDs', 'TM01'],
+                  fontsize=fontsize-3, frameon=True, bbox_to_anchor=(1.07, 1.12))
 
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
 
@@ -616,7 +648,7 @@ def compare_lists (s):
     Fig_name = 'Fig08_perc_of_TMD_region_in_protein'
     min_ = 0
     max_ = 100
-    binlist = np.linspace(min_, max_, 21)
+    binlist = np.linspace(min_, max_, 101)
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
 
@@ -646,7 +678,7 @@ def compare_lists (s):
     #                                                             #
     ###############################################################
 
-    ax.set_xlabel('% of TMD region in protein', fontsize=fontsize)
+    ax.set_xlabel('% residues within TM region', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
     ax.xaxis.set_label_coords(0.45, -0.085)
     # x and y axes min and max
@@ -659,21 +691,22 @@ def compare_lists (s):
     # set y-axis grid lines without tick labels
     ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
     ax.yaxis.set_ticklabels([])
-    ax.set_ylabel('relative freqency', rotation='vertical', fontsize=fontsize)
+    ax.set_ylabel('relative frequency', rotation='vertical', fontsize=fontsize)
     # change axis font size
     ax.tick_params(labelsize=fontsize)
     # create legend
     ax.xaxis.set_label_coords(0.5, -0.07)
     ax.yaxis.set_label_coords(-0.005, 0.5)
-    plt.xticks(np.arange(xlim_min, xlim_max + 0.1, 5))
+    plt.xticks(np.arange(xlim_min, xlim_max + 0.1, 10))
 
-    # Get artists and labels for legend and chose which ones to display
-    handles, labels = ax.get_legend_handles_labels()
-    display = (list(range(0, len(protein_lists)+1, 1)))
-    # Create legend from custom artist/label lists
-    ax.legend([handle for i, handle in enumerate(handles) if i in display],
-              [label for i, label in enumerate(labels) if i in display],
-              fontsize=fontsize-3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+    if create_legend:
+        # Get artists and labels for legend and chose which ones to display
+        handles, labels = ax.get_legend_handles_labels()
+        display = (list(range(0, len(protein_lists)+1, 1)))
+        # Create legend from custom artist/label lists
+        ax.legend([handle for i, handle in enumerate(handles) if i in display],
+                  [label for i, label in enumerate(labels) if i in display],
+                  fontsize=fontsize-3, frameon=True, bbox_to_anchor=(1.07, 1.12))
 
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
 
