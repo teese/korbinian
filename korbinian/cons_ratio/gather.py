@@ -168,36 +168,64 @@ def gather_AAIMONs(pathdict, logging, s):
         # drop every row with nan
         data = data[~np.isnan(data).any(axis=1)]
 
-
         # create bins, calculate mean and confidence interval in bin - use multiprocessing if possible
         sys.stdout.write('\nBinning data - calculating confidence interval\n')
-
-        use_multiprocessing = s['use_multiprocessing']
-        n_processes = s['multiprocessing_cores']
-        remove_from_binlist = int((1 - s['fa_min_identity_of_full_protein']) * 100)
         number_of_bins = s['specify_number_of_bins_characterising_TMDs']
+        # process confidence interval value to appropriate input format for function
         confidence_interval = (100 - s['CI']) / 100
-        linspace_binlist = np.linspace(1, 100, number_of_bins)[:remove_from_binlist]
+        linspace_binlist = np.linspace(1, 100, number_of_bins)
         binned_data = np.empty([0, 8])
         binwidth = 100 / number_of_bins
-        list_p = []
         for percentage in linspace_binlist:
-            data_as_dict = {'data': data, 'percentage': percentage, 'binwidth': binwidth, 'confidence_interval': confidence_interval}
-            list_p.append(data_as_dict)
+            bin_for_mean = data[(percentage >= data[:, 0]) & (data[:, 0] > percentage - binwidth)]
+            if bin_for_mean.size != 0:
+                # calculate conf. interv. in bin, alpha describes the significance level in the style 1-alpha
+                conf = sms.DescrStatsW(bin_for_mean[:, 1]).tconfint_mean(alpha=confidence_interval)
+                # calculate conf. interv. in bin _n, alpha describes the significance level in the style 1-alpha
+                conf_norm = sms.DescrStatsW(bin_for_mean[:, 2]).tconfint_mean(alpha=confidence_interval)
+                mean_data_in_bin = np.array([percentage - binwidth / 2,
+                                             # calculate mean in bin
+                                             bin_for_mean[:, 1].mean(),
+                                             # calculate mean in bin _n
+                                             bin_for_mean[:, 2].mean(),
+                                             # add conf. interv. results to np array
+                                             conf[0], conf[1], conf_norm[0], conf_norm[1],
+                                             # add the number of TMDs in bin to bin
+                                             len(bin_for_mean[:, 0])])
+                mean_data_in_bin = mean_data_in_bin.reshape(1, 8)
+                sys.stdout.write('.'), sys.stdout.flush()
+                binned_data = np.concatenate((mean_data_in_bin.reshape(1, 8), binned_data))
 
-        if use_multiprocessing:
-            with Pool(processes=n_processes) as pool:
-                    mean_data_in_bin = pool.map(binning_data_multiprocessing, list_p)
-        else:
-            mean_data_in_bin = []
-            for p in list_p:
-                output = binning_data_multiprocessing(p)
-                if type(output) is np.ndarray:
-                    mean_data_in_bin.append(output)
 
-        for n, element in enumerate(mean_data_in_bin):
-            if type(mean_data_in_bin[n]) is np.ndarray:
-                binned_data = np.concatenate((mean_data_in_bin[n].reshape(1, 8), binned_data))
+        # # create bins, calculate mean and confidence interval in bin - use multiprocessing if possible
+        # sys.stdout.write('\nBinning data - calculating confidence interval\n')
+        #
+        # use_multiprocessing = s['use_multiprocessing']
+        # n_processes = s['multiprocessing_cores']
+        # remove_from_binlist = int((1 - s['fa_min_identity_of_full_protein']) * 100)
+        # number_of_bins = s['specify_number_of_bins_characterising_TMDs']
+        # confidence_interval = (100 - s['CI']) / 100
+        # linspace_binlist = np.linspace(1, 100, number_of_bins)[:remove_from_binlist]
+        # binned_data = np.empty([0, 8])
+        # binwidth = 100 / number_of_bins
+        # list_p = []
+        # for percentage in linspace_binlist:
+        #     data_as_dict = {'data': data, 'percentage': percentage, 'binwidth': binwidth, 'confidence_interval': confidence_interval}
+        #     list_p.append(data_as_dict)
+        #
+        # if use_multiprocessing:
+        #     with Pool(processes=n_processes) as pool:
+        #             mean_data_in_bin = pool.map(binning_data_multiprocessing, list_p)
+        # else:
+        #     mean_data_in_bin = []
+        #     for p in list_p:
+        #         output = binning_data_multiprocessing(p)
+        #         if type(output) is np.ndarray:
+        #             mean_data_in_bin.append(output)
+        #
+        # for n, element in enumerate(mean_data_in_bin):
+        #     if type(mean_data_in_bin[n]) is np.ndarray:
+        #         binned_data = np.concatenate((mean_data_in_bin[n].reshape(1, 8), binned_data))
 
 
         # create bins, calculate mean and 95% confidence interval
@@ -263,40 +291,40 @@ def gather_AAIMONs(pathdict, logging, s):
     logging.info("\n~~~~~~~~~~~~                           finished gather_AAIMONs                      ~~~~~~~~~~~~")
 
 
-########################################################################################
-#                                                                                      #
-#                function for binning data using multiprocessing                       #
-#                                                                                      #
-########################################################################################
-
-def binning_data_multiprocessing(data_as_dict):
-    data = data_as_dict['data']
-    percentage = data_as_dict['percentage']
-    binwidth = data_as_dict['binwidth']
-    confidence_interval = data_as_dict['confidence_interval']
-    bin_for_mean = np.empty([0, 3])
-    mean_data_in_bin = np.empty([0, 8])
-    sys.stdout.write('.'), sys.stdout.flush()
-    for row in data:
-        if row[0] < percentage and row[0] > percentage - binwidth:
-            bin_for_mean = np.concatenate((bin_for_mean, row.reshape(1, 3)))
-    if bin_for_mean.size != 0:
-        # calculate conf. interv. in bin, alpha describes the significance level in the style 1-alpha
-        conf = sms.DescrStatsW(bin_for_mean[:, 1]).tconfint_mean(alpha=confidence_interval)
-        # calculate conf. interv. in bin _n, alpha describes the significance level in the style 1-alpha
-        conf_norm = sms.DescrStatsW(bin_for_mean[:, 2]).tconfint_mean(alpha=confidence_interval)
-        mean_data_in_bin = np.array([percentage - binwidth/2,
-                                     # calculate mean in bin
-                                     bin_for_mean[:, 1].mean(),
-                                     # calculate mean in bin _n
-                                     bin_for_mean[:, 2].mean(),
-                                     # add conf. interv. results to np array
-                                     conf[0], conf[1], conf_norm[0], conf_norm[1],
-                                     # add the number of TMDs in bin to bin
-                                     len(bin_for_mean[:, 0])])
-        mean_data_in_bin = mean_data_in_bin.reshape(1, 8)
-    if mean_data_in_bin.any():
-        return mean_data_in_bin
+# ########################################################################################
+# #                                                                                      #
+# #                function for binning data using multiprocessing                       #
+# #                                                                                      #
+# ########################################################################################
+#
+# def binning_data_multiprocessing(list_p):
+#     data = list_p['data']
+#     percentage = list_p['percentage']
+#     binwidth = list_p['binwidth']
+#     confidence_interval = list_p['confidence_interval']
+#     bin_for_mean = np.empty([0, 3])
+#     mean_data_in_bin = np.empty([0, 8])
+#     sys.stdout.write('.'), sys.stdout.flush()
+#     for row in data:
+#         if row[0] < percentage and row[0] > percentage - binwidth:
+#             bin_for_mean = np.concatenate((bin_for_mean, row.reshape(1, 3)))
+#     if bin_for_mean.size != 0:
+#         # calculate conf. interv. in bin, alpha describes the significance level in the style 1-alpha
+#         conf = sms.DescrStatsW(bin_for_mean[:, 1]).tconfint_mean(alpha=confidence_interval)
+#         # calculate conf. interv. in bin _n, alpha describes the significance level in the style 1-alpha
+#         conf_norm = sms.DescrStatsW(bin_for_mean[:, 2]).tconfint_mean(alpha=confidence_interval)
+#         mean_data_in_bin = np.array([percentage - binwidth/2,
+#                                      # calculate mean in bin
+#                                      bin_for_mean[:, 1].mean(),
+#                                      # calculate mean in bin _n
+#                                      bin_for_mean[:, 2].mean(),
+#                                      # add conf. interv. results to np array
+#                                      conf[0], conf[1], conf_norm[0], conf_norm[1],
+#                                      # add the number of TMDs in bin to bin
+#                                      len(bin_for_mean[:, 0])])
+#         mean_data_in_bin = mean_data_in_bin.reshape(1, 8)
+#     if mean_data_in_bin.any():
+#         return mean_data_in_bin
 
 
 
