@@ -1778,11 +1778,12 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             raise FileNotFoundError("{} not found".format(in_zipfile))
 
         fontsize = 14
-        datapointsize = 1
-        alpha = 0.05
+        datapointsize = 0.00007
+        alpha = 0.2
         linewidth = 2
         color_nonnorm = "#EE762C"
         color_norm = "#0076B8"
+        color_norm_line = "#53A7D5"
         fig, ax = plt.subplots()
 
         # set color of axis label to black
@@ -1798,10 +1799,10 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         plt.ylim(ymin=0, ymax=3)
         plt.xlim(xmin=0, xmax=60)
         # label the x-axis for each plot, based on the TMD
-        ax.set_xlabel('% observed changes', fontsize=fontsize)
+        ax.set_xlabel('% observed changes', fontsize=fontsize + 2)
         # move the x-axis label closer to the x-axis
         # ax.xaxis.set_label_coords(0.45, -0.085)
-        ax.set_ylabel('AAIMON ratio', fontsize=fontsize)
+        ax.set_ylabel('AAIMON ratio', fontsize=fontsize + 2)
         # change axis font size
         ax.tick_params(labelsize=fontsize)
         x_line = binned_data[:, 0]
@@ -1814,16 +1815,16 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.scatter(x=x, y=y, color=color_norm, alpha=alpha, s=datapointsize)  # color="#FF6633" is TUM-orange
         x_line = binned_data[:, 0]
         y_line = binned_data[:, 2]
-        plt.plot(x_line, y_line, linewidth=linewidth, color=color_norm)  # plot linegraph
+        plt.plot(x_line, y_line, linewidth=linewidth, color=color_norm_line)  # plot linegraph
 
         # remove unwanted axis ticks on top and right
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
 
-        #ax.xaxis.set_label_coords(0.45, -0.1)  # move x-axis label towards graph
-        #ax.yaxis.set_label_coords(-0.09, 0.45)  # move y-axis label towards graph
+        ax.xaxis.set_label_coords(0.5, -0.07)  # move x-axis label towards graph
+        ax.yaxis.set_label_coords(-0.07, 0.5)  # move y-axis label towards graph
 
-        ax.legend(['AAIMON', 'AAIMON norm.'], loc='upper right', fontsize=fontsize)  # create legend
+        ax.legend(['AAIMON', 'AAIMON norm.'], loc='upper left', fontsize=fontsize, frameon=True)  # create legend
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png=True, save_pdf=False, dpi=150, close=False)
         utils.save_figure(fig, Fig_name + "_highres", base_filepath, save_png=True, save_pdf=False, dpi=600)
@@ -1862,8 +1863,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         plt.ylim(ymin=0.5, ymax=2)
         plt.xlim(xmin=0, xmax=60)
         # label the x-axis for each plot, based on the TMD
-        ax.set_xlabel('% observed changes', fontsize=fontsize)
-        ax.set_ylabel('AAIMON ratio', fontsize=fontsize)
+        ax.set_xlabel('% observed changes', fontsize=fontsize+2)
+        ax.set_ylabel('AAIMON ratio', fontsize=fontsize+2)
         # change axis font size
         ax.tick_params(labelsize=fontsize)
 
