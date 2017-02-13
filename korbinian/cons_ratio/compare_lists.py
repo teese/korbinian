@@ -515,9 +515,11 @@ def compare_lists (s):
     xlim_max = 5000
     ax.set_xlim(xlim_min, xlim_max)
     ylim_min = -0.01
-    ylim_max = len(protein_lists) + 0.1
+    ylim_max = len(protein_lists) + 0.01
     ax.set_ylim(ylim_min, ylim_max)
-    ax.get_yaxis().set_ticks([])
+    # set y-axis grid lines without tick labels
+    ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
+    ax.yaxis.set_ticklabels([])
     ax.set_ylabel('relative frequency', rotation='vertical', fontsize=fontsize)
     # change axis font size
     ax.tick_params(labelsize=fontsize)
