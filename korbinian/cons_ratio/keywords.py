@@ -44,6 +44,8 @@ def keyword_analysis(pathdict, s, logging):
     #save figures to .pdf or .png
     save_png = s["save_png"]
     save_pdf = s["save_pdf"]
+    # max number of correlated keywords in keywords summary dataframe
+    max_n_kw_in_df = 3 #s['cutoff_number_correlated_keywords']
     # create binlist for histograms
     smallest_bin = -0.04
     largest_bin = 0.04
@@ -118,11 +120,12 @@ def keyword_analysis(pathdict, s, logging):
     if df['GPCR'].any:
         data_contains_GPCRs = True
 
-    # check if dataset is SP, MP or BB
-    if df['singlepass'].any:
-        dataset_is_SP = True
-    if df['multipass'].any:
-        dataset_is_SP = True
+    # check if dataset is SP or MP
+    dataset = 'none'
+    if df['singlepass'].any():
+        dataset = 'SP'
+    if df['multipass'].any():
+        dataset = 'MP'
 
     # join all keywords together into a large list
     nested_list_all_KW = list(itertools.chain(*list(df['uniprot_KW'])))
@@ -140,6 +143,8 @@ def keyword_analysis(pathdict, s, logging):
     # define list of keywords that get excluded from analysis related to other keywords, if keyword is analysed, it gets included
     # move to settings file !?!?
     keywords_for_exclusion = ['Enzyme', 'Ion channel']
+    # symbols for annotation
+    symbols = ['+', '#']
     # create bool in column for keyword to remove
     for element in keywords_for_exclusion:
         excl_list = ['{}'.format(element)]
@@ -152,6 +157,8 @@ def keyword_analysis(pathdict, s, logging):
         df_correlation = pd.DataFrame(index=list_KW_counts_major, columns=list_KW_counts_major)
         # initialise pandas dataframe that holds significant raw data for histogram re-creation
         dfr = pd.DataFrame(index=df.index)
+        # initialise pretty dataframe
+        dfp = pd.DataFrame(index=list_KW_counts_major + ['annotations'])
         # initialise figure number
         Fig_Nr = 0
         # add mean and std of whole dataset (AAIMON and AAIMON_slope)
@@ -179,6 +186,7 @@ def keyword_analysis(pathdict, s, logging):
             # check if keyword-dataframe still matches cutoff_major_keywords requirements
             if len(df_keyword) < cutoff_major_keywords:
                 dfk = dfk.drop(keyword)
+                dfp = dfp.drop(keyword)
                 sys.stdout.write('\n\nkeyword "{}" does not match the requirements after excluding {}\n'.format(keyword, list_to_exclude))
                 continue
 
@@ -214,7 +222,8 @@ def keyword_analysis(pathdict, s, logging):
             dfk.loc[keyword, 'p-value_AAIMON'] = p_AAIMON
 
             # calculate odds ratio, p- and t-values for AAIMON_slopes
-            dfk.loc[keyword, 'difference_AAIMON_slope'] = abs(dfk.loc[keyword, 'AAIMON_slope_keyword_mean'] - dfk.loc[keyword, 'AAIMON_slope_no_keyword_mean'])
+            difference_AAIMON_slope = abs(dfk.loc[keyword, 'AAIMON_slope_keyword_mean'] - dfk.loc[keyword, 'AAIMON_slope_no_keyword_mean'])
+            dfk.loc[keyword, 'difference_AAIMON_slope'] = difference_AAIMON_slope
             KW_slope = df_keyword['AAIMON_slope_mean_all_TMDs'].dropna()
             no_KW_slope = df_no_keyword['AAIMON_slope_mean_all_TMDs'].dropna()
             t_AAIMON_slope, p_AAIMON_slope = ttest_ind(KW_slope, no_KW_slope, equal_var=True)             # equal_var True or False ?!?!
@@ -234,6 +243,7 @@ def keyword_analysis(pathdict, s, logging):
                                      o=dfk.loc[keyword, 'difference_AAIMON_slope'],
                                      p=dfk.loc[keyword, 't-value_AAIMON_slope'],
                                      q=dfk.loc[keyword, 'p-value_AAIMON_slope']))
+
 
             ###############################################################
             #                                                             #
@@ -256,10 +266,12 @@ def keyword_analysis(pathdict, s, logging):
                 correlated_keywords = df_correlation[keyword]
                 # remove rows with 0
                 correlated_keywords = correlated_keywords[(correlated_keywords != 0)]
+                correlated_keywords_pretty = correlated_keywords.drop(keyword).sort_values(ascending=False).head(max_n_kw_in_df).index.tolist()
                 correlated_keywords = correlated_keywords.drop(keyword).sort_values(ascending=False).head(10).to_string()
                 dfk.loc[keyword, 'correlated_KW'] = correlated_keywords
             else:
                 dfk.loc[keyword, 'correlated_KW'] = 'no correlated keywords found'
+                correlated_keywords_pretty = 'no correlated keywords found'
 
             ###############################################################
             #                                                             #
@@ -325,7 +337,7 @@ def keyword_analysis(pathdict, s, logging):
 
                 ax.set_xlabel('AAIMON slope', fontsize=fontsize)
                 # move the x-axis label closer to the x-axis
-                ax.xaxis.set_label_coords(0.45, -0.085)
+                #ax.xaxis.set_label_coords(0.45, -0.085)
                 # x and y axes min and max
                 xlim_min = -0.04
                 xlim_max = 0.04
@@ -340,7 +352,7 @@ def keyword_analysis(pathdict, s, logging):
                 # change axis font size
                 ax.tick_params(labelsize=fontsize)
                 # create legend
-                legend_obj = ax.legend(['containing KW n={}'.format(number_of_proteins_keyword), 'without KW n={}'.format(number_of_proteins_no_keyword)], loc='upper right', fontsize=fontsize)
+                legend_obj = ax.legend(['containing KW n={}'.format(number_of_proteins_keyword), 'without KW n={}'.format(number_of_proteins_no_keyword)], loc='upper right', fontsize=fontsize, frameon=True)
                 # add figure number to top left of subplot
                 ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', alpha=0.75)
                 # add figure title to top left of subplot
@@ -350,11 +362,44 @@ def keyword_analysis(pathdict, s, logging):
                 # save every individual figure
                 utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
+            # add selected stuff to pretty dataframe dfp if significant, if not, drop keyword from dfp, create annotations
+            if p_AAIMON_slope <= 0.05:
+                if not keyword in keywords_for_exclusion:
+                    replace = keyword
+                    keyword = '{}*'.format(keyword)
+                    dfp = dfp.rename(index={replace : keyword})
+                else:
+                    if not keyword in keywords_for_exclusion[0]:
+                        replace = keyword
+                        keyword = '{}{}'.format(keyword, symbols[0])
+                        dfp = dfp.rename(index={replace: keyword})
+                    elif not keyword in keywords_for_exclusion[1]:
+                        replace = keyword
+                        keyword = '{}{}'.format(keyword, symbols[1])
+                        dfp = dfp.rename(index={replace: keyword})
+                dfp.loc[keyword, 'Dataset'] = dataset
+                dfp.loc[keyword, 'p-value'] = float('%E' % p_AAIMON_slope)
+                dfp.loc[keyword, 'Difference mean AAIMON slope'] = float('%0.4f' % difference_AAIMON_slope)
+                dfp.loc[keyword, 'Number of proteins with / without keyword'] = '{} / {}'.format(number_of_proteins_keyword, number_of_proteins_no_keyword)
+                dfp.loc[keyword, 'Top correlated keywords'] = '\n'.join(correlated_keywords_pretty)
+            else:
+                dfp = dfp.drop(keyword)
+
+        # sort dataframes by p-value of AAIMON slopes
+        dfk = dfk.sort_values('p-value_AAIMON_slope')
+        dfp = dfp.sort_values('p-value')
+
+        annotate = ['*excluding {}'.format(', '.join(list_to_exclude))]
+        for n, element in enumerate(list_to_exclude):
+            annotate.append('{}excluding {}'.format(symbols[n], element))
+
+        dfp.loc['annotations', 'Dataset'] = '; '.join(annotate)
+
         # save pandas dataframes with values
         dfk.to_csv(os.path.join(pathdict["keywords"], 'List%02d_keywords.csv' % s["list_number"]), sep=",", quoting=csv.QUOTE_NONNUMERIC)
         df_correlation.to_csv(os.path.join(pathdict["keywords"], 'List%02d_KW_cross_correlation.csv' % s["list_number"]), sep=",", quoting=csv.QUOTE_NONNUMERIC)
         dfr.to_csv(os.path.join(pathdict["keywords"], 'List%02d_keywords_significant_RAW_data.csv' % s["list_number"]), sep=",", quoting=csv.QUOTE_NONNUMERIC)
-
+        dfp.to_csv(os.path.join(pathdict["keywords"], 'List%02d_keywords_pretty.csv' % s["list_number"]), sep=",", quoting=csv.QUOTE_NONNUMERIC)
     else:
         return 'no valid keywords found! change "cutoff_major_keywords" setting! \ncurrent value: {}'.format(s['cutoff_major_keywords'])
 
