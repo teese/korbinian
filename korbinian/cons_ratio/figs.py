@@ -506,10 +506,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         boxplotcontainer = ax.boxplot(data_to_plot, sym='+', whis=1.5, showmeans=True,
                                       meanprops=meanpointprops)
 
-        list_n_datapoints = [len(x) for x in data_to_plot]
-        # ax2 = ax.twinx()
-        # line_graph_container = ax2.plot(list_n_datapoints, color = "#53A7D5", alpha=0.8)
-
         ax.tick_params(labelsize=fontsize)
         for box in boxplotcontainer['boxes']:
             # change outline color

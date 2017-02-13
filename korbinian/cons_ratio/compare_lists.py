@@ -11,7 +11,7 @@ import korbinian.utils as utils
 
 def compare_lists (s):
     sys.stdout.write("\n\n~~~~~~~~~~~~         starting compare_lists           ~~~~~~~~~~~~\n\n")
-    create_legend = False
+    create_legend = True
     save_png = s['save_png']
     save_pdf = s['save_pdf']
     color_list = ['#949494', '#EE762C', '#005C96', '#A1B11A', '#9ECEEC', '#0076B8', '#454545']
@@ -472,12 +472,14 @@ def compare_lists (s):
     Fig_Nr = 6
     title = 'number of homologues'
     Fig_name = 'Fig06_comparison_number_of_homologues'
-    linspace_binlist = np.linspace(0, 1000, 41)
-    binlist = np.append(linspace_binlist, [2000, 3000, 4000, 5000])
-    fig, ax = plt.subplots()
+    binlist = np.linspace(0, 5000, 51)
     offset = len(protein_lists) - 1
 
-    for prot_list in protein_lists:
+    fig, (ax, ax1) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [6, 1]})
+
+    for n, prot_list in enumerate(protein_lists):
+        ax1.bar(n + 1, sum(df_dict[prot_list]['TM01_AAIMON_n_homol'] / 100000), width=0.75, align='center', color=dfv.loc[prot_list, 'color'], edgecolor='')
+
         ###   non-normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
         # hist_data = np.array(df_dict[prot_list]['nonTMD_SW_align_len_excl_gaps_mean'])
@@ -492,7 +494,7 @@ def compare_lists (s):
         # add the final bin, which is physically located just after the last regular bin but represents all higher values
         bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
         centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        centre_of_bar_in_x_axis[-4:] = [1100, 1300, 1500, 1700]
+        # centre_of_bar_in_x_axis [-len(linspace_binlist_2):] = linspace_binlist_2 - 50
         linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
                                             alpha=alpha, linewidth=linewidth,
                                             label=dfv.loc[prot_list, 'list_description'])
@@ -505,19 +507,17 @@ def compare_lists (s):
     #                                                             #
     ###############################################################
 
-    ax.set_xlabel('number of valid homologues', fontsize=fontsize)
+    ax.set_xlabel('number of homologues $*10^3$', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
     ax.xaxis.set_label_coords(0.45, -0.085)
     # x and y axes min and max
     xlim_min = 0
-    xlim_max = 1800
+    xlim_max = 5000
     ax.set_xlim(xlim_min, xlim_max)
     ylim_min = -0.01
-    ylim_max = len(protein_lists) + 0.01
+    ylim_max = len(protein_lists) + 0.1
     ax.set_ylim(ylim_min, ylim_max)
-    # set y-axis grid lines without tick labels
-    ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
-    ax.yaxis.set_ticklabels([])
+    ax.get_yaxis().set_ticks([])
     ax.set_ylabel('relative frequency', rotation='vertical', fontsize=fontsize)
     # change axis font size
     ax.tick_params(labelsize=fontsize)
@@ -525,10 +525,17 @@ def compare_lists (s):
     ax.yaxis.set_label_coords(-0.005, 0.5)
 
     ax.xaxis.get_majorticklocs()
-    list_xticks = list(np.arange(xlim_min, xlim_max + 1, 200))
-    ax.xaxis.set_ticks(list_xticks)
-    list_xticks[-4:] = binlist[-4:].astype(int)
-    ax.set_xticklabels(list_xticks)
+    # list_xticks = list(np.arange(xlim_min, xlim_max+1 , 500))
+    ax.xaxis.set_ticks(list(np.arange(xlim_min, xlim_max + 1, 500)))
+    # list_xticks[-len(linspace_binlist_2):] = range(1100, 2700, 100)
+    ax.set_xticklabels(list(np.arange(xlim_min, xlim_max + 1, 500) / 1000))
+
+    ax1.yaxis.tick_right()
+    ax1.set_ylabel('number of homologues in dataset $*10^5$', fontsize=fontsize)
+    ax1.yaxis.set_label_position("right")
+    ax1.xaxis.set_ticks(range(1, len(df_dict) + 1, 1))
+    ax1.set_xticklabels([])
+    plt.subplots_adjust(wspace=0.05, hspace=0)
 
     if create_legend:
         # Get artists and labels for legend and chose which ones to display
@@ -537,7 +544,7 @@ def compare_lists (s):
         # Create legend
         ax.legend([handle for i, handle in enumerate(handles) if i in display],
                   [label for i, label in enumerate(labels) if i in display],
-                  fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+                  fontsize=fontsize - 3, frameon=True)
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
