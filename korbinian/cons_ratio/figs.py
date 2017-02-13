@@ -1777,11 +1777,12 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         else:
             raise FileNotFoundError("{} not found".format(in_zipfile))
 
-        fontsize = 14
-        #datapointsize = 0.00007
-        datapointsize = 0.0007
-        alpha = 0.3
+        marker = 'x'
+        datapointsize = 0.08
+        alpha = 0.2
+        alpha_line = 1
         linewidth = 2
+        linewidths = 0.3
         color_nonnorm = "#EE762C"
         color_norm = "#0076B8"
         color_norm_line = "#53A7D5"
@@ -1796,34 +1797,32 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # pylab.rcParams['figure.figsize'] = (50.0, 40.0)
         x = data[:, 0]  # FASTA_gapped_identity
         y = data[:, 1]  # AAIMON for each TMD
-        ax.scatter(x=x, y=y, color=color_nonnorm, alpha=alpha, s=datapointsize, marker="x")  # color="#003366" is TUM-blue
+        ax.scatter(x=x, y=y, color=color_nonnorm, alpha=alpha, s=datapointsize, marker=marker, linewidths=linewidths)  # color="#003366" is TUM-blue
         plt.ylim(ymin=0, ymax=3)
         plt.xlim(xmin=0, xmax=60)
         # label the x-axis for each plot, based on the TMD
-        ax.set_xlabel('% observed changes', fontsize=fontsize + 2)
+        ax.set_xlabel('% observed changes', fontsize=fontsize + 4)
         # move the x-axis label closer to the x-axis
         # ax.xaxis.set_label_coords(0.45, -0.085)
-        ax.set_ylabel('AAIMON ratio', fontsize=fontsize + 2)
+        ax.set_ylabel('AAIMON ratio', fontsize=fontsize + 4)
         # change axis font size
         ax.tick_params(labelsize=fontsize)
         x_line = binned_data[:, 0]
         y_line = binned_data[:, 1]
-        plt.plot(x_line, y_line, linewidth=linewidth, color=color_nonnorm)  # plot linegraph
+        ax.plot(x_line, y_line, linewidth=linewidth, color=color_nonnorm, alpha=alpha_line)  # plot linegraph
 
         # plot normalised data
         x = data[:, 0]  # FASTA_gapped_identity
         y = data[:, 2]  # AAIMON_n for each TMD
-        ax.scatter(x=x, y=y, color=color_norm, alpha=alpha, s=datapointsize, marker="x")  # color="#FF6633" is TUM-orange
+        ax.scatter(x=x, y=y, color=color_norm, alpha=alpha, s=datapointsize, marker=marker, linewidths=linewidths)  # color="#FF6633" is TUM-orange
         x_line = binned_data[:, 0]
         y_line = binned_data[:, 2]
-        plt.plot(x_line, y_line, linewidth=linewidth, color=color_norm_line)  # plot linegraph
+        ax.plot(x_line, y_line, linewidth=linewidth, color=color_norm_line, alpha=alpha_line)  # plot linegraph
 
         # remove unwanted axis ticks on top and right
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
 
-        ax.xaxis.set_label_coords(0.5, -0.07)  # move x-axis label towards graph
-        ax.yaxis.set_label_coords(-0.07, 0.5)  # move y-axis label towards graph
 
         ax.legend(['AAIMON', 'AAIMON norm.'], loc='upper left', fontsize=fontsize, frameon=True)  # create legend
 
