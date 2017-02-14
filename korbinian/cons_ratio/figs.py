@@ -309,43 +309,111 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s['Fig05_Scattergram_comparing_number_of_TMDs_with_mean_AAIMON'] and s["max_TMDs"] >= 2:
+    if s['Fig05_Boxplot_comparing_number_of_TMDs_with_mean_AAIMON'] and s["max_TMDs"] >= 2:
         Fig_Nr = 5
         title = 'num_TMDs vs AAIMON'
-        Fig_name = 'Fig05_Scattergram_comparing_number_of_TMDs_with_mean_AAIMON'
+        Fig_name = 'Fig05_Boxplot_comparing_number_of_TMDs_with_mean_AAIMON'
         fig, ax = plt.subplots()
-        
 
-        # for backwards compatibility, check for old name.
-        # commented out by MO - assumed that it is not needed
-        # if 'number_of_TMDs' in df.columns:
-        #     x = np.array(df['number_of_TMDs'])
-        # else:
-        #     x = np.array(df['number_of_TMDs'])
-        x = np.array(df['number_of_TMDs'])
-        y = np.array(df['AAIMON_mean_all_TMDs'])
-        scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#0489B1", alpha=alpha_dpd,
-                                                                           s=datapointsize)
-        # other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
-        # http://html-color-codes.info/
-        # label the x-axis for each plot, based on the TMD
+        # data that is binned
+        column_for_bins = 'number_of_TMDs'
+        # data that is plotted in bin
+        column_for_data = 'AAIMON_mean_all_TMDs'
+        hist_data = []
+        legend = []
+        TMD_number = list(range(1, 16, 1))
+        for element in TMD_number:
+            select = df[column_for_bins] == element
+            data = df.loc[select, column_for_data].values
+            hist_data.append(data)
+            legend.append(element)
+        select = df[column_for_bins] > TMD_number[-1]
+        data = df.loc[select, column_for_data].values
+        hist_data.append(data)
+        legend.append('>15')
+
+        fig, ax = plt.subplots()
+
+        meanpointprops = dict(marker='o', markerfacecolor='black', markersize=3)  # markeredgecolor='0.75',
+
+        flierprops = dict(marker='o', markerfacecolor='green', markersize=12, linestyle='none')
+        boxplotcontainer = ax.boxplot(hist_data, sym='+', whis=1.5, showmeans=True,
+                                      meanprops=meanpointprops)
+
+        list_n_datapoints = [len(x) for x in hist_data]
+        x_for_list_n_datapoints = list(range(1, len(list_n_datapoints) + 1, 1))
+        ax2 = ax.twinx()
+        line_graph_container = ax2.plot(x_for_list_n_datapoints, list_n_datapoints, color="#53A7D5", alpha=0.8)
+
+        for box in boxplotcontainer['boxes']:
+            # change outline color
+            box.set(color='black', linewidth=0.4)  # '7570b3'
+            # change fill color
+            # box.set( facecolor = '#1b9e77' )
+            box.set_linewidth(0.4)
+
+        # change color and linewidth of the whiskers
+        for whisker in boxplotcontainer['whiskers']:
+            whisker.set(color='black', linewidth=0.4, dashes=(1, 1))
+
+        # change color and linewidth of the caps
+        for cap in boxplotcontainer['caps']:
+            cap.set(color='black', linewidth=0.4)
+
+        # change color and linewidth of the medians
+        for median in boxplotcontainer['medians']:
+            median.set(color='black', linewidth=0.4)
+
+        # change the style of fliers and their fill
+        for flier in boxplotcontainer['fliers']:
+            flier.set(marker='o', color='0.8', alpha=0.1, markerfacecolor='0.3', markersize=3)
+
         ax.set_xlabel('number of TMDs in protein', fontsize=fontsize)
-        # move the x-axis label closer to the x-axis
-        ax.xaxis.set_label_coords(0.45, -0.085)
-        ax.set_ylabel('Average AAIMON ratio for all TMDs', fontsize=fontsize)
-        # change axis font size
         ax.tick_params(labelsize=fontsize)
-        # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
-        legend_obj = ax.legend(['AAIMON_mean'], loc='upper right', fontsize=fontsize)
-        # add background grid
-        ax.grid(True, color='0.75', alpha=0.3)
-        # add figure number to top left of subplot
-        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
-                                       xycoords='axes fraction',
-                                       alpha=0.75)
-        # add figure title to top left of subplot
-        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
-                                       alpha=0.75)
+        ax2.tick_params(labelsize=fontsize)
+        ax.set_ylim(ymin=0, ymax=2)
+        ax2.set_ylim(ymin=0, ymax=800)
+        ax.set_xlim(xmin=0, xmax=17)
+        # move the x-axis label closer to the x-axis
+        # ax.xaxis.set_label_coords(0.45, -0.085)
+        ax.set_ylabel('Average AAIMON ratio for all TMDs', fontsize=fontsize)
+        ax2.set_ylabel('Number of proteins in bin', fontsize=fontsize)
+        ## Remove top axes and right axes ticks
+        ax.get_xaxis().tick_bottom()
+        ax.get_yaxis().tick_left()
+        ## Custom x-axis labels
+        ax.set_xticklabels(legend)
+
+        # # for backwards compatibility, check for old name.
+        # # commented out by MO - assumed that it is not needed
+        # # if 'number_of_TMDs' in df.columns:
+        # #     x = np.array(df['number_of_TMDs'])
+        # # else:
+        # #     x = np.array(df['number_of_TMDs'])
+        # x = np.array(df['number_of_TMDs'])
+        # y = np.array(df['AAIMON_mean_all_TMDs'])
+        # scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#0489B1", alpha=alpha_dpd,
+        #                                                                    s=datapointsize)
+        # # other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
+        # # http://html-color-codes.info/
+        # # label the x-axis for each plot, based on the TMD
+        # ax.set_xlabel('number of TMDs in protein', fontsize=fontsize)
+        # # move the x-axis label closer to the x-axis
+        # ax.xaxis.set_label_coords(0.45, -0.085)
+        # ax.set_ylabel('Average AAIMON ratio for all TMDs', fontsize=fontsize)
+        # # change axis font size
+        # ax.tick_params(labelsize=fontsize)
+        # # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
+        # legend_obj = ax.legend(['AAIMON_mean'], loc='upper right', fontsize=fontsize)
+        # # add background grid
+        # ax.grid(True, color='0.75', alpha=0.3)
+        # # add figure number to top left of subplot
+        # ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+        #                                xycoords='axes fraction',
+        #                                alpha=0.75)
+        # # add figure title to top left of subplot
+        # ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+        #                                alpha=0.75)
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
@@ -356,29 +424,33 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         fig, ax = plt.subplots()
 
-        x = df['seqlen']
-        n_bins = 10
+        # data that is binned
+        column_for_bins = 'seqlen'
+        # data that is plotted in bin
+        column_for_data = 'AAIMON_mean_all_TMDs'
+        # specify variable for binning function
+        x = df[column_for_bins]
+        # specify number of bins
+        nbin = 10
         npt = len(x)
-        borders = np.interp(np.linspace(0, npt, n_bins + 1), np.arange(npt), np.sort(x)).astype(int).tolist()
+        # get bin-borders
+        borders = np.interp(np.linspace(0, npt, nbin + 1), np.arange(npt), np.sort(x)).astype(int).tolist()
         # extend the bin borders to catch up every value
         borders[0] = 0
         borders[-1] = borders[-1] + 1
-        # create legend list
+        # initialise lists for legend and data in bin
         legend = []
+        hist_data = []
+        # generate data in bin via selecting rows from pandas dataframe, create legend
         for n in range(1, len(borders), 1):
             legend.append('-'.join([str(borders[n - 1]), str(borders[n])]))
-
-        data_to_plot = []
-        for n in range(1, len(borders), 1):
-            hist_data = []
-            for acc in df.index:
-                if borders[n - 1] < df.loc[acc, 'seqlen'] <= borders[n]:
-                    hist_data.append(df.loc[acc, 'AAIMON_mean_all_TMDs'])
-            data_to_plot.append(hist_data)
+            select = (df[column_for_bins] > borders[n - 1]) & (df[column_for_bins] <= borders[n])
+            data = df.loc[select, column_for_data].values
+            hist_data.append(data)
 
         meanpointprops = dict(marker='o', markerfacecolor='black', markersize=3)  # markeredgecolor='0.75',
         flierprops = dict(marker='o', markerfacecolor='green', markersize=12, linestyle='none')
-        boxplotcontainer = ax.boxplot(data_to_plot, sym='+', whis=1.5, showmeans=True,
+        boxplotcontainer = ax.boxplot(hist_data, sym='+', whis=1.5, showmeans=True,
                                       meanprops=meanpointprops)
 
         ax.tick_params(labelsize=fontsize)
@@ -480,30 +552,34 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         fig, ax = plt.subplots()
 
-        x = df['nonTMD_SW_align_len_mean']
-        n_bins = 10
+        # data that is binned
+        column_for_bins = 'nonTMD_SW_align_len_mean'
+        # data that is plotted in bin
+        column_for_data = 'AAIMON_mean_all_TMDs'
+        # specify variable for binning function
+        x = df[column_for_bins]
+        # specify number of bins
+        nbin = 10
         npt = len(x)
-        borders = np.interp(np.linspace(0, npt, n_bins + 1), np.arange(npt), np.sort(x)).astype(int).tolist()
+        # get bin-borders
+        borders = np.interp(np.linspace(0, npt, nbin + 1), np.arange(npt), np.sort(x)).astype(int).tolist()
         # extend the bin borders to catch up every value
         borders[0] = 0
         borders[-1] = borders[-1] + 1
-        # create legend list
+        # initialise lists for legend and data in bin
         legend = []
+        hist_data = []
+        # generate data in bin via selecting rows from pandas dataframe, create legend
         for n in range(1, len(borders), 1):
             legend.append('-'.join([str(borders[n - 1]), str(borders[n])]))
-
-        data_to_plot = []
-        for n in range(1, len(borders), 1):
-            hist_data = []
-            for acc in df.index:
-                if borders[n - 1] < df.loc[acc, 'nonTMD_SW_align_len_mean'] <= borders[n]:
-                    hist_data.append(df.loc[acc, 'AAIMON_mean_all_TMDs'])
-            data_to_plot.append(hist_data)
+            select = (df[column_for_bins] > borders[n - 1]) & (df[column_for_bins] <= borders[n])
+            data = df.loc[select, column_for_data].values
+            hist_data.append(data)
 
         meanpointprops = dict(marker='o', markerfacecolor='black', markersize=3)  # markeredgecolor='0.75',
 
         flierprops = dict(marker='o', markerfacecolor='green', markersize=12, linestyle='none')
-        boxplotcontainer = ax.boxplot(data_to_plot, sym='+', whis=1.5, showmeans=True,
+        boxplotcontainer = ax.boxplot(hist_data, sym='+', whis=1.5, showmeans=True,
                                       meanprops=meanpointprops)
 
         ax.tick_params(labelsize=fontsize)
@@ -543,46 +619,121 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s['Fig08_Scattergram_comparing_total_number_of_simap_hits_with_mean_AAIMON']:
-        '''
-        note that the total hits comes from SIMAP, so this doesn't say anything about how much data is available for each protein
-        '''
+    if s['Fig08_Boxplot_comparing_total_number_of_simap_hits_with_mean_AAIMON']:
+        # '''
+        # note that the total hits comes from SIMAP, so this doesn't say anything about how much data is available for each protein
+        # '''
+        # Fig_Nr = 8
+        # title = 'number SIMAP hits'
+        # Fig_name = 'Fig08_Scattergram_comparing_total_number_of_simap_hits_with_mean_AAIMON'
+        # fig, ax = plt.subplots()
+        #
+        # # plot AAIMON
+        # x = np.array(df['TM01_AAIMON_n_homol']) # total_number_of_simap_hits can be replaced with TM01_AAIMON_n_homol
+        # y = np.array(df['AAIMON_mean_all_TMDs'])
+        # scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#0489B1", alpha=alpha_dpd,
+        #                                                                    s=datapointsize)
+        #
+        # # plot AAIMON normalised
+        # x = np.array(df['TM01_AAIMON_n_homol']) # total_number_of_simap_hits can be replaced with TM01_AAIMON_n_homol
+        # y = np.array(df['AAIMON_mean_all_TMDs_n'])
+        # scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#EE762C", alpha=alpha_dpd,
+        #                                                                    s=datapointsize)
+        # # label the x-axis for each plot, based on the TMD
+        # ax.set_xlabel('total number of homologues', fontsize=fontsize)
+        # # move the x-axis label closer to the x-axis
+        # ax.xaxis.set_label_coords(0.45, -0.085)
+        # ax.set_ylabel('AAIMON', fontsize=fontsize)
+        #
+        # # create legend
+        # legend_obj = ax.legend(['AAIMON', 'AAIMON norm'],
+        #                        loc='upper right',
+        #                        fontsize=fontsize)
+        # # change axis font size
+        # ax.tick_params(labelsize=fontsize)
+        # # add figure number to top left of subplot
+        # ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+        #                                xycoords='axes fraction',
+        #                                alpha=0.75)
+        # # add figure title to top left of subplot
+        # ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+        #                                alpha=0.75)
+        # utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
         Fig_Nr = 8
         title = 'number SIMAP hits'
-        Fig_name = 'Fig08_Scattergram_comparing_total_number_of_simap_hits_with_mean_AAIMON'
+        Fig_name = 'Fig08_Boxplot_comparing_total_number_of_simap_hits_with_mean_AAIMON'
+
         fig, ax = plt.subplots()
 
-        # plot AAIMON
-        x = np.array(df['TM01_AAIMON_n_homol']) # total_number_of_simap_hits can be replaced with TM01_AAIMON_n_homol
-        y = np.array(df['AAIMON_mean_all_TMDs'])
-        scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#0489B1", alpha=alpha_dpd,
-                                                                           s=datapointsize)
+        # data that is binned
+        column_for_bins = 'TM01_AAIMON_n_homol'
+        # data that is plotted in bin
+        column_for_data = 'AAIMON_mean_all_TMDs'
+        # specify variable for binning function
+        x = df[column_for_bins]
+        # specify number of bins
+        nbin = 10
+        npt = len(x)
+        # get bin-borders
+        borders = np.interp(np.linspace(0, npt, nbin + 1), np.arange(npt), np.sort(x)).astype(int).tolist()
+        # extend the bin borders to catch up every value
+        borders[0] = 0
+        borders[-1] = borders[-1] + 1
+        # initialise lists for legend and data in bin
+        legend = []
+        hist_data = []
+        # generate data in bin via selecting rows from pandas dataframe, create legend
+        for n in range(1, len(borders), 1):
+            legend.append('-'.join([str(borders[n - 1]), str(borders[n])]))
+            select = (df[column_for_bins] > borders[n - 1]) & (df[column_for_bins] <= borders[n])
+            data = df.loc[select, column_for_data].values
+            hist_data.append(data)
 
-        # plot AAIMON normalised
-        x = np.array(df['TM01_AAIMON_n_homol']) # total_number_of_simap_hits can be replaced with TM01_AAIMON_n_homol
-        y = np.array(df['AAIMON_mean_all_TMDs_n'])
-        scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#EE762C", alpha=alpha_dpd,
-                                                                           s=datapointsize)
-        # label the x-axis for each plot, based on the TMD
-        ax.set_xlabel('total number of homologues', fontsize=fontsize)
-        # move the x-axis label closer to the x-axis
-        ax.xaxis.set_label_coords(0.45, -0.085)
-        ax.set_ylabel('AAIMON', fontsize=fontsize)
+        meanpointprops = dict(marker='o', markerfacecolor='black', markersize=3)  # markeredgecolor='0.75',
 
-        # create legend
-        legend_obj = ax.legend(['AAIMON', 'AAIMON norm'],
-                               loc='upper right',
-                               fontsize=fontsize)
-        # change axis font size
+        flierprops = dict(marker='o', markerfacecolor='green', markersize=12, linestyle='none')
+        boxplotcontainer = ax.boxplot(hist_data, sym='+', whis=1.5, showmeans=True,
+                                      meanprops=meanpointprops)
+
         ax.tick_params(labelsize=fontsize)
-        # add figure number to top left of subplot
-        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
-                                       xycoords='axes fraction',
-                                       alpha=0.75)
-        # add figure title to top left of subplot
-        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
-                                       alpha=0.75)
+        for box in boxplotcontainer['boxes']:
+            # change outline color
+            box.set(color='black', linewidth=0.4)  # '7570b3'
+            # change fill color
+            # box.set( facecolor = '#1b9e77' )
+            box.set_linewidth(0.4)
+
+        # change color and linewidth of the whiskers
+        for whisker in boxplotcontainer['whiskers']:
+            whisker.set(color='black', linewidth=0.4, dashes=(1, 1))
+
+        # change color and linewidth of the caps
+        for cap in boxplotcontainer['caps']:
+            cap.set(color='black', linewidth=0.4)
+
+        # change color and linewidth of the medians
+        for median in boxplotcontainer['medians']:
+            median.set(color='black', linewidth=0.4)
+
+        # change the style of fliers and their fill
+        for flier in boxplotcontainer['fliers']:
+            flier.set(marker='o', color='0.8', alpha=0.1, markerfacecolor='0.3', markersize=3)
+
+        ax.set_xlabel('total number of homologues', fontsize=fontsize)
+        ax.set_ylim(ymin=0, ymax=2)
+        # move the x-axis label closer to the x-axis
+        # ax.xaxis.set_label_coords(0.45, -0.085)
+        ax.set_ylabel('Average AAIMON ratio for all TMDs', fontsize=fontsize)
+        ## Remove top axes and right axes ticks
+        ax.get_xaxis().tick_bottom()
+        ax.get_yaxis().tick_left()
+        ## Custom x-axis labels
+        ax.set_xticklabels(legend, rotation=25)
+
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
+
 
     if s['Fig09_Histogram_of_mean_AAIMON_ratios_for_each_TMD_separately'] and s["max_TMDs"] >= 2:
         Fig_Nr = 9
