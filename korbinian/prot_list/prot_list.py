@@ -27,7 +27,7 @@ def prepare_protein_list(s, pathdict, logging):
 
     """
     logging.info('~~~~~~~~~~~~                     starting prepare_protein_list                      ~~~~~~~~~~~~')
-    df = pd.read_csv(pathdict["list_parsed_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0)
+    df = pd.read_csv(pathdict["list_parsed_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0, low_memory=False)
     n_initial_prot = df.shape[0]
     if "uniprot_entry_name" in df.columns:
         # join the accession and entry name to create a "protein name" for naming files
@@ -322,6 +322,10 @@ def prepare_protein_list(s, pathdict, logging):
     set_acc_lipo_mean_above_cutoff = set(list_acc_lipo_mean_above_cutoff)
     # find acc to drop that are actually still in the index by looking for the overlap of both sets
     acc_lipo_mean_above_cutoff_to_remove = index_set.intersection(set_acc_lipo_mean_above_cutoff)
+
+    lipo_dropped = list(df.loc[acc_lipo_mean_above_cutoff_to_remove, 'lipo_mean_all_TMDs'])
+
+
     # drop rows
     df = df.drop(acc_lipo_mean_above_cutoff_to_remove)
     n_prot_AFTER_lipo_cutoff = df.shape[0]
@@ -356,6 +360,7 @@ def prepare_protein_list(s, pathdict, logging):
     logging.info('n_prot_AFTER_lipo_cutoff: {}'.format(n_prot_AFTER_lipo_cutoff))# line 311
     if list_acc_lipo_mean_above_cutoff != []:
         logging.info('list_acc_lipo_mean_above_cutoff: {}\n'.format(list_acc_lipo_mean_above_cutoff))
+        logging.info('lipo_dropped: {}\n'.format([ '%.3f' % elem for elem in lipo_dropped ]))
 
     ########################################################################################
     #                                                                                      #

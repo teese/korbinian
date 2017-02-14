@@ -121,7 +121,7 @@ def compare_lists (s):
 
     ax.set_xlabel('AAIMON', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
-    ax.xaxis.set_label_coords(0.45, -0.085)
+    ax.xaxis.set_label_coords(0.5, -0.085)
     # x and y axes min and max
     xlim_min = 0
     xlim_max = 2
@@ -215,7 +215,7 @@ def compare_lists (s):
 
     ax.set_xlabel('AAIMON_slope', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
-    ax.xaxis.set_label_coords(0.45, -0.085)
+    ax.xaxis.set_label_coords(0.5, -0.085)
     # x and y axes min and max
     xlim_min = -0.03
     xlim_max = 0.03
@@ -295,7 +295,7 @@ def compare_lists (s):
 
     ax.set_xlabel('sequence length', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
-    ax.xaxis.set_label_coords(0.45, -0.085)
+    ax.xaxis.set_label_coords(0.5, -0.085)
     # x and y axes min and max
     xlim_min = 0
     xlim_max = 3000
@@ -366,7 +366,7 @@ def compare_lists (s):
 
     ax.set_xlabel('number of TMDs', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
-    ax.xaxis.set_label_coords(0.45, -0.085)
+    ax.xaxis.set_label_coords(0.5, -0.085)
     # x and y axes min and max
     xlim_min = 0
     xlim_max = 30
@@ -435,7 +435,7 @@ def compare_lists (s):
 
     ax.set_xlabel('average % observed changes in homologues', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
-    ax.xaxis.set_label_coords(0.45, -0.085)
+    ax.xaxis.set_label_coords(0.5, -0.085)
     # x and y axes min and max
     xlim_min = 0
     xlim_max = 100
@@ -509,13 +509,13 @@ def compare_lists (s):
 
     ax.set_xlabel('number of homologues $*10^3$', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
-    ax.xaxis.set_label_coords(0.45, -0.085)
+    ax.xaxis.set_label_coords(0.5, -0.085)
     # x and y axes min and max
     xlim_min = 0
     xlim_max = 5000
     ax.set_xlim(xlim_min, xlim_max)
     ylim_min = -0.01
-    ylim_max = len(protein_lists) + 0.01
+    ylim_max = len(protein_lists)
     ax.set_ylim(ylim_min, ylim_max)
     # set y-axis grid lines without tick labels
     ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
@@ -534,6 +534,7 @@ def compare_lists (s):
 
     ax1.yaxis.tick_right()
     ax1.set_ylabel('number of homologues in dataset $*10^5$', fontsize=fontsize)
+    ax1.tick_params(labelsize=fontsize)
     ax1.yaxis.set_label_position("right")
     ax1.xaxis.set_ticks(range(1, len(df_dict) + 1, 1))
     ax1.set_xticklabels([])
@@ -606,7 +607,7 @@ def compare_lists (s):
 
     ax.set_xlabel('lipophilicity (Hessa scale)', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
-    ax.xaxis.set_label_coords(0.45, -0.085)
+    ax.xaxis.set_label_coords(0.5, -0.085)
     # x and y axes min and max
     xlim_min = min_
     xlim_max = max_
@@ -689,7 +690,7 @@ def compare_lists (s):
 
     ax.set_xlabel('% residues within TM region', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
-    ax.xaxis.set_label_coords(0.45, -0.085)
+    ax.xaxis.set_label_coords(0.5, -0.085)
     # x and y axes min and max
     xlim_min = min_
     xlim_max = max_
