@@ -11,7 +11,7 @@ import korbinian.utils as utils
 
 def compare_lists (s):
     sys.stdout.write("\n\n~~~~~~~~~~~~         starting compare_lists           ~~~~~~~~~~~~\n\n")
-    create_legend = True
+    create_legend = False
     save_png = s['save_png']
     save_pdf = s['save_pdf']
     color_list = ['#949494', '#EE762C', '#005C96', '#A1B11A', '#9ECEEC', '#0076B8', '#454545']
@@ -332,7 +332,7 @@ def compare_lists (s):
 
     Fig_Nr = 4
     title = 'number of TMDs'
-    Fig_name = 'Fig04_comparing_number_of_TMDs'
+    Fig_name = 'Fig04_compare_number_of_TMDs'
     binlist = np.linspace(0, 25, 100)
     binlist = np.append(binlist, [50])
     fig, ax = plt.subplots()
@@ -401,7 +401,7 @@ def compare_lists (s):
 
     Fig_Nr = 5
     title = 'observed changes mean'
-    Fig_name = 'Fig05_comparing_observed_changes_mean'
+    Fig_name = 'Fig05_compare_observed_changes_mean'
     binlist = np.linspace(0, 100, 31)
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
@@ -472,7 +472,7 @@ def compare_lists (s):
     Fig_Nr = 6
     title = 'number of homologues'
     Fig_name = 'Fig06_comparison_number_of_homologues'
-    binlist = np.linspace(0, 5000, 51)
+    binlist = np.linspace(0, 5000, 101)
     offset = len(protein_lists) - 1
 
     fig, (ax, ax1) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [6, 1]})
@@ -494,7 +494,7 @@ def compare_lists (s):
         # add the final bin, which is physically located just after the last regular bin but represents all higher values
         bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
         centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        # centre_of_bar_in_x_axis [-len(linspace_binlist_2):] = linspace_binlist_2 - 50
+        centre_of_bar_in_x_axis[-80:] = np.linspace(10, 800, 80) + 1000
         linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
                                             alpha=alpha, linewidth=linewidth,
                                             label=dfv.loc[prot_list, 'list_description'])
@@ -512,7 +512,7 @@ def compare_lists (s):
     ax.xaxis.set_label_coords(0.5, -0.085)
     # x and y axes min and max
     xlim_min = 0
-    xlim_max = 5000
+    xlim_max = 1800
     ax.set_xlim(xlim_min, xlim_max)
     ylim_min = -0.01
     ylim_max = len(protein_lists)
@@ -527,16 +527,15 @@ def compare_lists (s):
     ax.yaxis.set_label_coords(-0.005, 0.5)
 
     ax.xaxis.get_majorticklocs()
-    # list_xticks = list(np.arange(xlim_min, xlim_max+1 , 500))
-    ax.xaxis.set_ticks(list(np.arange(xlim_min, xlim_max + 1, 500)))
-    # list_xticks[-len(linspace_binlist_2):] = range(1100, 2700, 100)
-    ax.set_xticklabels(list(np.arange(xlim_min, xlim_max + 1, 500) / 1000))
+    list_xticks = np.arange(xlim_min, xlim_max + 1, 200)
+    list_xticks[-4:] = range(2000, 5001, 1000)
+    ax.set_xticklabels((list_xticks) / 1000)
 
     ax1.yaxis.tick_right()
     ax1.set_ylabel('number of homologues in dataset $*10^5$', fontsize=fontsize)
     ax1.tick_params(labelsize=fontsize)
     ax1.yaxis.set_label_position("right")
-    ax1.xaxis.set_ticks(range(1, len(df_dict) + 1, 1))
+    # ax1.xaxis.set_ticks(range(1, len(df_dict) + 1, 1))
     ax1.set_xticklabels([])
     plt.subplots_adjust(wspace=0.05, hspace=0)
 
@@ -717,6 +716,88 @@ def compare_lists (s):
         ax.legend([handle for i, handle in enumerate(handles) if i in display],
                   [label for i, label in enumerate(labels) if i in display],
                   fontsize=fontsize-3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+
+    utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
+
+    Fig_Nr = 9
+    title = 'length of TMD'
+    Fig_name = 'Fig09_compare_length_of_TMD'
+    binlist = np.linspace(0, 40, 41)
+    fig, ax = plt.subplots()
+    offset = len(protein_lists) - 1
+
+    sys.stdout.write('\ncalculating mean length of TMD regions: - add this stuff to prepare_protein_list ?!?')
+    for prot_list in df_dict.keys():
+        sys.stdout.write('\nprotein list: {}\n'.format(prot_list))
+        for n, acc in enumerate(df_dict[prot_list].index):
+            if n % 100 == 0:
+                sys.stdout.write('. '), sys.stdout.flush()
+            list_of_TMDs = ast.literal_eval(df_dict[prot_list].loc[acc, 'list_of_TMDs'])
+            list_TMD_lenghts = []
+            for TMD in list_of_TMDs:
+                list_TMD_lenghts.append(len(df_dict[prot_list].loc[acc, '%s_seq' % TMD]))
+            df_dict[prot_list].loc[acc, 'TMD_len_mean'] = np.mean(list_TMD_lenghts)
+
+    for prot_list in protein_lists:
+        ###   non-normalised AAIMON   ###
+        # create numpy array of membranous over nonmembranous conservation ratios (identity)
+        # hist_data = np.array(df_dict[prot_list]['nonTMD_SW_align_len_excl_gaps_mean'])
+        hist_data = np.array(df_dict[prot_list]['TMD_len_mean'])
+        # use numpy to create a histogram
+        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+        freq_counts_normalised = freq_counts / freq_counts.max() + offset
+        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+        # add the final bin, which is physically located just after the last regular bin but represents all higher values
+        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
+                                            alpha=alpha, linewidth=linewidth,
+                                            label=dfv.loc[prot_list, 'list_description'])
+
+        offset = offset - 1
+
+    ###############################################################
+    #                                                             #
+    #                       set up plot style                     #
+    #                                                             #
+    ###############################################################
+
+    ax.set_xlabel('length of TMD regions', fontsize=fontsize)
+    # move the x-axis label closer to the x-axis
+    ax.xaxis.set_label_coords(0.5, -0.085)
+    # x and y axes min and max
+    xlim_min = 0
+    xlim_max = 40
+    ax.set_xlim(xlim_min, xlim_max)
+    ylim_min = -0.01
+    ylim_max = len(protein_lists) + 0.01
+    ax.set_ylim(ylim_min, ylim_max)
+    # set y-axis grid lines without tick labels
+    ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
+    ax.yaxis.set_ticklabels([])
+    ax.set_ylabel('relative frequency', rotation='vertical', fontsize=fontsize)
+    # change axis font size
+    ax.tick_params(labelsize=fontsize)
+    ax.xaxis.set_label_coords(0.5, -0.08)
+    ax.yaxis.set_label_coords(-0.005, 0.5)
+
+    ax.xaxis.get_majorticklocs()
+    list_xticks = np.arange(xlim_min, xlim_max + 1, 5)
+    ax.xaxis.set_ticks(list_xticks)
+    # list_xticks[11]='1-5000'
+    # ax.set_xticklabels(list_xticks)
+
+    if create_legend:
+        # Get artists and labels for legend and chose which ones to display
+        handles, labels = ax.get_legend_handles_labels()
+        display = (list(range(0, len(protein_lists) + 1, 1)))
+        # Create legend
+        ax.legend([handle for i, handle in enumerate(handles) if i in display],
+                  [label for i, label in enumerate(labels) if i in display],
+                  fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
 
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
 
