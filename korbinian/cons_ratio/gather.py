@@ -14,6 +14,43 @@ def gather_AAIMONs(pathdict, logging, s):
     logging.info("~~~~~~~~~~~~                           starting gather_AAIMONs                      ~~~~~~~~~~~~")
     df = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
 
+    filter = False
+    if filter:
+        # filter list file by keywords for exclusion analysis, e.g. enzyme only
+        # specify allowed and disallowed keywords
+        allowed_KW = ['Enzyme']
+        disallowed_KW = ['G-protein coupled receptor', 'Ion channel']
+        # copy keyword column, apply ast.literal_eval to the copied column
+        df['KW'] = df['uniprot_KW']
+        # apply ast.literal_eval to every item in df['uniprot_KW']
+        if isinstance(df['KW'][0], str):
+            df['KW'] = df['KW'].apply(lambda x: ast.literal_eval(x))
+        # get list of enzyme keywords
+        list_enzyme_KW, list_ignored_KW = utils.get_list_enzyme_KW_and_list_ignored_KW()
+        # create column per allowed keyword that holds a bool if keyword is present in that protein
+        for KW in allowed_KW:
+            if KW == 'Enzyme':
+                df['Enzyme'] = df['KW'].apply(utils.KW_list_contains_any_desired_KW, args=(list_enzyme_KW,))
+            else:
+                df[KW] = df['KW'].apply(utils.KW_list_contains_any_desired_KW, args=([KW],))
+        # create column for every protein holding bool if protein contains at least one of the allowed keywords
+        for acc in df.index:
+            df.loc[acc, 'keep'] = df.loc[acc, allowed_KW].any()
+        # drop all proteins whose keywords do not match the requirements
+        df = df.loc[df['keep'] == True]
+
+        # drop all proteins that contain one of the disallowed keywords
+        for KW in disallowed_KW:
+            if KW == 'Enzyme':
+                df['Enzyme'] = df['KW'].apply(utils.KW_list_contains_any_desired_KW, args=(list_enzyme_KW,))
+            else:
+                df[KW] = df['KW'].apply(utils.KW_list_contains_any_desired_KW, args=([KW],))
+            df = df.loc[df[KW] == False]
+        # remove copied and edited keyword list
+        df = df.drop('KW', 1)
+
+        df.to_csv(pathdict["list_filtered_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+
     dfg = pd.DataFrame()
 
     # iterate over the dataframe for proteins with an existing list_of_TMDs. acc = uniprot accession.

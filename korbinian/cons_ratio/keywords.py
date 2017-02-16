@@ -56,27 +56,30 @@ def keyword_analysis(pathdict, s, logging):
     fontsize = 12
     alpha = 0.8
 
-    ###############################################################
-    #                                                             #
-    #              define list of ignored keywords                #
-    #                     and enzyme keywords                     #
-    #                                                             #
-    ###############################################################
+    # ###############################################################
+    # #                                                             #
+    # #              define list of ignored keywords                #
+    # #                     and enzyme keywords                     #
+    # #                                                             #
+    # ###############################################################
+    #
+    # list_ignored_KW = ['Transmembrane', 'Complete proteome', 'Reference proteome', 'Membrane',
+    #                    'Transmembrane helix', 'Cell membrane', 'Repeat', 'Alternative splicing', 'Sodium', 'Potassium', 'Direct protein sequencing',
+    #                    'Transducer', 'Polymorphism', 'Glycoprotein', 'Calcium transport', 'Ion transport', 'Transport', 'Protein transport',
+    #                    'Voltage-gated channel', 'ATP-binding', 'Calcium', 'Zinc', 'Synapse', 'Signal', 'Disulfide bond', '3D-structure', 'Host-virus interaction']
+    # # check if protein is an enzyme
+    # list_enzyme_KW = ['Transferase', 'Hydrolase', 'Glycosyltransferase', 'Protease', 'Kinase', 'Oxidoreductase', 'Metalloprotease', 'Serine protease',
+    #                   'Protein phosphatase', 'Ligase', 'Acyltransferase', 'Serine/threonine-protein kinase', 'Glycosidase', 'Aminopeptidase',
+    #                   'Isomerase', 'Methyltransferase', 'Carboxypeptidase', 'Hydroxylation', 'Aspartyl protease', 'Serine esterase',
+    #                   'Lipid biosynthesis', 'GPI-anchor biosynthesis', 'Steroid biosynthesis', 'Melanin biosynthesis', 'Thyroid hormones biosynthesis',
+    #                   'Phospholipid biosynthesis', 'Sterol biosynthesis', 'Glutathione biosynthesis', 'Cholesterol biosynthesis',
+    #                   'Fatty acid biosynthesis', 'Prostaglandin biosynthesis', 'cGMP biosynthesis', 'Leukotriene biosynthesis', 'Catecholamine biosynthesis',
+    #                   'Lipid metabolism', 'Carbohydrate metabolism', 'Steroid metabolism', 'Sterol metabolism', 'Sphingolipid metabolism',
+    #                   'Cholesterol metabolism', 'Fatty acid metabolism', 'Phospholipid metabolism', 'Catecholamine metabolism', 'Prostaglandin metabolism',
+    #                   'Glycogen metabolism', 'Fucose metabolism']
 
-    list_ignored_KW = ['Transmembrane', 'Complete proteome', 'Reference proteome', 'Membrane',
-                       'Transmembrane helix', 'Cell membrane', 'Repeat', 'Alternative splicing', 'Sodium', 'Potassium', 'Direct protein sequencing',
-                       'Transducer', 'Polymorphism', 'Glycoprotein', 'Calcium transport', 'Ion transport', 'Transport', 'Protein transport',
-                       'Voltage-gated channel', 'ATP-binding', 'Calcium', 'Zinc', 'Synapse', 'Signal', 'Disulfide bond', '3D-structure', 'Host-virus interaction']
-    # check if protein is an enzyme
-    list_enzyme_KW = ['Transferase', 'Hydrolase', 'Glycosyltransferase', 'Protease', 'Kinase', 'Oxidoreductase', 'Metalloprotease', 'Serine protease',
-                      'Protein phosphatase', 'Ligase', 'Acyltransferase', 'Serine/threonine-protein kinase', 'Glycosidase', 'Aminopeptidase',
-                      'Isomerase', 'Methyltransferase', 'Carboxypeptidase', 'Hydroxylation', 'Aspartyl protease', 'Serine esterase',
-                      'Lipid biosynthesis', 'GPI-anchor biosynthesis', 'Steroid biosynthesis', 'Melanin biosynthesis', 'Thyroid hormones biosynthesis',
-                      'Phospholipid biosynthesis', 'Sterol biosynthesis', 'Glutathione biosynthesis', 'Cholesterol biosynthesis',
-                      'Fatty acid biosynthesis', 'Prostaglandin biosynthesis', 'cGMP biosynthesis', 'Leukotriene biosynthesis', 'Catecholamine biosynthesis',
-                      'Lipid metabolism', 'Carbohydrate metabolism', 'Steroid metabolism', 'Sterol metabolism', 'Sphingolipid metabolism',
-                      'Cholesterol metabolism', 'Fatty acid metabolism', 'Phospholipid metabolism', 'Catecholamine metabolism', 'Prostaglandin metabolism',
-                      'Glycogen metabolism', 'Fucose metabolism']
+    list_enzyme_KW, list_ignored_KW = utils.get_list_enzyme_KW_and_list_ignored_KW()
+
     # remove proteins containing nan in AAIMON_slope_mean_all_TMDs
     list_of_acc_without_nan = []
     for acc in df.index:
@@ -113,12 +116,6 @@ def keyword_analysis(pathdict, s, logging):
                 df.loc[acc, 'uniprot_KW'].remove(element)
         if df.loc[acc, 'enzyme']:
             df.loc[acc, 'uniprot_KW'].append('Enzyme')
-
-    # check if enzyme and/or GPCRs present in df
-    if df['enzyme'].any:
-        data_contains_enzymes = True
-    if df['GPCR'].any:
-        data_contains_GPCRs = True
 
     # check if dataset is SP or MP
     dataset = 'none'
