@@ -57,7 +57,7 @@ def gather_AAIMONs(pathdict, logging, s):
     for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
         protein_name = df.loc[acc, 'protein_name']
         #logging.info(protein_name)
-        sys.stdout.write("{}, ".format(acc))
+        sys.stdout.write("{}, ".format(acc)), sys.stdout.flush()
         if not os.path.exists(df.loc[acc, 'homol_cr_ratios_zip']):
             logging.info("{} Protein skipped. File does not exist".format(df.loc[acc, 'homol_cr_ratios_zip']))
             continue

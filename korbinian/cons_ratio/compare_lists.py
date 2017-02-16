@@ -245,7 +245,7 @@ def compare_lists (s):
     #                                                             #
     ###############################################################
 
-    ax.set_xlabel('AAIMON_slope', fontsize=fontsize)
+    ax.set_xlabel('AAIMON slope', fontsize=fontsize, labelpad=20)
     # move the x-axis label closer to the x-axis
     ax.xaxis.set_label_coords(0.5, -0.085)
     # x and y axes min and max
@@ -265,7 +265,12 @@ def compare_lists (s):
     ax.xaxis.set_label_coords(0.5, -0.07)
     ax.yaxis.set_label_coords(-0.005, 0.5)
 
-    if create_legend:
+    # add annotations
+    ax.annotate(s="TM less conserved", xy=(0, -0.09), fontsize=fontsize, xytext=None, xycoords='axes fraction')
+    ax.annotate(s="TM more conserved", xy=(1.0, -0.09), fontsize=fontsize, xytext=None, horizontalalignment='right', xycoords='axes fraction')
+
+    create_legend_for_AAIMON_slope = True
+    if create_legend or create_legend_for_AAIMON_slope:
         ### create legend with additional 2 elements corresponding to AAIMON and AAIMON_n ###
         # Get artists and labels for legend and chose which ones to display
         handles, labels = ax.get_legend_handles_labels()
@@ -275,7 +280,7 @@ def compare_lists (s):
         AAIMON_norm = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
         # Create legend from custom artist/label lists
         ax.legend([handle for i, handle in enumerate(handles) if i in display] + [AAIMON, AAIMON_norm],
-                  [label for i, label in enumerate(labels) if i in display] + ['AAIMON_slope', 'AAIMON_slope norm.'],
+                  [label for i, label in enumerate(labels) if i in display] + ['AAIMON slope', 'AAIMON slope norm.'],
                   fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
     else:
         # Create custom artists
@@ -283,10 +288,9 @@ def compare_lists (s):
         AAIMON_norm = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
         # Create legend from custom artist/label lists
         ax.legend([AAIMON, AAIMON_norm],
-                  ['AAIMON_slope', 'AAIMON_slope norm.'],
+                  ['AAIMON slope', 'AAIMON slope normalised'],
                   fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
-
-
+    #plt.gcf().subplots_adjust(bottom=0.15)
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
 
