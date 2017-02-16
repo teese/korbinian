@@ -367,6 +367,8 @@ def prepare_protein_list(s, pathdict, logging):
     #                                     Save to CSV                                      #
     #                                                                                      #
     ########################################################################################
+    # drop any rows that have no data for any proteins (e.g. TM02_start for single-pass proteins)
+    df.dropna(axis=1, inplace=True, how="all")
     # save to a csv
     df.to_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
     logging.info('~~~~~~~~~~~~                     finished prepare_protein_list                      ~~~~~~~~~~~~')
