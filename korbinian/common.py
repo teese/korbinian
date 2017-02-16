@@ -234,6 +234,7 @@ def create_pathdict(base_filename_summaries, s):
     pathdict["keywords"] = '%s_keywords' % base_filename_summaries
     # create path to csv with the pretty alignments for each homologue and TMD with the highest and lowest AAIMON
     pathdict["pretty_alignments_csv"] = '%s_pretty_alignments.csv' % base_filename_summaries
+    pathdict["list_filtered_csv"] = "%s_filtered.csv" % base_filename_summaries
 
 
     """OUTPUT FILES FOR OLD SCRIPTS"""
