@@ -185,7 +185,8 @@ def run_statements(s):
         korbinian.cons_ratio.cons_ratio.throw_out_truncated_sequences(pathdict, s, logging)
 
     if s["gather_AAIMON_ratios"]:
-        korbinian.cons_ratio.gather.gather_AAIMONs(pathdict, logging, s)
+        # reassign pathdict that could have been recreated during gather depending on settings
+        pathdict = korbinian.cons_ratio.gather.gather_AAIMONs(pathdict, logging, s)
 
     ########################################################################################
     #                                                                                      #

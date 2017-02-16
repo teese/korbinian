@@ -3,6 +3,7 @@ import csv
 import numpy as np
 import os
 import korbinian.utils as utils
+import korbinian
 import pandas as pd
 import statsmodels.stats.api as sms
 import pickle
@@ -14,12 +15,19 @@ def gather_AAIMONs(pathdict, logging, s):
     logging.info("~~~~~~~~~~~~                           starting gather_AAIMONs                      ~~~~~~~~~~~~")
     df = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
 
-    filter = False
-    if filter:
+    if s['filter_keywords_in_gather']:
         # filter list file by keywords for exclusion analysis, e.g. enzyme only
+        list_number = s['list_number']
         # specify allowed and disallowed keywords
-        allowed_KW = ['Enzyme']
-        disallowed_KW = ['G-protein coupled receptor', 'Ion channel']
+        allowed_KW = ast.literal_eval(s['gather_filter_allowed_keywords'])
+        disallowed_KW = ast.literal_eval(s['gather_filter_forbidden_keywords'])
+        # generate new pathdict
+        base_filename_summaries = os.path.join(s["data_dir"], "summaries", '%02d' % list_number, 'List%02d_filtered' % list_number, ' - '.join(allowed_KW),'List%02d' % list_number)
+        pathdict = korbinian.common.create_pathdict(base_filename_summaries, s)
+        # create new folder with new pathdict
+        if not os.path.exists(base_filename_summaries[:-7]):
+            os.makedirs(base_filename_summaries[:-7])
+
         # copy keyword column, apply ast.literal_eval to the copied column
         df['KW'] = df['uniprot_KW']
         # apply ast.literal_eval to every item in df['uniprot_KW']
@@ -49,7 +57,7 @@ def gather_AAIMONs(pathdict, logging, s):
         # remove copied and edited keyword list
         df = df.drop('KW', 1)
 
-        df.to_csv(pathdict["list_filtered_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+        df.to_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     dfg = pd.DataFrame()
 
@@ -326,7 +334,7 @@ def gather_AAIMONs(pathdict, logging, s):
             os.remove('binned_data_characterising_each_homol_TMD.pickle')
 
     logging.info("\n~~~~~~~~~~~~                           finished gather_AAIMONs                      ~~~~~~~~~~~~")
-
+    return pathdict
 
 # ########################################################################################
 # #                                                                                      #

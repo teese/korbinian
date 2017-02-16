@@ -17,7 +17,6 @@ def keyword_analysis(pathdict, s, logging):
     pathdict
     s
     logging
-    list_number
 
     Returns
     -------
