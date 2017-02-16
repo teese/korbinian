@@ -10,11 +10,43 @@ import korbinian.utils as utils
 
 
 def compare_lists (s):
+    """ Create figures comparing protein lists.
+
+    Compares a number of parameters. Some from UniProt. Others from the
+    conservation ratio analysis. Analysis of up to 7 lists is possible. Only tested for 3.
+
+    Histograms of AAIMON ratios
+    Histograms of AAIMON slope
+    Full sequence length
+    Length of nonTMD
+    Number of homologues
+    etc.
+
+    Saves png and/or pdf files for each image. The first 3 colours are optimised for printing.
+
+    Creates a new folder each time, unless "testing_mode" is activated in the settings file.
+
+    Files are saved under the Databases folder, in a (new) subfolder compare_lists.
+
+    To run: replace the list number with "compare"
+    Put a python stringlist of the desired list numbers in protein_lists in the excel settings file (e.g. "[1,2,3]")
+
+    Parameters
+    ----------
+    s : dict
+        settings dictionary
+
+    """
     sys.stdout.write("\n\n~~~~~~~~~~~~         starting compare_lists           ~~~~~~~~~~~~\n\n")
     create_legend = False
     save_png = s['save_png']
     save_pdf = s['save_pdf']
-    color_list = ['#949494', '#EE762C', '#005C96', '#A1B11A', '#9ECEEC', '#0076B8', '#454545']
+    colour_dict = utils.create_colour_lists()
+    #start with TUM colours, distinguishable in B&W
+    color_list = ["0.5", colour_dict["TUM_oranges"]['TUM1'], colour_dict["TUM_colours"]['TUM5']]
+    # add other HTML colours
+    color_list = color_list + ['#A1B11A', '#9ECEEC', '#0076B8', '#454545']
+
     protein_lists = ast.literal_eval(s['protein_lists'])
     # initialise dataframe that hols all variables for every protein list
     dfv = pd.DataFrame(index=protein_lists)
