@@ -507,6 +507,11 @@ def compare_lists (s):
     binlist = np.linspace(0, 5000, 101)
     offset = len(protein_lists) - 1
 
+    # # alternative binlist
+    # binlist_1 = np.linspace(0, 1000, 41)
+    # binlist_2 = np.linspace(1000, 5000, 81)
+    # binlist = np.append(binlist_1, binlist_2[1:])
+
     fig, (ax, ax1) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [6, 1]})
 
     for n, prot_list in enumerate(protein_lists):
@@ -754,7 +759,7 @@ def compare_lists (s):
     Fig_Nr = 9
     title = 'length of TMD'
     Fig_name = 'Fig09_compare_length_of_TMD'
-    binlist = np.linspace(0, 40, 41)
+    binlist = np.linspace(0, 40, 161)
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
 
