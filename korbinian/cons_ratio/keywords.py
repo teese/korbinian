@@ -378,9 +378,9 @@ def keyword_analysis(pathdict, s, logging):
                         keyword = '{}{}'.format(keyword, symbols[1])
                         dfp = dfp.rename(index={replace: keyword})
                 dfp.loc[keyword, 'Dataset'] = dataset
-                dfp.loc[keyword, 'p-value'] = float('%E' % p_AAIMON_slope)
-                dfp.loc[keyword, 'Difference mean AAIMON slope'] = float('%0.4f' % difference_AAIMON_slope)
-                dfp.loc[keyword, 'Number of proteins with / without keyword'] = '{} / {}'.format(number_of_proteins_keyword, number_of_proteins_no_keyword)
+                dfp.loc[keyword, 'p-value'] = p_AAIMON_slope
+                dfp.loc[keyword, 'Difference mean AAIMON slope'] = difference_AAIMON_slope
+                dfp.loc[keyword, 'Number of proteins containing keyword'] = '{} / {}'.format(number_of_proteins_keyword, number_of_proteins_keyword+number_of_proteins_no_keyword)
                 dfp.loc[keyword, 'Top correlated keywords'] = '\n'.join(correlated_keywords_pretty)
             else:
                 dfp = dfp.drop(keyword)
