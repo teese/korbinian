@@ -511,10 +511,10 @@ def compare_lists (s):
     binlist = np.linspace(0, 5000, 101)
     offset = len(protein_lists) - 1
 
-    # # alternative binlist
-    # binlist_1 = np.linspace(0, 1000, 41)
-    # binlist_2 = np.linspace(1000, 5000, 81)
-    # binlist = np.append(binlist_1, binlist_2[1:])
+    # alternative binlist
+    binlist_1 = np.linspace(0, 1000, 41)
+    binlist_2 = np.linspace(1000, 5000, 81)
+    binlist = np.append(binlist_1, binlist_2[1:])
 
     fig, (ax, ax1) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [6, 1]})
 
@@ -548,7 +548,7 @@ def compare_lists (s):
     #                                                             #
     ###############################################################
 
-    ax.set_xlabel('number of homologues $*10^3$', fontsize=fontsize)
+    ax.set_xlabel('number of homologues $*10^3$ (unequal bins)', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
     ax.xaxis.set_label_coords(0.5, -0.085)
     # x and y axes min and max
