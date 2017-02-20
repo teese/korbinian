@@ -332,6 +332,20 @@ def prepare_protein_list(s, pathdict, logging):
 
     ########################################################################################
     #                                                                                      #
+    #           check for subcellular location (PM, ER, Golgi) in keywords                 #
+    #                                                                                      #
+    ########################################################################################
+    # apply ast.literal_eval to every item in df['uniprot_KW']
+    if isinstance(df['uniprot_KW'][0], str):
+        df['uniprot_KW'] = df['uniprot_KW'].apply(lambda x: ast.literal_eval(x))
+    # check for specific keywords
+    df['Cell_membrane'] = df['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args=(['Cell membrane'],))
+    df['Endoplasmic_reticulum'] = df['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args=(['Endoplasmic reticulum'],))
+    df['Golgi_apparatus'] = df['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args=(['Golgi apparatus'],))
+
+
+    ########################################################################################
+    #                                                                                      #
     #                add percentage length of TMD region in full protein                   #
     #                                                                                      #
     ########################################################################################

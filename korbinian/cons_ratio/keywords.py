@@ -138,7 +138,7 @@ def keyword_analysis(pathdict, s, logging):
 
     # define list of keywords that get excluded from analysis related to other keywords, if keyword is analysed, it gets included
     # move to settings file !?!?
-    keywords_for_exclusion = ['Enzyme', 'Ion channel']
+    keywords_for_exclusion = ['Enzyme'] # Ion channel taken out on Feb 17 17 - number 7 not so important any more
     # symbols for annotation
     symbols = ['+', '#']
     # create bool in column for keyword to remove
@@ -195,7 +195,8 @@ def keyword_analysis(pathdict, s, logging):
             # calculate mean and std of AAIMON_mean_all_TMDs
             dfk.loc[keyword, 'AAIMON_keyword_mean'] = np.mean(df_keyword['AAIMON_mean_all_TMDs'])
             dfk.loc[keyword, 'AAIMON_keyword_std'] = np.std(df_keyword['AAIMON_mean_all_TMDs'])
-            dfk.loc[keyword, 'AAIMON_slope_keyword_mean'] = np.mean(df_keyword['AAIMON_slope_mean_all_TMDs'])
+            AAIMON_slope_keyword_mean = np.mean(df_keyword['AAIMON_slope_mean_all_TMDs'])
+            dfk.loc[keyword, 'AAIMON_slope_keyword_mean'] = AAIMON_slope_keyword_mean
             dfk.loc[keyword, 'AAIMON_slope_keyword_std'] = np.std(df_keyword['AAIMON_slope_mean_all_TMDs'])
             number_of_proteins_keyword = len(df_keyword.index)
             dfk.loc[keyword, 'number_of_proteins_keyword'] = number_of_proteins_keyword
@@ -203,7 +204,8 @@ def keyword_analysis(pathdict, s, logging):
 
             dfk.loc[keyword, 'AAIMON_no_keyword_mean'] = np.mean(df_no_keyword['AAIMON_mean_all_TMDs'])
             dfk.loc[keyword, 'AAIMON_no_keyword_std'] = np.std(df_no_keyword['AAIMON_mean_all_TMDs'])
-            dfk.loc[keyword, 'AAIMON_slope_no_keyword_mean'] = np.mean(df_no_keyword['AAIMON_slope_mean_all_TMDs'])
+            AAIMON_slope_no_keyword_mean = np.mean(df_no_keyword['AAIMON_slope_mean_all_TMDs'])
+            dfk.loc[keyword, 'AAIMON_slope_no_keyword_mean'] = AAIMON_slope_no_keyword_mean
             dfk.loc[keyword, 'AAIMON_slope_no_keyword_std'] = np.std(df_no_keyword['AAIMON_slope_mean_all_TMDs'])
             number_of_proteins_no_keyword = len(df_no_keyword.index)
             dfk.loc[keyword, 'number_of_proteins_no_keyword'] = number_of_proteins_no_keyword
@@ -217,7 +219,7 @@ def keyword_analysis(pathdict, s, logging):
             dfk.loc[keyword, 't-value_AAIMON'] = t_AAIMON
             dfk.loc[keyword, 'p-value_AAIMON'] = p_AAIMON
 
-            # calculate odds ratio, p- and t-values for AAIMON_slopes
+            # calculate difference, p- and t-values for AAIMON_slopes
             difference_AAIMON_slope = abs(dfk.loc[keyword, 'AAIMON_slope_keyword_mean'] - dfk.loc[keyword, 'AAIMON_slope_no_keyword_mean'])
             dfk.loc[keyword, 'difference_AAIMON_slope'] = difference_AAIMON_slope
             KW_slope = df_keyword['AAIMON_slope_mean_all_TMDs'].dropna()
@@ -277,8 +279,6 @@ def keyword_analysis(pathdict, s, logging):
             ###############################################################
             if dfk.loc[keyword, 'p-value_AAIMON_slope'] <= s['p_value_cutoff_for_histograms']:
                 Fig_Nr += 1
-                dfr['RAW_KW_{}_{}'.format(Fig_Nr, keyword)] = KW_slope
-                dfr['RAW_no_KW_{}_{}'.format(Fig_Nr, keyword)] = no_KW_slope
                 title = str(keyword)
                 Fig_name = str(str(Fig_Nr) + '._' + 'Keyword_' + title)
                 fig, ax = plt.subplots()
@@ -360,24 +360,28 @@ def keyword_analysis(pathdict, s, logging):
 
             # add selected stuff to pretty dataframe dfp if significant, if not, drop keyword from dfp, create annotations
             if p_AAIMON_slope <= 0.05:
+                dfr['RAW_KW_{}'.format(keyword)] = KW_slope
+                dfr['RAW_no_KW_{}'.format(keyword)] = no_KW_slope
+
                 if not keyword in keywords_for_exclusion:
                     replace = keyword
                     keyword = '{}*'.format(keyword)
                     dfp = dfp.rename(index={replace : keyword})
-                else:
-                    if not keyword in keywords_for_exclusion[0]:
-                        replace = keyword
-                        keyword = '{}{}'.format(keyword, symbols[0])
-                        dfp = dfp.rename(index={replace: keyword})
-                    elif not keyword in keywords_for_exclusion[1]:
-                        replace = keyword
-                        keyword = '{}{}'.format(keyword, symbols[1])
-                        dfp = dfp.rename(index={replace: keyword})
-                dfp.loc[keyword, 'Dataset'] = dataset
+                # else:
+                #     if not keyword in keywords_for_exclusion[0]:
+                #         replace = keyword
+                #         keyword = '{}{}'.format(keyword, symbols[0])
+                #         dfp = dfp.rename(index={replace: keyword})
+                    # elif not keyword in keywords_for_exclusion[1]:
+                    #     replace = keyword
+                    #     keyword = '{}{}'.format(keyword, symbols[1])
+                    #     dfp = dfp.rename(index={replace: keyword})
+                #dfp.loc[keyword, 'Dataset'] = dataset
+                dfp.loc[keyword, 'mean AAIMON_slope'] = AAIMON_slope_keyword_mean
                 dfp.loc[keyword, 'p-value'] = p_AAIMON_slope
-                dfp.loc[keyword, 'Difference mean AAIMON slope'] = difference_AAIMON_slope
-                dfp.loc[keyword, 'Number of proteins containing keyword'] = '{} / {}'.format(number_of_proteins_keyword, number_of_proteins_keyword+number_of_proteins_no_keyword)
-                dfp.loc[keyword, 'Top correlated keywords'] = '\n'.join(correlated_keywords_pretty)
+                dfp.loc[keyword, 'd AAIMON_slope'] = difference_AAIMON_slope
+                dfp.loc[keyword, '# proteins'] = '{} / {}'.format(number_of_proteins_keyword, number_of_proteins_keyword+number_of_proteins_no_keyword)
+                dfp.loc[keyword, 'Top correlated keywords'] = ', '.join(correlated_keywords_pretty)
             else:
                 dfp = dfp.drop(keyword)
 
@@ -386,10 +390,10 @@ def keyword_analysis(pathdict, s, logging):
         dfp = dfp.sort_values('p-value')
 
         annotate = ['*excluding {}'.format(', '.join(list_to_exclude))]
-        for n, element in enumerate(list_to_exclude):
-            annotate.append('{}excluding {}'.format(symbols[n], element))
+        # for n, element in enumerate(list_to_exclude):
+        #     annotate.append('{}excluding {}'.format(symbols[n], element))
 
-        dfp.loc['annotations', 'Dataset'] = '; '.join(annotate)
+        dfp.loc['annotations', 'mean AAIMON_slope'] = '; '.join(annotate)
 
         # save pandas dataframes with values
         dfk.to_csv(os.path.join(pathdict["keywords"], 'List%02d_keywords.csv' % s["list_number"]), sep=",", quoting=csv.QUOTE_NONNUMERIC)
