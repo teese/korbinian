@@ -7,6 +7,7 @@ import sys
 import csv
 import datetime
 import korbinian.utils as utils
+import korbinian
 
 
 def compare_lists (s):
@@ -76,6 +77,8 @@ def compare_lists (s):
         dfv.loc[prot_list, 'compare_dir'] = base_filepath
         dfv.loc[prot_list, 'color'] = color_list[n]
         dfv.loc[prot_list, 'min_homol'] = s['min_homol'][prot_list]
+        dfv.loc[prot_list, 'rand_TM'] = s['rand_TM'][prot_list]
+        dfv.loc[prot_list, 'rand_nonTM'] = s['rand_nonTM'][prot_list]
 
         # read list summary.csv and cr_summary.csv from disk, join them to one big dataframe
         dfx = pd.read_csv(dfv.loc[prot_list, 'base_filename_lists'], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
@@ -839,6 +842,59 @@ def compare_lists (s):
         ax.legend([handle for i, handle in enumerate(handles) if i in display],
                   [label for i, label in enumerate(labels) if i in display],
                   fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+
+    utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
+
+    Fig_Nr = 10
+    title = 'norm. factors'
+    Fig_name = 'Fig10_normalisation_of_AAIMON'
+    fig, ax = plt.subplots()
+    obs_changes = np.linspace(0, 101, 400)
+    identity = (100 - obs_changes) / 100
+
+    for prot_list in protein_lists:
+        rand_TM = dfv.loc[prot_list, 'rand_TM']
+        rand_nonTM = dfv.loc[prot_list, 'rand_nonTM']
+        norm_factor = []
+        for aa_ident in identity:
+            norm_factor.append(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor(aa_ident, rand_TM, rand_nonTM))
+        norm_factor = np.array(norm_factor)
+
+        ax.plot(obs_changes, norm_factor, color=dfv.loc[prot_list, 'color'],
+                alpha=alpha, linewidth=linewidth,
+                label=dfv.loc[prot_list, 'list_description'])
+
+    ###############################################################
+    #                                                             #
+    #                       set up plot style                     #
+    #                                                             #
+    ###############################################################
+
+    ax.set_xlabel('average % observed changes in homologues', fontsize=fontsize)
+    # move the x-axis label closer to the x-axis
+    # ax.xaxis.set_label_coords(0.5, -0.085)
+    # x and y axes min and max
+    xlim_min = 0
+    xlim_max = 100
+    ax.set_xlim(xlim_min, xlim_max)
+    ylim_min = 0
+    ylim_max = 4
+    ax.set_ylim(ylim_min, ylim_max)
+    ax.set_ylabel('aa propensity norm. factor', rotation='vertical', fontsize=fontsize)
+    # change axis font size
+    ax.tick_params(labelsize=fontsize)
+    ax.xaxis.set_label_coords(0.5, -0.08)
+    # ax.yaxis.set_label_coords(-0.05, 0.5)
+
+
+    if create_legend:
+        # Get artists and labels for legend and chose which ones to display
+        handles, labels = ax.get_legend_handles_labels()
+        display = (list(range(0, len(protein_lists) + 1, 1)))
+        # Create legend
+        ax.legend([handle for i, handle in enumerate(handles) if i in display],
+                  [label for i, label in enumerate(labels) if i in display],
+                  fontsize=fontsize - 3, frameon=True, loc='upper left')
 
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
 
