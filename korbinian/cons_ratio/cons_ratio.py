@@ -248,7 +248,7 @@ def calculate_AAIMONs(p):
         binarray = np.append(linspace_binlist, s["1p_final_highest_bin"])
 
         # se default font size for text in the plot
-        fontsize = 4
+        fontsize = 6
         # use a dictionary to organise the saving of multiple plots in multiple figures, with a certain number of plots per figure
         n_plots_per_fig = 4
         nrows_in_each_fig = 2
