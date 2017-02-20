@@ -220,7 +220,7 @@ def keyword_analysis(pathdict, s, logging):
             dfk.loc[keyword, 'p-value_AAIMON'] = p_AAIMON
 
             # calculate difference, p- and t-values for AAIMON_slopes
-            difference_AAIMON_slope = abs(dfk.loc[keyword, 'AAIMON_slope_keyword_mean'] - dfk.loc[keyword, 'AAIMON_slope_no_keyword_mean'])
+            difference_AAIMON_slope = dfk.loc[keyword, 'AAIMON_slope_keyword_mean'] - dfk.loc[keyword, 'AAIMON_slope_no_keyword_mean']
             dfk.loc[keyword, 'difference_AAIMON_slope'] = difference_AAIMON_slope
             KW_slope = df_keyword['AAIMON_slope_mean_all_TMDs'].dropna()
             no_KW_slope = df_no_keyword['AAIMON_slope_mean_all_TMDs'].dropna()
@@ -377,10 +377,10 @@ def keyword_analysis(pathdict, s, logging):
                     #     keyword = '{}{}'.format(keyword, symbols[1])
                     #     dfp = dfp.rename(index={replace: keyword})
                 #dfp.loc[keyword, 'Dataset'] = dataset
-                dfp.loc[keyword, 'mean AAIMON_slope'] = AAIMON_slope_keyword_mean
                 dfp.loc[keyword, 'p-value'] = p_AAIMON_slope
-                dfp.loc[keyword, 'd AAIMON_slope'] = difference_AAIMON_slope
-                dfp.loc[keyword, '# proteins'] = '{} / {}'.format(number_of_proteins_keyword, number_of_proteins_keyword+number_of_proteins_no_keyword)
+                dfp.loc[keyword, 'mean AAIMON slope *10^-3'] = AAIMON_slope_keyword_mean * 1000
+                dfp.loc[keyword, 'd AAIMON slope *10^-3'] = difference_AAIMON_slope * 1000
+                dfp.loc[keyword, '# proteins'] = '{}/{}'.format(number_of_proteins_keyword, number_of_proteins_keyword+number_of_proteins_no_keyword)
                 dfp.loc[keyword, 'Top correlated keywords'] = ', '.join(correlated_keywords_pretty)
             else:
                 dfp = dfp.drop(keyword)
@@ -393,7 +393,7 @@ def keyword_analysis(pathdict, s, logging):
         # for n, element in enumerate(list_to_exclude):
         #     annotate.append('{}excluding {}'.format(symbols[n], element))
 
-        dfp.loc['annotations', 'mean AAIMON_slope'] = '; '.join(annotate)
+        dfp.loc['annotations', 'p-value'] = '; '.join(annotate)
 
         # save pandas dataframes with values
         dfk.to_csv(os.path.join(pathdict["keywords"], 'List%02d_keywords.csv' % s["list_number"]), sep=",", quoting=csv.QUOTE_NONNUMERIC)
