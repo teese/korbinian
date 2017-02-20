@@ -151,17 +151,17 @@ def save_scatter_AAIMON_norm_and_AAIMON_slope_single_protein (fig_nr, fig, axarr
     xlim_min = 0
     xlim_max = 60
 
-    axarr[row_nr, col_nr].scatter(x_data_obs_changes, scatter_data_AAIMON, alpha=0.2, s=datapointsize)
-    axarr[row_nr, col_nr].scatter(x_data_obs_changes, scatter_data_AAIMON_n, color='red', marker='^', alpha=0.2, s=datapointsize)
-    axarr[row_nr, col_nr].plot(x_data, y_data, color="k", alpha=0.75)
-    axarr[row_nr, col_nr].plot(x_data, y_data_n, color="g", alpha=0.75)
+    axarr[row_nr, col_nr].scatter(x_data_obs_changes, scatter_data_AAIMON, color="k", alpha=0.3, s=datapointsize)
+    axarr[row_nr, col_nr].scatter(x_data_obs_changes, scatter_data_AAIMON_n, color=(0.843, 0.098, 0.1098), marker='^', alpha=0.3, s=datapointsize)
+    axarr[row_nr, col_nr].plot(x_data, y_data, color="k", alpha=0.3)
+    axarr[row_nr, col_nr].plot(x_data, y_data_n, color=(0.843, 0.098, 0.1098), alpha=0.3)
     # calculate angle between AAIMON_slope and AAIMON_n_slope
     angle = angle_between_slopes((x_data[0], y_data[0]), (x_data[1], y_data[1]))
 
     axarr[row_nr, col_nr].set_ylabel('%s AAIMON' % TMD, rotation='vertical', fontsize=fontsize)
     #axarr[row_nr, col_nr].set_xlabel('% identity')
-    axarr[row_nr, col_nr].set_ylim(0.2, 1.8)
-    axarr[row_nr, col_nr].annotate(s='AAIMON_slope: {a}\nAAIMON_n_slope {b}\nangle {c:.4f}°'.format(a=AAIMON_slope, b=AAIMON_n_slope, c=angle),
+    axarr[row_nr, col_nr].set_ylim(0.0, 3)
+    axarr[row_nr, col_nr].annotate(s='AAIMON slope: {a:0.3f}, AAIMON_n slope: {b:0.3f}, angle {c:.2f}°'.format(a=AAIMON_slope, b=AAIMON_n_slope, c=angle),
                                    xy=(0.01, 1.01), xytext=None, xycoords='axes fraction', alpha=0.75, fontsize=fontsize)
     #axarr[row_nr, col_nr].set_xticks(range(xlim_min,xlim_max+1,10))
 
@@ -174,11 +174,11 @@ def save_scatter_AAIMON_norm_and_AAIMON_slope_single_protein (fig_nr, fig, axarr
             # set x-axis ticks
             # use the slide selection to select every second item in the list as an xtick(axis label)
             ax.set_xticks(range(xlim_min,xlim_max+1,10))
-            ax.set_xlabel('% observed changes', fontsize=fontsize)
+            ax.set_xlabel('% observed aa substitutions', fontsize=fontsize)
             # change axis font size
             ax.tick_params(labelsize=fontsize)
             # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
-            ax.legend(['AAIMON_slope', 'AAIMON_n_slope', 'AAIMON','AAIMON_n'],loc='upper right', fontsize=fontsize)
+            ax.legend(['AAIMON slope', 'AAIMON_n slope', 'AAIMON','AAIMON_n'],loc='upper right', fontsize=fontsize)
             # add background grid
             ax.grid(True, color='0.75', alpha=0.5)
         # automatically tighten the layout of plots in the figure
