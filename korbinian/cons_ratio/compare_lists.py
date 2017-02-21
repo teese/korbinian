@@ -44,7 +44,7 @@ def compare_lists (s):
     save_pdf = s['save_pdf']
     colour_dict = utils.create_colour_lists()
     #start with TUM colours, distinguishable in B&W
-    color_list = ["0.5", colour_dict["TUM_oranges"]['TUM1'], colour_dict["TUM_colours"]['TUM5']]
+    color_list = ["0.5", colour_dict["TUM_oranges"]['TUM1'], colour_dict["TUM_colours"]['TUM5'], (0.843, 0.098, 0.1098)]
     # add other HTML colours
     color_list = color_list + ['#A1B11A', '#9ECEEC', '#0076B8', '#454545']
 
@@ -105,6 +105,8 @@ def compare_lists (s):
     fontsize = 16
     linewidth = 2
 
+
+    #--------------------------------------------------------------------------------------------------------------------------------#
     Fig_Nr = 1
     title = 'histograms AAIMON and AAIMON_n'
     Fig_name = 'Fig01_Histograms_of_mean_AAIMON_and_AAIMON_n'
@@ -198,7 +200,7 @@ def compare_lists (s):
 
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
 
-
+    #--------------------------------------------------------------------------------------------------------------------------------#
     Fig_Nr = 2
     title = 'histograms AAIMON_slope and AAIMON_n_slope'
     Fig_name = 'Fig02_Histograms_of_mean_AAIMON_slope_and_AAIMON_n_slope'
@@ -297,6 +299,7 @@ def compare_lists (s):
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
 
+    #--------------------------------------------------------------------------------------------------------------------------------#
     Fig_Nr = 3
     title = 'seqlen'
     Fig_name = 'Fig03_compare_seqlen'
@@ -369,6 +372,7 @@ def compare_lists (s):
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
+    #--------------------------------------------------------------------------------------------------------------------------------#
     Fig_Nr = 4
     title = 'number of TMDs'
     Fig_name = 'Fig04_compare_number_of_TMDs'
@@ -438,6 +442,7 @@ def compare_lists (s):
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
+    #--------------------------------------------------------------------------------------------------------------------------------#
     Fig_Nr = 5
     title = 'observed changes mean'
     Fig_name = 'Fig05_compare_observed_changes_mean'
@@ -508,6 +513,7 @@ def compare_lists (s):
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
+    #--------------------------------------------------------------------------------------------------------------------------------#
     Fig_Nr = 6
     title = 'number of homologues'
     Fig_name = 'Fig06_comparison_number_of_homologues'
@@ -595,6 +601,7 @@ def compare_lists (s):
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
 
+    #--------------------------------------------------------------------------------------------------------------------------------#
     Fig_Nr = 7
     title = 'hist_lipo_mean_all_TMDs'
     Fig_name = 'Fig07_hist_lipo_mean_all_TMDs'
@@ -696,6 +703,7 @@ def compare_lists (s):
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
 
 
+    #--------------------------------------------------------------------------------------------------------------------------------#
     Fig_Nr = 8
     title = 'perc of TMD region in protein'
     Fig_name = 'Fig08_perc_of_TMD_region_in_protein'
@@ -763,6 +771,7 @@ def compare_lists (s):
 
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
 
+    #--------------------------------------------------------------------------------------------------------------------------------#
     Fig_Nr = 9
     title = 'length of TMD'
     Fig_name = 'Fig09_compare_length_of_TMD'
@@ -845,24 +854,45 @@ def compare_lists (s):
 
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
 
+    #--------------------------------------------------------------------------------------------------------------------------------#
     Fig_Nr = 10
     title = 'norm. factors'
-    Fig_name = 'Fig10_normalisation_of_AAIMON'
+    Fig_name = 'Fig10_norm_factor_pairwise'
     fig, ax = plt.subplots()
-    obs_changes = np.linspace(0, 101, 400)
-    identity = (100 - obs_changes) / 100
+    # define distance before randTM to stop drawing curves
+    d = 0.02
 
     for prot_list in protein_lists:
         rand_TM = dfv.loc[prot_list, 'rand_TM']
         rand_nonTM = dfv.loc[prot_list, 'rand_nonTM']
-        norm_factor = []
-        for aa_ident in identity:
-            norm_factor.append(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor(aa_ident, rand_TM, rand_nonTM))
-        norm_factor = np.array(norm_factor)
+        # define the stop and start points for the two sections of graph
+        stop_before_rand_TM = (100 - rand_TM*100) - d
+        start_after_rand_TM = (100 - rand_TM*100) + d
+        # define the x-axis points for both sections
+        obs_changes_start = np.linspace(0, stop_before_rand_TM, 1000)
+        obs_changes_end = np.linspace(start_after_rand_TM, 101, 200)
 
-        ax.plot(obs_changes, norm_factor, color=dfv.loc[prot_list, 'color'],
-                alpha=alpha, linewidth=linewidth,
-                label=dfv.loc[prot_list, 'list_description'])
+        # plot two sections of the graph separately to avoid crossover in hyperbola
+        # Section 1 : from 0 up until just before the randTM
+        # Section 2 : from just after the randTM until 101
+        for obs_changes in [obs_changes_start, obs_changes_end]:
+            norm_factor = []
+            # convert to identity for use in the formula
+            identity = (100 - obs_changes) / 100
+            # go through each identity individually, and convert to norm factor
+            for aa_ident in identity:
+                norm_factor.append(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor(aa_ident, rand_TM, rand_nonTM))
+            norm_factor = np.array(norm_factor)
+
+            # stop the label from being duplicated for both sections of graph
+            if obs_changes[0] == 0:
+                label = dfv.loc[prot_list, 'list_description']
+            else:
+                label = None
+            # plot that section of the graph
+            ax.plot(obs_changes, norm_factor, color=dfv.loc[prot_list, 'color'],
+                    alpha=alpha, linewidth=linewidth,
+                    label=label)
 
     ###############################################################
     #                                                             #
@@ -870,38 +900,135 @@ def compare_lists (s):
     #                                                             #
     ###############################################################
 
-    ax.set_xlabel('average % observed changes in homologues', fontsize=fontsize)
-    # move the x-axis label closer to the x-axis
-    # ax.xaxis.set_label_coords(0.5, -0.085)
+    ax.set_xlabel('% AA substitutions in full protein', fontsize=fontsize)
     # x and y axes min and max
     xlim_min = 0
     xlim_max = 100
     ax.set_xlim(xlim_min, xlim_max)
     ylim_min = 0
-    ylim_max = 4
+    ylim_max = 3
     ax.set_ylim(ylim_min, ylim_max)
-    ax.set_ylabel('aa propensity norm. factor', rotation='vertical', fontsize=fontsize)
+    ax.set_ylabel('norm. factor', rotation='vertical', fontsize=fontsize)
     # change axis font size
     ax.tick_params(labelsize=fontsize)
     ax.xaxis.set_label_coords(0.5, -0.08)
-    # ax.yaxis.set_label_coords(-0.05, 0.5)
 
-
-    if create_legend:
-        # Get artists and labels for legend and chose which ones to display
-        handles, labels = ax.get_legend_handles_labels()
-        display = (list(range(0, len(protein_lists) + 1, 1)))
-        # Create legend
-        ax.legend([handle for i, handle in enumerate(handles) if i in display],
-                  [label for i, label in enumerate(labels) if i in display],
-                  fontsize=fontsize - 3, frameon=True, loc='upper left')
+    # Get artists and labels for legend and chose which ones to display
+    handles, labels = ax.get_legend_handles_labels()
+    display = (list(range(0, len(protein_lists) + 1, 1)))
+    # Create legend
+    ax.legend([handle for i, handle in enumerate(handles) if i in display],
+              [label for i, label in enumerate(labels) if i in display],
+              fontsize=fontsize - 3, frameon=True, loc='upper left')
 
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
 
 
+    #--------------------------------------------------------------------------------------------------------------------------------#
+    Fig_Nr = 11
+    title = 'compare_random_identity'
+    Fig_name = 'Fig11_random_ident'
+    fig, ax = plt.subplots()
+
+    df_rand = pd.DataFrame()
+    df_aa_prop_TM = pd.DataFrame()
+    df_aa_prop_nonTM = pd.DataFrame()
+
+    for prot_list in protein_lists:
+        rand_TM_path = os.path.join(s["data_dir"], "summaries", "{ln:02d}\\List{ln:02d}_rand\\List{ln:02d}_rand_TM.csv".format(ln=prot_list))
+        rand_nonTM_path = os.path.join(s["data_dir"], "summaries", "{ln:02d}\\List{ln:02d}_rand\\List{ln:02d}_rand_nonTM.csv".format(ln=prot_list))
+
+        # grab the random identity and aa propensity series for the TM
+        ser_rand_TM = pd.Series.from_csv(rand_TM_path, sep="\t")
+        # the first line is the random identity. Extract and delete.
+        df_rand.loc[prot_list, "rand_TM"] = ser_rand_TM["random_sequence_identity_output"]
+        del ser_rand_TM["random_sequence_identity_output"]
+        # the rest of the index is A_input, etc. Delete the "_input" and the aa propensity table is ready
+        ser_rand_TM.index = ser_rand_TM.index.str[:1]
+        #df_rand.loc[prot_list, "TM_aa_prop"] = str(ser_rand_TM.to_dict())
+        df_aa_prop_TM[prot_list] = ser_rand_TM
+
+        # grab the random identity and aa propensity series for the nonTM
+        ser_rand_nonTM = pd.Series.from_csv(rand_nonTM_path, sep="\t")
+        # the first line is the random identity. Extract and delete.
+        df_rand.loc[prot_list, "rand_nonTM"] = ser_rand_nonTM["random_sequence_identity_output"]
+        del ser_rand_nonTM["random_sequence_identity_output"]
+        # the rest of the index is A_input, etc. Delete the "_input" and the aa propensity table is ready
+        ser_rand_nonTM.index = ser_rand_nonTM.index.str[:1]
+        #df_rand.loc[prot_list, "nonTM_aa_prop"] = str(ser_rand_TM.to_dict())
+        df_aa_prop_nonTM[prot_list] = ser_rand_nonTM
+
+    # create list of list_numbers for x-axis
+    x = df_rand.index.astype(str)
+    # width of bar
+    width = 0.3
+    # indices (position of bar) are at 0.1, 1.1, 2.1
+    ind = np.arange(len(x)) + 0.1
+    # create bar for the rand_TM
+    ax.bar(ind, df_rand.rand_TM, width, color=color_list[:len(x)], alpha=1, label="TM")#color=color_list[2]
+    # create bar for the rand_nonTM
+    ax.bar(ind + width, df_rand.rand_nonTM, width, color=color_list[:len(x)], alpha=0.5, label="nonTM")
+    # put labels in between bars
+    ax.set_xticks(ind + width)
+    # extract list names
+    x_labels = dfv.loc[protein_lists, 'list_description']
+    ax.set_xticklabels(x_labels)
+    ax.legend()
+    ax.set_ylabel("random identity")
+    ax.set_xlabel("list number")
+    utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
+
+    #--------------------------------------------------------------------------------------------------------------------------------#
+    Fig_Nr = 12
+    title = 'compare_aa_propensity'
+    Fig_name = 'Fig12_aa_propensity_TM'
+    fig, ax = plt.subplots()
+    n = len(protein_lists)
+    # width of bar
+    width = 0.8 / n
+    # indices (position of bar)
+    ind = np.arange(df_aa_prop_TM.shape[0]) + 0.1
+
+    # iterate through the protein lists
+    for m, prot_list in enumerate(df_aa_prop_TM.columns):
+        #indices are 1.1, 2.1, etc until 20.1 for all amino acids
+        ind_for_list = ind + width * m
+        # create bar for that protein list
+        ax.bar(ind_for_list, df_aa_prop_TM.loc[:,prot_list], width, color=color_list[m], label=dfv.loc[prot_list, 'list_description'])#color=color_list[2]
+
+    # xticks are located in the middle of all the bars (depending on number of lists)
+    xtick_locations = ind + n/2*width
+    ax.set_xticks(xtick_locations)
+    aa_list = df_aa_prop_TM.index
+    ax.set_xticklabels(aa_list)
+    ax.set_ylabel("amino acid propensity")
+    ax.legend()
+    utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
+
+    #--------------------------------------------------------------------------------------------------------------------------------#
+    Fig_Nr = 13
+    title = 'compare_aa_propensity'
+    Fig_name = 'Fig13_aa_propensity_nonTM'
+    fig, ax = plt.subplots()
+    n = len(protein_lists)
+    # width of bar
+    width = 0.8 / n
+    # indices (position of bar)
+    ind = np.arange(df_aa_prop_nonTM.shape[0]) + 0.1
+
+    aa_list = df_aa_prop_nonTM.index
+
+    for m, prot_list in enumerate(df_aa_prop_nonTM.columns):
+        ind_for_list = ind + width * m
+        ax.bar(ind_for_list, df_aa_prop_nonTM.loc[:,prot_list], width, color=color_list[m], label=dfv.loc[prot_list, 'list_description'])#color=color_list[2]
+
+    xtick_locations = ind + n/2*width
+    ax.set_xticks(xtick_locations)
+    ax.set_xticklabels(aa_list)
+    ax.set_ylabel("amino acid propensity")
+    ax.legend()
+    utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
+    #--------------------------------------------------------------------------------------------------------------------------------#
+
     #dfv.to_csv(os.path.join(base_filepath, 'Lists_%s_variables.csv'%str_protein_lists))
-
     sys.stdout.write("\n~~~~~~~~~~~~         compare_lists finished           ~~~~~~~~~~~~\n")
-
-
-

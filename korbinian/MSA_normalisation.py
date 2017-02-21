@@ -260,6 +260,7 @@ def calc_random_aa_ident(aa_prop_csv_in, rand_seq_ident_csv_out, seq_len=1000, n
     output_ser = pd.concat([output_ser, aa_prop_ser])
     # save the setries as csv file
     output_ser.to_csv(rand_seq_ident_csv_out, sep="\t")
+    sys.stdout.write("calc_random_aa_ident is finished")
 
 
 def generate_random_seq(seq_len, number_seq, number_mutations, list_all_20_aa, probabilities_all_20_aa):

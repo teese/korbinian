@@ -201,6 +201,7 @@ def setup_error_logging(logfile, level_console="DEBUG", level_logfile="DEBUG"):
 
 
 def create_pathdict(base_filename_summaries, s):
+    list_number = s["list_number"]
     pathdict = {}
     # define path to csv that holds a backup of s (settings dictionary)
     pathdict["settings_copy_csv"] = '%s_settings_copy.csv' % base_filename_summaries
@@ -235,7 +236,9 @@ def create_pathdict(base_filename_summaries, s):
     # create path to csv with the pretty alignments for each homologue and TMD with the highest and lowest AAIMON
     pathdict["pretty_alignments_csv"] = '%s_pretty_alignments.csv' % base_filename_summaries
     pathdict["list_filtered_csv"] = "%s_filtered.csv" % base_filename_summaries
-
+    # create random identity TM and nonTM csv files
+    pathdict["rand_ident_TM_csv"] = "{base}_rand\\List{ln:02d}_rand_TM.csv".format(base = base_filename_summaries, ln=list_number)
+    pathdict["rand_ident_nonTM_csv"] = "{base}_rand\\List{ln:02d}_rand_nonTM.csv".format(base = base_filename_summaries, ln=list_number)
 
     """OUTPUT FILES FOR OLD SCRIPTS"""
     pathdict["dfout08_simap_AAIMON"] = '%s_simap_AAIMON.csv' % base_filename_summaries
