@@ -410,6 +410,58 @@ def calc_MSA_ident_n_factor(observed_perc_ident_full_seq, rand_perc_ident_TM, ra
 
     return MSA_aa_ident_norm_factor
 
+def create_matrix_artificial_homologues(aa_prop_ser, seq_len, number_seq, number_mutations):
+    """ Create a matrix (array) of artificially generated homologue sequences.
+
+    1) creates an original random sequence, based on a given aa propensity
+    2) creates an array of "homologues"
+    3) in each "homologue", replaces some original aa with a randomly chosen AA, based on the AA propensity
+
+    Parameters
+    ----------
+    aa_prop_ser : pd.Series
+        Amino acid propensity series
+            index = A, C, D etc
+            values = 0.05, 0.06, 0.14, etc
+    seq_len : int
+        Length of generated sequences.
+    number_seq : int
+        Numbef of sequences to be generated
+    number_mutations : int
+        number of mutations to introduce into the "homologues"
+
+    Returns
+    -------
+    orig_seq : str
+        original randomly generated sequence
+    matrix : list
+        list of strings of artificial homologues
+    """
+
+    # create the original template sequence
+    orig_seq = "".join(np.random.choice(aa_prop_ser.index, p=aa_prop_ser) for _ in range(int(seq_len)))
+
+    matrix = []
+    for n in range(number_seq):
+        # create indices for each AA in orig sequence
+        inds = list(range(seq_len))
+        # choose a random sample of AA to mutation
+        sam = random.sample(inds, number_mutations)
+        # convert orig sequence to a list
+        seq_list = list(orig_seq)
+        # for each index in the random sample, replace the AA with a random AA
+        for ind in sam:
+            seq_list[ind] = np.random.choice(aa_prop_ser.index, p=aa_prop_ser)
+        # # join to make a new sequence
+        # new_seq = "".join(seq_list)
+        # # append to the matrix of "homologues"
+        # matrix.append(new_seq)
+        matrix.append(seq_list)
+    # convert to a numpy array
+    matrix = np.array(matrix)
+
+    return orig_seq, matrix
+
 def OLD_calc_MSA_ident_n_factor(observed_perc_ident_TM, rand_perc_ident_TM, rand_perc_ident_nonTM):
     """Calculation of the MSA identity normalisation factor
 
