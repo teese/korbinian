@@ -325,7 +325,6 @@ def prepare_protein_list(s, pathdict, logging):
 
     lipo_dropped = list(df.loc[acc_lipo_mean_above_cutoff_to_remove, 'lipo_mean_all_TMDs'])
 
-
     # drop rows
     df = df.drop(acc_lipo_mean_above_cutoff_to_remove)
     n_prot_AFTER_lipo_cutoff = df.shape[0]
@@ -335,14 +334,14 @@ def prepare_protein_list(s, pathdict, logging):
     #           check for subcellular location (PM, ER, Golgi) in keywords                 #
     #                                                                                      #
     ########################################################################################
-    # apply ast.literal_eval to every item in df['uniprot_KW']
-    if isinstance(df['uniprot_KW'][0], str):
-        df['uniprot_KW'] = df['uniprot_KW'].apply(lambda x: ast.literal_eval(x))
-    # check for specific keywords
-    df['Cell_membrane'] = df['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args=(['Cell membrane'],))
-    df['Endoplasmic_reticulum'] = df['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args=(['Endoplasmic reticulum'],))
-    df['Golgi_apparatus'] = df['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args=(['Golgi apparatus'],))
-
+    if 'uniprot_KW' in df.columns:
+        # apply ast.literal_eval to every item in df['uniprot_KW']
+        if isinstance(df['uniprot_KW'][0], str):
+            df['uniprot_KW'] = df['uniprot_KW'].apply(lambda x: ast.literal_eval(x))
+        # check for specific keywords
+        df['Cell_membrane'] = df['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args=(['Cell membrane'],))
+        df['Endoplasmic_reticulum'] = df['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args=(['Endoplasmic reticulum'],))
+        df['Golgi_apparatus'] = df['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args=(['Golgi apparatus'],))
 
     ########################################################################################
     #                                                                                      #
@@ -351,6 +350,34 @@ def prepare_protein_list(s, pathdict, logging):
     ########################################################################################
     df['TMD_seq_joined_len'] = df['TMD_seq_joined'].str.len()
     df['perc_TMD'] = df['TMD_seq_joined_len'] / df['seqlen'] * 100
+
+    ########################################################################################
+    #                                                                                      #
+    #                      calculate random TM and nonTM identity                          #
+    #                                                                                      #
+    ########################################################################################
+    # ensure folder is exists (/summaries/ListXX_rand/ListXX...)
+    utils.make_sure_path_exists(pathdict["rand_ident_TM_csv"], isfile=True)
+    # calculate AA propensity and random ident for TM
+    seq_list_csv_in = pathdict["list_csv"]
+    aa_prop_csv_out = pathdict["rand_ident_TM_csv"][:-4] + "aa_prop_temp_TM.csv"
+    col_name = "TMD_seq_joined"
+    # calculate aa propensity for all joined TM sequences
+    korbinian.MSA_normalisation.calc_aa_propensity_from_csv_col(seq_list_csv_in, aa_prop_csv_out, col_name)
+    # calculate random aa identity based on aa propensity
+    korbinian.MSA_normalisation.calc_random_aa_ident(aa_prop_csv_out, pathdict["rand_ident_TM_csv"], seq_len=100, number_seq=100, ident=0.7)
+    # remove temp file with aa propensity (it is also saved in the rand_ident csv)
+    os.remove(aa_prop_csv_out)
+
+    # calculate AA propensity and random ident for nonTM
+    aa_prop_csv_out = pathdict["rand_ident_nonTM_csv"][:-4] + "aa_prop_temp_nonTM.csv"
+    col_name = "nonTMD_seq"
+    # calculate aa propensity for nonTM sequence
+    korbinian.MSA_normalisation.calc_aa_propensity_from_csv_col(seq_list_csv_in, aa_prop_csv_out, col_name)
+    # calculate random aa identity based on aa propensity
+    korbinian.MSA_normalisation.calc_random_aa_ident(aa_prop_csv_out, pathdict["rand_ident_nonTM_csv"], seq_len=100, number_seq=100, ident=0.7)
+    # remove temp file with aa propensity (it is also saved in the rand_ident csv)
+    os.remove(aa_prop_csv_out)
 
     ########################################################################################
     #                                                                                      #
