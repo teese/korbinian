@@ -516,8 +516,7 @@ def create_new_fig_if_necessary(newfig, fig, axarr, nrows_in_each_fig, ncols_in_
 
 
 def check_SIMAP_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path, acc, logging, delete_corrupt=False):
-    ''' Checs
-    Checks the tarball that contains the SIMAP output. 
+    ''' Checks the tarball that contains the SIMAP output.
     Looks to see if the tarball exists, if it is corrupted, if it contains the feature table and homologues from simap.
     '''
 

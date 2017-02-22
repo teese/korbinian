@@ -462,6 +462,28 @@ def create_matrix_artificial_homologues(aa_prop_ser, seq_len, number_seq, number
 
     return orig_seq, matrix
 
+
+def count_aa_freq(seq):
+    # function to calculate aa propensity for each residue
+    # input should be a string
+    # output is a pd.DataFrame
+    aa_dict = {}
+    for aa in seq:
+        aa_dict[aa] = 0
+    for aa in seq:
+        aa_dict[aa] += 1
+
+    prop_dict = {}
+    for aa in aa_dict:
+        # print(aa)
+        prop_dict[aa] = aa_dict['%s' % aa] / len(seq)
+
+    df = pd.Series(prop_dict)
+    df = pd.DataFrame(df, columns=['freq'])
+    df = df.transpose()
+    return df
+
+
 def OLD_calc_MSA_ident_n_factor(observed_perc_ident_TM, rand_perc_ident_TM, rand_perc_ident_nonTM):
     """Calculation of the MSA identity normalisation factor
 
