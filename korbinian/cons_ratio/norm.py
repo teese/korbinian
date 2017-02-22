@@ -1,6 +1,8 @@
 import matplotlib.pylab as pylab
 import matplotlib.pyplot as plt
 import os
+import numpy as np
+import random
 
 def calc_AAIMON_aa_prop_norm_factor(aa_ident, rand_TM, rand_nonTM):
     """Calculates the amino acid propensity normalisation factor for homologues of a particular amino acid identity.
@@ -108,3 +110,23 @@ def save_graph_for_normalized_AAIMON(acc, AAIMON, norm_AAIMON, aa_ident, zipout,
     os.remove(protein_name + '_AAIMON_normalisation.png')
 
 
+def get_perc_ident_random_pairwise_alignment(aa_prop_ser, seq_len, number_mutations):
+    # create the original template sequence
+    orig_seq = np.array([np.random.choice(aa_prop_ser.index, p=aa_prop_ser) for _ in range(int(seq_len))])
+    # create indices for each AA in orig sequence
+    inds = list(range(seq_len))
+    # choose a random sample of AA to mutation
+    sam = random.sample(inds, number_mutations)
+    # convert orig sequence to a list
+    homol_seq = list(orig_seq)
+    # for each index in the random sample, replace the AA with a random AA
+    for ind in sam:
+        homol_seq[ind] = np.random.choice(aa_prop_ser.index, p=aa_prop_ser)
+    # convert from list to numpy array
+    homol_seq = np.array(homol_seq)
+    # count how many residues are identical by making True/False array, and counting the "True" values
+    aa_is_conserved_bool_array = orig_seq == homol_seq
+    n_cons_aa = np.count_nonzero(aa_is_conserved_bool_array)
+    # percentage identity
+    perc_ident = n_cons_aa / seq_len
+    return perc_ident
