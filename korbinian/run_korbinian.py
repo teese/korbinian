@@ -143,7 +143,7 @@ def run_statements(s):
         n_aa_before_tmd = s["n_aa_before_tmd"]
         n_aa_after_tmd = s["n_aa_after_tmd"]
         list_parsed_csv = pathdict["list_parsed_csv"]
-        output = korbinian.prot_list.uniprot_parse.create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, s['analyse_signal_peptides'], logging, list_parsed_csv)
+        output = korbinian.prot_list.uniprot_parse.create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, s['SiPe'], logging, list_parsed_csv)
         logging.info(output)
 
     ########################################################################################
