@@ -2,6 +2,7 @@ import numpy as np
 import random
 import pandas as pd
 import korbinian
+import sys
 
 ##########parameters#############
 
@@ -27,7 +28,7 @@ aa_prop_ser.index = aa_prop_ser.index.str[:1]
 ########################################################################################
 
 orig_seq, matrix = korbinian.MSA_normalisation.create_matrix_artificial_homologues(aa_prop_ser, seq_len, number_seq, number_mutations)
-print(len(matrix), len(matrix[0]))
+sys.stdout.write(len(matrix), len(matrix[0]))
 
 ########################################################################################
 #                                                                                      #
@@ -36,9 +37,9 @@ print(len(matrix), len(matrix[0]))
 ########################################################################################
 analyse_by_aa = False
 if analyse_by_aa:
-    print(orig_seq)
+    sys.stdout.write(orig_seq)
     all_aa = "ACDEFGHIKLMNPQRSTVWY"
-    print(len(all_aa))
+    sys.stdout.write(len(all_aa))
     perc_ident_ser = pd.Series()
 
     for aa in all_aa:
@@ -46,8 +47,8 @@ if analyse_by_aa:
         if aa in orig_seq_array:
             # get indices in orig seq
             list_indices_in_orig_seq_with_this_aa = np.where(orig_seq_array == aa)[0]
-            #print(aa)
-            #print(list_indices_in_orig_seq_with_this_aa)
+            #sys.stdout.write(aa)
+            #sys.stdout.write(list_indices_in_orig_seq_with_this_aa)
             # get those positions in homologues
             rows_in_matrix_with_this_aa = matrix[:,list_indices_in_orig_seq_with_this_aa]
 
@@ -58,7 +59,7 @@ if analyse_by_aa:
             # ser_counts = pd.Series(counts, index=values)
             # n_aa_with_orig = ser_counts[aa]
             # perc_ident = n_aa_with_orig / len(rows_in_matrix_with_this_aa_flattened)
-            # #print(perc_ident)
+            # #sys.stdout.write(perc_ident)
             # perc_ident_ser[aa] = perc_ident
 
             rows_in_matrix_with_this_aa
@@ -67,7 +68,7 @@ if analyse_by_aa:
             # if this aa is not in the orig seq (e.g. Cysteine), leave value empty
             perc_ident_ser[aa] = np.nan
 
-    print(perc_ident_ser)
+    sys.stdout.write(perc_ident_ser)
 
 ########################################################################################
 #                                                                                      #
@@ -85,7 +86,7 @@ cons_list = []
 for pos in matrix_df.columns:
     string_seq_at_that_pos = "".join(matrix_df[pos])
     cons = korbinian.MSA_normalisation.count_aa_freq(string_seq_at_that_pos)
-#    print(cons)
+#    sys.stdout.write(cons)
     cons_list.append(cons)
 
 ########################################################################################
@@ -113,14 +114,14 @@ aa_prop_list = []
 #                                                                                      #
 ########################################################################################
 for aa in cons_df.index.unique():
-#    print(cons_df2.loc[aa, aa])
-#    print(type(cons_df2.loc[aa, aa]))
+#    sys.stdout.write(cons_df2.loc[aa, aa])
+#    sys.stdout.write(type(cons_df2.loc[aa, aa]))
     if type(cons_df[aa][aa]) == pd.Series:
         observed_cons_1_row = list(cons_df.loc[aa, aa])
         aa_prop_list += observed_cons_1_row
     else:
         aa_prop_list.append(cons_df.loc[aa, aa])
-#print(aa_prop_list)
+#sys.stdout.write(aa_prop_list)
 
 ########################################################################################
 #                                                                                      #
@@ -130,10 +131,10 @@ for aa in cons_df.index.unique():
 observed_cons_rate_all_pos = np.array(aa_prop_list).mean() * 100
 back_mutation_rate = 100 * (observed_cons_rate_all_pos - ident)/(100 - ident)
 
-#print(len(aa_prop_list))
+#sys.stdout.write(len(aa_prop_list))
 
-print("observed_cons_rate_all_pos", observed_cons_rate_all_pos)
-print("back_mutation_rate", back_mutation_rate)
+sys.stdout.write("observed_cons_rate_all_pos", observed_cons_rate_all_pos)
+sys.stdout.write("back_mutation_rate", back_mutation_rate)
 
 ########################################################################################
 #                                                                                      #
@@ -142,12 +143,12 @@ print("back_mutation_rate", back_mutation_rate)
 ########################################################################################
 for aa in cons_df.columns[:len_df]:
     cons_df['%s_frac' %aa] = cons_df['%s' %aa]* np.log2(cons_df['%s' %aa])
-# print(cons_df.columns)
+# sys.stdout.write(cons_df.columns)
 
 frac_df = cons_df.iloc[:,len_df:]
 frac_df['entropy'] = - frac_df.sum(axis=1)
 
-print('mean entropy =',frac_df['entropy'].mean(axis=0))
+sys.stdout.write('mean entropy =',frac_df['entropy'].mean(axis=0))
 
 
 import matplotlib.pyplot as plt
