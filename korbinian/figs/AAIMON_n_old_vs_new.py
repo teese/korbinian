@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import pickle
 import korbinian
 import sys
+
 def calc_AAIMON_aa_prop_norm_factor_assum_equal_real_aa_sub(observed_aa_ident_full_protein, rand_TM, rand_nonTM, proportion_seq_TM_residues=0.3):
     """Calculates the amino acid propensity normalisation factor for homologues of a particular amino acid identity.
 
@@ -114,18 +115,19 @@ def calc_AAIMON_aa_prop_norm_factor_assum_equal_real_aa_sub(observed_aa_ident_fu
     # print("obs_aa_sub_nonTM", obs_aa_sub_nonTM)
 
     #print("------------------------------------------------------")
-
+    # since we only want the ratios within TM and nonTM, let m = 1 and s = 1
     unobserved_aa_subst_rate_TM = x * t
     unobserved_aa_subst_rate_nonTM = x * n
-
+    # real aa ident = 1 - real aa subst. rate
     real_aa_ident_full_protein = 1 - x
-
+    # observed AA conservation for TM or nonTM
+    # = real AA identity, plus a proportion of unobserved AA identity
     obs_aa_cons_TM = real_aa_ident_full_protein + unobserved_aa_subst_rate_TM
     obs_aa_cons_nonTM = real_aa_ident_full_protein + unobserved_aa_subst_rate_nonTM
 
     #print("obs_aa_cons_TM", obs_aa_cons_TM)
     #print("obs_aa_cons_nonTM", obs_aa_cons_nonTM)
-
+    # artificial AAIMON, if AA propensity is the only underlying factor
     AAIMON = obs_aa_cons_TM / obs_aa_cons_nonTM
     #print("AAIMON", AAIMON)
 
@@ -156,7 +158,6 @@ def calc_AAIMON_aa_prop_norm_factor_assum_equal_real_aa_sub(observed_aa_ident_fu
 
     return aa_prop_norm_factor
 
-
 ##########parameters#############
 list_number = 1
 data_dir = r"D:\Databases"
@@ -176,8 +177,7 @@ real_perc_aa_ident_array = 1 - real_perc_aa_subst_array
 # List_rand_TM = r"D:\Databases\summaries\01\List01_rand\List01_rand_TM.csv"
 List_rand_TM = os.path.join(data_dir, "summaries\{ln:02d}\List{ln:02d}_rand\List{ln:02d}_rand_TM.csv".format(ln=list_number))
 List_rand_nonTM = os.path.join(data_dir, "summaries\{ln:02d}\List{ln:02d}_rand\List{ln:02d}_rand_nonTM.csv".format(ln=list_number))
-pickle_with_artificial_AAIMONs = os.path.join(data_dir, "summaries\{ln:02d}\List{ln:02d}_rand\List{ln:02d}_rand_AAIMONs.pickle".format(ln=list_number))
-fig_AAIMON_vs_perc_aa_sub = os.path.join(data_dir, "summaries\{ln:02d}\List{ln:02d}_rand\List{ln:02d}_rand_AAIMON_vs_aa_sub.png".format(ln=list_number))
+fig_out = os.path.join(data_dir, "summaries\{ln:02d}\List{ln:02d}_rand\List{ln:02d}_fig_compare_AAIMON_norm_old_new.png".format(ln=list_number))
 
 ########################################################################################
 #                                                                                      #
@@ -200,139 +200,37 @@ aa_prop_nonTM.index = aa_prop_nonTM.index.str[:1]
 print("rand_TM", rand_TM)
 print("rand_nonTM", rand_nonTM)
 
-# creating random alignments is slow. Once carried out, save the data and re-use for graphing.
-if not os.path.isfile(pickle_with_artificial_AAIMONs) or repeat_randomisation == True:
 
-    ########################################################################################
-    #                                                                                      #
-    #              Create pairwise alignments of artificial homologue and calc % ident     #
-    #                                                                                      #
-    ########################################################################################
+rand_TM = 0.13
+rand_nonTM = 0.05
+proportion_seq_TM_residues = 0.5
 
-    nested_list_AAIMONs_3_replicates = []
+#observed_aa_ident_full_protein = 0.4
 
-    # make 3 replicates for each % identity (% real aa subst)
-    for i in range(3):
-
-        AAIMON_list = []
-        # iterate through each number of mutations (1/1000, 2/1000 ..... 700/1000)
-        for n, number_mutations in enumerate(n_mutations_array):
-            # get a random pairwise alignment for the TM region
-            perc_ident_TM = korbinian.cons_ratio.norm.get_perc_ident_random_pairwise_alignment(aa_prop_TM, seq_len, number_mutations)
-            # get a random pairwise alignment for the nonTM region
-            perc_ident_nonTM = korbinian.cons_ratio.norm.get_perc_ident_random_pairwise_alignment(aa_prop_nonTM, seq_len, number_mutations)
-            # calculate artificial AAIMON
-            AAIMON = perc_ident_TM / perc_ident_nonTM
-            # append to AAIMON_list
-            AAIMON_list.append(AAIMON)
-            # calculate the percentage aa substitutions for this position
-            perc_aa_subst = number_mutations / seq_len
-            sys.stdout.write(".")
-            if n % 60 == 0:
-                sys.stdout.write("\n{}, {:.03f}, {:.03f}, {:.03f}, {:.03f}\n".format(number_mutations, perc_aa_subst, perc_ident_TM, perc_ident_nonTM, AAIMON))
-            sys.stdout.flush()
-        # add each list to a nested list (3 replicates)
-        nested_list_AAIMONs_3_replicates.append(AAIMON_list)
-
-    # save to pickle file, so this does not need to be repeated for graphing
-    with open(pickle_with_artificial_AAIMONs, "wb") as pkl_file:
-        pickle.dump(nested_list_AAIMONs_3_replicates, pkl_file, -1)
+observed_aa_ident_full_protein_list = np.linspace(1.0,0.3, 100)
+output_norm_list_old = []
+output_norm_list_new = []
 
 
-########################################################################################
-#                                                                                      #
-#                             Normalisation and plotting                               #
-#                                                                                      #
-########################################################################################
-# re-open pickle file created earlier
-with open(pickle_with_artificial_AAIMONs, "rb") as pkl_file:
-    nested_list_AAIMONs_3_replicates = pickle.load(pkl_file)
+for observed_aa_ident_full_protein in observed_aa_ident_full_protein_list:
+    old = korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor(observed_aa_ident_full_protein, rand_TM, rand_nonTM)
+    #print("old", old)
+    output_norm_list_old.append(old)
+
+    new = calc_AAIMON_aa_prop_norm_factor_assum_equal_real_aa_sub(observed_aa_ident_full_protein, rand_TM, rand_nonTM, proportion_seq_TM_residues)
+    output_norm_list_new.append(new)
+    #print("new", new)
+    #print()
+
+
+colour_dict = korbinian.utils.create_colour_lists()
+
+obs_aa_sub_full_prot = 1- np.array(observed_aa_ident_full_protein_list)
 
 fig, ax = plt.subplots()
-color_nonnorm = "#EE762C"
-#color_norm = "#0076B8"
-colour_dict = korbinian.utils.create_colour_lists()
-color_norm = colour_dict["TUM_colours"]['TUM5']
-color_norm_line = "#53A7D5"
-
-proportion_seq_TM_residues = 0.06
-# calculate proportion of length of full sequence that is nonTM
-proportion_seq_nonTM_residues = 1 - proportion_seq_TM_residues
-# random percentage identity of the full protein, assuming 30% TM region and 70% nonTM region
-rand_perc_ident_full_protein = proportion_seq_TM_residues * rand_TM + proportion_seq_nonTM_residues * rand_nonTM
-print("rand_perc_ident_full_protein", rand_perc_ident_full_protein)
-
-# The unobserved aa_substitition rate is a proportion of the real underlying subst rate
-
-#unobserv_aa_sub_rate = real_perc_aa_subst_array * rand_TM
-unobserv_aa_sub_rate = real_perc_aa_subst_array * rand_perc_ident_full_protein
-
-obs_aa_sub_rate = real_perc_aa_subst_array - unobserv_aa_sub_rate
-observed_perc_aa_ident_array = 1- obs_aa_sub_rate
-
-print("unobserv_aa_sub_rate", unobserv_aa_sub_rate[::70])
-print("obs_aa_sub_rate", obs_aa_sub_rate[::70])
-print("observed_perc_aa_ident_array", observed_perc_aa_ident_array[::70])
-
-# # OLD NORM FACTOR
-vfunc_old = np.vectorize(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor)
-norm_factor_array_old = vfunc_old(observed_perc_aa_ident_array, rand_TM, rand_nonTM)
-
-# NEW NORM FACTOR
-#
-vfunc = np.vectorize(calc_AAIMON_aa_prop_norm_factor_assum_equal_real_aa_sub)
-norm_factor_array = vfunc(observed_perc_aa_ident_array, rand_TM, rand_nonTM, proportion_seq_TM_residues)
-
-#norm_factor_array_obs_test = vfunc(observed_perc_aa_ident_array, rand_TM, rand_nonTM)
-# print("norm_factor_array", norm_factor_array[::70])
-#
-#
-AAIMON_list = []
-obs_aa_sub_rate_3rep = []
-norm_factor_array_3rep_new = []
-norm_factor_array_3rep_old = []
-for AAIMON_sublist in nested_list_AAIMONs_3_replicates:
-    AAIMON_list += AAIMON_sublist
-    obs_aa_sub_rate_3rep = np.append(obs_aa_sub_rate_3rep, obs_aa_sub_rate)
-    norm_factor_array_3rep_old = np.append(norm_factor_array_3rep_old, norm_factor_array_old)
-    norm_factor_array_3rep_new = np.append(norm_factor_array_3rep_new, norm_factor_array)
-
-norm_AAIMONs_old = AAIMON_list / norm_factor_array_3rep_old
-norm_AAIMONs_new = AAIMON_list / norm_factor_array_3rep_new
-ax.scatter(obs_aa_sub_rate_3rep*100, norm_AAIMONs_old, color="r", s=3, alpha=1, label="old norm factor")
-ax.scatter(obs_aa_sub_rate_3rep*100, norm_AAIMONs_new, color=colour_dict["TUM_colours"]['TUM5'], s=3, alpha=1, label="new norm factor")
-ax.scatter(obs_aa_sub_rate_3rep*100, AAIMON_list, color=color_nonnorm, s=3, alpha=0.8, label="non-normalised")
-ax.scatter(obs_aa_sub_rate_3rep*100, norm_factor_array_3rep_old, s=1, color="r")
-ax.scatter(obs_aa_sub_rate_3rep*100, norm_factor_array_3rep_new, s=1, color=colour_dict["TUM_colours"]['TUM5'])
-
-z = np.polyfit(obs_aa_sub_rate_3rep*100, AAIMON_list, 4)
-p = np.poly1d(z)
-fitted_values_y = p(obs_aa_sub_rate*100)
-ax.plot(obs_aa_sub_rate*100, fitted_values_y, color="0.5", label="polyfit", linewidth=3)
-
-z = np.polyfit(obs_aa_sub_rate_3rep*100, norm_AAIMONs_new, 4)
-p = np.poly1d(z)
-fitted_values_y = p(obs_aa_sub_rate*100)
-ax.plot(obs_aa_sub_rate*100, fitted_values_y, color=colour_dict["TUM_colours"]['TUM5'], label="polyfit to new norm. data", linewidth=3)
-
-z = np.polyfit(obs_aa_sub_rate_3rep*100, norm_AAIMONs_old, 4)
-p = np.poly1d(z)
-fitted_values_y = p(obs_aa_sub_rate*100)
-ax.plot(obs_aa_sub_rate*100, fitted_values_y, color="r", label="polyfit to old norm. data", linewidth=3)
-
-
-
-ax.set_ylabel("AAIMON")
-ax.set_xlabel("% observed AA substitutions in full protein")
-ax.set_xlim(0, 70)
-ax.set_title("Random AAIMON ratios can be normalised to ~1.0")
+ax.scatter(obs_aa_sub_full_prot, output_norm_list_old, color=colour_dict["TUM_colours"]['TUM5'], label="old")
+ax.scatter(obs_aa_sub_full_prot, output_norm_list_new, color=colour_dict["TUM_colours"]['TUM1'], label="new")
 ax.legend(loc="upper left")
-fig.savefig(fig_AAIMON_vs_perc_aa_sub)
-
-
-old_last = list(norm_AAIMONs_old[-100:]) + list(norm_AAIMONs_old[900:1000]) + list(norm_AAIMONs_old[1900:2000])
-new_last = list(norm_AAIMONs_new[-100:]) + list(norm_AAIMONs_new[900:1000]) + list(norm_AAIMONs_new[1900:2000])
-
-
-print("mean", np.array(old_last).mean())
-print("mean", np.array(new_last).mean())
+ax.set_xlabel("observed aa subst. full protein")
+ax.set_ylabel("norm factor (AAIMON calculated for random seq)")
+fig.savefig(fig_out)
