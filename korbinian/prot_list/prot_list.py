@@ -210,7 +210,8 @@ def prepare_protein_list(s, pathdict, logging):
 
     min_TMDs = s["min_TMDs"]
     max_TMDs = s["max_TMDs"]
-    if s["SiPe"] == True:
+    analyse_signal_peptides = s["SiPe"]
+    if analyse_signal_peptides == True:
         max_TMDs += 1
     df.dropna(subset=["number_of_TMDs"], inplace=True)
     df = df.loc[df["number_of_TMDs"].apply(lambda x: min_TMDs <= x <= max_TMDs)]
