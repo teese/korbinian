@@ -6,157 +6,132 @@ import pickle
 import korbinian
 import sys
 
-def calc_AAIMON_aa_prop_norm_factor_assum_equal_real_aa_sub(observed_aa_ident_full_protein, rand_TM, rand_nonTM, proportion_seq_TM_residues=0.3):
-    """Calculates the amino acid propensity normalisation factor for homologues of a particular amino acid identity.
-
-    TM/nonTM conservation ratios increase for far homologues, due to the "random" conservation
-    attributable to the amino acid propensities (low number of amino acids that are hydrophobic
-    enough to enter membranes, resulting in increased amino acid identity amongst homologues).
-
-    The TM/nonTM ratios can be normalised to account for this, based on:
-        a) the "random" identity of the TM region (in Oberai 2009, calculated as 0.136. Effectively,
-        this suggests that the random alignment of TM seqs will give an amino acid identity of 13.6%)
-        b) the "random" identity of the nonTM region (generally 1/20, 0.05. In Oberai 2009, 0.055)
-        c) the percentage amino acid identity of the homologue (full protein AA identity)
-
-    This function takes these three values as inputs, and returns the normalisation factor.
-
-    How can the randTM and rand_nonTM be calculated?
-    This correlates to the percentage of "unobserved" substitutions within each region, which
-    result in exactly the same amino acid, due to the restricted AA propensity. There are several
-    ways that this could be calculated.
-        - by aligning non-homologous
-        - by creating and aligning random sequences, based on a particular amino acid propensity
-        - using the formula for entropy, and the propensity of each amino acid.
-    Note: it is also very likely that this can be calculated based on dS/dN data.
-
-    Example calculation:
-    aa_ident, rand_TM, rand_nonTM = 0.60, 0.136, 0.055
-    observed_changes = 1 - aa_ident = 1 - 0.6 = 0.4 (represented from now on as 40%)
-    real_changes_TM = observed_changes / (1 - rand_TM) = 40% / (1-0.136) = 46.3%
-    real_changes_nonTM = observed_changes / (1 - rand_nonTM) = 40% / (1-0.055) = 42.32%
-    unobserved_changes_TM = real_changes_TM - observed_changes = 46.3% - 40% = 6.3%
-    unobserved_changes_nonTM = real_changes_nonTM - observed_changes = 42.32% - 40% = 2.3%
-    real_conserv_TM = aa_ident - unobserved_changes_TM = 60% - 6.3% = 53.7%
-    real_conserv_nonTM = aa_ident - unobserved_changes_nonTM = 60% - 2.3% = 57.7%
-    aa_prop_norm_factor = real_conserv_nonTM / real_conserv_TM =  57.7% / 53.7% = 1.074
-
-    This implies that with homologues of 60% amino acid identity, the baseline AAIMON ratio will be 1.074,
-    simply due to the reduced amino acid propensity of the hydrophobic residues.
-
-    Parameters
-    ----------
-    aa_ident : float
-        Amino acid identity (typically excluding gaps, which are heavily biased by splice variants, etc)
-        E.g. 0.6, for 60% amino acid identity.
-    rand_TM : float
-        Random identity of the TM region.
-    rand_nonTM : float
-        Random identity of the nonTM region.
-
-    Returns
-    -------
-    aa_prop_norm_factor : float
-        Amino acid propensity normalisation factor.
-
-    Usage
-    -----
-    # calculate the Amino Acid Identity: Membranous Over Nonmembranous (AAIMON) ratio
-    AAIMON = percentage_identity_of_TMD / percentage_identity_of_nonTMD
-
-    # calculate the amino acid propensity normalisation factor.
-    aa_ident, rand_TM, rand_nonTM = 0.60, 0.136, 0.055
-    aa_prop_norm_factor = calc_AAIMON_aa_prop_norm_factor(aa_ident, rand_TM, rand_nonTM)
-
-    # to normalise, divide the AAIMON by the aa_prop_norm_factor
-    AAIMON_normalised = AAIMON / aa_prop_norm_factor
-    """
-    # the oBserved aa subst rate is 1 - observed_aa_ident_full_protein
-    b = 1 - observed_aa_ident_full_protein
-    # proportion of seq that is Membranous
-    m = proportion_seq_TM_residues
-    # proportion of seq that is Soluble
-    s = 1 - m
-    # random identity of Tm region
-    t = rand_TM
-    # random identity of NonTM region
-    n = rand_nonTM
-    # real underlying aa subst rate for full protein
-    # solved from b = mx - mtx + sx - snx
-    x = b / ((m*-t) + m - n*s + s)
-
-    # print("x", x)
-    #
-    # obs_aa_sub_TM = m*x - m*t*x
-    # obs_aa_sub_nonTM = s*x - s*n*x
-    # print("obs_aa_sub_TM", obs_aa_sub_TM)
-    # print("obs_aa_sub_nonTM", obs_aa_sub_nonTM)
-    #
-    #
-    # obs_cons_TM = 1 - obs_aa_sub_TM
-    # obs_cons_nonTM = 1 - obs_aa_sub_nonTM
-    #
-    # print("obs_cons_TM", obs_cons_TM)
-    # print("obs_cons_nonTM", obs_cons_nonTM)
-    #
-    # AAIMON = obs_cons_TM / obs_cons_nonTM
-    # print("AAIMON", AAIMON)
-    #
-    # aa_prop_norm_factor = AAIMON
-    # print("aa_prop_norm_factor", aa_prop_norm_factor)
-
-
-
-
-
-    # obs_aa_sub_TM =  m - m*t
-    # obs_aa_sub_nonTM = s - s*n
-    # print("obs_aa_sub_TM", obs_aa_sub_TM)
-    # print("obs_aa_sub_nonTM", obs_aa_sub_nonTM)
-
-    #print("------------------------------------------------------")
-    # since we only want the ratios within TM and nonTM, let m = 1 and s = 1
-    unobserved_aa_subst_rate_TM = x * t
-    unobserved_aa_subst_rate_nonTM = x * n
-    # real aa ident = 1 - real aa subst. rate
-    real_aa_ident_full_protein = 1 - x
-    # observed AA conservation for TM or nonTM
-    # = real AA identity, plus a proportion of unobserved AA identity
-    obs_aa_cons_TM = real_aa_ident_full_protein + unobserved_aa_subst_rate_TM
-    obs_aa_cons_nonTM = real_aa_ident_full_protein + unobserved_aa_subst_rate_nonTM
-
-    #print("obs_aa_cons_TM", obs_aa_cons_TM)
-    #print("obs_aa_cons_nonTM", obs_aa_cons_nonTM)
-    # artificial AAIMON, if AA propensity is the only underlying factor
-    AAIMON = obs_aa_cons_TM / obs_aa_cons_nonTM
-    #print("AAIMON", AAIMON)
-
-    aa_prop_norm_factor = AAIMON
-    #print("aa_prop_norm_factor", aa_prop_norm_factor)
-
-
-    # # calculate proportion of length of full sequence that is nonTM
-    # proportion_seq_nonTM_residues = 1 - proportion_seq_TM_residues
-    # # random percentage identity of the full protein, assuming 30% TM region and 70% nonTM region
-    # rand_perc_ident_full_protein = proportion_seq_TM_residues * rand_TM + proportion_seq_nonTM_residues * rand_nonTM
-    # # the proportion of residues where changes have occurred
-    # observed_changes = 1 - aa_ident
-    # # # the real number of underlying mutations, assuming that a proportion (relative to rand_TM or rand_nonTM) is not
-    # # # visible, as it has mutated to the same amino acid.
-    # # real_changes_full_prot = observed_changes / (1 - rand_TM)
-    # # real_changes_nonTM = observed_changes / (1 - rand_nonTM)
-    #
-    # real_changes_full_prot = observed_changes / (1 - rand_perc_ident_full_protein)
-    # # calculation of the unobserved changes (difference between observed and real changes)
-    # unobserved_changes_TM = real_changes_TM - observed_changes
-    # unobserved_changes_nonTM = real_changes_nonTM - observed_changes
-    # # calculation of real conservation (observed conservation - unobserved changes)
-    # real_conserv_TM = aa_ident - unobserved_changes_TM
-    # real_conserv_nonTM = aa_ident - unobserved_changes_nonTM
-    # calculate normalisation factor
-    #aa_prop_norm_factor = real_conserv_nonTM / real_conserv_TM
-
-    return aa_prop_norm_factor
+# def calc_AAIMON_aa_prop_norm_factor_assum_equal_real_aa_sub(obs_aa_ident_full_protein, rand_TM, rand_nonTM, fraction_TM_residues=0.3):
+#     """Calculates the amino acid propensity normalisation factor for AAIMON ratios calculated from pairwise alignments.
+#
+#     TM/nonTM conservation ratios increase for far homologues, due to the "random" conservation
+#     attributable to the amino acid propensities (low number of amino acids that are hydrophobic
+#     enough to enter membranes, resulting in increased amino acid identity amongst homologues).
+#
+#     The TM/nonTM ratios can be normalised to account for this, based on:
+#         a) the "random" identity of the TM region (in Oberai 2009, calculated as 0.136. Effectively,
+#         this suggests that the random alignment of TM seqs will give an amino acid identity of 13.6%)
+#         b) the "random" identity of the nonTM region (generally 1/20, 0.05. In Oberai 2009, 0.055)
+#         c) the fraction of TM residues in the full protein
+#         c) the percentage amino acid identity of the homologue (full protein AA identity)
+#
+#     This function takes these values as inputs, and returns the normalisation factor, which corresponds to the
+#     TM/nonTM identity of random alignments, where the only difference is due to aa propensity.
+#
+#     How can the randTM and rand_nonTM be calculated?
+#     This correlates to the percentage of "unobserved" substitutions within each region, which
+#     result in exactly the same amino acid, due to the restricted AA propensity. There are several
+#     ways that this could be calculated.
+#         - by aligning non-homologous
+#         - by creating and aligning random sequences, based on a particular amino acid propensity
+#         - using the formula for entropy, and the propensity of each amino acid.
+#     Note: it is also very likely that this can be calculated based on dS/dN data.
+#
+#     Example calculation:
+#     obs_aa_ident_full_protein, rand_TM, rand_nonTM, fraction_TM_residues = 0.60, 0.12, 0.06, 0.1
+#     # the oBserved aa subst rate is 1 - obs_aa_ident_full_protein
+#     b = 1 - obs_aa_ident_full_protein = 1 - 0.60 = 0.4
+#     # proportion of seq that is Membranous
+#     m = fraction_TM_residues = 0.1
+#     # proportion of seq that is Soluble
+#     s = 1 - m = 1 - 0.1 = 0.90
+#     # random identity of Tm region
+#     t = rand_TM = 0.12
+#     # random identity of NonTM region
+#     n = rand_nonTM = 0.06
+#     # real underlying aa subst rate for full protein
+#     # solved from b = mx - mtx + sx - snx
+#     x = b / ((m*-t) + m - n*s + s) = 0.428
+#
+#     # since we only want the ratios within TM and nonTM, let m = 1 and s = 1
+#     unobserved_aa_subst_rate_TM = x * t = 0.428 * 0.12 = 0.051
+#     unobserved_aa_subst_rate_nonTM = x * n = 0.428 * 0.06 = 0.0256
+#     # The real aa ident = 1 - real aa subst. rate
+#     real_aa_ident_full_protein = 1 - x = 0.572
+#     # observed AA conservation for TM or nonTM
+#     # = real AA identity, plus a proportion of unobserved AA identity
+#     obs_aa_cons_TM = real_aa_ident_full_protein + unobserved_aa_subst_rate_TM = 0.572 + 0.051 = 0.623
+#     obs_aa_cons_nonTM = real_aa_ident_full_protein + unobserved_aa_subst_rate_nonTM = 0.572 + 0.0256 = 0.5976
+#
+#     # artificial AAIMON, if AA propensity is the only underlying factor
+#     AAIMON = obs_aa_cons_TM / obs_aa_cons_nonTM = 0.623 / 0.5976 = 1.043
+#
+#     aa_prop_norm_factor = AAIMON
+#
+#     This implies that with homologues of 60% amino acid identity, the baseline AAIMON ratio will be 1.043,
+#     simply due to the reduced amino acid propensity of the hydrophobic residues.
+#
+#     Parameters
+#     ----------
+#     obs_aa_ident_full_protein : float
+#         Observed amino acid identity of the full pairwise alignment
+#         "observed" in that it always includes some position that have had a substitution to the same AA (e.g. Leu to Leu), which are unobserved.
+#         Typically excluding gaps, which are heavily biased by splice variants, etc, and are excluded from AAIMON calculations.
+#         E.g. 0.6, for 60% amino acid identity.
+#     rand_TM : float
+#         Random identity of the TM region.
+#     rand_nonTM : float
+#         Random identity of the nonTM region.
+#     fraction_TM_residues : float
+#         Fraction of TM residues in protein sequence, e.g. 0.1 (10% TM, 90% nonTM)
+#         Used to estimate the real underlying AA substitution rate from the observed AA subst. rate.
+#
+#     Returns
+#     -------
+#     aa_prop_norm_factor : float
+#         Amino acid propensity normalisation factor.
+#         Equivalent to the AAIMON ratio of randomised sequences, which have exactly the same
+#         real underlying substitution rate, and differ in only AA propensity.
+#
+#     Usage
+#     -----
+#     # calculate the Amino Acid Identity: Membranous Over Nonmembranous (AAIMON) ratio
+#     AAIMON = percentage_identity_of_TMD / percentage_identity_of_nonTMD
+#
+#     # calculate the amino acid propensity normalisation factor.
+#     obs_aa_ident_full_protein, rand_TM, rand_nonTM, fraction_TM_residues = 0.60, 0.136, 0.055, 0.10
+#     aa_prop_norm_factor = calc_AAIMON_aa_prop_norm_factor(obs_aa_ident_full_protein, rand_TM, rand_nonTM, fraction_TM_residues)
+#
+#     # to normalise, divide the AAIMON by the aa_prop_norm_factor
+#     AAIMON_normalised = AAIMON_orig / aa_prop_norm_factor
+#     """
+#     # the oBserved aa subst rate is 1 - obs_aa_ident_full_protein
+#     b = 1 - obs_aa_ident_full_protein
+#     # proportion of seq that is Membranous
+#     m = fraction_TM_residues
+#     # proportion of seq that is Soluble
+#     s = 1 - m
+#     # random identity of Tm region
+#     t = rand_TM
+#     # random identity of NonTM region
+#     n = rand_nonTM
+#     # real underlying aa subst rate for full protein
+#     # solved from b = mx - mtx + sx - snx
+#     x = b / ((m*-t) + m - n*s + s)
+#
+#     # since we only want the ratios within TM and nonTM, let m = 1 and s = 1
+#     m = 1
+#     s = 1
+#     unobserved_aa_subst_rate_TM = m * t * x
+#     unobserved_aa_subst_rate_nonTM = s * n * x
+#     # The real aa ident = 1 - real aa subst. rate
+#     real_aa_ident_full_protein = 1 - x
+#     # observed AA conservation for TM or nonTM
+#     # Equals the real AA identity, plus a proportion of unobserved AA identity
+#     obs_aa_cons_TM = real_aa_ident_full_protein + unobserved_aa_subst_rate_TM
+#     obs_aa_cons_nonTM = real_aa_ident_full_protein + unobserved_aa_subst_rate_nonTM
+#
+#     # artificial AAIMON ratio, if AA propensity is the only underlying factor
+#     AAIMON = obs_aa_cons_TM / obs_aa_cons_nonTM
+#
+#     aa_prop_norm_factor = AAIMON
+#
+#     return aa_prop_norm_factor
 
 ##########parameters#############
 list_number = 1
@@ -203,21 +178,21 @@ print("rand_nonTM", rand_nonTM)
 
 rand_TM = 0.13
 rand_nonTM = 0.05
-proportion_seq_TM_residues = 0.5
+fraction_TM_residues = 0.5
 
-#observed_aa_ident_full_protein = 0.4
+#obs_aa_ident_full_protein = 0.4
 
-observed_aa_ident_full_protein_list = np.linspace(1.0,0.3, 100)
+obs_aa_ident_full_protein_list = np.linspace(1.0,0.3, 100)
 output_norm_list_old = []
 output_norm_list_new = []
 
 
-for observed_aa_ident_full_protein in observed_aa_ident_full_protein_list:
-    old = korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor(observed_aa_ident_full_protein, rand_TM, rand_nonTM)
+for obs_aa_ident_full_protein in obs_aa_ident_full_protein_list:
+    old = korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor(obs_aa_ident_full_protein, rand_TM, rand_nonTM)
     #print("old", old)
     output_norm_list_old.append(old)
 
-    new = calc_AAIMON_aa_prop_norm_factor_assum_equal_real_aa_sub(observed_aa_ident_full_protein, rand_TM, rand_nonTM, proportion_seq_TM_residues)
+    new = calc_AAIMON_aa_prop_norm_factor_assum_equal_real_aa_sub(obs_aa_ident_full_protein, rand_TM, rand_nonTM, fraction_TM_residues)
     output_norm_list_new.append(new)
     #print("new", new)
     #print()
@@ -225,7 +200,7 @@ for observed_aa_ident_full_protein in observed_aa_ident_full_protein_list:
 
 colour_dict = korbinian.utils.create_colour_lists()
 
-obs_aa_sub_full_prot = 1- np.array(observed_aa_ident_full_protein_list)
+obs_aa_sub_full_prot = 1- np.array(obs_aa_ident_full_protein_list)
 
 fig, ax = plt.subplots()
 ax.scatter(obs_aa_sub_full_prot, output_norm_list_old, color=colour_dict["TUM_colours"]['TUM5'], label="old")
@@ -234,3 +209,5 @@ ax.legend(loc="upper left")
 ax.set_xlabel("observed aa subst. full protein")
 ax.set_ylabel("norm factor (AAIMON calculated for random seq)")
 fig.savefig(fig_out)
+
+print(calc_AAIMON_aa_prop_norm_factor_assum_equal_real_aa_sub(0.60, 0.12, 0.06, 0.1))
