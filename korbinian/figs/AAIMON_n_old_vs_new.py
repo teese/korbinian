@@ -172,8 +172,8 @@ rand_nonTM = aa_prop_nonTM["random_sequence_identity_output"]
 del aa_prop_nonTM["random_sequence_identity_output"]
 aa_prop_nonTM.index = aa_prop_nonTM.index.str[:1]
 
-print("rand_TM", rand_TM)
-print("rand_nonTM", rand_nonTM)
+sys.stdout.write("rand_TM {}".format(rand_TM))
+sys.stdout.write("rand_nonTM {}".format(rand_nonTM))
 
 
 rand_TM = 0.13
@@ -189,13 +189,13 @@ output_norm_list_new = []
 
 for obs_aa_ident_full_protein in obs_aa_ident_full_protein_list:
     old = korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor(obs_aa_ident_full_protein, rand_TM, rand_nonTM)
-    #print("old", old)
+    #sys.stdout.write("old", old)
     output_norm_list_old.append(old)
 
     new = calc_AAIMON_aa_prop_norm_factor_assum_equal_real_aa_sub(obs_aa_ident_full_protein, rand_TM, rand_nonTM, fraction_TM_residues)
     output_norm_list_new.append(new)
-    #print("new", new)
-    #print()
+    #sys.stdout.write("new", new)
+    #sys.stdout.write()
 
 
 colour_dict = korbinian.utils.create_colour_lists()
@@ -210,4 +210,4 @@ ax.set_xlabel("observed aa subst. full protein")
 ax.set_ylabel("norm factor (AAIMON calculated for random seq)")
 fig.savefig(fig_out)
 
-print(calc_AAIMON_aa_prop_norm_factor_assum_equal_real_aa_sub(0.60, 0.12, 0.06, 0.1))
+sys.stdout.write(calc_AAIMON_aa_prop_norm_factor_assum_equal_real_aa_sub(0.60, 0.12, 0.06, 0.1))
