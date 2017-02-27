@@ -204,14 +204,14 @@ def compare_lists (s):
     Fig_Nr = 2
     title = 'histograms AAIMON_slope and AAIMON_n_slope'
     Fig_name = 'Fig02_Histograms_of_mean_AAIMON_slope_and_AAIMON_n_slope'
-    binlist = np.linspace(-0.04, 0.04, 61)
+    binlist = np.linspace(-40, 40, 61)
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
 
     for prot_list in protein_lists:
         ###   non-normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = np.array(df_dict[prot_list]['AAIMON_slope_mean_all_TMDs'])
+        hist_data = np.array(df_dict[prot_list]['AAIMON_slope_mean_all_TMDs']*1000)
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -228,7 +228,7 @@ def compare_lists (s):
 
         ###   normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = np.array(df_dict[prot_list]['AAIMON_n_slope_mean_all_TMDs'])
+        hist_data = np.array(df_dict[prot_list]['AAIMON_n_slope_mean_all_TMDs']*1000)
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -250,12 +250,12 @@ def compare_lists (s):
     #                                                             #
     ###############################################################
 
-    ax.set_xlabel('AAIMON slope', fontsize=fontsize, labelpad=20)
+    ax.set_xlabel('AAIMON slope $*10^{-3}$', fontsize=fontsize, labelpad=20)
     # move the x-axis label closer to the x-axis
     ax.xaxis.set_label_coords(0.5, -0.085)
     # x and y axes min and max
-    xlim_min = -0.03
-    xlim_max = 0.03
+    xlim_min = -30
+    xlim_max = 30
     ax.set_xlim(xlim_min, xlim_max)
     ylim_min = -0.01
     ylim_max = len(protein_lists) + 0.01
