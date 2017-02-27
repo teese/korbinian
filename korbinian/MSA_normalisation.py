@@ -123,7 +123,7 @@ def calc_aa_propensity(seq):
     return aa_prop_norm_ser
 
 
-def calc_random_aa_ident(aa_prop_csv_in, rand_seq_ident_csv_out, seq_len=1000, number_seq=1000, ident=0.7):
+def calc_random_aa_ident(aa_prop_csv_in, rand_seq_ident_csv_out, seq_len=1000, number_seq=1000, ident=0.7, multiprocessing_mode=False):
     """Calculation of random amino acid identity based on a particular amino acid propensity.
 
     Protein regions with a limited aa propensity (e.g. transmembrane regions) have a measurable amino
@@ -258,9 +258,12 @@ def calc_random_aa_ident(aa_prop_csv_in, rand_seq_ident_csv_out, seq_len=1000, n
     output_ser["random_sequence_identity_output"] = random_aa_identity
     aa_prop_ser.index = aa_prop_ser.index + "_input"
     output_ser = pd.concat([output_ser, aa_prop_ser])
-    # save the setries as csv file
-    output_ser.to_csv(rand_seq_ident_csv_out, sep="\t")
-    sys.stdout.write("calc_random_aa_ident is finished")
+    if multiprocessing_mode == False:
+        # save the setries as csv file
+        output_ser.to_csv(rand_seq_ident_csv_out, sep="\t")
+        sys.stdout.write("calc_random_aa_ident is finished\n")
+    else:
+        return random_aa_identity, output_ser
 
 
 def generate_random_seq(seq_len, number_seq, number_mutations, list_all_20_aa, probabilities_all_20_aa):
@@ -312,11 +315,11 @@ def generate_random_seq(seq_len, number_seq, number_mutations, list_all_20_aa, p
     # firstly, choose a set of positions whoose aa will be replaced
     for n in range(number_seq):
         # sys.write something to show that the programming is still running
-        if n % 10 == 0:
+        if n != 0 and n % 50 == 0:
             sys.stdout.write(".")
-            if n !=0 and n % 300 == 0:
+            if n % 400 == 0:
                 sys.stdout.write(" please have patience, I'm still calculating \n")
-        sys.stdout.flush()
+            sys.stdout.flush()
 
         # create indices (list of positions)
         inds = list(range(seq_len))
@@ -475,7 +478,7 @@ def count_aa_freq(seq):
 
     prop_dict = {}
     for aa in aa_dict:
-        # print(aa)
+        # sys.stdout.write(aa)
         prop_dict[aa] = aa_dict['%s' % aa] / len(seq)
 
     df = pd.Series(prop_dict)

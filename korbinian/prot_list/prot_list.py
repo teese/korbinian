@@ -1,4 +1,5 @@
 from time import strftime
+from multiprocessing import Pool
 import ast
 import csv
 import korbinian
@@ -8,6 +9,7 @@ import os
 import pandas as pd
 import sys
 import unicodedata
+
 
 def prepare_protein_list(s, pathdict, logging):
     """ Sets up the file locations in the DataFrame containing the list of proteins for analysis.
@@ -354,34 +356,6 @@ def prepare_protein_list(s, pathdict, logging):
 
     ########################################################################################
     #                                                                                      #
-    #                      calculate random TM and nonTM identity                          #
-    #                                                                                      #
-    ########################################################################################
-    # ensure folder is exists (/summaries/ListXX_rand/ListXX...)
-    utils.make_sure_path_exists(pathdict["rand_ident_TM_csv"], isfile=True)
-    # calculate AA propensity and random ident for TM
-    seq_list_csv_in = pathdict["list_csv"]
-    aa_prop_csv_out = pathdict["rand_ident_TM_csv"][:-4] + "aa_prop_temp_TM.csv"
-    col_name = "TMD_seq_joined"
-    # calculate aa propensity for all joined TM sequences
-    korbinian.MSA_normalisation.calc_aa_propensity_from_csv_col(seq_list_csv_in, aa_prop_csv_out, col_name)
-    # calculate random aa identity based on aa propensity
-    korbinian.MSA_normalisation.calc_random_aa_ident(aa_prop_csv_out, pathdict["rand_ident_TM_csv"], seq_len=100, number_seq=100, ident=0.7)
-    # remove temp file with aa propensity (it is also saved in the rand_ident csv)
-    os.remove(aa_prop_csv_out)
-
-    # calculate AA propensity and random ident for nonTM
-    aa_prop_csv_out = pathdict["rand_ident_nonTM_csv"][:-4] + "aa_prop_temp_nonTM.csv"
-    col_name = "nonTMD_seq"
-    # calculate aa propensity for nonTM sequence
-    korbinian.MSA_normalisation.calc_aa_propensity_from_csv_col(seq_list_csv_in, aa_prop_csv_out, col_name)
-    # calculate random aa identity based on aa propensity
-    korbinian.MSA_normalisation.calc_random_aa_ident(aa_prop_csv_out, pathdict["rand_ident_nonTM_csv"], seq_len=100, number_seq=100, ident=0.7)
-    # remove temp file with aa propensity (it is also saved in the rand_ident csv)
-    os.remove(aa_prop_csv_out)
-
-    ########################################################################################
-    #                                                                                      #
     #                           Print record of dropped proteins                           #
     #                                                                                      #
     ########################################################################################
@@ -413,6 +387,14 @@ def prepare_protein_list(s, pathdict, logging):
     df.dropna(axis=1, inplace=True, how="all")
     # save to a csv
     df.to_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+    ########################################################################################
+    #                                                                                      #
+    #                      calculate random TM and nonTM identity                          #
+    #                                                                                      #
+    ########################################################################################
+    logging.info("calculating rand_TM and rand_nonTM...")
+    calc_randTM_and_randnonTM(s, pathdict, seq_len=1000, number_seq=1000)
+
     logging.info('~~~~~~~~~~~~                     finished prepare_protein_list                      ~~~~~~~~~~~~')
 
 def get_indices_TMD_plus_surr_for_summary_file(dfsumm, TMD, n_aa_before_tmd, n_aa_after_tmd):
@@ -470,3 +452,67 @@ def find_indices_longer_than_prot_seq(df, TMD):
 
     """
     return df['%s_end_plus_surr'%TMD] > df['seqlen']
+
+def calc_randTM_and_randnonTM(s, pathdict, seq_len, number_seq, multiprocessing_mode=False):
+    ########################################################################################
+    #                                                                                      #
+    #                      calculate random TM and nonTM identity                          #
+    #                                                                                      #
+    ########################################################################################
+    # ensure folder is exists (/summaries/ListXX_rand/ListXX...)
+    utils.make_sure_path_exists(pathdict["rand_ident_TM_csv"], isfile=True)
+    # calculate AA propensity and random ident for TM
+    seq_list_csv_in = pathdict["list_csv"]
+    aa_prop_csv_out_TM = pathdict["rand_ident_TM_csv"][:-4] + "aa_prop_temp_TM.csv"
+    col_name = "TMD_seq_joined"
+    rand_ident_TM_csv = pathdict["rand_ident_TM_csv"]
+    ident = 0.7
+    # calculate aa propensity for all joined TM sequences
+    korbinian.MSA_normalisation.calc_aa_propensity_from_csv_col(seq_list_csv_in, aa_prop_csv_out_TM, col_name)
+    if multiprocessing_mode == True:
+        d = aa_prop_csv_out_TM, rand_ident_TM_csv, seq_len, number_seq, ident, multiprocessing_mode
+        d_list = [d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d]
+        with Pool(processes = s["multiprocessing_cores"]) as pool:
+            return_statement_list = pool.map(calc_random_aa_ident_multiprocessing, d_list)
+            output_ser = return_statement_list[0][1]
+            random_aa_identity_list = [return_statement[0] for return_statement in return_statement_list]
+            random_aa_identity = np.array(random_aa_identity_list).mean()
+            sys.stdout.write("\nrandom_aa_identity, random_aa_identity_list", random_aa_identity, random_aa_identity_list)
+            output_ser["random_sequence_identity_output"] = random_aa_identity
+            # save the series as csv file
+            output_ser.to_csv(rand_ident_TM_csv, sep="\t")
+    else:
+        # calculate random aa identity based on aa propensity
+        korbinian.MSA_normalisation.calc_random_aa_ident(aa_prop_csv_out_TM, rand_ident_TM_csv, seq_len=seq_len, number_seq=number_seq, ident=ident)
+    # remove temp file with aa propensity (it is also saved in the rand_ident csv)
+    os.remove(aa_prop_csv_out_TM)
+
+    # calculate AA propensity and random ident for nonTM
+    aa_prop_csv_out_nonTM = pathdict["rand_ident_nonTM_csv"][:-4] + "aa_prop_temp_nonTM.csv"
+    rand_ident_nonTM_csv = pathdict["rand_ident_nonTM_csv"]
+    col_name = "nonTMD_seq"
+    # calculate aa propensity for nonTM sequence
+    korbinian.MSA_normalisation.calc_aa_propensity_from_csv_col(seq_list_csv_in, aa_prop_csv_out_nonTM, col_name)
+    if multiprocessing_mode == True:
+        d = aa_prop_csv_out_nonTM, rand_ident_nonTM_csv, seq_len, number_seq, ident, multiprocessing_mode
+        d_list = [d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d]
+        with Pool(processes = s["multiprocessing_cores"]) as pool:
+            return_statement_list = pool.map(calc_random_aa_ident_multiprocessing, d_list)
+            output_ser = return_statement_list[0][1]
+            random_aa_identity_list = [return_statement[0] for return_statement in return_statement_list]
+            random_aa_identity = np.array(random_aa_identity_list).mean()
+            sys.stout.write("random_aa_identity, {} random_aa_identity_list {}".format(random_aa_identity, random_aa_identity_list))
+            output_ser["random_sequence_identity_output"] = random_aa_identity
+            # save the series as csv file
+            output_ser.to_csv(rand_ident_nonTM_csv, sep="\t")
+    else:
+        # calculate random aa identity based on aa propensity
+        korbinian.MSA_normalisation.calc_random_aa_ident(aa_prop_csv_out_nonTM, rand_ident_nonTM_csv, seq_len=seq_len, number_seq=number_seq, ident=ident)
+    # remove temp file with aa propensity (it is also saved in the rand_ident csv)
+    os.remove(aa_prop_csv_out_nonTM)
+
+def calc_random_aa_ident_multiprocessing(d):
+
+    aa_prop_csv_out, rand_ident_TM_csv, seq_len, number_seq, ident, multiprocessing_mode = d
+    random_aa_identity, output_ser = korbinian.MSA_normalisation.calc_random_aa_ident(aa_prop_csv_out, rand_ident_TM_csv, seq_len=seq_len, number_seq=number_seq, ident=0.7, multiprocessing_mode=multiprocessing_mode)
+    return random_aa_identity, output_ser
