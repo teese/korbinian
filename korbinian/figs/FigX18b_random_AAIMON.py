@@ -9,7 +9,7 @@ from multiprocessing import Pool
 
 ##########parameters#############
 list_number = 1
-data_dir = r"D:\Databases"
+data_dir = r"/Volumes/Musik/Databases"
 repeat_randomisation = False
 
 seq_len = 2000
@@ -23,12 +23,12 @@ real_perc_aa_ident_array = 1 - real_perc_aa_subst_array
 #                     Setup paths for input and output files                           #
 #                                                                                      #
 ########################################################################################
-# List_rand_TM = r"D:\Databases\summaries\01\List01_rand\List01_rand_TM.csv"
-List_rand_TM = os.path.join(data_dir, "summaries\{ln:02d}\List{ln:02d}_rand\List{ln:02d}_rand_TM.csv".format(ln=list_number))
-List_rand_nonTM = os.path.join(data_dir, "summaries\{ln:02d}\List{ln:02d}_rand\List{ln:02d}_rand_nonTM.csv".format(ln=list_number))
-pickle_with_artificial_AAIMONs = os.path.join(data_dir, "summaries\{ln:02d}\List{ln:02d}_rand\List{ln:02d}_rand_AAIMONs.pickle".format(ln=list_number))
-fig_AAIMON_vs_perc_aa_sub_png = os.path.join(data_dir, "summaries\{ln:02d}\List{ln:02d}_rand\List{ln:02d}_rand_AAIMON_vs_aa_sub.png".format(ln=list_number))
-fig_AAIMON_vs_perc_aa_sub_pdf = os.path.join(data_dir, "summaries\{ln:02d}\List{ln:02d}_rand\List{ln:02d}_rand_AAIMON_vs_aa_sub.pdf".format(ln=list_number))
+List_rand_TM = os.path.normpath(os.path.join(data_dir, "summaries/{ln:02d}/List{ln:02d}_rand/List{ln:02d}_rand_TM.csv".format(ln=list_number)))
+List_rand_nonTM = os.path.normpath(os.path.join(data_dir, "summaries/{ln:02d}/List{ln:02d}_rand/List{ln:02d}_rand_nonTM.csv".format(ln=list_number)))
+pickle_with_artificial_AAIMONs = os.path.normpath(os.path.join(data_dir, "summaries/{ln:02d}/List{ln:02d}_rand/List{ln:02d}_rand_AAIMONs.pickle".format(ln=list_number)))
+fig_AAIMON_vs_perc_aa_sub_png = os.path.normpath(os.path.join(data_dir, "summaries/{ln:02d}/List{ln:02d}_rand/List{ln:02d}_rand_AAIMON_vs_aa_sub.png".format(ln=list_number)))
+fig_AAIMON_vs_perc_aa_sub_pdf = os.path.normpath(os.path.join(data_dir, "summaries/{ln:02d}/List{ln:02d}_rand/List{ln:02d}_rand_AAIMON_vs_aa_sub.pdf".format(ln=list_number)))
+
 
 ########################################################################################
 #                                                                                      #
@@ -100,7 +100,10 @@ if __name__ == "__main__":
     color_norm_line = "#53A7D5"
     color_norm_factor_line = "k"
     alpha = 1
-    s = 3
+    s = 2
+    marker = 'x'
+    linewidths = 0.3
+    fontsize = 14
 
 
     ########################################################################################
@@ -172,9 +175,9 @@ if __name__ == "__main__":
     norm_AAIMONs_new = AAIMON_list_10rep / norm_factor_array_10rep_new
 
     # plot the data after normalisation first (not as important as the orig at the beginning)
-    ax.scatter(obs_aa_sub_rate_10rep*100, norm_AAIMONs_new, color=color_norm, s=s, alpha=alpha, label="after normalisation")
+    ax.scatter(obs_aa_sub_rate_10rep*100, norm_AAIMONs_new, color=color_norm, s=s, alpha=alpha, marker=marker, linewidths=linewidths, label="after normalisation")
     # plot the original data now, so it is clearly seen
-    ax.scatter(obs_aa_sub_rate_10rep*100, AAIMON_list_10rep, color=color_nonnorm, s=s, alpha=alpha, label="before normalisation")
+    ax.scatter(obs_aa_sub_rate_10rep*100, AAIMON_list_10rep, color=color_nonnorm, s=s, alpha=alpha, marker=marker, linewidths=linewidths, label="before normalisation")
 
     # plot the AAIMON normalisation factor
     # this is the AAIMON expected for completely random sequences, which differ only in their AA propensity
@@ -218,15 +221,19 @@ if __name__ == "__main__":
     #                                                                                      #
     ########################################################################################
     ax.set_ylim(0.9, 1.3)
-    ax.set_ylabel("AAIMON")
-    ax.set_xlabel("% observed AA substitutions in full protein")
+    ax.set_ylabel("AAIMON", fontsize=fontsize+2)
+    ax.set_xlabel("% observed AA substitutions in full protein", fontsize=fontsize+2)
     ax.set_xlim(0, 75)
 
     # re-order the legend
     handles, labels = ax.get_legend_handles_labels()
     handles = [handles[2], handles[0], handles[1]]
     labels = [labels[2], labels[0], labels[1]]
-    ax.legend(handles, labels, loc='upper left')
+    legend = ax.legend(handles, labels, loc='upper left', frameon=True, scatterpoints=25, fontsize=fontsize)
+    #legend.legendHandles[0]._sizes = [20]
+    #legend.legendHandles[2]._sizes = [20]
+    ax.tick_params(labelsize=fontsize)
+    plt.tight_layout()
 
     # save fig, e.g. "D:\Databases\summaries\01\List01_rand\List01_rand_AAIMON_vs_aa_sub.png"
     fig.savefig(fig_AAIMON_vs_perc_aa_sub_png, dpi=400)
@@ -237,3 +244,4 @@ if __name__ == "__main__":
     new_last = list(norm_AAIMONs_new[-100:]) + list(norm_AAIMONs_new[900:1000]) + list(norm_AAIMONs_new[1900:2000])
     sys.stdout.write("\nmean, old norm method {}".format(np.array(old_last).mean()))
     sys.stdout.write("\nmean, new norm method {}".format(np.array(new_last).mean()))
+
