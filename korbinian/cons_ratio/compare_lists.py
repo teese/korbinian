@@ -517,7 +517,7 @@ def compare_lists (s):
     Fig_Nr = 6
     title = 'number of homologues'
     Fig_name = 'Fig06_comparison_number_of_homologues'
-    binlist = np.linspace(0, 5000, 101)
+    #binlist = np.linspace(0, 5000, 101)
     offset = len(protein_lists) - 1
 
     # alternative binlist
@@ -528,7 +528,9 @@ def compare_lists (s):
     fig, (ax, ax1) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [6, 1]})
 
     for n, prot_list in enumerate(protein_lists):
-        ax1.bar(n + 1, sum(df_dict[prot_list]['TM01_AAIMON_n_homol'] / 100000), width=0.75, align='center', color=dfv.loc[prot_list, 'color'], edgecolor='')
+        n_of_homologues = sum(df_dict[prot_list]['TM01_AAIMON_n_homol'])
+        sys.stdout.write('number of homologues {}: {}\n'.format(dfv.loc[prot_list, 'list_description'], n_of_homologues))
+        ax1.bar(n + 1, n_of_homologues / 100000, width=0.75, align='center', color=dfv.loc[prot_list, 'color'], edgecolor='')
 
         ###   non-normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)

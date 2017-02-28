@@ -7,7 +7,18 @@ import korbinian.utils as utils
 
 def read_scampi_data(pathdict, s, logging, df):
     #pathdict['SCAMPI'] = '/Volumes/Musik/Databases/summaries/01/List01_SCAMPI/query.top.txt'
-    logging.info('~~~~~~~~~~~~                    reading scampi data                    ~~~~~~~~~~~~')
+    logging.info('\n~~~~~~~~~~~~                           using scampi data                            ~~~~~~~~~~~~')
+    # define columns to replace
+    columns_to_replace = ['nonTMD_seq', 'number_of_TMDs', 'list_of_TMDs']
+    for n in range(1, df.number_of_TMDs.max().astype('int') + 1):
+        TMD = 'TM{:02d}'.format(n)
+        drop = '{a}_seq_plus_surr, {a}_seq, {a}_description, {a}_end, {a}_seq_variants, {a}_start, {a}_end_plus_surr, {a}_start_plus_surr'.format(a=TMD)
+        for element in drop.split(', '):
+            columns_to_replace.append(element)
+    # define columns to keep in df
+    columns_to_keep = [x for x in list(df.columns) if x not in columns_to_replace]
+    # select df for columns to keep
+    df = df[columns_to_keep]
 
     # read text file from disk, Check SCAMPI output for accession numbers in acc list and read the toplology
     topo_list = []
@@ -62,7 +73,9 @@ def read_scampi_data(pathdict, s, logging, df):
         long_list_of_TMDs.append("TM{:02d}".format(i))
     ## for the .set_value function, set dtype as object
     dft["list_of_TMDs"] = ""
-    #dft["list_of_TMDs"].astype(str)
+
+    # merge dataframe containing SCAMPI data with previous, uniprot-cleaned dataframe
+    df = pd.merge(df, dft, left_index=True, right_index=True, suffixes=('_uniprot', ''))
 
     sys.stdout.write('slicing TMD and nonTMD sequences:\n')
 
@@ -73,7 +86,7 @@ def read_scampi_data(pathdict, s, logging, df):
         len_nested_tup_TMs = len(nested_tup_TMs)
         list_of_TMDs = long_list_of_TMDs[:len_nested_tup_TMs]
         # add that list to the dataframe (could also be added as a stringlist, but that's irritating somehow)
-        dft.set_value(row, "list_of_TMDs", list_of_TMDs)
+        df.set_value(row, "list_of_TMDs", list_of_TMDs)
         # set seq for slicing
         full_seq = df.loc[row, "full_seq"]
         # topology = dft.loc[row, "Topology"]
@@ -81,10 +94,10 @@ def read_scampi_data(pathdict, s, logging, df):
         for i in range(len(list_of_TMDs)):
             TMD = list_of_TMDs[i]
             tup = nested_tup_TMs[i]
-            dft.loc[row, "%s_start" % TMD] = tup[0]
-            dft.loc[row, "%s_end" % TMD] = tup[1]
-            dft.loc[row, "%s_seq" % TMD] = utils.slice_with_listlike(full_seq, tup)
-            dft.loc[row, "%s_seqlen" % TMD] = len(dft.loc[row, "%s_seq" % TMD])
+            df.loc[row, "%s_start" % TMD] = tup[0]
+            df.loc[row, "%s_end" % TMD] = tup[1]
+            df.loc[row, "%s_seq" % TMD] = utils.slice_with_listlike(full_seq, tup)
+            df.loc[row, "%s_seqlen" % TMD] = len(df.loc[row, "%s_seq" % TMD])
             # dft.loc[row, TMD + "_top"] = utils.slice_with_listlike(topology, tup)
         if row_nr % 50 == 0:
             sys.stdout.write(". ")
@@ -93,20 +106,32 @@ def read_scampi_data(pathdict, s, logging, df):
                 sys.stdout.write("\n")
                 sys.stdout.flush()
 
-    # # define columns to replace
-    # columns_to_replace = ['nonTMD_seq', 'number_of_TMDs', 'list_of_TMDs']
-    # for n in range(1, df.number_of_TMDs.max().astype('int') + 1):
-    #     TMD = 'TM{:02d}'.format(n)
-    #     drop = '{a}_description, {a}_end, {a}_seq_variants, {a}_start, {a}_end_plus_surr, {a}_start_plus_surr'.format(a=TMD)
-    #     for element in drop.split(', '):
-    #         columns_to_replace.append(element)
-    # # define columns to keep in df
-    # columns_to_keep = [x for x in list(df.columns) if x not in columns_to_replace]
-    # print(columns_to_keep)
-    # # select df for columns to keep
-    # df = df[columns_to_keep]
-    # merge SCAMPI output into the uniprot-cleaned dataframe
-    df = pd.merge(df, dft, left_index=True, right_index=True, suffixes=('_uniprot', ''))
+        ''' ~~   SLICE nonTMD sequence  ~~ '''
+        list_of_TMDs = df.loc[row, 'list_of_TMDs']
+        if 'SP01' in list_of_TMDs:
+            list_of_TMDs.remove('SP01')
+        # sequence from N-term. to first TMD
+        nonTMD_first = df.loc[row, 'full_seq'][0: (df.loc[row, 'TM01_start'] - 1).astype('int64')]
+        sequence = nonTMD_first
+        # only for multipass proteins, generate sequences between TMDs
+        if len(list_of_TMDs) == 0:
+            # no TMDs are annotated, skip to next protein
+            continue
+        elif len(list_of_TMDs) > 1:
+            for TM_Nr in range(len(list_of_TMDs) - 1):
+                # the TMD is the equivalent item in the list
+                TMD = list_of_TMDs[TM_Nr]
+                # the next TMD, which contains the end index, is the next item in the list
+                next_TMD = list_of_TMDs[TM_Nr + 1]
+                between_TM_and_TMplus1 = df.loc[row, 'full_seq'][df.loc[row, '%s_end' % TMD].astype('int64'): df.loc[row, '%s_start' % next_TMD].astype('int64') - 1]
+                sequence += between_TM_and_TMplus1
+        last_TMD = list_of_TMDs[-1]
+        # sequence from last TMD to C-term.
+        nonTMD_last = df.loc[row, 'full_seq'][df.loc[row, '%s_end' % last_TMD].astype('int64'):df.loc[row, 'seqlen'].astype('int64')]
+        sequence += nonTMD_last
+        df.loc[row, 'nonTMD_seq'] = sequence
+        df.loc[row, 'len_nonTMD'] = len(sequence)
 
+    logging.info('\n~~~~~~~~~~~~                     scampi data replaced uniprot                       ~~~~~~~~~~~~\n')
     return df
 

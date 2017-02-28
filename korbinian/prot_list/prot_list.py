@@ -32,9 +32,7 @@ def prepare_protein_list(s, pathdict, logging):
     df = pd.read_csv(pathdict["list_parsed_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0, low_memory=False)
     n_initial_prot = df.shape[0]
 
-    use_scampi_data = False
-
-    if use_scampi_data:
+    if s['use_scampi_data']:
         df = korbinian.cons_ratio.SCAMPI.read_scampi_data(pathdict, s, logging, df)
 
 
@@ -46,7 +44,7 @@ def prepare_protein_list(s, pathdict, logging):
         df['protein_name'] = df.index
 
     # convert the list_of_TMDs to a python object, if it is a string
-    if not use_scampi_data:
+    if not s['use_scampi_data']:
         df['list_of_TMDs'] = df['list_of_TMDs'].dropna().apply(lambda x : ast.literal_eval(x))
 
     if s["add_user_subseqs"] == True:
@@ -485,7 +483,7 @@ def calc_randTM_and_randnonTM(s, pathdict, seq_len, number_seq, multiprocessing_
             output_ser = return_statement_list[0][1]
             random_aa_identity_list = [return_statement[0] for return_statement in return_statement_list]
             random_aa_identity = np.array(random_aa_identity_list).mean()
-            sys.stdout.write("\nrandom_aa_identity, random_aa_identity_list", random_aa_identity, random_aa_identity_list)
+            sys.stdout.write("\nrandom_aa_identity : {}\n, random_aa_identity_list : {}".format(random_aa_identity, random_aa_identity_list))
             output_ser["random_sequence_identity_output"] = random_aa_identity
             # save the series as csv file
             output_ser.to_csv(rand_ident_TM_csv, sep="\t")
