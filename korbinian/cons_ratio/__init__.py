@@ -8,3 +8,4 @@ import korbinian.cons_ratio.slice
 import korbinian.cons_ratio.ssr
 import korbinian.cons_ratio.keywords
 import korbinian.cons_ratio.compare_lists
+import korbinian.cons_ratio.SCAMPI

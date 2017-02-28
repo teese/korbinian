@@ -31,6 +31,13 @@ def prepare_protein_list(s, pathdict, logging):
     logging.info('~~~~~~~~~~~~                     starting prepare_protein_list                      ~~~~~~~~~~~~')
     df = pd.read_csv(pathdict["list_parsed_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0, low_memory=False)
     n_initial_prot = df.shape[0]
+
+    use_scampi_data = False
+
+    if use_scampi_data:
+        df = korbinian.cons_ratio.SCAMPI.read_scampi_data(pathdict, s, logging, df)
+
+
     if "uniprot_entry_name" in df.columns:
         # join the accession and entry name to create a "protein name" for naming files
         df['protein_name'] = df.uniprot_acc + '_' + df.uniprot_entry_name
@@ -39,7 +46,8 @@ def prepare_protein_list(s, pathdict, logging):
         df['protein_name'] = df.index
 
     # convert the list_of_TMDs to a python object, if it is a string
-    df['list_of_TMDs'] = df['list_of_TMDs'].dropna().apply(lambda x : ast.literal_eval(x))
+    if not use_scampi_data:
+        df['list_of_TMDs'] = df['list_of_TMDs'].dropna().apply(lambda x : ast.literal_eval(x))
 
     if s["add_user_subseqs"] == True:
         ########################################################################################
