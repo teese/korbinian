@@ -241,6 +241,7 @@ def create_pathdict(base_filename_summaries, s):
     pathdict["rand_ident_nonTM_csv"] = "{base}_rand\\List{ln:02d}_rand_nonTM.csv".format(base = base_filename_summaries, ln=list_number)
     # SCAMPI output file location
     pathdict['SCAMPI'] ='%s_SCAMPI/query.top.txt' % base_filename_summaries
+    pathdict['SCAMPI_nonTM'] = '%s_SCAMPI/query.nonTM_list.txt' % base_filename_summaries
 
     """OUTPUT FILES FOR OLD SCRIPTS"""
     pathdict["dfout08_simap_AAIMON"] = '%s_simap_AAIMON.csv' % base_filename_summaries

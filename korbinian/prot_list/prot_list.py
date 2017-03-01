@@ -32,6 +32,19 @@ def prepare_protein_list(s, pathdict, logging):
     df = pd.read_csv(pathdict["list_parsed_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0, low_memory=False)
     n_initial_prot = df.shape[0]
 
+    # drop proteins that are non-transmembrane according to SCAMPI
+    # get accession numbers of transmembrane proteins from SCAMPI output list query.TM_list.txt
+    SCAMPI_nonTM_path = pathdict['SCAMPI_nonTM']
+    n_prot_AFTER_dropping_SCAMPI_nonTM_seqences = 'SCAMPI nonTMD file not found!'
+    if os.path.isfile(SCAMPI_nonTM_path):
+        SCAMPI_nonTM_list = []
+        with open(SCAMPI_nonTM_path) as source:
+            for line in source:
+                line = line.strip()
+                SCAMPI_nonTM_list.append(line)
+        df = df.drop(SCAMPI_nonTM_list, axis=0)
+        n_prot_AFTER_dropping_SCAMPI_nonTM_seqences = df.shape[0]
+
     if s['use_scampi_data']:
         df = korbinian.cons_ratio.SCAMPI.read_scampi_data(pathdict, s, logging, df)
 
@@ -257,12 +270,10 @@ def prepare_protein_list(s, pathdict, logging):
     df['prepare_protein_list'] = True
 
     # add a column that holds all joined TMD sequences, drop proteins with 'X' in full sequence
-    n = 0
     logging.info('joining TMD sequences, dropping proteins with "X", calculating lipophilicity:')
     list_acc_X_in_seq = []
     list_acc_missing_TM_indices = []
-    for acc in df.index:
-        n += 1
+    for n, acc in enumerate(df.index):
         if n % 20 == 0:
             sys.stdout.write('.'), sys.stdout.flush()
             if n % 600 == 0:
@@ -287,15 +298,21 @@ def prepare_protein_list(s, pathdict, logging):
         ########################################################################################
         #                    create joined string with all TM sequences                        #
         #                       measure lipophilicity all TM sequences                         #
+        #                             get length of every TMD                                  #
         ########################################################################################
         TMD_seq_joined = ''
         lipo_list = []
+        TMD_seqlen_list = []
         for TMD in list_of_TMDs:
             if "{}_seq".format(TMD) not in df.columns:
                 list_acc_missing_TM_indices.append(acc)
                 # skip this TMD. Add protein to list to be dropped.
                 continue
             seq = df.loc[acc, '%s_seq' % TMD]
+            # get length of TMD sequence
+            seqlen = len(seq)
+            df.loc[acc, '%s_seqlen' %TMD] = seqlen
+            TMD_seqlen_list.append(seqlen)
             if type(seq) is float:
                 list_acc_missing_TM_indices.append(acc)
                 # skip this TMD. Add protein to list to be dropped.
@@ -312,6 +329,9 @@ def prepare_protein_list(s, pathdict, logging):
         # calc the mean lipophilicity
         # note this is the mean of each TMD separately, not the lipo of the joined sequence
         df.loc[acc, 'lipo_mean_all_TMDs'] = np.array(lipo_list).mean()
+        # calc the mean seqlen of all TMDs
+        df.loc[acc, 'len_TMD_mean'] = np.array(TMD_seqlen_list).mean()
+        df.loc[acc, 'last_TMD'] = list_of_TMDs[-1]
 
     df = df.drop(list_acc_X_in_seq)
     n_prot_AFTER_dropping_with_X_in_seq = df.shape[0]
@@ -365,7 +385,9 @@ def prepare_protein_list(s, pathdict, logging):
     #                           Print record of dropped proteins                           #
     #                                                                                      #
     ########################################################################################
-    logging.info('n_initial_prot: {}'.format(n_initial_prot))
+    logging.info('\nn_initial_prot: {}'.format(n_initial_prot))
+
+    logging.info('n_prot_AFTER_dropping_SCAMPI_nonTM_seqences: {}'.format(n_prot_AFTER_dropping_SCAMPI_nonTM_seqences))
 
     logging.info('n_prot_AFTER_dropping_without_list_TMDs: {}'.format(n_prot_AFTER_dropping_without_list_TMDs)) # line 107
 
