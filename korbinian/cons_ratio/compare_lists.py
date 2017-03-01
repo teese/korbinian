@@ -42,9 +42,13 @@ def compare_lists (s):
     create_legend = False
     save_png = s['save_png']
     save_pdf = s['save_pdf']
-    colour_dict = utils.create_colour_lists()
+
+    ''' problems with RGB values in color_list when comparing less than 3 lists, colours were converted to HTML format'''
+    #colour_dict = utils.create_colour_lists()
     #start with TUM colours, distinguishable in B&W
-    color_list = ["0.5", colour_dict["TUM_oranges"]['TUM1'], colour_dict["TUM_colours"]['TUM5'], (0.843, 0.098, 0.1098)]
+    #color_list = ["0.5", colour_dict["TUM_oranges"]['TUM1'], colour_dict["TUM_colours"]['TUM5'], (0.843, 0.098, 0.1098)]
+    # colours for List 1, 2 and 3
+    color_list = ['#808080', '#D59460', '#005293']
     # add other HTML colours
     color_list = color_list + ['#A1B11A', '#9ECEEC', '#0076B8', '#454545']
 
@@ -81,8 +85,8 @@ def compare_lists (s):
         dfv.loc[prot_list, 'rand_nonTM'] = s['rand_nonTM'][prot_list]
 
         # read list summary.csv and cr_summary.csv from disk, join them to one big dataframe
-        dfx = pd.read_csv(dfv.loc[prot_list, 'base_filename_lists'], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-        dfy = pd.read_csv(dfv.loc[prot_list, 'base_filename_cr_summaries'], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+        dfx = pd.read_csv(dfv.loc[prot_list, 'base_filename_lists'], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
+        dfy = pd.read_csv(dfv.loc[prot_list, 'base_filename_cr_summaries'], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
         df_temp = pd.merge(dfy, dfx, left_index=True, right_index=True, suffixes=('_dfy', ''))
         # count proteins before and after dropping proteins with less than x homologues (x from settings file "lists"), drop proteins
         proteins_before_dropping = len(df_temp)
@@ -102,7 +106,7 @@ def compare_lists (s):
     # set up general plotting parameters
     plt.style.use('seaborn-whitegrid')
     alpha = 1
-    fontsize = 16
+    fontsize = 12
     linewidth = 2
 
 
@@ -188,7 +192,7 @@ def compare_lists (s):
         # Create legend from custom artist/label lists
         ax.legend([handle for i, handle in enumerate(handles) if i in display] + [AAIMON, AAIMON_norm],
                   [label for i, label in enumerate(labels) if i in display] + ['AAIMON', 'AAIMON norm.'],
-                  fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+                  fontsize=fontsize - 3, frameon=True)#, bbox_to_anchor=(1.07, 1.12))
     else:
         # Create custom artists
         AAIMON = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
@@ -196,7 +200,7 @@ def compare_lists (s):
         # Create legend from custom artist/label lists
         ax.legend([AAIMON, AAIMON_norm],
                   ['AAIMON', 'AAIMON norm.'],
-                  fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+                  fontsize=fontsize - 3, frameon=True)#, bbox_to_anchor=(1.07, 1.12))
 
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
 
@@ -274,7 +278,7 @@ def compare_lists (s):
     ax.annotate(s="TM less conserved", xy=(0, -0.09), fontsize=fontsize, xytext=None, xycoords='axes fraction')
     ax.annotate(s="TM more conserved", xy=(1.0, -0.09), fontsize=fontsize, xytext=None, horizontalalignment='right', xycoords='axes fraction')
 
-    create_legend_for_AAIMON_slope = True
+    create_legend_for_AAIMON_slope = False
     if create_legend or create_legend_for_AAIMON_slope:
         ### create legend with additional 2 elements corresponding to AAIMON and AAIMON_n ###
         # Get artists and labels for legend and chose which ones to display
@@ -286,15 +290,15 @@ def compare_lists (s):
         # Create legend from custom artist/label lists
         ax.legend([handle for i, handle in enumerate(handles) if i in display] + [AAIMON, AAIMON_norm],
                   [label for i, label in enumerate(labels) if i in display] + ['AAIMON slope', 'AAIMON slope norm.'],
-                  fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+                  fontsize=fontsize - 3, frameon=True, loc='upper right')#, bbox_to_anchor=(1.07, 1.12))
     else:
         # Create custom artists
         AAIMON = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
         AAIMON_norm = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
         # Create legend from custom artist/label lists
         ax.legend([AAIMON, AAIMON_norm],
-                  ['AAIMON slope', 'AAIMON slope normalised'],
-                  fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+                  ['AAIMON slope', 'AAIMON slope norm.'],
+                  fontsize=fontsize - 3, frameon=True, loc='upper right')#, bbox_to_anchor=(1.07, 1.12))
     #plt.gcf().subplots_adjust(bottom=0.15)
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
@@ -693,14 +697,14 @@ def compare_lists (s):
         # Create legend from custom artist/label lists
         ax.legend([handle for i, handle in enumerate(handles) if i in display] + [mean_, TM01_],
                   [label for i, label in enumerate(labels) if i in display] + ['mean all TMDs', 'TM01'],
-                  fontsize=fontsize-3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+                  fontsize=fontsize-3, frameon=True, loc='upper right')#bbox_to_anchor=(1.07, 1.12))
     else:
         # Create custom artists
         mean_ = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
         TM01_ = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
         # Create legend from custom artist/label lists
         ax.legend([mean_, TM01_],['mean all TMDs', 'TM01'],
-                  fontsize=fontsize-3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+                  fontsize=fontsize-3, frameon=True, loc='upper right')#bbox_to_anchor=(1.07, 1.12))
 
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
 
@@ -781,23 +785,23 @@ def compare_lists (s):
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
 
-    sys.stdout.write('\ncalculating mean length of TMD regions: - add this stuff to prepare_protein_list ?!?')
-    for prot_list in df_dict.keys():
-        sys.stdout.write('\nprotein list: {}\n'.format(prot_list))
-        for n, acc in enumerate(df_dict[prot_list].index):
-            if n % 100 == 0:
-                sys.stdout.write('. '), sys.stdout.flush()
-            list_of_TMDs = ast.literal_eval(df_dict[prot_list].loc[acc, 'list_of_TMDs'])
-            list_TMD_lenghts = []
-            for TMD in list_of_TMDs:
-                list_TMD_lenghts.append(len(df_dict[prot_list].loc[acc, '%s_seq' % TMD]))
-            df_dict[prot_list].loc[acc, 'TMD_len_mean'] = np.mean(list_TMD_lenghts)
+    # sys.stdout.write('\ncalculating mean length of TMD regions: - add this stuff to prepare_protein_list ?!?')
+    # for prot_list in df_dict.keys():
+    #     sys.stdout.write('\nprotein list: {}\n'.format(prot_list))
+    #     for n, acc in enumerate(df_dict[prot_list].index):
+    #         if n % 100 == 0:
+    #             sys.stdout.write('. '), sys.stdout.flush()
+    #         list_of_TMDs = ast.literal_eval(df_dict[prot_list].loc[acc, 'list_of_TMDs'])
+    #         list_TMD_lenghts = []
+    #         for TMD in list_of_TMDs:
+    #             list_TMD_lenghts.append(len(df_dict[prot_list].loc[acc, '%s_seq' % TMD]))
+    #         df_dict[prot_list].loc[acc, 'TMD_len_mean'] = np.mean(list_TMD_lenghts)
 
     for prot_list in protein_lists:
         ###   non-normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
         # hist_data = np.array(df_dict[prot_list]['nonTMD_SW_align_len_excl_gaps_mean'])
-        hist_data = np.array(df_dict[prot_list]['TMD_len_mean'])
+        hist_data = np.array(df_dict[prot_list]['len_TMD_mean'])
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -937,8 +941,8 @@ def compare_lists (s):
     df_aa_prop_nonTM = pd.DataFrame()
 
     for prot_list in protein_lists:
-        rand_TM_path = os.path.join(s["data_dir"], "summaries", "{ln:02d}\\List{ln:02d}_rand\\List{ln:02d}_rand_TM.csv".format(ln=prot_list))
-        rand_nonTM_path = os.path.join(s["data_dir"], "summaries", "{ln:02d}\\List{ln:02d}_rand\\List{ln:02d}_rand_nonTM.csv".format(ln=prot_list))
+        rand_TM_path = os.path.join(s["data_dir"], "summaries", "{ln:02d}/List{ln:02d}_rand/List{ln:02d}_rand_TM.csv".format(ln=prot_list))
+        rand_nonTM_path = os.path.join(s["data_dir"], "summaries", "{ln:02d}/List{ln:02d}_rand/List{ln:02d}_rand_nonTM.csv".format(ln=prot_list))
 
         # grab the random identity and aa propensity series for the TM
         ser_rand_TM = pd.Series.from_csv(rand_TM_path, sep="\t")
