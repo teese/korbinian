@@ -8,8 +8,9 @@ import sys
 from multiprocessing import Pool
 
 ##########parameters#############
-list_number = 1
+list_number = 2
 data_dir = r"/Volumes/Musik/Databases"
+data_dir = r"D:\Databases"
 repeat_randomisation = False
 
 seq_len = 2000

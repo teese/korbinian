@@ -149,6 +149,14 @@ def calc_random_aa_ident(aa_prop_csv_in, rand_seq_ident_csv_out, seq_len=1000, n
     ident: float
         desired overall identity of randomly created sequence matrix. This will not affect the random aa identity,
         but smaller values might increase the presicion of the calculation. Default value: 0.7
+
+    Returns
+    -------
+    Only returns values when multiprocessing_mode = True (no file is saved)
+    random_aa_identity : float
+        Random amino acid identity, based on the limited AA propensity in the dataset.
+    output_ser = pd.Series
+        Output pandas series consisting of the random_aa_identity, and the input aa_prop_ser derived from aa_prop_csv_in.
     """
 
     # open csv into a pandas series, normally with all 20 aa as the index, and a proportion (0.08, 0.09 etc) as the data.
@@ -163,6 +171,8 @@ def calc_random_aa_ident(aa_prop_csv_in, rand_seq_ident_csv_out, seq_len=1000, n
 
     # generate random sequences, extract the original reference sequence and the sequence cluster
     orig_and_mut_seqs = generate_random_seq(seq_len, number_seq, number_mutations, aa_arr, aa_propensities)
+    sys.stdout.write("\n")
+    sys.stdout.flush()
     # extract the original sequence, of which the matrix are variants
     orig_seq = orig_and_mut_seqs[0]
     # calculate aa propensity and find all used aa in the orig_seq
@@ -315,12 +325,9 @@ def generate_random_seq(seq_len, number_seq, number_mutations, list_all_20_aa, p
     # firstly, choose a set of positions whoose aa will be replaced
     for n in range(number_seq):
         # sys.write something to show that the programming is still running
-        if n != 0 and n % 50 == 0:
+        if n != 0 and n % 200 == 0:
             sys.stdout.write(".")
-            if n % 400 == 0:
-                sys.stdout.write(" please have patience, I'm still calculating \n")
             sys.stdout.flush()
-
         # create indices (list of positions)
         inds = list(range(seq_len))
         # number of mutations is calculated beforehand. E.g. if ident=0.9, seqlen=100, number_mutations = 10)
