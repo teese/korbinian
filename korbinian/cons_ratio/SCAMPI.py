@@ -4,8 +4,28 @@ import csv
 import korbinian
 import sys
 import korbinian.utils as utils
+import os
 
 def read_scampi_data(pathdict, s, logging, df):
+    """ Reads the output of the topology predictor SCAMPI (http://scampi.bioinfo.se).
+
+    Parameters
+    ----------
+    s : dict
+        Dictionary of settings derived from settings excel file.
+        Columns "Parameter" and "Value" are converted to key/value in the dictionary, respectively.
+    pathdict : dict
+        Dictionary of the key paths and files associated with that List number.
+
+    Returned Files and Figures
+    -----------------------
+    Input pandas dataframe is overwritten, TMD regions from Uniprot are removed and replaced with SCAMPI output.
+
+    Required Files
+    -----------------------
+    query.top.txt : holds all topology information of SCAMPI output.
+
+    """
     #pathdict['SCAMPI'] = '/Volumes/Musik/Databases/summaries/01/List01_SCAMPI/query.top.txt'
     logging.info('\n~~~~~~~~~~~~                           using scampi data                            ~~~~~~~~~~~~')
     # define columns to replace
@@ -135,3 +155,26 @@ def read_scampi_data(pathdict, s, logging, df):
     logging.info('\n~~~~~~~~~~~~                     scampi data replaced uniprot                       ~~~~~~~~~~~~\n')
     return df
 
+
+
+def generate_scampi_input_files(pathdict, s, logging):
+
+    logging.info('\n~~~~~~~~~~~~                 starting generate_scampi_input_files                   ~~~~~~~~~~~~\n')
+
+    list_number = s["list_number"]
+    # load list parsed from uniprot
+    df = pd.read_csv(pathdict["list_parsed_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
+    # specify outpath
+    outpath = '{}_SCAMPI'.format(pathdict['base_filename_summaries'])
+    # make folder for output
+    if not os.path.exists(outpath):
+        os.makedirs(outpath)
+    # specify outfile path
+    outfile = os.path.join(outpath, 'List{:02d}_fasta_for_scampi.txt'.format(list_number))
+    # open new .txt file and write accession and full sequence from df into file
+    file = open(outfile, 'w')
+    for acc in df.index:
+        file.write('>{}\n{}\n'.format(acc, df.loc[acc, 'full_seq']))
+    file.close()
+
+    logging.info('\n~~~~~~~~~~~~                generate_scampi_input_files is finished                 ~~~~~~~~~~~~\n')

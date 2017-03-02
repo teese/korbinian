@@ -131,6 +131,11 @@ def gather_AAIMONs(pathdict, logging, s):
         dfg.loc[acc, 'TMD_perc_identity_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_TMD_perc_identity_mean_all_TMDs.values()))))
         dfg.loc[acc, 'angle_between_slopes_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_angle_between_slopes_all_TMDs.values()))))
 
+        # add AAIMON_slope of the last TMD to dfg
+        last_TMD = df.loc[acc, 'last_TMD']
+        dfg.loc[acc, 'AAIMON_slope_last_TMD'] = dfg.loc[acc, '%s_AAIMON_slope' %last_TMD]
+        dfg.loc[acc, 'AAIMON_n_slope_last_TMD'] = dfg.loc[acc, '%s_AAIMON_n_slope' % last_TMD]
+
         # count the number of TMDs for each protein
         dfg.loc[acc, 'number_of_TMDs'] = len(dfg.loc[acc, 'list_of_TMDs'].split(','))
 

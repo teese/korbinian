@@ -331,7 +331,11 @@ def prepare_protein_list(s, pathdict, logging):
         df.loc[acc, 'lipo_mean_all_TMDs'] = np.array(lipo_list).mean()
         # calc the mean seqlen of all TMDs
         df.loc[acc, 'len_TMD_mean'] = np.array(TMD_seqlen_list).mean()
-        df.loc[acc, 'last_TMD'] = list_of_TMDs[-1]
+        # get last TMD
+        last_TMD = list_of_TMDs[-1]
+        df.loc[acc, 'last_TMD'] = last_TMD
+        # get lipo of last TMD
+        df.loc[acc, 'lipo_last_TMD'] = df.loc[acc, '%s_lipo' % last_TMD]
 
     df = df.drop(list_acc_X_in_seq)
     n_prot_AFTER_dropping_with_X_in_seq = df.shape[0]
