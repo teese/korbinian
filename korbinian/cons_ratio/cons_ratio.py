@@ -36,6 +36,23 @@ def run_calculate_AAIMONs(pathdict, s, logging):
     os.chdir(os.path.join(s["data_dir"], "homol"))
     # get list of accessions that could not be downloaded, and can immediately be excluded
     not_in_homol_db = utils.get_list_not_in_homol_db(pathdict)
+
+    ########################################################################################
+    #                                                                                      #
+    #   Extract accurate randTM and rand_nonTM values from csv files, where available      #
+    #                                                                                      #
+    ########################################################################################
+    rand_ident_TM_csv = pathdict["rand_ident_TM_csv"]
+    rand_ident_nonTM_csv = pathdict["rand_ident_nonTM_csv"]
+    if os.path.isfile(rand_ident_TM_csv) and os.path.isfile(rand_ident_nonTM_csv):
+        # open csv as series
+        TM_ser = pd.Series.from_csv(rand_ident_TM_csv, sep="\t")
+        nonTM_ser = pd.Series.from_csv(rand_ident_nonTM_csv, sep="\t")
+        # extract the random values
+        # REPLACES THE ORIGINAL VALUES FROM THE LISTS TAB OF THE SETTINGS FILE
+        s["rand_TM"] = TM_ser["random_sequence_identity_output"]
+        s["rand_nonTM"] = nonTM_ser["random_sequence_identity_output"]
+
     # create list of protein dictionaries to process
     list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging, list_excluded_acc=not_in_homol_db)
     # number of processes is the number the settings, or the number of proteins, whichever is smallest
