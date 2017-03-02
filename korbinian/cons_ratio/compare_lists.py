@@ -872,7 +872,7 @@ def compare_lists (s):
         rand_TM = dfv.loc[prot_list, 'rand_TM']
         rand_nonTM = dfv.loc[prot_list, 'rand_nonTM']
         fraction_TM_residues = df_dict[prot_list]['perc_TMD'].mean()
-        print("prot_list : {}, fraction_TM_residues : {}".format(prot_list, fraction_TM_residues))
+        sys.stdout.write("prot_list : {}, fraction_TM_residues : {}".format(prot_list, fraction_TM_residues))
         # define the stop and start points for the two sections of graph
         stop_before_rand_TM = (100 - rand_TM*100) - d
         start_after_rand_TM = (100 - rand_TM*100) + d
