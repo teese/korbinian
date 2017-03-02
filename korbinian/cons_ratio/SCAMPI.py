@@ -159,7 +159,7 @@ def read_scampi_data(pathdict, s, logging, df):
 
 def generate_scampi_input_files(pathdict, s, logging):
 
-    logging.info('\n~~~~~~~~~~~~                 starting generate_scampi_input_files                   ~~~~~~~~~~~~\n')
+    logging.info('~~~~~~~~~~~~                 starting generate_scampi_input_files                   ~~~~~~~~~~~~')
 
     list_number = s["list_number"]
     # load list parsed from uniprot
@@ -177,4 +177,4 @@ def generate_scampi_input_files(pathdict, s, logging):
         file.write('>{}\n{}\n'.format(acc, df.loc[acc, 'full_seq']))
     file.close()
 
-    logging.info('\n~~~~~~~~~~~~                generate_scampi_input_files is finished                 ~~~~~~~~~~~~\n')
+    logging.info('~~~~~~~~~~~~                generate_scampi_input_files is finished                 ~~~~~~~~~~~~')

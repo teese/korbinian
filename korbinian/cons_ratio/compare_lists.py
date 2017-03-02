@@ -871,6 +871,8 @@ def compare_lists (s):
     for prot_list in protein_lists:
         rand_TM = dfv.loc[prot_list, 'rand_TM']
         rand_nonTM = dfv.loc[prot_list, 'rand_nonTM']
+        fraction_TM_residues = df_dict[prot_list]['perc_TMD'].mean()
+        print("prot_list : {}, fraction_TM_residues : {}".format(prot_list, fraction_TM_residues))
         # define the stop and start points for the two sections of graph
         stop_before_rand_TM = (100 - rand_TM*100) - d
         start_after_rand_TM = (100 - rand_TM*100) + d
@@ -887,7 +889,7 @@ def compare_lists (s):
             identity = (100 - obs_changes) / 100
             # go through each identity individually, and convert to norm factor
             for aa_ident in identity:
-                norm_factor.append(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor(aa_ident, rand_TM, rand_nonTM))
+                norm_factor.append(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor(aa_ident, rand_TM, rand_nonTM, fraction_TM_residues))
             norm_factor = np.array(norm_factor)
 
             # stop the label from being duplicated for both sections of graph

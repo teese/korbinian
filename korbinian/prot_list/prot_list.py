@@ -8,6 +8,7 @@ import numpy as np
 import os
 import pandas as pd
 import sys
+import time
 import unicodedata
 
 
@@ -37,6 +38,7 @@ def prepare_protein_list(s, pathdict, logging):
     SCAMPI_nonTM_path = pathdict['SCAMPI_nonTM']
     n_prot_AFTER_dropping_SCAMPI_nonTM_seqences = 'SCAMPI nonTMD file not found!'
     if os.path.isfile(SCAMPI_nonTM_path):
+        modification_date = time.ctime(os.path.getmtime(SCAMPI_nonTM_path))
         SCAMPI_nonTM_list = []
         with open(SCAMPI_nonTM_path) as source:
             for line in source:
@@ -44,10 +46,11 @@ def prepare_protein_list(s, pathdict, logging):
                 SCAMPI_nonTM_list.append(line)
         df = df.drop(SCAMPI_nonTM_list, axis=0)
         n_prot_AFTER_dropping_SCAMPI_nonTM_seqences = df.shape[0]
+    else:
+        modification_date = None
 
     if s['use_scampi_data']:
         df = korbinian.cons_ratio.SCAMPI.read_scampi_data(pathdict, s, logging, df)
-
 
     if "uniprot_entry_name" in df.columns:
         # join the accession and entry name to create a "protein name" for naming files
@@ -274,7 +277,7 @@ def prepare_protein_list(s, pathdict, logging):
     list_acc_X_in_seq = []
     list_acc_missing_TM_indices = []
     for n, acc in enumerate(df.index):
-        if n % 20 == 0:
+        if n % 20 == 0 and n != 0:
             sys.stdout.write('.'), sys.stdout.flush()
             if n % 600 == 0:
                 sys.stdout.write('\n'), sys.stdout.flush()
@@ -392,6 +395,8 @@ def prepare_protein_list(s, pathdict, logging):
     logging.info('\nn_initial_prot: {}'.format(n_initial_prot))
 
     logging.info('n_prot_AFTER_dropping_SCAMPI_nonTM_seqences: {}'.format(n_prot_AFTER_dropping_SCAMPI_nonTM_seqences))
+    if modification_date is not None:
+        logging.info("modification_date of scampi file: {}".format(modification_date))
 
     logging.info('n_prot_AFTER_dropping_without_list_TMDs: {}'.format(n_prot_AFTER_dropping_without_list_TMDs)) # line 107
 
@@ -424,9 +429,11 @@ def prepare_protein_list(s, pathdict, logging):
     #                      calculate random TM and nonTM identity                          #
     #                                                                                      #
     ########################################################################################
-    logging.info("calculating rand_TM and rand_nonTM...")
-    calc_randTM_and_randnonTM(s, pathdict, seq_len=1000, number_seq=1000)
-
+    # only calculate the rand_TM and rand_nonTM using the quick method (1000x1000)
+    # if calc_accurate_random_identity is not True, as a more accurate version will be calculated next
+    if not s["calc_accurate_random_identity"]:
+        logging.info("calculating rand_TM and rand_nonTM using quick method (1000x1000")
+        calc_randTM_and_randnonTM(s, pathdict, logging, seq_len=1000, number_seq=1000)
     logging.info('~~~~~~~~~~~~                     finished prepare_protein_list                      ~~~~~~~~~~~~')
 
 def get_indices_TMD_plus_surr_for_summary_file(dfsumm, TMD, n_aa_before_tmd, n_aa_after_tmd):
@@ -485,7 +492,8 @@ def find_indices_longer_than_prot_seq(df, TMD):
     """
     return df['%s_end_plus_surr'%TMD] > df['seqlen']
 
-def calc_randTM_and_randnonTM(s, pathdict, seq_len, number_seq, multiprocessing_mode=False):
+def calc_randTM_and_randnonTM(s, pathdict, logging, seq_len, number_seq, multiprocessing_mode=False):
+    logging.info('~~~~~~~~~~~~                    starting calc_randTM_and_randnonTM                  ~~~~~~~~~~~~')
     ########################################################################################
     #                                                                                      #
     #                      calculate random TM and nonTM identity                          #
@@ -506,13 +514,13 @@ def calc_randTM_and_randnonTM(s, pathdict, seq_len, number_seq, multiprocessing_
         d_list = [d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d]
         with Pool(processes = s["multiprocessing_cores"]) as pool:
             return_statement_list = pool.map(calc_random_aa_ident_multiprocessing, d_list)
-            output_ser = return_statement_list[0][1]
-            random_aa_identity_list = [return_statement[0] for return_statement in return_statement_list]
-            random_aa_identity = np.array(random_aa_identity_list).mean()
-            sys.stdout.write("\nrandom_aa_identity : {}\n, random_aa_identity_list : {}".format(random_aa_identity, random_aa_identity_list))
-            output_ser["random_sequence_identity_output"] = random_aa_identity
-            # save the series as csv file
-            output_ser.to_csv(rand_ident_TM_csv, sep="\t")
+        output_ser = return_statement_list[0][1]
+        random_aa_identity_list = [return_statement[0] for return_statement in return_statement_list]
+        random_aa_identity = np.array(random_aa_identity_list).mean()
+        sys.stdout.write("\nrandom_aa_identity : {}\n, random_aa_identity_list : {}".format(random_aa_identity, random_aa_identity_list))
+        output_ser["random_sequence_identity_output"] = random_aa_identity
+        # save the series as csv file
+        output_ser.to_csv(rand_ident_TM_csv, sep="\t")
     else:
         # calculate random aa identity based on aa propensity
         korbinian.MSA_normalisation.calc_random_aa_ident(aa_prop_csv_out_TM, rand_ident_TM_csv, seq_len=seq_len, number_seq=number_seq, ident=ident)
@@ -530,18 +538,19 @@ def calc_randTM_and_randnonTM(s, pathdict, seq_len, number_seq, multiprocessing_
         d_list = [d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d,d]
         with Pool(processes = s["multiprocessing_cores"]) as pool:
             return_statement_list = pool.map(calc_random_aa_ident_multiprocessing, d_list)
-            output_ser = return_statement_list[0][1]
-            random_aa_identity_list = [return_statement[0] for return_statement in return_statement_list]
-            random_aa_identity = np.array(random_aa_identity_list).mean()
-            sys.stdout.write("random_aa_identity, {} random_aa_identity_list {}".format(random_aa_identity, random_aa_identity_list))
-            output_ser["random_sequence_identity_output"] = random_aa_identity
-            # save the series as csv file
-            output_ser.to_csv(rand_ident_nonTM_csv, sep="\t")
+        output_ser = return_statement_list[0][1]
+        random_aa_identity_list = [return_statement[0] for return_statement in return_statement_list]
+        random_aa_identity = np.array(random_aa_identity_list).mean()
+        sys.stdout.write("random_aa_identity, {} \nrandom_aa_identity_list {}".format(random_aa_identity, random_aa_identity_list))
+        output_ser["random_sequence_identity_output"] = random_aa_identity
+        # save the series as csv file
+        output_ser.to_csv(rand_ident_nonTM_csv, sep="\t")
     else:
         # calculate random aa identity based on aa propensity
         korbinian.MSA_normalisation.calc_random_aa_ident(aa_prop_csv_out_nonTM, rand_ident_nonTM_csv, seq_len=seq_len, number_seq=number_seq, ident=ident)
     # remove temp file with aa propensity (it is also saved in the rand_ident csv)
     #os.remove(aa_prop_csv_out_nonTM)
+    logging.info('~~~~~~~~~~~~                    finished calc_randTM_and_randnonTM                  ~~~~~~~~~~~~')
 
 def calc_random_aa_ident_multiprocessing(d):
     """ Runs calc_random_aa_ident using for multiprocessing.

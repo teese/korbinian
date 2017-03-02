@@ -8,7 +8,7 @@ import sys
 from multiprocessing import Pool
 
 ##########parameters#############
-list_number = 1
+list_number = 2
 data_dir = r"/Volumes/Musik/Databases"
 data_dir = r"D:\Databases"
 repeat_randomisation = False
@@ -101,8 +101,8 @@ if __name__ == "__main__":
     color_norm_line = "#53A7D5"
     color_norm_factor_line = "k"
     alpha = 1
-    s = 2
-    marker = 'x'
+    s = 7
+    marker = '.'
     linewidths = 0.3
     fontsize = 14
 
@@ -175,8 +175,12 @@ if __name__ == "__main__":
     norm_AAIMONs_old = AAIMON_list_10rep / norm_factor_array_10rep_old
     norm_AAIMONs_new = AAIMON_list_10rep / norm_factor_array_10rep_new
 
+    # SCATTER PLOTS SHOWING RESULTS FROM OLD NORMALISATION METHOD
+    ax.scatter(obs_aa_sub_rate_10rep*100, norm_AAIMONs_old, color=color_norm, s=s, alpha=alpha, marker=marker, linewidths=linewidths, label="after normalisation")
+    #ax.scatter(obs_aa_sub_rate_10rep*100, norm_factor_array_10rep_old, s=1, color="r")
+
     # plot the data after normalisation first (not as important as the orig at the beginning)
-    ax.scatter(obs_aa_sub_rate_10rep*100, norm_AAIMONs_new, color=color_norm, s=s, alpha=alpha, marker=marker, linewidths=linewidths, label="after normalisation")
+    #ax.scatter(obs_aa_sub_rate_10rep*100, norm_AAIMONs_new, color=color_norm, s=s, alpha=alpha, marker=marker, linewidths=linewidths, label="after normalisation")
     # plot the original data now, so it is clearly seen
     ax.scatter(obs_aa_sub_rate_10rep*100, AAIMON_list_10rep, color=color_nonnorm, s=s, alpha=alpha, marker=marker, linewidths=linewidths, label="before normalisation")
 
@@ -185,7 +189,7 @@ if __name__ == "__main__":
     # plot only the first replicate (0: 1600)
     norm_curve_x = obs_aa_sub_rate_10rep[:max_num_positions_mutated] * 100
     norm_curve_y = norm_factor_array_10rep_new[:max_num_positions_mutated]
-    ax.plot(norm_curve_x, norm_curve_y, color=color_norm_factor_line, linewidth=2, label="calculated normalisation factor")
+    #ax.plot(norm_curve_x, norm_curve_y, color=color_norm_factor_line, linewidth=2, label="calculated normalisation factor")
 
 
     ########################################################################################
@@ -193,10 +197,6 @@ if __name__ == "__main__":
     #                        STUFF THAT IS NOT PLOTTED ANYMORE                             #
     #                                                                                      #
     ########################################################################################
-
-    # SCATTER PLOTS SHOWING RESULTS FROM OLD NORMALISATION METHOD
-    #ax.scatter(obs_aa_sub_rate_10rep*100, norm_AAIMONs_old, color="r", s=3, alpha=1, label="after norm., old method")
-    #ax.scatter(obs_aa_sub_rate_10rep*100, norm_factor_array_10rep_old, s=1, color="r")
 
     # POLYNOMIAL FIT TO THE ORIGINAL DATA (NOT SHOWN)
     z = np.polyfit(obs_aa_sub_rate_10rep*100, AAIMON_list_10rep, 13)
@@ -221,23 +221,24 @@ if __name__ == "__main__":
     #                                 AXIS LABELS, ETC                                     #
     #                                                                                      #
     ########################################################################################
-    ax.set_ylim(0.9, 1.3)
+    ax.set_ylim(0.9, 1.1)
     ax.set_ylabel("AAIMON", fontsize=fontsize+2)
     ax.set_xlabel("% observed AA substitutions in full protein", fontsize=fontsize+2)
-    ax.set_xlim(0, 75)
+    ax.set_xlim(0, 60)
 
-    # re-order the legend
-    handles, labels = ax.get_legend_handles_labels()
-    handles = [handles[2], handles[0], handles[1]]
-    labels = [labels[2], labels[0], labels[1]]
-    legend = ax.legend(handles, labels, loc='upper left', frameon=True, scatterpoints=25, fontsize=fontsize)
+    # # re-order the legend
+    # handles, labels = ax.get_legend_handles_labels()
+    # handles = [handles[2], handles[0], handles[1]]
+    # labels = [labels[2], labels[0], labels[1]]
+    # legend = ax.legend(handles, labels, loc='upper left', frameon=True, scatterpoints=25, fontsize=fontsize)
     #legend.legendHandles[0]._sizes = [20]
     #legend.legendHandles[2]._sizes = [20]
+    ax.legend(loc='upper left', frameon=True, scatterpoints=25, fontsize=fontsize)
     ax.tick_params(labelsize=fontsize)
     plt.tight_layout()
 
     # save fig, e.g. "D:\Databases\summaries\01\List01_rand\List01_rand_AAIMON_vs_aa_sub.png"
-    fig.savefig(fig_AAIMON_vs_perc_aa_sub_png, dpi=400)
+    fig.savefig(fig_AAIMON_vs_perc_aa_sub_png, dpi=200)
     fig.savefig(fig_AAIMON_vs_perc_aa_sub_pdf)
 
     # check that the final normalised values are close to 1.0

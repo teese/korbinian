@@ -171,8 +171,8 @@ def calc_random_aa_ident(aa_prop_csv_in, rand_seq_ident_csv_out, seq_len=1000, n
 
     # generate random sequences, extract the original reference sequence and the sequence cluster
     orig_and_mut_seqs = generate_random_seq(seq_len, number_seq, number_mutations, aa_arr, aa_propensities)
-    sys.stdout.write("\n")
-    sys.stdout.flush()
+    # sys.stdout.write("\n")
+    # sys.stdout.flush()
     # extract the original sequence, of which the matrix are variants
     orig_seq = orig_and_mut_seqs[0]
     # calculate aa propensity and find all used aa in the orig_seq
