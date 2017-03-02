@@ -102,6 +102,7 @@ def calculate_AAIMONs(p):
     protein_name = p["protein_name"]
     rand_TM = p["rand_TM"]
     rand_nonTM = p["rand_nonTM"]
+    fraction_TM_residues = p["perc_TMD"]
     max_gaps = s["cr_max_n_gaps_in_TMD"]
     max_lipo_homol = s["max_lipo_homol"]
     min_ident = s["cr_min_identity_of_TMD"]
@@ -208,7 +209,7 @@ def calculate_AAIMONs(p):
     #                Calculation of normalization factor for each homologue                #
     #                                                                                      #
     ########################################################################################
-    dfh['norm_factor'] = dfh['FASTA_gapped_identity'].apply(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor, args=(rand_TM, rand_nonTM))
+    dfh['norm_factor'] = dfh['FASTA_gapped_identity'].apply(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor, args=(rand_TM, rand_nonTM, fraction_TM_residues))
     # filter so that dfh is the same size as df_nonTMD
     dfh = dfh.loc[df_nonTMD.index, :]
 

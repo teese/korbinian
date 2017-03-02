@@ -63,7 +63,7 @@ if __name__ == "__main__":
                 # for each number in the list, add to settings and run
                 s["list_number"] = list_number
                 korbinian.run_korbinian.run_statements(s)
-                sys.stdout.write('\n\n~~~~~~~~~~~~         List {} finished           ~~~~~~~~~~~~\n\n'.format(list_number))
+                sys.stdout.write('\n~~~~~~~~~~~~         List {} finished           ~~~~~~~~~~~~\n'.format(list_number))
         else:
             raise ValueError("protein_list_number is neither an int nor a list. Panic and check your code and settings file!")
 
@@ -158,9 +158,9 @@ def run_statements(s):
 
     if s["calc_accurate_random_identity"]:
         if s["use_multiprocessing"]:
-            korbinian.prot_list.prot_list.calc_randTM_and_randnonTM(s, pathdict, seq_len=1000, number_seq=1000, multiprocessing_mode=True)
+            korbinian.prot_list.prot_list.calc_randTM_and_randnonTM(s, pathdict, logging, seq_len=1000, number_seq=1000, multiprocessing_mode=True)
         else:
-            korbinian.prot_list.prot_list.calc_randTM_and_randnonTM(s, pathdict, seq_len=10000, number_seq=1000, multiprocessing_mode=False)
+            korbinian.prot_list.prot_list.calc_randTM_and_randnonTM(s, pathdict, logging, seq_len=10000, number_seq=1000, multiprocessing_mode=False)
 
     if s['generate_scampi_input_files']:
         korbinian.cons_ratio.SCAMPI.generate_scampi_input_files(pathdict, s, logging)
@@ -177,7 +177,7 @@ def run_statements(s):
         korbinian.simap_parse.run_parse_simap_to_csv(pathdict, s, logging)
 
     ########################################################################################
-    #                                                                                      #
+    #                                                                                         #
     #            run_create_fasta, run_calculate_AAIMON_ratios                             #
     #                                                                                      #
     ########################################################################################
