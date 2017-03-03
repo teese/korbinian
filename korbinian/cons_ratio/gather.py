@@ -153,6 +153,19 @@ def gather_AAIMONs(pathdict, logging, s):
         # if 'uniprot_KW' in df.columns:
         #     dfg.loc[acc, 'uniprot_KW'] = df.loc[acc, 'uniprot_KW']
 
+    # print out mean AAIMON values in dataset
+    mean_AAIMON_in_dataset = np.mean(dfg['AAIMON_mean_all_TMDs'])
+    mean_AAIMON_n_in_dataset = np.mean(dfg['AAIMON_mean_all_TMDs_n'])
+    mean_AAIMON_slope_in_dataset = np.mean(dfg['AAIMON_slope_mean_all_TMDs'])
+    mean_AAIMON_n_slope_in_dataset = np.mean(dfg['AAIMON_n_slope_mean_all_TMDs'])
+    sys.stdout.write('\n\nmean AAIMON         in dataset: {a:.05f}'
+                     '\nmean AAIMON_n       in dataset: {b:.05f}'
+                     '\nmean AAIMON_slope   in dataset: {c:.07f}'
+                     '\nmean AAIMON_n_slope in dataset: {d:.07f}\n'
+                     .format(a=mean_AAIMON_in_dataset,
+                             b=mean_AAIMON_n_in_dataset,
+                             c=mean_AAIMON_slope_in_dataset,
+                             d=mean_AAIMON_n_slope_in_dataset))
 
     dfg.to_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
@@ -339,7 +352,8 @@ def gather_AAIMONs(pathdict, logging, s):
             os.remove('binned_data_characterising_each_homol_TMD.pickle')
 
     logging.info("\n~~~~~~~~~~~~                           finished gather_AAIMONs                      ~~~~~~~~~~~~")
-    return pathdict
+    if s['filter_keywords_in_gather']:
+        return pathdict
 
 # ########################################################################################
 # #                                                                                      #

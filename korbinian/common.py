@@ -237,11 +237,11 @@ def create_pathdict(base_filename_summaries, s):
     pathdict["pretty_alignments_csv"] = '%s_pretty_alignments.csv' % base_filename_summaries
     pathdict["list_filtered_csv"] = "%s_filtered.csv" % base_filename_summaries
     # create random identity TM and nonTM csv files
-    pathdict["rand_ident_TM_csv"] = "{base}_rand\\List{ln:02d}_rand_TM.csv".format(base = base_filename_summaries, ln=list_number)
-    pathdict["rand_ident_nonTM_csv"] = "{base}_rand\\List{ln:02d}_rand_nonTM.csv".format(base = base_filename_summaries, ln=list_number)
+    pathdict["rand_ident_TM_csv"] = os.path.join("{base}_rand".format(base = base_filename_summaries), "List{ln:02d}_rand_TM.csv".format(ln=list_number))
+    pathdict["rand_ident_nonTM_csv"] = os.path.join("{base}_rand".format(base = base_filename_summaries), "List{ln:02d}_rand_nonTM.csv".format(ln=list_number))
     # SCAMPI output file location
-    pathdict['SCAMPI'] ='%s_SCAMPI\\query.top.txt' % base_filename_summaries
-    pathdict['SCAMPI_nonTM'] = '%s_SCAMPI\\query.nonTM_list.txt' % base_filename_summaries
+    pathdict['SCAMPI'] = os.path.join('%s_SCAMPI' % base_filename_summaries, 'query.top.txt')
+    pathdict['SCAMPI_nonTM'] = os.path.join('%s_SCAMPI' % base_filename_summaries, 'query.nonTM_list.txt')
 
     """OUTPUT FILES FOR OLD SCRIPTS"""
     pathdict["dfout08_simap_AAIMON"] = '%s_simap_AAIMON.csv' % base_filename_summaries
