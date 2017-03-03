@@ -24,14 +24,14 @@ def keyword_analysis(pathdict, s, logging):
     """
     logging.info("~~~~~~~~~~~~                      starting keyword_analysis                         ~~~~~~~~~~~~")
     # load summary file
-    dfu = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    dfu = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
     if dfu.shape[0] < s["min_n_proteins_in_list"]:
         return "~~~~~~~~~~~~           keyword_analysis skipped, only {} proteins in list            ~~~~~~~~~~~~".format(dfu.shape[0])
     # skip the keyword analysis if there are no keywords
     if 'uniprot_KW' not in dfu.columns:
         return "Keyword analysis not conducted. No keywords found in protein summary file."
     # load cr_summary file
-    dfc = pd.read_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    dfc = pd.read_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
     # merge cr_summary and summary file, if columns are equal in both files, suffix _dfc will be added in cr_summary column names for backwards compatibility
     df = pd.merge(dfc, dfu, left_index=True, right_index=True, suffixes=('_dfc', ''))
 
@@ -55,28 +55,8 @@ def keyword_analysis(pathdict, s, logging):
     fontsize = 12
     alpha = 0.8
 
-    # ###############################################################
-    # #                                                             #
-    # #              define list of ignored keywords                #
-    # #                     and enzyme keywords                     #
-    # #                                                             #
-    # ###############################################################
-    #
-    # list_ignored_KW = ['Transmembrane', 'Complete proteome', 'Reference proteome', 'Membrane',
-    #                    'Transmembrane helix', 'Cell membrane', 'Repeat', 'Alternative splicing', 'Sodium', 'Potassium', 'Direct protein sequencing',
-    #                    'Transducer', 'Polymorphism', 'Glycoprotein', 'Calcium transport', 'Ion transport', 'Transport', 'Protein transport',
-    #                    'Voltage-gated channel', 'ATP-binding', 'Calcium', 'Zinc', 'Synapse', 'Signal', 'Disulfide bond', '3D-structure', 'Host-virus interaction']
-    # # check if protein is an enzyme
-    # list_enzyme_KW = ['Transferase', 'Hydrolase', 'Glycosyltransferase', 'Protease', 'Kinase', 'Oxidoreductase', 'Metalloprotease', 'Serine protease',
-    #                   'Protein phosphatase', 'Ligase', 'Acyltransferase', 'Serine/threonine-protein kinase', 'Glycosidase', 'Aminopeptidase',
-    #                   'Isomerase', 'Methyltransferase', 'Carboxypeptidase', 'Hydroxylation', 'Aspartyl protease', 'Serine esterase',
-    #                   'Lipid biosynthesis', 'GPI-anchor biosynthesis', 'Steroid biosynthesis', 'Melanin biosynthesis', 'Thyroid hormones biosynthesis',
-    #                   'Phospholipid biosynthesis', 'Sterol biosynthesis', 'Glutathione biosynthesis', 'Cholesterol biosynthesis',
-    #                   'Fatty acid biosynthesis', 'Prostaglandin biosynthesis', 'cGMP biosynthesis', 'Leukotriene biosynthesis', 'Catecholamine biosynthesis',
-    #                   'Lipid metabolism', 'Carbohydrate metabolism', 'Steroid metabolism', 'Sterol metabolism', 'Sphingolipid metabolism',
-    #                   'Cholesterol metabolism', 'Fatty acid metabolism', 'Phospholipid metabolism', 'Catecholamine metabolism', 'Prostaglandin metabolism',
-    #                   'Glycogen metabolism', 'Fucose metabolism']
 
+    # define list of ignored and enzyme keywords
     list_enzyme_KW, list_ignored_KW = utils.get_list_enzyme_KW_and_list_ignored_KW()
 
     # remove proteins containing nan in AAIMON_slope_mean_all_TMDs
@@ -86,45 +66,60 @@ def keyword_analysis(pathdict, s, logging):
             list_of_acc_without_nan.append(acc)
     df = df.loc[list_of_acc_without_nan, :]
 
-    # apply ast.literal_eval to every item in df['uniprot_KW']
-    if isinstance(df['uniprot_KW'][0], str):
-        df['uniprot_KW'] = df['uniprot_KW'].apply(lambda x: ast.literal_eval(x))
 
-    # check if protein is an Enzyme or GPCR
-    df['enzyme'] = df['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args=(list_enzyme_KW,))
-    # check if protein is a GPCR
-    list_GPCR_KW = ['G-protein coupled receptor']
-    df['GPCR'] = df['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args=(list_GPCR_KW,))
+    # to avoid reprocessing of all keywords, a new column with removed ignored and replaced enzyme keywords is created and saved
+    # if this column is already present in any dataframe, re-creation is skipped
+    if not 'uniprot_KW_for_analysis' in df.columns:
+        df['uniprot_KW_for_analysis'] = df['uniprot_KW']
+        # apply ast.literal_eval to every item in df['uniprot_KW_for_analysis']
+        if isinstance(df['uniprot_KW_for_analysis'][0], str):
+            df['uniprot_KW_for_analysis'] = df['uniprot_KW_for_analysis'].apply(lambda x: ast.literal_eval(x))
 
-    # remove ignored keywords; replace Enzyme keywords with single keyword 'Enzyme
-    sys.stdout.write('removing ignored keywords; replacing enzyme associated keywords with "Enzyme"\n')
-    #n = 0
-    for n, acc in enumerate(df.index):
-        n += 1
-        if n % 20 == 0:
-            sys.stdout.write('.'), sys.stdout.flush()
-            if n % 600 == 0:
-                sys.stdout.write('\n'), sys.stdout.flush()
-        # remove ignored keywords from dataframe 'uniprot_KW'
-        for element in list_ignored_KW:
-            if element in df.loc[acc, 'uniprot_KW']:
-                df.loc[acc, 'uniprot_KW'].remove(element)
-        # replace keywords associated with enzymes with keyword 'Enzyme'
-        for element in list_enzyme_KW:
-            if element in df.loc[acc, 'uniprot_KW']:
-                df.loc[acc, 'uniprot_KW'].remove(element)
-        if df.loc[acc, 'enzyme']:
-            df.loc[acc, 'uniprot_KW'].append('Enzyme')
+        # check if protein is an Enzyme or GPCR
+        df['enzyme'] = df['uniprot_KW_for_analysis'].apply(utils.KW_list_contains_any_desired_KW, args=(list_enzyme_KW,))
+        # check if protein is a GPCR
+        list_GPCR_KW = ['G-protein coupled receptor']
+        df['GPCR'] = df['uniprot_KW_for_analysis'].apply(utils.KW_list_contains_any_desired_KW, args=(list_GPCR_KW,))
+
+        # remove ignored keywords; replace Enzyme keywords with single keyword 'Enzyme
+        sys.stdout.write('removing ignored keywords; replacing enzyme associated keywords with "Enzyme"\n')
+        #n = 0
+        for n, acc in enumerate(df.index):
+            n += 1
+            if n % 20 == 0:
+                sys.stdout.write('.'), sys.stdout.flush()
+                if n % 600 == 0:
+                    sys.stdout.write('\n'), sys.stdout.flush()
+            # remove ignored keywords from dataframe 'uniprot_KW_for_analysis'
+            for element in list_ignored_KW:
+                if element in df.loc[acc, 'uniprot_KW_for_analysis']:
+                    df.loc[acc, 'uniprot_KW_for_analysis'].remove(element)
+            # replace keywords associated with enzymes with keyword 'Enzyme'
+            for element in list_enzyme_KW:
+                if element in df.loc[acc, 'uniprot_KW_for_analysis']:
+                    df.loc[acc, 'uniprot_KW_for_analysis'].remove(element)
+            if df.loc[acc, 'enzyme']:
+                df.loc[acc, 'uniprot_KW_for_analysis'].append('Enzyme')
+
+        dfu['uniprot_KW_for_analysis'] = df['uniprot_KW_for_analysis']
+        dfu.to_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+
+    else:
+        # apply ast.literal_eval to every item in df['uniprot_KW_for_analysis']
+        if isinstance(df['uniprot_KW_for_analysis'][0], str):
+            df['uniprot_KW_for_analysis'] = df['uniprot_KW_for_analysis'].apply(lambda x: ast.literal_eval(x))
 
     # check if dataset is SP or MP
     dataset = 'none'
     if df['singlepass'].any():
         dataset = 'SP'
-    if df['multipass'].any():
+    elif df['multipass'].any():
         dataset = 'MP'
+    else:
+        dataset = 'Unknown'
 
     # join all keywords together into a large list
-    nested_list_all_KW = list(itertools.chain(*list(df['uniprot_KW'])))
+    nested_list_all_KW = list(itertools.chain(*list(df['uniprot_KW_for_analysis'])))
     # convert list to pandas series
     all_KW_series = pd.Series(nested_list_all_KW)
     # obtain series of major keywords
@@ -144,7 +139,7 @@ def keyword_analysis(pathdict, s, logging):
     # create bool in column for keyword to remove
     for element in keywords_for_exclusion:
         excl_list = ['{}'.format(element)]
-        df[element] = df['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args=(excl_list,))
+        df[element] = df['uniprot_KW_for_analysis'].apply(utils.KW_list_contains_any_desired_KW, args=(excl_list,))
 
     if list_KW_counts_major:
         # initialise pandas dataframe with keywords as index
@@ -175,7 +170,7 @@ def keyword_analysis(pathdict, s, logging):
                 dfq = dfq[dfq[element] == False]
 
             # create a new columns describing if the KW is in the KW list of that protein
-            dfq['contains_KW'] = dfq['uniprot_KW'].apply(lambda x: keyword in x)
+            dfq['contains_KW'] = dfq['uniprot_KW_for_analysis'].apply(lambda x: keyword in x)
             # slice dataframe to view only entries with that keyword
             df_keyword = dfq.loc[dfq['contains_KW'] == True]
             df_no_keyword = dfq.loc[dfq['contains_KW'] == False]
@@ -251,7 +246,7 @@ def keyword_analysis(pathdict, s, logging):
             if len(df_keyword) != 0:
                 for subKW in list_KW_counts_major:
                     # create a new column describing whether the protein KW list also contains the subKW
-                    dfq['contains_subKW'] = df_keyword['uniprot_KW'].apply(lambda x: subKW in x)
+                    dfq['contains_subKW'] = df_keyword['uniprot_KW_for_analysis'].apply(lambda x: subKW in x)
                     # count how many of the proteins contain the subKW
                     val_counts = dfq['contains_subKW'].value_counts()
                     if True in val_counts.index:
@@ -357,6 +352,103 @@ def keyword_analysis(pathdict, s, logging):
                 ax.annotate(s='p-value = {:.5f}'.format(p_AAIMON_slope), xy=(0.1, 0.85), fontsize=fontsize, xytext=None, xycoords='axes fraction', alpha=0.75)
                 # save every individual figure
                 utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
+
+                if dataset == 'MP':
+                    ### boxplot of all TMDs
+
+                    ### this section specifies the last bin to avoid bins containing only one TMD
+                    # join all numbers of TMDs together into a large list
+                    nested_list_all_TMDs = list(df_keyword['number_of_TMDs'])
+                    # convert list to pandas series
+                    all_TMDs_series = pd.Series(nested_list_all_TMDs)
+                    # obtain series of TMD_counts
+                    TMD_counts = all_TMDs_series.value_counts()
+                    # exclude TMD numbers with less than x applicable proteins from boxplot max detection
+                    boxplot_cutoff_number_of_TMDs = 5
+                    TMD_counts_major = TMD_counts[TMD_counts >= boxplot_cutoff_number_of_TMDs]
+                    max_num_TMDs = TMD_counts_major.index.max()
+
+
+                    if pd.notnull(max_num_TMDs):
+                        title = str(keyword) + '_Boxplot'
+                        Fig_name = str(str(Fig_Nr) + '._' + 'Keyword_' + title)
+                        fig, ax = plt.subplots()
+                        ax2 = plt.twinx()
+
+                        legend = []
+                        data_to_plot = []
+                        for i in range(1, max_num_TMDs.astype('int') + 1):
+                            TM = 'TM%02d' % i
+                            hist_data_AAIMON_each_TM = df_keyword['TM%02d_AAIMON_slope' % i].dropna() * 1000
+                            if len(hist_data_AAIMON_each_TM) > 0:
+                                data_to_plot.append(hist_data_AAIMON_each_TM)
+                                legend.append(TM)
+
+                        # add values of every TMD number that is larger than the boxplot_cutoff_number_of_TMDs to final bin
+                        data_for_final_bin = []
+                        for i in range(max_num_TMDs.astype('int') + 1, df_keyword.number_of_TMDs.max().astype('int') + 1):
+                            # TM_final = 'TM%02d' % i
+                            hist_data_AAIMON_each_TM_final_bin = df_keyword['TM%02d_AAIMON_slope' % i].dropna() * 1000
+                            # if len(hist_data_AAIMON_each_TM) > 0:
+                            data_for_final_bin.append(hist_data_AAIMON_each_TM_final_bin)
+                        final_bin = list(itertools.chain.from_iterable(data_for_final_bin))
+                        data_to_plot.append(final_bin)
+                        legend.append('>{}'.format(TM))
+
+                        n_elements_in_bin = []
+                        for element in data_to_plot:
+                            n_elements_in_bin.append(len(element))
+
+                        x = range(1, len(legend) + 1)
+                        ax2.plot(x, n_elements_in_bin, color='#0076B8', alpha=0.5)
+                        ax2.grid(b=False)
+                        ax2.set_ylabel('number of TMDs in bin', rotation='vertical', fontsize=fontsize)
+                        ax2.tick_params(labelsize=fontsize)
+
+                        meanpointprops = dict(marker='o', markerfacecolor='black', markersize=2, markeredgecolor='black')  # markeredgecolor='0.75',
+
+                        flierprops = dict(marker='o', markerfacecolor='green', markersize=12,
+                                          linestyle='none')
+                        # plot boxplot
+                        boxplotcontainer = ax.boxplot(data_to_plot, sym='+', whis=1.5, showmeans=True,
+                                                      meanprops=meanpointprops)
+                        ax.tick_params(labelsize=fontsize)
+                        for box in boxplotcontainer['boxes']:
+                            # change outline color
+                            box.set(color='black', linewidth=0.4)  # '7570b3'
+                            # change fill color
+                            # box.set( facecolor = '#1b9e77' )
+                            box.set_linewidth(0.4)
+
+                        ## change color and linewidth of the whiskers
+                        for whisker in boxplotcontainer['whiskers']:
+                            whisker.set(color='black', linewidth=0.4, dashes=(1, 1))
+
+                        ## change color and linewidth of the caps
+                        for cap in boxplotcontainer['caps']:
+                            cap.set(color='black', linewidth=0.4)
+
+                        ## change color and linewidth of the medians
+                        for median in boxplotcontainer['medians']:
+                            median.set(color='black', linewidth=0.4)
+
+                        # change the style of fliers and their fill
+                        for flier in boxplotcontainer['fliers']:
+                            flier.set(marker='o', color='0.8', alpha=0.1, markerfacecolor='0.3', markersize=3)
+
+                        ax.set_ylabel('AAIMON_slope $*10^{-3}$', rotation='vertical', fontsize=fontsize)
+                        ax.set_ylim(-20, 30)
+
+                        ## Remove top axes and right axes ticks
+                        ax.get_xaxis().tick_bottom()
+                        ax.get_yaxis().tick_left()
+                        ## Custom x-axis labels
+                        ax.set_xticklabels(legend, rotation=45)
+                        # add figure number to top left of subplot
+                        ax.annotate(s=str(Fig_Nr) + '. ' + title + ' ; p-value = {:.5f}'.format(p_AAIMON_slope), xy=(0.02, 0.95), fontsize=fontsize, xytext=None, xycoords='axes fraction', alpha=0.75)
+                        plt.tight_layout()
+
+                        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
             # add selected stuff to pretty dataframe dfp if significant, if not, drop keyword from dfp, create annotations
             if p_AAIMON_slope <= 0.05:
