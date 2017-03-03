@@ -49,7 +49,7 @@ def prepare_protein_list(s, pathdict, logging):
     else:
         modification_date = None
 
-    if s['use_scampi_data']:
+    if s['use_scampi_TM_regions']:
         df = korbinian.cons_ratio.SCAMPI.read_scampi_data(pathdict, s, logging, df)
 
     if "uniprot_entry_name" in df.columns:
@@ -60,7 +60,7 @@ def prepare_protein_list(s, pathdict, logging):
         df['protein_name'] = df.index
 
     # convert the list_of_TMDs to a python object, if it is a string
-    if not s['use_scampi_data']:
+    if not s['use_scampi_TM_regions']:
         df['list_of_TMDs'] = df['list_of_TMDs'].dropna().apply(lambda x : ast.literal_eval(x))
 
     if s["add_user_subseqs"] == True:

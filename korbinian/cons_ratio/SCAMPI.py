@@ -119,7 +119,7 @@ def read_scampi_data(pathdict, s, logging, df):
             df.loc[row, "%s_seq" % TMD] = utils.slice_with_listlike(full_seq, tup)
             #df.loc[row, "%s_seqlen" % TMD] = len(df.loc[row, "%s_seq" % TMD])
             # dft.loc[row, TMD + "_top"] = utils.slice_with_listlike(topology, tup)
-        if row_nr % 50 == 0:
+        if row_nr % 50 == 0 and n != 0:
             sys.stdout.write(". ")
             sys.stdout.flush()
             if row_nr % 500 == 0:
