@@ -119,7 +119,7 @@ def calculate_AAIMONs(p):
     protein_name = p["protein_name"]
     rand_TM = p["rand_TM"]
     rand_nonTM = p["rand_nonTM"]
-    fraction_TM_residues = p["perc_TMD"]
+    fraction_TM_residues = p["perc_TMD"] / 100
     max_gaps = s["cr_max_n_gaps_in_TMD"]
     max_lipo_homol = s["max_lipo_homol"]
     min_ident = s["cr_min_identity_of_TMD"]
@@ -227,9 +227,11 @@ def calculate_AAIMONs(p):
     #                                                                                      #
     ########################################################################################
     dfh['norm_factor'] = dfh['FASTA_gapped_identity'].apply(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor, args=(rand_TM, rand_nonTM, fraction_TM_residues))
+    mean_ser["norm_factor_max"] = dfh['norm_factor'].max()
+    mean_ser["norm_factor_min"] = dfh['norm_factor'].min()
+    mean_ser["norm_factor_mean"] = dfh['norm_factor'].mean()
     # filter so that dfh is the same size as df_nonTMD
     dfh = dfh.loc[df_nonTMD.index, :]
-
     with zipfile.ZipFile(homol_cr_ratios_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
 
         # save the nonTMD dataframe
@@ -294,6 +296,7 @@ def calculate_AAIMONs(p):
             # Add several columns from the original dataframe with homologues, directly parsed from SIMAP XML
             # SOME OF THIS MIGHT NOT BE NECESSARY ANY MORE
             df_cr['obs_changes'] = dfh['obs_changes']
+            df_cr['norm_factor'] = dfh['norm_factor']
             # df_cr['FASTA_gapped_identity'] = dfh['FASTA_gapped_identity']
             # df_cr['norm_factor'] = dfh['norm_factor']
             # df_cr['len_full_match_seq'] = dfh['len_full_match_seq']
