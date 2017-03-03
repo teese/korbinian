@@ -484,9 +484,9 @@ def gather_pretty_alignments(pathdict, logging, s):
                         outlier_name = list_outlier_names[m]
                         d["outlier"] = outlier_name
                         d["hit"] = outlier_index
-                        TMD_cols = ['obs_changes', "{}_AAIMON", '{}_perc_ident', '{}_start_in_SW_alignment', '{}_SW_query_seq', '{}_SW_markup_seq',
+                        TMD_cols = ['obs_changes', "norm_factor", "{}_AAIMON", '{}_perc_ident', '{}_start_in_SW_alignment', '{}_SW_query_seq', '{}_SW_markup_seq',
                                    '{}_SW_match_seq', '{}_ratio_len_TMD_to_len_nonTMD', '{}_SW_align_len', "{}_SW_match_lipo"] # 'FASTA_gapped_identity',
-                        TMD_col_names = ['obs_changes', "AAIMON", 'TM_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
+                        TMD_col_names = ['obs_changes', "norm_factor", "AAIMON", 'TM_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
                                      'ratio_len_TMD_to_len_nonTMD', 'SW_align_len', "SW_match_lipo"] # 'FASTA_gapped_identity',
 
                         nonTMD_cols = ['perc_nonTMD_coverage', 'nonTMD_perc_ident']
@@ -520,7 +520,7 @@ def gather_pretty_alignments(pathdict, logging, s):
 
                         if num_TMDs_in_all_proteins_processed == 0:
                             # sort
-                            csv_header = ["protein_name", "TMD", "outlier", "TM_align","SW_match_lipo", "align_pretty", 'obs_changes', "AAIMON", 'perc_nonTMD_coverage', "hit", 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
+                            csv_header = ["protein_name", "TMD", "outlier", "TM_align","SW_match_lipo", "align_pretty", 'obs_changes', "AAIMON", "norm_factor", 'perc_nonTMD_coverage', "hit", 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
                                      'ratio_len_TMD_to_len_nonTMD', 'SW_align_len'] # 'FASTA_gapped_identity',
                             # make sure that the csv header is up-to-date, and isn't missing items from dict
                             assert len(csv_header) is len(d)
