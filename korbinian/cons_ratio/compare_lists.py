@@ -618,7 +618,7 @@ def compare_lists (s):
     offset = len(protein_lists) - 1
 
     for prot_list in protein_lists:
-        ###   non-normalised AAIMON   ###
+        ###   lipo mean all TMDs   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
         hist_data = np.array(df_dict[prot_list]['lipo_mean_all_TMDs'])
         # use numpy to create a histogram
@@ -635,7 +635,7 @@ def compare_lists (s):
                                             alpha=alpha, linewidth=linewidth,
                                             label=dfv.loc[prot_list, 'list_description'])
 
-        ###   normalised AAIMON   ###
+        ###   TM01 lipo   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
         hist_data = np.array(df_dict[prot_list]['TM01_lipo'])
         # use numpy to create a histogram
@@ -1037,6 +1037,213 @@ def compare_lists (s):
     ax.legend()
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
     #--------------------------------------------------------------------------------------------------------------------------------#
+
+    Fig_Nr = 14
+    title = 'hist_lipo_TM01_vs_last_TM'
+    Fig_name = 'Fig14_hist_lipo_TM01_vs_last_TM'
+    min_ = -0.5
+    max_ = 0.8
+    binlist = np.linspace(min_, max_, 41)
+    fig, ax = plt.subplots()
+    offset = len(protein_lists) - 1
+
+    for prot_list in protein_lists:
+        ###   lipo TM01   ###
+        # create numpy array of membranous over nonmembranous conservation ratios (identity)
+        hist_data = np.array(df_dict[prot_list]['TM01_lipo'])
+        # use numpy to create a histogram
+        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+        freq_counts_normalised = freq_counts / freq_counts.max() + offset
+        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+        # add the final bin, which is physically located just after the last regular bin but represents all higher values
+        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
+                                            alpha=alpha, linewidth=linewidth,
+                                            label=dfv.loc[prot_list, 'list_description'])
+
+        ###   TM01 lipo   ###
+        # create numpy array of membranous over nonmembranous conservation ratios (identity)
+        hist_data = np.array(df_dict[prot_list]['lipo_last_TMD'])
+        # use numpy to create a histogram
+        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+        freq_counts_normalised = freq_counts / freq_counts.max() + offset
+        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+        # add the final bin, which is physically located just after the last regular bin but represents all higher values
+        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, ':', color=dfv.loc[prot_list, 'color'],
+                                            alpha=alpha,
+                                            linewidth=linewidth)
+
+        offset = offset - 1
+
+    ###############################################################
+    #                                                             #
+    #                       set up plot style                     #
+    #                                                             #
+    ###############################################################
+
+    ax.set_xlabel('lipophilicity (Hessa scale)', fontsize=fontsize)
+    # move the x-axis label closer to the x-axis
+    ax.xaxis.set_label_coords(0.5, -0.085)
+    # x and y axes min and max
+    xlim_min = min_
+    xlim_max = max_
+    ax.set_xlim(xlim_min, xlim_max)
+    ylim_min = -0.01
+    ylim_max = len(protein_lists) + 0.01
+    ax.set_ylim(ylim_min, ylim_max)
+    # set y-axis grid lines without tick labels
+    ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
+    ax.yaxis.set_ticklabels([])
+    ax.set_ylabel('relative frequency', rotation='vertical', fontsize=fontsize)
+    # change axis font size
+    ax.tick_params(labelsize=fontsize)
+    # create legend
+    ax.xaxis.set_label_coords(0.5, -0.07)
+    ax.yaxis.set_label_coords(-0.005, 0.5)
+    plt.xticks(np.arange(xlim_min, xlim_max + 0.1, 0.2))
+
+    # add annotations
+    ax.annotate(s="more lipophilic", xy=(0, -0.08), fontsize=fontsize, xytext=None, xycoords='axes fraction')
+    ax.annotate(s="less lipophilic", xy=(1.0, -0.08), fontsize=fontsize, xytext=None, horizontalalignment='right', xycoords='axes fraction')
+
+    if create_legend:
+        ### create legend with additional 2 elements corresponding to AAIMON and AAIMON_n ###
+        # Get artists and labels for legend and chose which ones to display
+        handles, labels = ax.get_legend_handles_labels()
+        display = (list(range(0, len(protein_lists) + 1, 1)))
+        # Create custom artists
+        TM01 = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
+        last_TM = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
+        # Create legend from custom artist/label lists
+        ax.legend([handle for i, handle in enumerate(handles) if i in display] + [TM01, last_TM],
+                  [label for i, label in enumerate(labels) if i in display] + ['TM01', 'last TM'],
+                  fontsize=fontsize - 3, frameon=True, loc='upper right')  # bbox_to_anchor=(1.07, 1.12))
+    else:
+        # Create custom artists
+        TM01 = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
+        last_TM = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
+        # Create legend from custom artist/label lists
+        ax.legend([TM01, last_TM], ['TM01', 'last TM'],
+                  fontsize=fontsize - 3, frameon=True, loc='upper right')  # bbox_to_anchor=(1.07, 1.12))
+
+    utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
+
+    # --------------------------------------------------------------------------------------------------------------------------------#
+    Fig_Nr = 15
+    title = 'histograms AAIMON_slope TM01 vs last TMD'
+    Fig_name = 'Fig15_Histograms_AAIMON_slope_TM01_vs_lastTM'
+    binlist = np.linspace(-40, 40, 61)
+    fig, ax = plt.subplots()
+    offset = len(protein_lists) - 1
+
+    for prot_list in protein_lists:
+        ###### for backwards compatibility ##### can be removed if all data is re-processed after march 5 2017
+        if not 'AAIMON_slope_last_TMD' in df_dict[prot_list].columns:
+            print('List{:02d}: AAIMON_slope_last_TMD not in dataframe -> older version of data, re-run "gather_AAIMON_ratios"; adding data for figure'.format(prot_list))
+            for n, acc in enumerate(df_dict[prot_list].index):
+                if n % 200 == 0:
+                    print('. ', end='', flush=True)
+                last_TMD = df_dict[prot_list].loc[acc, 'last_TMD']
+                df_dict[prot_list].loc[acc, 'AAIMON_slope_last_TMD'] = df_dict[prot_list].loc[acc, '%s_AAIMON_slope' % last_TMD]
+
+
+        ###   AAIMON_slope TM01   ###
+        # create numpy array of membranous over nonmembranous conservation ratios (identity)
+        hist_data = (df_dict[prot_list]['TM01_AAIMON_slope'] * 1000).dropna()
+        # use numpy to create a histogram
+        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+        freq_counts_normalised = freq_counts / freq_counts.max() + offset
+        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+        # add the final bin, which is physically located just after the last regular bin but represents all higher values
+        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
+                                            alpha=alpha, linewidth=linewidth,
+                                            label=dfv.loc[prot_list, 'list_description'])
+
+        ###   AAIMON_slope last TMD   ###
+        # create numpy array of membranous over nonmembranous conservation ratios (identity)
+        hist_data = (df_dict[prot_list]['AAIMON_slope_last_TMD'] * 1000).dropna()
+        # use numpy to create a histogram
+        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+        freq_counts_normalised = freq_counts / freq_counts.max() + offset
+        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+        # add the final bin, which is physically located just after the last regular bin but represents all higher values
+        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, ':', color=dfv.loc[prot_list, 'color'],
+                                            alpha=alpha,
+                                            linewidth=linewidth)
+        offset = offset - 1
+
+    ###############################################################
+    #                                                             #
+    #                       set up plot style                     #
+    #                                                             #
+    ###############################################################
+
+    ax.set_xlabel('AAIMON slope $*10^{-3}$', fontsize=fontsize, labelpad=20)
+    # move the x-axis label closer to the x-axis
+    ax.xaxis.set_label_coords(0.5, -0.085)
+    # x and y axes min and max
+    xlim_min = -30
+    xlim_max = 30
+    ax.set_xlim(xlim_min, xlim_max)
+    ylim_min = -0.01
+    ylim_max = len(protein_lists) + 0.01
+    ax.set_ylim(ylim_min, ylim_max)
+    # set y-axis grid lines without tick labels
+    ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
+    ax.yaxis.set_ticklabels([])
+    ax.set_ylabel('relative frequency', rotation='vertical', fontsize=fontsize)
+    # change axis font size
+    ax.tick_params(labelsize=fontsize)
+    # create legend
+    ax.xaxis.set_label_coords(0.5, -0.07)
+    ax.yaxis.set_label_coords(-0.005, 0.5)
+
+    # add annotations
+    ax.annotate(s="TM less conserved", xy=(0, -0.09), fontsize=fontsize, xytext=None, xycoords='axes fraction')
+    ax.annotate(s="TM more conserved", xy=(1.0, -0.09), fontsize=fontsize, xytext=None, horizontalalignment='right', xycoords='axes fraction')
+
+    create_legend_for_AAIMON_slope = False
+    if create_legend or create_legend_for_AAIMON_slope:
+        ### create legend with additional 2 elements corresponding to AAIMON and AAIMON_n ###
+        # Get artists and labels for legend and chose which ones to display
+        handles, labels = ax.get_legend_handles_labels()
+        display = (list(range(0, len(protein_lists) + 1, 1)))
+        # Create custom artists
+        TM01 = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
+        last_TM = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
+        # Create legend from custom artist/label lists
+        ax.legend([handle for i, handle in enumerate(handles) if i in display] + [TM01, last_TM],
+                  [label for i, label in enumerate(labels) if i in display] + ['TM01', 'last TM'],
+                  fontsize=fontsize - 3, frameon=True, loc='upper right')  # , bbox_to_anchor=(1.07, 1.12))
+    else:
+        # Create custom artists
+        TM01 = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
+        last_TM = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
+        # Create legend from custom artist/label lists
+        ax.legend([TM01, last_TM],
+                  ['TM01', 'last TM'],
+                  fontsize=fontsize - 3, frameon=True, loc='upper right')  # , bbox_to_anchor=(1.07, 1.12))
+    # plt.gcf().subplots_adjust(bottom=0.15)
+    utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
     #dfv.to_csv(os.path.join(base_filepath, 'Lists_%s_variables.csv'%str_protein_lists))
     sys.stdout.write("\n~~~~~~~~~~~~         compare_lists finished           ~~~~~~~~~~~~\n")
