@@ -31,13 +31,13 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     '''Prepare data for the following plots'''
 
     # load cr_summary file
-    dfc = pd.read_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    dfc = pd.read_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
     if dfc.shape[0] < s["min_n_proteins_in_list"]:
         return "~~~~~~~~~~~~            run_save_figures skipped, only {} proteins in list           ~~~~~~~~~~~~".format(dfc.shape[0])
 
     sys.stdout.write('Preparing data for plotting'), sys.stdout.flush()
     # load summary file
-    dfu = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    dfu = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
     # merge cr_summary and summary file, if columns are equal in both files, suffix _dfc will be added in cr_summary column names for backwards compatibility
     df = pd.merge(dfc, dfu, left_index=True, right_index=True, suffixes=('_dfc', ''))
 
@@ -1842,88 +1842,88 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s['Fig23_Boxplot_comparing_seqlen_with_mean_AAIMON']:
-        Fig_Nr = 23
-        title = 'seqlen_vs_mean_AAIMON'
-        Fig_name = 'Fig23_Boxplot_comparing_seqlen_with_mean_AAIMON'
-        fig, ax = plt.subplots()
-
-        num_bins = 30
-        # "#0489B1"
-        alpha = 0.25
-        col_width_value = 0.95
-
-        max_seqlen = df.seqlen.max()
-        size_of_bin = 500  # amino acids
-        legend = []
-        data_to_plot = []
-
-        # iterate through df and get all AAIMONs with specified number of TMD
-
-        for i in range(1, max_seqlen.astype(np.int64) + 1000, size_of_bin):
-            hist_data = []
-            sys.stdout.write(".")
-            sys.stdout.flush()
-            for n, acc in enumerate(df.index):
-                if df.loc[acc, 'seqlen'] > i and df.loc[acc, 'seqlen'] < i + size_of_bin:
-                    hist_data.append(df.loc[acc, 'AAIMON_mean_all_TMDs'])
-            data_to_plot.append(hist_data)
-            legend.append(i + (size_of_bin / 2 - 1))
-
-        meanpointprops = dict(marker='o', markerfacecolor='black', markersize=3)  # markeredgecolor='0.75',
-
-        # flierprops = dict(marker='o', color = 'black', markerfacecolor='black', markersize=1)
-
-        # flierprops = dict(marker='o',color='0.1', alpha=0.1)
-        flierprops = dict(marker='o', markerfacecolor='green', markersize=12,
-                          linestyle='none')
-        boxplotcontainer = ax.boxplot(data_to_plot, sym='+', whis=1.5, showmeans=True,
-                                      meanprops=meanpointprops)
-        list_n_datapoints = [len(x) for x in data_to_plot]
-        ax2 = ax.twinx()
-        line_graph_container = ax2.plot(list_n_datapoints, color = "#53A7D5", alpha=0.8)
-
-        ax.tick_params(labelsize=fontsize)
-        for box in boxplotcontainer['boxes']:
-            # change outline color
-            box.set(color='black', linewidth=0.4)  # '7570b3'
-            # change fill color
-            # box.set( facecolor = '#1b9e77' )
-            box.set_linewidth(0.4)
-
-        # change color and linewidth of the whiskers
-        for whisker in boxplotcontainer['whiskers']:
-            whisker.set(color='black', linewidth=0.4, dashes=(1, 1))
-
-        # change color and linewidth of the caps
-        for cap in boxplotcontainer['caps']:
-            cap.set(color='black', linewidth=0.4)
-
-        # change color and linewidth of the medians
-        for median in boxplotcontainer['medians']:
-            median.set(color='black', linewidth=0.4)
-
-        # change the style of fliers and their fill
-        for flier in boxplotcontainer['fliers']:
-            flier.set(marker='o', color='0.8', alpha=0.1, markerfacecolor='0.3', markersize=3)
-
-        ax.set_xlabel('Length of protein in bins of 500 amino acids', fontsize=fontsize)
-        # move the x-axis label closer to the x-axis
-        ax.xaxis.set_label_coords(0.45, -0.085)
-        ax.set_ylabel('Average AAIMON ratio for all TMDs', fontsize=fontsize)
-        ## Remove top axes and right axes ticks
-        ax.get_xaxis().tick_bottom()
-        ax.get_yaxis().tick_left()
-        ## Custom x-axis labels
-        ax.set_xticklabels(legend, rotation=25)
-        # add figure number to top left of subplot
-        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
-                    xycoords='axes fraction', alpha=0.75)
-        # add figure title to top left of subplot
-        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
-                    alpha=0.75)
-
-        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+    # if s['Fig23_Boxplot_comparing_seqlen_with_mean_AAIMON']:
+    #     Fig_Nr = 23
+    #     title = 'seqlen_vs_mean_AAIMON'
+    #     Fig_name = 'Fig23_Boxplot_comparing_seqlen_with_mean_AAIMON'
+    #     fig, ax = plt.subplots()
+    #
+    #     num_bins = 30
+    #     # "#0489B1"
+    #     alpha = 0.25
+    #     col_width_value = 0.95
+    #
+    #     max_seqlen = df.seqlen.max()
+    #     size_of_bin = 500  # amino acids
+    #     legend = []
+    #     data_to_plot = []
+    #
+    #     # iterate through df and get all AAIMONs with specified number of TMD
+    #
+    #     for i in range(1, max_seqlen.astype(np.int64) + 1000, size_of_bin):
+    #         hist_data = []
+    #         sys.stdout.write(".")
+    #         sys.stdout.flush()
+    #         for n, acc in enumerate(df.index):
+    #             if df.loc[acc, 'seqlen'] > i and df.loc[acc, 'seqlen'] < i + size_of_bin:
+    #                 hist_data.append(df.loc[acc, 'AAIMON_mean_all_TMDs'])
+    #         data_to_plot.append(hist_data)
+    #         legend.append(i + (size_of_bin / 2 - 1))
+    #
+    #     meanpointprops = dict(marker='o', markerfacecolor='black', markersize=3)  # markeredgecolor='0.75',
+    #
+    #     # flierprops = dict(marker='o', color = 'black', markerfacecolor='black', markersize=1)
+    #
+    #     # flierprops = dict(marker='o',color='0.1', alpha=0.1)
+    #     flierprops = dict(marker='o', markerfacecolor='green', markersize=12,
+    #                       linestyle='none')
+    #     boxplotcontainer = ax.boxplot(data_to_plot, sym='+', whis=1.5, showmeans=True,
+    #                                   meanprops=meanpointprops)
+    #     list_n_datapoints = [len(x) for x in data_to_plot]
+    #     ax2 = ax.twinx()
+    #     line_graph_container = ax2.plot(list_n_datapoints, color = "#53A7D5", alpha=0.8)
+    #
+    #     ax.tick_params(labelsize=fontsize)
+    #     for box in boxplotcontainer['boxes']:
+    #         # change outline color
+    #         box.set(color='black', linewidth=0.4)  # '7570b3'
+    #         # change fill color
+    #         # box.set( facecolor = '#1b9e77' )
+    #         box.set_linewidth(0.4)
+    #
+    #     # change color and linewidth of the whiskers
+    #     for whisker in boxplotcontainer['whiskers']:
+    #         whisker.set(color='black', linewidth=0.4, dashes=(1, 1))
+    #
+    #     # change color and linewidth of the caps
+    #     for cap in boxplotcontainer['caps']:
+    #         cap.set(color='black', linewidth=0.4)
+    #
+    #     # change color and linewidth of the medians
+    #     for median in boxplotcontainer['medians']:
+    #         median.set(color='black', linewidth=0.4)
+    #
+    #     # change the style of fliers and their fill
+    #     for flier in boxplotcontainer['fliers']:
+    #         flier.set(marker='o', color='0.8', alpha=0.1, markerfacecolor='0.3', markersize=3)
+    #
+    #     ax.set_xlabel('Length of protein in bins of 500 amino acids', fontsize=fontsize)
+    #     # move the x-axis label closer to the x-axis
+    #     ax.xaxis.set_label_coords(0.45, -0.085)
+    #     ax.set_ylabel('Average AAIMON ratio for all TMDs', fontsize=fontsize)
+    #     ## Remove top axes and right axes ticks
+    #     ax.get_xaxis().tick_bottom()
+    #     ax.get_yaxis().tick_left()
+    #     ## Custom x-axis labels
+    #     ax.set_xticklabels(legend, rotation=25)
+    #     # add figure number to top left of subplot
+    #     ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+    #                 xycoords='axes fraction', alpha=0.75)
+    #     # add figure title to top left of subplot
+    #     ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+    #                 alpha=0.75)
+    #
+    #     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig24_Scatterplot_AAIMON_n_vs._AAIMON_n_slope']:
         Fig_Nr = 24
@@ -2053,6 +2053,135 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
+    if s['Fig28_Histogram_AAIMON_slope_TM01_vs_lastTM']:
+        Fig_Nr = 28
+        title = 'AAIMON_slope TM01 vs lastTM'
+        Fig_name = 'Fig28_Histogram_AAIMON_slope_TM01_vs_lastTM'
+        binlist = np.linspace(-40, 40, 61)
+        linewidth = 1
+        fig, ax = plt.subplots()
+
+        ###   TM01 AAIMON_slope   ###
+        # create numpy array of membranous over nonmembranous conservation ratios (identity)
+        hist_data = (df['TM01_AAIMON_slope'] * 1000).dropna()
+        # use numpy to create a histogram
+        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+        freq_counts_normalised = freq_counts / freq_counts.max()
+        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+        # add the final bin, which is physically located just after the last regular bin but represents all higher values
+        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color='k',
+                                            alpha=0.9, linewidth=linewidth)
+
+        ###   last TMD AAIMON_slope   ###
+        # create numpy array of membranous over nonmembranous conservation ratios (identity)
+        hist_data = (df['AAIMON_slope_last_TMD'] * 1000).dropna()
+        # use numpy to create a histogram
+        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+        freq_counts_normalised = freq_counts / freq_counts.max()
+        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+        # add the final bin, which is physically located just after the last regular bin but represents all higher values
+        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, ':', color='k',
+                                            alpha=0.9,
+                                            linewidth=linewidth)
+
+        ax.set_xlabel('AAIMON slope $*10^{-3}$', fontsize=fontsize)
+        # move the x-axis label closer to the x-axis
+        ax.xaxis.set_label_coords(0.5, -0.085)
+        # x and y axes min and max
+        xlim_min = -30
+        xlim_max = 30
+        ax.set_xlim(xlim_min, xlim_max)
+        ax.set_ylabel('freq', rotation='vertical', fontsize=fontsize)
+        # change axis font size
+        ax.tick_params(labelsize=fontsize)
+        # create legend
+        ax.xaxis.set_label_coords(0.5, -0.07)
+        # ax.yaxis.set_label_coords(-0.005, 0.5)
+
+        # add legend
+        ax.legend(['TM01', 'last TM'], fontsize=fontsize, frameon=True)
+
+        # add annotations
+        ax.annotate(s="TM less conserved", xy=(0, -0.09), fontsize=fontsize, xytext=None, xycoords='axes fraction')
+        ax.annotate(s="TM more conserved", xy=(1.0, -0.09), fontsize=fontsize, xytext=None, horizontalalignment='right', xycoords='axes fraction')
+
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
+    if s['Fig29_Histogram_Lipo_TM01_vs_lastTM']:
+        Fig_Nr = 28
+        title = 'Lipo TM01 vs lastTM'
+        Fig_name = 'Fig29_Histogram_Lipo_TM01_vs_lastTM'
+        min_ = -0.5
+        max_ = 0.8
+        binlist = np.linspace(min_, max_, 41)
+        linewidth = 1
+        fig, ax = plt.subplots()
+
+        ###   TM01 lipo   ###
+        # create numpy array of membranous over nonmembranous conservation ratios (identity)
+        hist_data = (df['TM01_lipo']).dropna()
+        # use numpy to create a histogram
+        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+        freq_counts_normalised = freq_counts / freq_counts.max()
+        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+        # add the final bin, which is physically located just after the last regular bin but represents all higher values
+        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color='k',
+                                            alpha=0.9, linewidth=linewidth)
+
+        ###   last TMD lipo   ###
+        # create numpy array of membranous over nonmembranous conservation ratios (identity)
+        hist_data = (df['lipo_last_TMD']).dropna()
+        # use numpy to create a histogram
+        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+        freq_counts_normalised = freq_counts / freq_counts.max()
+        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+        # add the final bin, which is physically located just after the last regular bin but represents all higher values
+        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, ':', color='k',
+                                            alpha=0.9,
+                                            linewidth=linewidth)
+
+        ax.set_xlabel('lipophilicity (Hessa scale)', fontsize=fontsize)
+        # move the x-axis label closer to the x-axis
+        ax.xaxis.set_label_coords(0.5, -0.085)
+        # x and y axes min and max
+        xlim_min = min_
+        xlim_max = max_
+        ax.set_xlim(xlim_min, xlim_max)
+        ax.set_ylabel('freq', rotation='vertical', fontsize=fontsize)
+        # change axis font size
+        ax.tick_params(labelsize=fontsize)
+        # create legend
+        ax.xaxis.set_label_coords(0.5, -0.07)
+        # ax.yaxis.set_label_coords(-0.005, 0.5)
+
+        # add legend
+        ax.legend(['TM01', 'last TM'], fontsize=fontsize, frameon=True)
+
+        # add annotations
+        ax.annotate(s="more lipophilic", xy=(0, -0.08), fontsize=fontsize, xytext=None, xycoords='axes fraction')
+        ax.annotate(s="less lipophilic", xy=(1.0, -0.08), fontsize=fontsize, xytext=None, horizontalalignment='right', xycoords='axes fraction')
+
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins']:
         Fig_Nr = 98
