@@ -339,6 +339,9 @@ def prepare_protein_list(s, pathdict, logging):
         df.loc[acc, 'last_TMD'] = last_TMD
         # get lipo of last TMD
         df.loc[acc, 'lipo_last_TMD'] = df.loc[acc, '%s_lipo' % last_TMD]
+        seq_last_TMD = df.loc[acc, '%s_seq' % last_TMD]
+        df.loc[acc, 'last_TMD_seq'] = seq_last_TMD
+        df.loc[acc, 'last_TMD_seqlen'] = len(seq_last_TMD)
 
         if len(list_of_TMDs) >= 3:
         # calculate mean lipophilicity excluding first and last TM
@@ -353,6 +356,20 @@ def prepare_protein_list(s, pathdict, logging):
             df.loc[acc, 'lipo_mean_central_TMDs'] = df.loc[acc, 'TM01_lipo']
         else:
             df.loc[acc, 'lipo_mean_central_TMDs'] = np.nan
+
+        if len(list_of_TMDs) >= 2:
+        # calculate mean lipophilicity excluding first and last TM
+            list_of_TMDs_excl_TM01 = list_of_TMDs[1:]
+            lipo_list_TMDs_excl_TM01 = []
+            for TMD in list_of_TMDs_excl_TM01:
+                seq = df.loc[acc, '%s_seq' % TMD]
+                lipo = utils.calc_lipophilicity(seq)
+                lipo_list_TMDs_excl_TM01.append(lipo)
+            df.loc[acc, 'lipo_mean_excl_TM01'] = np.array(lipo_list_TMDs_excl_TM01).mean()
+        elif len(list_of_TMDs) == 1:
+            df.loc[acc, 'lipo_mean_excl_TM01'] = df.loc[acc, 'TM01_lipo']
+        else:
+            df.loc[acc, 'lipo_mean_excl_TM01'] = np.nan
 
     df = df.drop(list_acc_X_in_seq)
     n_prot_AFTER_dropping_with_X_in_seq = df.shape[0]
