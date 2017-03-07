@@ -17,6 +17,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     save_png = s["save_png"]
     save_pdf = s["save_pdf"]
     base_filepath = pathdict["single_list_fig_path"]
+    list_number = s["list_number"]
     # set resolution for plots in png format
     dpi = 300
 
@@ -110,7 +111,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig01_Histogram_of_mean_AAIMON_and_AASMON_ratios_SP_vs_MP']:
         Fig_Nr = 1
         title = 'Mean ratios'
-        Fig_name = 'Fig01_Histogram_of_mean_AAIMON_and_AASMON_ratios_SP_vs_MP'
+        Fig_name = 'List{:02d}_Fig01_Histogram_of_mean_AAIMON_and_AASMON_ratios_SP_vs_MP'.format(list_number)
         # create a new figure
         fig, ax = plt.subplots()
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
@@ -190,7 +191,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig02_Histogram_of_standard_deviations_for_AAIMON_and_AASMON']:
         Fig_Nr = 2
         title = 'Standard Deviaton, SP vs MP'
-        Fig_name = 'Fig02_Histogram_of_standard_deviations_for_AAIMON_and_AASMON'
+        Fig_name = 'List{:02d}_Fig02_Histogram_of_standard_deviations_for_AAIMON_and_AASMON'.format(list_number)
         # create a new figure
         fig, ax = plt.subplots()
         
@@ -249,7 +250,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig03_Scattergram_comparing_mean_AAIMON_and_AASMON']:
         Fig_Nr = 3
         title = 'AAIMON vs AASMON'
-        Fig_name = 'Fig03_Scattergram_comparing_mean_AAIMON_and_AASMON'
+        Fig_name = 'List{:02d}_Fig03_Scattergram_comparing_mean_AAIMON_and_AASMON'.format(list_number)
         fig, ax = plt.subplots()
         # pylab.rcParams['figure.figsize'] = (50.0, 40.0)
         x = np.array(df['AAIMON_mean_all_TMDs'])
@@ -278,7 +279,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig04_Scattergram_comparing_standard_deviation_AAIMON_and_AASMON']:
         Fig_Nr = 4
         title = 'standard deviation AAIMON vs AASMON'
-        Fig_name = 'Fig04_Scattergram_comparing_standard_deviation_AAIMON_and_AASMON'
+        Fig_name = 'List{:02d}_Fig04_Scattergram_comparing_standard_deviation_AAIMON_and_AASMON'.format(list_number)
         fig, ax = plt.subplots()
 
         x = np.array(df['AAIMON_std_all_TMDs'])
@@ -313,7 +314,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig05_Boxplot_comparing_number_of_TMDs_with_mean_AAIMON'] and s["max_TMDs"] >= 2:
         Fig_Nr = 5
         title = 'num_TMDs vs AAIMON'
-        Fig_name = 'Fig05_Boxplot_comparing_number_of_TMDs_with_mean_AAIMON'
+        Fig_name = 'List{:02d}_Fig05_Boxplot_comparing_number_of_TMDs_with_mean_AAIMON'.format(list_number)
         fig, ax = plt.subplots()
 
         # data that is binned
@@ -421,7 +422,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig06_Boxplot_comparing_seqlen_with_mean_AAIMON']:
         Fig_Nr = 6
         title = 'seqlen vs AAIMON'
-        Fig_name = 'Fig06_Boxplot_comparing_seqlen_with_mean_AAIMON'
+        Fig_name = 'List{:02d}_Fig06_Boxplot_comparing_seqlen_with_mean_AAIMON'.format(list_number)
 
         fig, ax = plt.subplots()
 
@@ -494,7 +495,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # if s['Fig06_Scattergram_comparing_seqlen_with_mean_AAIMON']:
     #     Fig_Nr = 6
     #     title = 'seqlen vs AAIMON'
-    #     Fig_name = 'Fig06_Scattergram_comparing_seqlen_with_mean_AAIMON'
+    #     Fig_name = 'List{:02d}_Fig06_Scattergram_comparing_seqlen_with_mean_AAIMON'.format(list_number)
     #     fig, ax = plt.subplots()
     #
     #     # pylab.rcParams['figure.figsize'] = (100.0, 80.0)
@@ -521,7 +522,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # if s['Fig07_Scattergram_comparing_nonTMD_SW_align_len_mean_with_mean_AAIMON']:
     #     Fig_Nr = 7
     #     title = 'length nonTMD region'
-    #     Fig_name = 'Fig07_Scattergram_comparing_nonTMD_SW_align_len_mean_with_mean_AAIMON'
+    #     Fig_name = 'List{:02d}_Fig07_Scattergram_comparing_nonTMD_SW_align_len_mean_with_mean_AAIMON'.format(list_number)
     #     fig, ax = plt.subplots()
     #
     #     # pylab.rcParams['figure.figsize'] = (100.0, 80.0)
@@ -549,7 +550,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig07_Boxplot_comparing_nonTMD_SW_align_len_mean_with_mean_AAIMON']:
         Fig_Nr = 7
         title = 'seqlen vs AAIMON'
-        Fig_name = 'Fig07_Boxplot_comparing_nonTMD_SW_align_len_mean_with_mean_AAIMON'
+        Fig_name = 'List{:02d}_Fig07_Boxplot_comparing_nonTMD_SW_align_len_mean_with_mean_AAIMON'.format(list_number)
 
         fig, ax = plt.subplots()
 
@@ -626,7 +627,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # '''
         # Fig_Nr = 8
         # title = 'number SIMAP hits'
-        # Fig_name = 'Fig08_Scattergram_comparing_total_number_of_simap_hits_with_mean_AAIMON'
+        # Fig_name = 'List{:02d}_Fig08_Scattergram_comparing_total_number_of_simap_hits_with_mean_AAIMON'.format(list_number)
         # fig, ax = plt.subplots()
         #
         # # plot AAIMON
@@ -663,7 +664,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         Fig_Nr = 8
         title = 'number SIMAP hits'
-        Fig_name = 'Fig08_Boxplot_comparing_total_number_of_simap_hits_with_mean_AAIMON'
+        Fig_name = 'List{:02d}_Fig08_Boxplot_comparing_total_number_of_simap_hits_with_mean_AAIMON'.format(list_number)
 
         fig, ax = plt.subplots()
 
@@ -739,7 +740,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig09_Histogram_of_mean_AAIMON_ratios_for_each_TMD_separately'] and s["max_TMDs"] >= 2:
         Fig_Nr = 9
         title = 'Histogram of mean AAIMON ratios'
-        Fig_name = 'Fig09_Histogram_of_mean_AAIMON_ratios_for_each_TMD_separately'
+        Fig_name = 'List{:02d}_Fig09_Histogram_of_mean_AAIMON_ratios_for_each_TMD_separately'.format(list_number)
         fig, ax = plt.subplots()
 
         title = 'AAIMON each TMD separately'
@@ -817,7 +818,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig10_Line_histogram_of_mean_AAIMON_ratios_for_each_TMD_separately'] and s["max_TMDs"] >= 2:
         Fig_Nr = 10
         title = 'Line histogram each TMD'
-        Fig_name = 'Fig10_Line_histogram_of_mean_AAIMON_ratios_for_each_TMD_separately'
+        Fig_name = 'List{:02d}_Fig10_Line_histogram_of_mean_AAIMON_ratios_for_each_TMD_separately'.format(list_number)
         fig, ax = plt.subplots()
 
         num_bins = 50
@@ -904,7 +905,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     #     if dataset_contains_multipass_prots:
     #         Fig_Nr = 11
     #         title = 'Select TMDs, all data'
-    #         Fig_name = 'Fig11_Line_histogram_of_mean_AAIMON_ratios_for_selected_TMDs'
+    #         Fig_name = 'List{:02d}_Fig11_Line_histogram_of_mean_AAIMON_ratios_for_selected_TMDs'.format(list_number)
     #         #cols_for_analysis = ['TM01', 'TM07', 'TM08', 'last_TM_AAIMON_mean']
     #         # The number of TMDs is not a good indicator of the last TMD, if there are signal peptides.
     #         # use the len_ - 1 if there is a SP01 in the columns
@@ -983,7 +984,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         col_end = 5
         cols_to_analyse = df_mean_AAIMON_each_TM.columns[col_start:col_end]
         title = 'TMD 1 to 5, all data'
-        Fig_name = 'Fig12_TMD_1-5_only'
+        Fig_name = 'List{:02d}_Fig12_TMD_1-5_only'.format(list_number)
         fig, ax = plt.subplots()
         num_bins = 30
         # "#0489B1"
@@ -1053,7 +1054,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig13_TMD_5-10_only'] and s["max_TMDs"] >= 2:
         Fig_Nr = 13
         title = 'TMD 5-10, all data'
-        Fig_name = 'Fig13_TMD_5-10_only'
+        Fig_name = 'List{:02d}_Fig13_TMD_5-10_only'.format(list_number)
         col_start = 5
         col_end = 10
         # analyzing TM01 (as control?) and TM05-10
@@ -1129,7 +1130,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig14_TMD_10-15_only'] and s["max_TMDs"] >= 2:
         Fig_Nr = 14
         title = 'TMD 10-15, all data'
-        Fig_name = 'Fig14_TMD_10-15_only'
+        Fig_name = 'List{:02d}_Fig14_TMD_10-15_only'.format(list_number)
         col_start = 10
         col_end = 15
         cols_to_analyse = ['TM01_AAIMON_mean'] + list(df_mean_AAIMON_each_TM.columns[col_start:col_end])
@@ -1205,7 +1206,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig15_TMD_15-20_only'] and s["max_TMDs"] >= 2:
         Fig_Nr = 15
         title = 'TMD 15-20, all data'
-        Fig_name = 'Fig15_TMD_15-20_only'
+        Fig_name = 'List{:02d}_Fig15_TMD_15-20_only'.format(list_number)
         col_start = 15
         col_end = 20
         cols_to_analyse = ['TM01_AAIMON_mean'] + list(df_mean_AAIMON_each_TM.columns[col_start:col_end])
@@ -1280,7 +1281,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig16_ONLY_proteins_with_7_TMDs'] and s["max_TMDs"] >= 2:
         Fig_Nr = 16
         title = 'ONLY prot with 7 TMDs'
-        Fig_name = 'Fig16_ONLY_proteins_with_7_TMDs'
+        Fig_name = 'List{:02d}_Fig16_ONLY_proteins_with_7_TMDs'.format(list_number)
         # create a new dataframe containing data only for proteins with 7 TMDs
         df_seven = df.loc[df.number_of_TMDs == 7].copy()
         # logging.info('df_seven.shape: %s' % str(df_seven.shape))
@@ -1361,7 +1362,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig17_Less_than_12_TMDs_vs_at_least_12_TMDs'] and s["max_TMDs"] >= 2:
         Fig_Nr = 17
         title = '<12 TMDs vs >12 TMDs'
-        Fig_name = 'Fig17_Less_than_12_TMDs_vs_at_least_12_TMDs'
+        Fig_name = 'List{:02d}_Fig17_Less_than_12_TMDs_vs_at_least_12_TMDs'.format(list_number)
         df_under_12 = df.loc[df.number_of_TMDs < 12]
 
         fig, ax = plt.subplots()
@@ -1446,7 +1447,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig18_Boxplot_of_all_TMDs']:
         Fig_Nr = 18
         title = 'Boxplot of all TMDs'
-        Fig_name = 'Fig18_Boxplot_of_all_TMDs'
+        Fig_name = 'List{:02d}_Fig18_Boxplot_of_all_TMDs'.format(list_number)
         fig, ax = plt.subplots()
         num_bins = 30
         # "#0489B1"
@@ -1518,7 +1519,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             if GPCR_in_df:
                 Fig_Nr = 19
                 title = 'only GPCR in uniprot KW, NORM'
-                Fig_name = 'Fig19_Show_only_GPCRs_in_full_dataset'
+                Fig_name = 'List{:02d}_Fig19_Show_only_GPCRs_in_full_dataset'.format(list_number)
                 fig, ax = plt.subplots()
                 # create numpy array of membranous over nonmembranous conservation ratios (identity)
                 hist_data_AAIMON_mean = np.array(df_GPCR['AAIMON_mean_all_TMDs'].dropna())
@@ -1610,7 +1611,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             if GPCR_in_df:
                 Fig_Nr = 20
                 title = 'GPCR vs full dataset, NORM'
-                Fig_name = 'Fig20_Show_GPCRs_vs_full_dataset'
+                Fig_name = 'List{:02d}_Fig20_Show_GPCRs_vs_full_dataset'.format(list_number)
                 df_GPCR = df_GPCR  # see above, already defined
                 fig, ax = plt.subplots()
 
@@ -1707,7 +1708,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             if GPCR_in_df:
                 Fig_Nr = 21
                 title = 'Only GPCRs, boxplot for each TMD'
-                Fig_name = 'Fig21_Boxplot_only_GPCRs'
+                Fig_name = 'List{:02d}_Fig21_Boxplot_only_GPCRs'.format(list_number)
                 fig, ax = plt.subplots()
 
                 num_bins = 30
@@ -1780,7 +1781,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig22_Boxplot_comparing_number_of_TMDs_with_mean_AAIMON']:
         Fig_Nr = 22
         title = 'num_TMDs vs AAIMON'
-        Fig_name = 'Fig22_Boxplot_comparing_number_of_TMDs_with_mean_AAIMON'
+        Fig_name = 'List{:02d}_Fig22_Boxplot_comparing_number_of_TMDs_with_mean_AAIMON'.format(list_number)
         fig, ax = plt.subplots()
 
         alpha = 0.25
@@ -1846,7 +1847,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # if s['Fig23_Boxplot_comparing_seqlen_with_mean_AAIMON']:
     #     Fig_Nr = 23
     #     title = 'seqlen_vs_mean_AAIMON'
-    #     Fig_name = 'Fig23_Boxplot_comparing_seqlen_with_mean_AAIMON'
+    #     Fig_name = 'List{:02d}_Fig23_Boxplot_comparing_seqlen_with_mean_AAIMON'.format(list_number)
     #     fig, ax = plt.subplots()
     #
     #     num_bins = 30
@@ -1929,7 +1930,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig24_Scatterplot_AAIMON_n_vs._AAIMON_n_slope']:
         Fig_Nr = 24
         title = 'AAIMON_n vs. AAIMON_n_slope'
-        Fig_name = 'Fig24_Scatterplot_AAIMON_n_vs._AAIMON_n_slope'
+        Fig_name = 'List{:02d}_Fig24_Scatterplot_AAIMON_n_vs._AAIMON_n_slope'.format(list_number)
         fig, ax = plt.subplots()
 
         x = df['AAIMON_mean_all_TMDs_n']
@@ -1964,7 +1965,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig25_Scatterplot_AAIMON_n_vs_obs_changes_mean']:
         Fig_Nr = 25
         title = 'AAIMON_n  vs. obs_changes_mean'
-        Fig_name = 'Fig25_Scatterplot_AAIMON_n_vs_obs_changes_mean'
+        Fig_name = 'List{:02d}_Fig25_Scatterplot_AAIMON_n_vs_obs_changes_mean'.format(list_number)
         fig, ax = plt.subplots()
 
         ax.scatter(df['obs_changes_mean'], df['AAIMON_mean_all_TMDs_n'], color='b', alpha=alpha_dpd, s=datapointsize)
@@ -1994,7 +1995,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig26_Scatterplot_AAIMON_n_slope_vs_obs_changes_mean']:
         Fig_Nr = 26
         title = 'AAIMON_n_slope  vs. obs_changes_mean'
-        Fig_name = 'Fig26_Scatterplot_AAIMON_n_slope_vs_obs_changes_mean'
+        Fig_name = 'List{:02d}_Fig26_Scatterplot_AAIMON_n_slope_vs_obs_changes_mean'.format(list_number)
         fig, ax = plt.subplots()
 
         ax.scatter(df['obs_changes_mean'], df['AAIMON_n_slope_mean_all_TMDs'], color="r", alpha=alpha_dpd, s=datapointsize)
@@ -2021,7 +2022,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig27_Scatterplot_perc_identity_nonTMD_vs_TMD']:
         Fig_Nr = 27
         title = 'perc identity all TMDs  vs. perc identity nonTMD'
-        Fig_name = 'Fig27_Scatterplot_perc_identity_nonTMD_vs_TMD'
+        Fig_name = 'List{:02d}_Fig27_Scatterplot_perc_identity_nonTMD_vs_TMD'.format(list_number)
         fig, ax = plt.subplots()
 
         x = df['TMD_perc_identity_mean_all_TMDs'] * 100
@@ -2055,9 +2056,18 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig28_Histogram_AAIMON_slope_TM01_vs_lastTM']:
+        ###### for backwards compatibility ##### can be removed if all data is re-processed after march 5 2017
+        if not 'AAIMON_slope_last_TMD' in df.columns:
+            print('AAIMON_slope_last_TMD not in dataframe -> older version of data, re-run "gather_AAIMON_ratios"; adding data for figure')
+            for n, acc in enumerate(df.index):
+                if n % 200 == 0:
+                    print('. ', end='', flush=True)
+                last_TMD = df.loc[acc, 'last_TMD']
+                df.loc[acc, 'AAIMON_slope_last_TMD'] = df.loc[acc, '%s_AAIMON_slope' % last_TMD]
+
         Fig_Nr = 28
         title = 'AAIMON_slope TM01 vs lastTM'
-        Fig_name = 'Fig28_Histogram_AAIMON_slope_TM01_vs_lastTM'
+        Fig_name = 'List{:02d}_Fig28_Histogram_AAIMON_slope_TM01_vs_lastTM'.format(list_number)
         binlist = np.linspace(-40, 40, 61)
         linewidth = 1
         fig, ax = plt.subplots()
@@ -2121,7 +2131,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig29_Histogram_Lipo_TM01_vs_lastTM']:
         Fig_Nr = 29
         title = 'Lipo TM01 vs lastTM'
-        Fig_name = 'Fig29_Histogram_Lipo_TM01_vs_lastTM'
+        Fig_name = 'List{:02d}_Fig29_Histogram_Lipo_TM01_vs_lastTM'.format(list_number)
         min_ = -0.5
         max_ = 0.8
         binlist = np.linspace(min_, max_, 21)
@@ -2129,7 +2139,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # offset = len(protein_lists) - 1
 
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = np.array(df['lipo_mean_central_TMDs'].dropna())
+        hist_data = np.array(df['lipo_mean_excl_TM01'].dropna())
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max()
@@ -2159,21 +2169,21 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=color_list_TUM_blue[1],
                                             alpha=1, linewidth=1)
 
-        # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = np.array(df['lipo_last_TMD'].dropna())
-        # use numpy to create a histogram
-        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
-        freq_counts_normalised = freq_counts / freq_counts.max()
-        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
-        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
-        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
-        # add the final bin, which is physically located just after the last regular bin but represents all higher values
-        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=color_list_TUM_blue[2],
-                                            alpha=1,
-                                            linewidth=1)
+        # # create numpy array of membranous over nonmembranous conservation ratios (identity)
+        # hist_data = np.array(df['lipo_last_TMD'].dropna())
+        # # use numpy to create a histogram
+        # freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+        # freq_counts_normalised = freq_counts / freq_counts.max()
+        # # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+        # col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+        # # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+        # centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+        # # add the final bin, which is physically located just after the last regular bin but represents all higher values
+        # bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+        # centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+        # linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=color_list_TUM_blue[2],
+        #                                     alpha=1,
+        #                                     linewidth=1)
 
         ###############################################################
         #                                                             #
@@ -2196,13 +2206,13 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.annotate(s="more lipophilic", xy=(0, -0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction')
         ax.annotate(s="less lipophilic", xy=(1.0, -0.1), fontsize=fontsize, xytext=None, horizontalalignment='right', xycoords='axes fraction')
 
-        ax.legend(['central TMDs mean', 'first TMD', 'last TMD'], fontsize=fontsize, frameon=True)
+        ax.legend(['mean excl. TM01', 'TM01'], fontsize=fontsize, frameon=True)
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins']:
         Fig_Nr = 98
-        Fig_name = 'Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins'
+        Fig_name = 'List{:02d}_Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins'.format(list_number)
 
         # read data from disk
         in_zipfile = pathdict["save_df_characterising_each_homol_TMD"]
@@ -2267,7 +2277,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
     if s['Fig99_Linegraph_CI_95_AAIMON_vs_perc_ident_all_homol_all_proteins']:
         Fig_Nr = 99
-        Fig_name = 'Fig99_Linegraph_CI_95_AAIMON_vs_perc_ident_all_homol_all_proteins'
+        Fig_name = 'List{:02d}_Fig99_Linegraph_CI_95_AAIMON_vs_perc_ident_all_homol_all_proteins'.format(list_number)
 
         # read data from disk
         in_zipfile = pathdict["save_df_characterising_each_homol_TMD"]
