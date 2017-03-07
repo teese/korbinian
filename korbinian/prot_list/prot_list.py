@@ -340,6 +340,20 @@ def prepare_protein_list(s, pathdict, logging):
         # get lipo of last TMD
         df.loc[acc, 'lipo_last_TMD'] = df.loc[acc, '%s_lipo' % last_TMD]
 
+        if len(list_of_TMDs) >= 3:
+        # calculate mean lipophilicity excluding first and last TM
+            list_of_central_TMDs = list_of_TMDs[1:-1]
+            lipo_list_central_TMDs = []
+            for TMD in list_of_central_TMDs:
+                seq = df.loc[acc, '%s_seq' % TMD]
+                lipo = utils.calc_lipophilicity(seq)
+                lipo_list_central_TMDs.append(lipo)
+            df.loc[acc, 'lipo_mean_central_TMDs'] = np.array(lipo_list_central_TMDs).mean()
+        elif len(list_of_TMDs) == 1:
+            df.loc[acc, 'lipo_mean_central_TMDs'] = df.loc[acc, 'TM01_lipo']
+        else:
+            df.loc[acc, 'lipo_mean_central_TMDs'] = np.nan
+
     df = df.drop(list_acc_X_in_seq)
     n_prot_AFTER_dropping_with_X_in_seq = df.shape[0]
 
