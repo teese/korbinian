@@ -27,6 +27,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     fontsize = 8
     datapointsize = 8
     #alpha = 0.1
+    color_list_TUM_blue = ['#0F3750', '#0076B8', '#9ECEEC']
 
     '''Prepare data for the following plots'''
 
@@ -2118,18 +2119,17 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig29_Histogram_Lipo_TM01_vs_lastTM']:
-        Fig_Nr = 28
+        Fig_Nr = 29
         title = 'Lipo TM01 vs lastTM'
         Fig_name = 'Fig29_Histogram_Lipo_TM01_vs_lastTM'
         min_ = -0.5
         max_ = 0.8
-        binlist = np.linspace(min_, max_, 41)
-        linewidth = 1
+        binlist = np.linspace(min_, max_, 21)
         fig, ax = plt.subplots()
+        # offset = len(protein_lists) - 1
 
-        ###   TM01 lipo   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = (df['TM01_lipo']).dropna()
+        hist_data = np.array(df['lipo_mean_central_TMDs'].dropna())
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max()
@@ -2140,12 +2140,12 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # add the final bin, which is physically located just after the last regular bin but represents all higher values
         bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
         centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color='k',
-                                            alpha=0.9, linewidth=linewidth)
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=color_list_TUM_blue[0],
+                                            alpha=1,
+                                            linewidth=1)
 
-        ###   last TMD lipo   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = (df['lipo_last_TMD']).dropna()
+        hist_data = np.array(df['TM01_lipo'].dropna())
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max()
@@ -2156,30 +2156,47 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # add the final bin, which is physically located just after the last regular bin but represents all higher values
         bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
         centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, ':', color='k',
-                                            alpha=0.9,
-                                            linewidth=linewidth)
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=color_list_TUM_blue[1],
+                                            alpha=1, linewidth=1)
+
+        # create numpy array of membranous over nonmembranous conservation ratios (identity)
+        hist_data = np.array(df['lipo_last_TMD'].dropna())
+        # use numpy to create a histogram
+        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+        freq_counts_normalised = freq_counts / freq_counts.max()
+        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+        # add the final bin, which is physically located just after the last regular bin but represents all higher values
+        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=color_list_TUM_blue[2],
+                                            alpha=1,
+                                            linewidth=1)
+
+        ###############################################################
+        #                                                             #
+        #                       set up plot style                     #
+        #                                                             #
+        ###############################################################
 
         ax.set_xlabel('lipophilicity (Hessa scale)', fontsize=fontsize)
         # move the x-axis label closer to the x-axis
         ax.xaxis.set_label_coords(0.5, -0.085)
-        # x and y axes min and max
+        # x axes min and max
         xlim_min = min_
         xlim_max = max_
         ax.set_xlim(xlim_min, xlim_max)
         ax.set_ylabel('freq', rotation='vertical', fontsize=fontsize)
         # change axis font size
         ax.tick_params(labelsize=fontsize)
-        # create legend
-        ax.xaxis.set_label_coords(0.5, -0.07)
-        # ax.yaxis.set_label_coords(-0.005, 0.5)
-
-        # add legend
-        ax.legend(['TM01', 'last TM'], fontsize=fontsize, frameon=True)
 
         # add annotations
-        ax.annotate(s="more lipophilic", xy=(0, -0.08), fontsize=fontsize, xytext=None, xycoords='axes fraction')
-        ax.annotate(s="less lipophilic", xy=(1.0, -0.08), fontsize=fontsize, xytext=None, horizontalalignment='right', xycoords='axes fraction')
+        ax.annotate(s="more lipophilic", xy=(0, -0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction')
+        ax.annotate(s="less lipophilic", xy=(1.0, -0.1), fontsize=fontsize, xytext=None, horizontalalignment='right', xycoords='axes fraction')
+
+        ax.legend(['central TMDs mean', 'first TMD', 'last TMD'], fontsize=fontsize, frameon=True)
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 

@@ -39,7 +39,7 @@ def compare_lists (s):
 
     """
     sys.stdout.write("\n\n~~~~~~~~~~~~         starting compare_lists           ~~~~~~~~~~~~\n\n")
-    create_legend = False
+    create_legend = True
     save_png = s['save_png']
     save_pdf = s['save_pdf']
 
@@ -613,14 +613,14 @@ def compare_lists (s):
     Fig_name = 'Fig07_hist_lipo_mean_all_TMDs'
     min_ = -0.5
     max_ = 0.8
-    binlist = np.linspace(min_, max_, 41)
+    binlist = np.linspace(min_, max_, 26) #41
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
 
     for prot_list in protein_lists:
         ###   lipo mean all TMDs   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = np.array(df_dict[prot_list]['lipo_mean_all_TMDs'])
+        hist_data = np.array(df_dict[prot_list]['lipo_mean_central_TMDs'].dropna())
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -652,6 +652,22 @@ def compare_lists (s):
                                             alpha=alpha,
                                             linewidth=linewidth)
 
+        ###   last TM lipo   ###
+        # create numpy array of membranous over nonmembranous conservation ratios (identity)
+        hist_data = np.array(df_dict[prot_list]['lipo_last_TMD'].dropna())
+        # use numpy to create a histogram
+        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+        freq_counts_normalised = freq_counts / freq_counts.max() + offset
+        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+        # add the final bin, which is physically located just after the last regular bin but represents all higher values
+        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, '-.', color=dfv.loc[prot_list, 'color'],
+                                            alpha=alpha,
+                                            linewidth=linewidth)
 
         offset = offset - 1
 
@@ -683,8 +699,8 @@ def compare_lists (s):
     plt.xticks(np.arange(xlim_min, xlim_max + 0.1, 0.2))
 
     # add annotations
-    ax.annotate(s="more lipophilic", xy=(0, -0.08), fontsize=fontsize, xytext=None, xycoords='axes fraction')
-    ax.annotate(s="less lipophilic", xy=(1.0, -0.08), fontsize=fontsize, xytext=None, horizontalalignment='right', xycoords='axes fraction')
+    ax.annotate(s="more lipophilic", xy=(0, -0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction')
+    ax.annotate(s="less lipophilic", xy=(1.0, -0.1), fontsize=fontsize, xytext=None, horizontalalignment='right', xycoords='axes fraction')
 
     if create_legend:
         ### create legend with additional 2 elements corresponding to AAIMON and AAIMON_n ###
@@ -692,18 +708,20 @@ def compare_lists (s):
         handles, labels = ax.get_legend_handles_labels()
         display = (list(range(0, len(protein_lists)+1, 1)))
         # Create custom artists
-        mean_ = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
-        TM01_ = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
+        central_TMDs = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
+        TM01 = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
+        last_TMD = plt.Line2D((0, 1), (0, 0), color='k', linestyle='-.', linewidth=linewidth)
         # Create legend from custom artist/label lists
-        ax.legend([handle for i, handle in enumerate(handles) if i in display] + [mean_, TM01_],
-                  [label for i, label in enumerate(labels) if i in display] + ['mean all TMDs', 'TM01'],
+        ax.legend([handle for i, handle in enumerate(handles) if i in display] + [central_TMDs, TM01, last_TMD],
+                  [label for i, label in enumerate(labels) if i in display] + ['central TMDs mean', 'first TM', 'last TM'],
                   fontsize=fontsize-3, frameon=True, loc='upper right')#bbox_to_anchor=(1.07, 1.12))
     else:
         # Create custom artists
-        mean_ = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
-        TM01_ = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
+        central_TMDs = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
+        TM01 = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
+        last_TMD = plt.Line2D((0, 1), (0, 0), color='k', linestyle='-.', linewidth=linewidth)
         # Create legend from custom artist/label lists
-        ax.legend([mean_, TM01_],['mean all TMDs', 'TM01'],
+        ax.legend([central_TMDs, TM01, last_TMD],['central TMDs mean', 'first TM', 'last TM'],
                   fontsize=fontsize-3, frameon=True, loc='upper right')#bbox_to_anchor=(1.07, 1.12))
 
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
