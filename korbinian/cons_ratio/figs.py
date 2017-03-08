@@ -336,9 +336,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         fig, ax = plt.subplots()
 
-        meanpointprops = dict(marker='o', markerfacecolor='black', markersize=3)  # markeredgecolor='0.75',
+        meanpointprops = dict(marker='o', markerfacecolor='black', markersize=3, markeredgecolor='black')
 
-        flierprops = dict(marker='o', markerfacecolor='green', markersize=12, linestyle='none')
+        flierprops = dict(marker='o', markerfacecolor='black', markersize=12, linestyle='none')
         boxplotcontainer = ax.boxplot(hist_data, sym='+', whis=1.5, showmeans=True,
                                       meanprops=meanpointprops)
 
@@ -2207,6 +2207,111 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.annotate(s="less lipophilic", xy=(1.0, -0.1), fontsize=fontsize, xytext=None, horizontalalignment='right', xycoords='axes fraction')
 
         ax.legend(['mean excl. TM01', 'TM01'], fontsize=fontsize, frameon=True)
+
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
+    if s['Fig30_Boxplot_lipo_of_all_TMDs']:
+        Fig_Nr = 30
+        title = 'Boxplot lipophilicity of all TMDs'
+        Fig_name = 'List{:02d}_Fig30_Boxplot_lipo_of_all_TMDs'.format(list_number)
+
+        ### boxplot of all TMDs
+
+        ### this section specifies the last bin to avoid bins containing only one TMD
+        # join all numbers of TMDs together into a large list
+        nested_list_all_TMDs = list(df['number_of_TMDs'])
+        # convert list to pandas series
+        all_TMDs_series = pd.Series(nested_list_all_TMDs)
+        # obtain series of TMD_counts
+        TMD_counts = all_TMDs_series.value_counts()
+        # exclude TMD numbers with less than x applicable proteins from boxplot max detection
+        boxplot_cutoff_number_of_TMDs = 20
+        TMD_counts_major = TMD_counts[TMD_counts >= boxplot_cutoff_number_of_TMDs]
+        max_num_TMDs = TMD_counts_major.index.max()
+
+        if pd.notnull(max_num_TMDs):
+            # title = str(keyword) + '_Boxplot'
+            # Fig_name = str(str(Fig_Nr) + '._' + 'Keyword_' + title)
+            fig, ax = plt.subplots()
+            ax2 = plt.twinx()
+
+            legend = []
+            data_to_plot = []
+            for i in range(1, max_num_TMDs.astype('int') + 1):
+                TM = 'TM%02d' % i
+                hist_data_AAIMON_each_TM = df['TM%02d_lipo' % i].dropna()
+                if len(hist_data_AAIMON_each_TM) > 0:
+                    data_to_plot.append(hist_data_AAIMON_each_TM)
+                    legend.append(TM)
+
+            # add values of every TMD number that is larger than the boxplot_cutoff_number_of_TMDs to final bin
+            data_for_final_bin = []
+            for i in range(max_num_TMDs.astype('int') + 1, df.number_of_TMDs.max().astype('int') + 1):
+                # TM_final = 'TM%02d' % i
+                hist_data_AAIMON_each_TM_final_bin = df['TM%02d_lipo' % i].dropna()
+                # if len(hist_data_AAIMON_each_TM) > 0:
+                data_for_final_bin.append(hist_data_AAIMON_each_TM_final_bin)
+            final_bin = list(itertools.chain.from_iterable(data_for_final_bin))
+            data_to_plot.append(final_bin)
+            legend.append('>{}'.format(TM))
+
+            n_elements_in_bin = []
+            for element in data_to_plot:
+                n_elements_in_bin.append(len(element))
+
+            x = range(1, len(legend) + 1)
+            ax2.plot(x, n_elements_in_bin, color='#0076B8', alpha=0.5)
+            ax2.grid(b=False)
+            ax2.set_ylabel('number of TMDs in bin', rotation='vertical', fontsize=fontsize)
+            ax2.tick_params(labelsize=fontsize)
+
+            meanpointprops = dict(marker='o', markerfacecolor='black', markersize=2, markeredgecolor='black')  # markeredgecolor='0.75',
+
+            flierprops = dict(marker='o', markerfacecolor='green', markersize=12,
+                              linestyle='none')
+            # plot boxplot
+            boxplotcontainer = ax.boxplot(data_to_plot, sym='+', whis=1.5, showmeans=True,
+                                          meanprops=meanpointprops)
+            ax.tick_params(labelsize=fontsize)
+            for box in boxplotcontainer['boxes']:
+                # change outline color
+                box.set(color='black', linewidth=0.4)  # '7570b3'
+                # change fill color
+                # box.set( facecolor = '#1b9e77' )
+                box.set_linewidth(0.4)
+
+            ## change color and linewidth of the whiskers
+            for whisker in boxplotcontainer['whiskers']:
+                whisker.set(color='black', linewidth=0.4, dashes=(1, 1))
+
+            ## change color and linewidth of the caps
+            for cap in boxplotcontainer['caps']:
+                cap.set(color='black', linewidth=0.4)
+
+            ## change color and linewidth of the medians
+            for median in boxplotcontainer['medians']:
+                median.set(color='black', linewidth=0.4)
+
+            # change the style of fliers and their fill
+            for flier in boxplotcontainer['fliers']:
+                flier.set(marker='o', color='0.8', alpha=0.1, markerfacecolor='0.3', markersize=3)
+
+            ax.set_ylabel('lipophilicity (Hessa scale)', rotation='vertical', fontsize=fontsize)
+            # ax.set_ylim(-20, 30)
+
+            ## Remove top axes and right axes ticks
+            ax.get_xaxis().tick_bottom()
+            ax.get_yaxis().tick_left()
+            ## Custom x-axis labels
+            ax.set_xticklabels(legend, rotation=45)
+            ax.set_ylim(-0.5, 1)
+
+        # add figure number to top left of subplot
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                    xycoords='axes fraction', alpha=0.75)
+        # add figure title to top left of subplot
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                    alpha=0.75)
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
