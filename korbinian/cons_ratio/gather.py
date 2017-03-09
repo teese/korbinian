@@ -352,8 +352,7 @@ def gather_AAIMONs(pathdict, logging, s):
             os.remove('binned_data_characterising_each_homol_TMD.pickle')
 
     logging.info("\n~~~~~~~~~~~~                           finished gather_AAIMONs                      ~~~~~~~~~~~~")
-    if s['filter_keywords_in_gather']:
-        return pathdict
+    return pathdict
 
 # ########################################################################################
 # #                                                                                      #
