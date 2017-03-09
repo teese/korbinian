@@ -16,12 +16,17 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # define save settings
     save_png = s["save_png"]
     save_pdf = s["save_pdf"]
-    base_filepath = pathdict["single_list_fig_path"]
+    try:
+        base_filepath = pathdict["single_list_fig_path"]
+    except:
+        logging.info("Rare bug related to 'not subscriptable' has occurred. Logging full pathdict and pathdict type:")
+        logging.info(pathdict)
+        logging.info(type(pathdict))
+
     list_number = s["list_number"]
     # set resolution for plots in png format
     dpi = 300
 
-    backgroundcolour = '0.95'
     plt.style.use('seaborn-whitegrid')
 
     # set default font size for plot

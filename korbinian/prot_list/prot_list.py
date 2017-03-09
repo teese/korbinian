@@ -463,7 +463,7 @@ def prepare_protein_list(s, pathdict, logging):
     # only calculate the rand_TM and rand_nonTM using the quick method (1000x1000)
     # if calc_accurate_random_identity is not True, as a more accurate version will be calculated next
     if not s["calc_accurate_random_identity"]:
-        logging.info("calculating rand_TM and rand_nonTM using quick method (1000x1000")
+        logging.info("calculating rand_TM and rand_nonTM using quick method (1000x1000)")
         calc_randTM_and_randnonTM(s, pathdict, logging, seq_len=1000, number_seq=1000)
     logging.info('~~~~~~~~~~~~                     finished prepare_protein_list                      ~~~~~~~~~~~~')
 
@@ -537,7 +537,7 @@ def calc_randTM_and_randnonTM(s, pathdict, logging, seq_len, number_seq, multipr
     aa_prop_csv_out_TM = pathdict["rand_ident_TM_csv"][:-11] + "aa_prop_TM.csv"
     col_name = "TMD_seq_joined"
     rand_ident_TM_csv = pathdict["rand_ident_TM_csv"]
-    ident = 0.7
+    ident = 0.4
     # calculate aa propensity for all joined TM sequences
     korbinian.MSA_normalisation.calc_aa_propensity_from_csv_col(seq_list_csv_in, aa_prop_csv_out_TM, col_name)
     if multiprocessing_mode == True:

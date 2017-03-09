@@ -238,10 +238,13 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
         dfu = pd.DataFrame(uniprot_dict_all_proteins).sort_index().T
         # count records in dataframe
         count_of_uniprot_records_added_to_csv = dfu.shape[0]
-
-        unique_TMD_combinations_orig = dfu.list_of_TMDs.astype(str).unique()
-        unique_TMD_combinations_lists = [ast.literal_eval(s) for s in unique_TMD_combinations_orig]
+        # make a unique list of all TMD combinations in list([TM01], [TM01, TM03], etc)
+        unique_TMD_combinations_orig = list(dfu.list_of_TMDs.astype(str).unique())
+        # convert to python list
+        unique_TMD_combinations_lists = [ast.literal_eval(s) for s in unique_TMD_combinations_orig if "nan" not in s]
+        # grab all unique values into a large list(e.g. TM01, TM02, TM03 until last TM of protein with most TMs)
         unique_TMD_combinations_single_list = [i for i in itertools.chain.from_iterable(unique_TMD_combinations_lists)]
+        # sort
         list_all_TMDs_in_dataset = sorted(list(set(unique_TMD_combinations_single_list)))
 
         for TMD in list_all_TMDs_in_dataset:

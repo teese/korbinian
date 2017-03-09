@@ -230,7 +230,7 @@ def create_pathdict(base_filename_summaries, s):
     pathdict["gap_density_fig_path"] = '%s_create_graph_of_gap_density.png' % base_filename_summaries
     pathdict["gap_density_testfig_png"] = '%s_gap_test_out.png' % base_filename_summaries
     pathdict["gap_fastagap_all_pos_pickle"] = '%s_gap_all_pos.pickle' % base_filename_summaries
-    pathdict["single_list_fig_path"] = '%s_figs' %base_filename_summaries
+    pathdict["single_list_fig_path"] = '{}_figs'.format(base_filename_summaries)
     pathdict["save_df_characterising_each_homol_TMD"] = '%s_characterising_each_homol_TMD.zip' % base_filename_summaries
     pathdict["keywords"] = '%s_keywords' % base_filename_summaries
     # create path to csv with the pretty alignments for each homologue and TMD with the highest and lowest AAIMON
