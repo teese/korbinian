@@ -63,7 +63,6 @@ if __name__ == "__main__":
                 # for each number in the list, add to settings and run
                 s["list_number"] = list_number
                 korbinian.run_korbinian.run_statements(s)
-                sys.stdout.write('\n~~~~~~~~~~~~         List {} finished           ~~~~~~~~~~~~\n'.format(list_number))
         else:
             raise ValueError("protein_list_number is neither an int nor a list. Panic and check your code and settings file!")
 
@@ -246,3 +245,5 @@ def run_statements(s):
 
     if s['send_email_when_finished']:
         korbinian.utils.send_email_when_finished(s, pathdict)
+
+    sys.stdout.write('\n~~~~~~~~~~~~         List {} finished           ~~~~~~~~~~~~\n'.format(list_number))
