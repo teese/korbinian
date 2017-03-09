@@ -2311,14 +2311,14 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             ax.set_xticklabels(legend, rotation=45)
             ax.set_ylim(-0.5, 1)
 
-        # add figure number to top left of subplot
-        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
-                    xycoords='axes fraction', alpha=0.75)
-        # add figure title to top left of subplot
-        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
-                    alpha=0.75)
+            # add figure number to top left of subplot
+            ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                        xycoords='axes fraction', alpha=0.75)
+            # add figure title to top left of subplot
+            ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                        alpha=0.75)
 
-        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+            utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins']:
         Fig_Nr = 98
