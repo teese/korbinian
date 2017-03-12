@@ -164,6 +164,9 @@ def run_statements(s):
     if s['generate_scampi_input_files']:
         korbinian.cons_ratio.SCAMPI.generate_scampi_input_files(pathdict, s, logging)
 
+    if s['generate_SignalP_input_files']:
+        korbinian.cons_ratio.SCAMPI.generate_SignalP_input_files(pathdict, s, logging)
+
     ########################################################################################
     #                                                                                      #
     #                         run simap download, parse simap                              #

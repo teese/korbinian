@@ -178,3 +178,42 @@ def generate_scampi_input_files(pathdict, s, logging):
     file.close()
 
     logging.info('~~~~~~~~~~~~                generate_scampi_input_files is finished                 ~~~~~~~~~~~~')
+
+
+def generate_SignalP_input_files(pathdict, s, logging):
+
+    logging.info('~~~~~~~~~~~~                starting generate_SignalP_input_files                   ~~~~~~~~~~~~')
+
+    list_number = s["list_number"]
+    # load list parsed from uniprot
+    df = pd.read_csv(pathdict["list_parsed_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
+    # specify outpath
+    outpath = '{}_SCAMPI'.format(pathdict['base_filename_summaries'])
+    # make folder for output
+    if not os.path.exists(outpath):
+        os.makedirs(outpath)
+    # specify outfile path
+    outfile = os.path.join(outpath, 'List{:02d}_fasta_for_SignalP.txt'.format(list_number))
+    # open new .txt file and write accession and full sequence from df into file
+    file = open(outfile, 'w')
+    for acc in df.index:
+        full_seq = df.loc[acc, 'full_seq']
+        if len(full_seq) < 6000:
+            file.write('>{}\n{}\n'.format(acc, full_seq))
+        elif len(full_seq) > 6000:
+            file.write('>{}\n{}\n'.format(acc, full_seq[:5999]))
+        else:
+            return 'MADNESS happened, please panic!'
+    file.close()
+
+    logging.info('~~~~~~~~~~~~               generate_SignalP_input_files is finished                 ~~~~~~~~~~~~')
+
+def get_SignalP_SiPe_acc (SignalP_SiPe_path):
+    acc_list = []
+    with open(SignalP_SiPe_path) as source:
+        for line in source:
+            if line[0] != '#':
+                line = line.strip()
+                line = line.split('\t')
+                acc_list.append(line[0])
+    return acc_list
