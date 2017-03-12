@@ -49,6 +49,26 @@ def prepare_protein_list(s, pathdict, logging):
     else:
         modification_date = None
 
+    SignalP_SiPe_path = os.path.join('%s_SCAMPI'%pathdict["base_filename_summaries"], 'gff.txt')
+    n_prot_AFTER_dropping_non_trusted_SiPe = 'SignalP output file not found!'
+    if os.path.isfile(SignalP_SiPe_path):
+        modification_date_SignalP = time.ctime(os.path.getmtime(SignalP_SiPe_path))
+        SignalP_acc_containing_SiPe = korbinian.cons_ratio.SCAMPI.get_SignalP_SiPe_acc(SignalP_SiPe_path)
+        for acc in df.index:
+            if acc in SignalP_acc_containing_SiPe:
+                df.loc[acc, 'SignalP_SiPe'] = True
+            else:
+                df.loc[acc, 'SignalP_SiPe'] = False
+        # drop all proteins where SignalP and Uniprot annotations differ in signal peptide prediction
+        keep = []
+        for acc in df.index:
+            if df.loc[acc, 'uniprot_SiPe'] == df.loc[acc, 'SignalP_SiPe']:
+                keep.append(acc)
+        df = df.loc[keep,:]
+        n_prot_AFTER_dropping_non_trusted_SiPe = df.shape[0]
+    else:
+        modification_date_SignalP = None
+
     if s['use_scampi_TM_regions']:
         df = korbinian.cons_ratio.SCAMPI.read_scampi_data(pathdict, s, logging, df)
 
@@ -428,6 +448,10 @@ def prepare_protein_list(s, pathdict, logging):
     logging.info('n_prot_AFTER_dropping_SCAMPI_nonTM_seqences: {}'.format(n_prot_AFTER_dropping_SCAMPI_nonTM_seqences))
     if modification_date is not None:
         logging.info("modification_date of scampi file: {}".format(modification_date))
+
+    logging.info('n_prot_AFTER_non_trusted_Signal_Peptides: {}'.format(n_prot_AFTER_dropping_non_trusted_SiPe))
+    if modification_date_SignalP is not None:
+        logging.info("modification_date of SignalP file: {}".format(modification_date_SignalP))
 
     logging.info('n_prot_AFTER_dropping_without_list_TMDs: {}'.format(n_prot_AFTER_dropping_without_list_TMDs)) # line 107
 

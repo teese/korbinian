@@ -126,6 +126,12 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
             location_of_tmds_in_feature_list = []
             location_of_non_tmds_in_feature_list = []
 
+            # add bool if uniprot thinks that protein contains signal peptides
+            if 'SIGNAL' in list_of_feature_types_in_uniprot_record:
+                output_dict['uniprot_SiPe'] = True
+            else:
+                output_dict['uniprot_SiPe'] = False
+
             for feature in desired_features_in_uniprot:
                 if feature in list_of_feature_types_in_uniprot_record:
                     # find the features in the feature list.
