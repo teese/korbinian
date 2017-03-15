@@ -49,25 +49,50 @@ def prepare_protein_list(s, pathdict, logging):
     else:
         modification_date = None
 
+    # load SignalP file containing all proteins that have signal peptides
     SignalP_SiPe_path = os.path.join('%s_SCAMPI'%pathdict["base_filename_summaries"], 'gff.txt')
     n_prot_AFTER_dropping_non_trusted_SiPe = 'SignalP output file not found!'
     if os.path.isfile(SignalP_SiPe_path):
         modification_date_SignalP = time.ctime(os.path.getmtime(SignalP_SiPe_path))
         SignalP_acc_containing_SiPe = korbinian.cons_ratio.SCAMPI.get_SignalP_SiPe_acc(SignalP_SiPe_path)
+        # create column containing bool if signal peptide is predicted by SignalP
         for acc in df.index:
             if acc in SignalP_acc_containing_SiPe:
                 df.loc[acc, 'SignalP_SiPe'] = True
             else:
                 df.loc[acc, 'SignalP_SiPe'] = False
-        # drop all proteins where SignalP and Uniprot annotations differ in signal peptide prediction
-        keep = []
+        # drop all proteins where Uniprot did not get signal peptide
+        drop = []
         for acc in df.index:
-            if df.loc[acc, 'uniprot_SiPe'] == df.loc[acc, 'SignalP_SiPe']:
-                keep.append(acc)
-        df = df.loc[keep,:]
+            if df.loc[acc, 'uniprot_SiPe'] == False and df.loc[acc, 'SignalP_SiPe'] == True:
+                drop.append(acc)
+        df = df.drop(drop, axis=0)
         n_prot_AFTER_dropping_non_trusted_SiPe = df.shape[0]
     else:
         modification_date_SignalP = None
+
+    # load PrediSi file containing all proteins that have signal peptides
+    PrediSi_inpath = os.path.join('%s_SCAMPI' % pathdict["base_filename_summaries"], 'SiPe_PrediSi.txt')
+    n_prot_AFTER_dropping_non_trusted_SiPe_PrediSi = 'PrediSi output file not found!'
+    if os.path.isfile(PrediSi_inpath):
+        modification_date_PrediSi = time.ctime(os.path.getmtime(PrediSi_inpath))
+        PrediSi_SiPe_list = korbinian.cons_ratio.SCAMPI.get_PrediSi_SiPe_acc(PrediSi_inpath)
+        # create column containing bool if signal peptide is predicted by PrediSi
+        for acc in df.index:
+            if acc in PrediSi_SiPe_list:
+                df.loc[acc, 'PrediSi_SiPe'] = True
+            else:
+                df.loc[acc, 'PrediSi_SiPe'] = False
+        # drop all proteins where Uniprot did not get signal peptide
+        drop = []
+        for acc in df.index:
+            if df.loc[acc, 'uniprot_SiPe'] == False and df.loc[acc, 'PrediSi_SiPe'] == True:
+                drop.append(acc)
+        df = df.drop(drop, axis=0)
+        n_prot_AFTER_dropping_non_trusted_SiPe_PrediSi = df.shape[0]
+    else:
+        modification_date_PrediSi = None
+
 
     if s['use_scampi_TM_regions']:
         df = korbinian.cons_ratio.SCAMPI.read_scampi_data(pathdict, s, logging, df)
@@ -452,6 +477,10 @@ def prepare_protein_list(s, pathdict, logging):
     logging.info('n_prot_AFTER_non_trusted_Signal_Peptides: {}'.format(n_prot_AFTER_dropping_non_trusted_SiPe))
     if modification_date_SignalP is not None:
         logging.info("modification_date of SignalP file: {}".format(modification_date_SignalP))
+
+    logging.info('n_prot_AFTER_non_trusted_Signal_Peptides_PrediSi: {}'.format(n_prot_AFTER_dropping_non_trusted_SiPe_PrediSi))
+    if modification_date_SignalP is not None:
+        logging.info("modification_date of PrediSi file: {}".format(modification_date_PrediSi))
 
     logging.info('n_prot_AFTER_dropping_without_list_TMDs: {}'.format(n_prot_AFTER_dropping_without_list_TMDs)) # line 107
 

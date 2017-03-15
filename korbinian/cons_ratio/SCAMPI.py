@@ -217,3 +217,11 @@ def get_SignalP_SiPe_acc (SignalP_SiPe_path):
                 line = line.split('\t')
                 acc_list.append(line[0])
     return acc_list
+
+def get_PrediSi_SiPe_acc(PrediSi_SiPe_path):
+    PrediSi_SiPe_list = []
+    with open(PrediSi_SiPe_path) as source:
+        for line in source:
+            line = line.strip()
+            PrediSi_SiPe_list.append(line)
+    return PrediSi_SiPe_list
