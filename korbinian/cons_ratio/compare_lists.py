@@ -1278,7 +1278,7 @@ def compare_lists (s):
         # fig.set_size_inches(5, 5)
 
         for ax in axes.flat:
-            ax.plot([0, 100], [0, 100], color='k', linewidth=1)
+            ax.plot([0, 100], [0, 100], color='#CCCCCC', linewidth=1)
             # ax.set_aspect('equal')
             ax.grid(False, which='both')
             ax.tick_params(axis='both', which='major', length=3, width=1, color='#CCCCCC')
@@ -1300,6 +1300,12 @@ def compare_lists (s):
             data_nonTMD = df_dict[prot_list].nonTMD_perc_ident_mean * 100
             xdat, ydat = data_TMD, data_nonTMD
 
+            # plot a linear regression line for all datapoints
+            fit = np.polyfit(xdat, ydat, deg=1)
+            fit_fn = np.poly1d(fit)
+            x = xyrange[0]
+            ax.plot(x, fit_fn(x), color='k', linewidth=1)
+
             # histogram the data
             hh, locx, locy = scipy.histogram2d(xdat, ydat, range=xyrange, bins=bins)
 
@@ -1317,10 +1323,12 @@ def compare_lists (s):
 
             ax.annotate(dfv.loc[prot_list, 'list_description'], xy=(3, 90), color=dfv.loc[prot_list, 'color'], fontsize=10)
             ax.tick_params(labelsize=10)
+            ax.annotate('TMD less conserved', xy=(1, 7), rotation=90, fontsize=5, ha='left', va='bottom')
+            ax.annotate('TMD more conserved', xy=(7, 1), rotation=0, fontsize=5, ha='left', va='bottom')
 
         # get colorbar from latest imshow element (color scale should be the same for all subplots)
         fig.subplots_adjust(right=0.8)
-        cbar_ax = fig.add_axes([0.83, 0.15, 0.05, 0.7])
+        cbar_ax = fig.add_axes([0.83, 0.15, 0.02, 0.7])
         fig.colorbar(im, cax=cbar_ax)
 
         plt.subplots_adjust(wspace=0.2, hspace=0.05)
