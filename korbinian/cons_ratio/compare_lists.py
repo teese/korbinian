@@ -1337,7 +1337,43 @@ def compare_lists (s):
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
+    #---------------------------------------------------------------------------------------------------------------------------------#
+    Fig_Nr = 17
+    title = 'number of TMDs in GPCRs'
+    Fig_name = 'Fig17_number_of_TMDs_in_GPCRs'
+    if len(df_dict) > 4:
+        sys.stdout.write('cannot create plot, too many lists')
+    else:
+        fig, axes = plt.subplots(2, 2)
 
+        for ax in axes.flat:
+            ax.set_xlim(0, 15)
+            ax.set_ylim(0, 1.15)
+            ax.set_xlabel('number of TMDs', fontsize=fontsize)
+            ax.set_ylabel('freq', fontsize=fontsize)
+            ax.tick_params(labelsize=fontsize)
+            ax.set_xticks(range(0, 16, 2))
+            ax.set_yticklabels([])
+
+        for ax, prot_list in zip(axes.flat, protein_lists):
+            # check if protein is a GPCR
+            list_GPCR_KW = ['G-protein coupled receptor']
+            df_dict[prot_list]['GPCR'] = df_dict[prot_list]['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args=(list_GPCR_KW,))
+            df_GPCR = df_dict[prot_list][df_dict[prot_list].GPCR == True]
+            # check if df_GPCR contains elements
+            if df_GPCR.shape[0] == 0:
+                continue
+
+            hist_data = df_GPCR.number_of_TMDs.value_counts().values
+            hist_data_norm = hist_data / hist_data.max()
+            bins = df_GPCR.number_of_TMDs.value_counts().index
+
+            ax.bar(bins, hist_data_norm, align='center', color=dfv.loc[prot_list, 'color'])
+            ax.annotate(dfv.loc[prot_list, 'list_description'], xy=(0.5, 1.05), color=dfv.loc[prot_list, 'color'], fontsize=fontsize - 2)
+            ax.annotate('only GPCRs\nn = {}'.format(len(df_GPCR)), xy=(0.5, 0.80), fontsize=fontsize - 2, alpha=0.5)
+
+        plt.tight_layout()
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
     #dfv.to_csv(os.path.join(base_filepath, 'Lists_%s_variables.csv'%str_protein_lists))
     sys.stdout.write("\n~~~~~~~~~~~~         compare_lists finished           ~~~~~~~~~~~~\n")
