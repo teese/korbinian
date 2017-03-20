@@ -64,8 +64,12 @@ def prepare_protein_list(s, pathdict, logging):
         # drop all proteins where Uniprot did not get signal peptide
         drop = []
         for acc in df.index:
+            # if UniProt DOESN'T think there is a signal peptide, but SignalP does
+            # there is a chance that the "TM01" is really a signal peptide
             if df.loc[acc, 'uniprot_SiPe'] == False and df.loc[acc, 'SignalP_SiPe'] == True:
-                drop.append(acc)
+                # but it's only a danger if the TM01 is in the first 40 residues
+                if df.loc[acc, 'TM01_start'] < 40:
+                    drop.append(acc)
         df = df.drop(drop, axis=0)
         n_prot_AFTER_dropping_non_trusted_SiPe = df.shape[0]
     else:
