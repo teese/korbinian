@@ -100,13 +100,14 @@ def save_hist_AAIMON_single_protein (fig_nr, fig, axarr, df_cr, s, TMD, binarray
 
     if savefig:
         # take x-axis min from settings
-        xlim_min = s["1p_smallest_bin"]
+        #xlim_min = s["1p_smallest_bin"]
         # take x-axis max from settings
-        xlim_max = s["1p_largest_bin"]
+        #xlim_max = s["1p_largest_bin"]
         # apply the following formatting changes to all plots in the figure
         for ax in axarr.flat:
             # set x-axis min
-            ax.set_xlim(xlim_min, xlim_max)
+            #ax.set_xlim(xlim_min, xlim_max)
+            ax.set_xlim(0)
             # set x-axis ticks
             # use the slide selection to select every second item in the list as an xtick(axis label)
             ax.set_xticks([float('%0.1f' % c) for c in centre_of_bar_in_x_axis[::3]])
