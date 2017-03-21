@@ -517,11 +517,8 @@ def prepare_protein_list(s, pathdict, logging):
     #                      calculate random TM and nonTM identity                          #
     #                                                                                      #
     ########################################################################################
-    # only calculate the rand_TM and rand_nonTM using the quick method (1000x1000)
-    # if calc_accurate_random_identity is not True, as a more accurate version will be calculated next
-    if not s["calc_accurate_random_identity"]:
-        logging.info("calculating rand_TM and rand_nonTM using quick method (1000x1000)")
-        calc_randTM_and_randnonTM(s, pathdict, logging, seq_len=1000, number_seq=1000)
+    # only calculate the rand_TM and rand_nonTM using the mathematical method
+    calc_randTM_and_randnonTM(s, pathdict, logging)
     logging.info('~~~~~~~~~~~~                     finished prepare_protein_list                      ~~~~~~~~~~~~')
 
 def get_indices_TMD_plus_surr_for_summary_file(dfsumm, TMD, n_aa_before_tmd, n_aa_after_tmd):
@@ -580,7 +577,39 @@ def find_indices_longer_than_prot_seq(df, TMD):
     """
     return df['%s_end_plus_surr'%TMD] > df['seqlen']
 
-def calc_randTM_and_randnonTM(s, pathdict, logging, seq_len, number_seq, multiprocessing_mode=False):
+def calc_randTM_and_randnonTM(s, pathdict, logging, seq_len=1000, number_seq=1000, multiprocessing_mode=False):
+    """ Calculates the random identity for the TM and nonTM regions of a particular dataset.
+
+    Can either use the mathematical method, or extensive randomisation.
+
+    Parameters
+    ----------
+    s : dict
+        Settings dictionary extracted from excel settings file.
+    pathdict : dict
+        Dictionary of the key paths and files associated with that List number.
+    logging : logging.Logger
+        Logger for printing to console and logfile.
+    seq_len: int
+        length of randomly created sequences. To achieve a more plausible result using randomisation method,
+        greater values (> 5000) are recommended. Defalut value: 1000
+    number_seq: int
+        number of aligned sequences. Larger values are recommended. Default value: 1000
+    multiprocessing_mode : bool
+        If TRUE, the random identity will be calculated using the randomisation method, taking advantage
+        of python multiprocessing capability.
+
+    Saved Files and Figures
+    -----------------------
+    rand_ident_TM_csv : csv
+        Tab-separated CSV file with random identity and input data for TM, saved from output_ser
+        index : "random_sequence_identity_output", "input_A", "input_C", etc
+        values : 0.124, 0.05 etc
+    rand_ident_nonTM_csv : csv
+        Tab-separated CSV file with random identity and input data for nonTM, saved from output_ser
+        index : "random_sequence_identity_output", "input_A", "input_C", etc
+        values : 0.056, 0.05 etc
+    """
     logging.info('~~~~~~~~~~~~                    starting calc_randTM_and_randnonTM                  ~~~~~~~~~~~~')
     ########################################################################################
     #                                                                                      #
@@ -594,7 +623,7 @@ def calc_randTM_and_randnonTM(s, pathdict, logging, seq_len, number_seq, multipr
     aa_prop_csv_out_TM = pathdict["rand_ident_TM_csv"][:-11] + "aa_prop_TM.csv"
     col_name = "TMD_seq_joined"
     rand_ident_TM_csv = pathdict["rand_ident_TM_csv"]
-    ident = 0.4
+    ident = 0.0
     # calculate aa propensity for all joined TM sequences
     korbinian.MSA_normalisation.calc_aa_propensity_from_csv_col(seq_list_csv_in, aa_prop_csv_out_TM, col_name)
     if multiprocessing_mode == True:
@@ -611,7 +640,7 @@ def calc_randTM_and_randnonTM(s, pathdict, logging, seq_len, number_seq, multipr
         output_ser.to_csv(rand_ident_TM_csv, sep="\t")
     else:
         # calculate random aa identity based on aa propensity
-        korbinian.MSA_normalisation.calc_random_aa_ident(aa_prop_csv_out_TM, rand_ident_TM_csv, seq_len=seq_len, number_seq=number_seq, ident=ident)
+        korbinian.MSA_normalisation.calc_random_aa_ident(aa_prop_csv_out_TM, rand_ident_TM_csv)
     # remove temp file with aa propensity (it is also saved in the rand_ident csv)
     #os.remove(aa_prop_csv_out_TM)
 
@@ -635,7 +664,7 @@ def calc_randTM_and_randnonTM(s, pathdict, logging, seq_len, number_seq, multipr
         output_ser.to_csv(rand_ident_nonTM_csv, sep="\t")
     else:
         # calculate random aa identity based on aa propensity
-        korbinian.MSA_normalisation.calc_random_aa_ident(aa_prop_csv_out_nonTM, rand_ident_nonTM_csv, seq_len=seq_len, number_seq=number_seq, ident=ident)
+        korbinian.MSA_normalisation.calc_random_aa_ident(aa_prop_csv_out_nonTM, rand_ident_nonTM_csv)
     # remove temp file with aa propensity (it is also saved in the rand_ident csv)
     #os.remove(aa_prop_csv_out_nonTM)
     logging.info('~~~~~~~~~~~~                    finished calc_randTM_and_randnonTM                  ~~~~~~~~~~~~')
@@ -659,5 +688,5 @@ def calc_random_aa_ident_multiprocessing(d):
         Output pandas series consisting of the random_aa_identity, and the input aa_prop_ser derived from aa_prop_csv_in.
     """
     aa_prop_csv_out, rand_ident_TM_csv, seq_len, number_seq, ident, multiprocessing_mode = d
-    random_aa_identity, output_ser = korbinian.MSA_normalisation.calc_random_aa_ident(aa_prop_csv_out, rand_ident_TM_csv, seq_len=seq_len, number_seq=number_seq, ident=0.7, multiprocessing_mode=multiprocessing_mode)
+    random_aa_identity, output_ser = korbinian.MSA_normalisation.calc_random_aa_ident_via_randomisation(aa_prop_csv_out, rand_ident_TM_csv, seq_len=seq_len, number_seq=number_seq, ident=0.0, multiprocessing_mode=multiprocessing_mode)
     return random_aa_identity, output_ser

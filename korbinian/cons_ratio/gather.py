@@ -12,6 +12,41 @@ import zipfile
 from multiprocessing import Pool
 
 def gather_AAIMONs(pathdict, logging, s):
+    """ Gathers the AAIMON ratios and slopes for each protein, created by the run_calculate_AAIMONs scripts.
+
+    To be compatible with multiprocessing, the run_calculate_AAIMONs script creates a separate output summary file
+    for each protein. The gather_AAIMONs simply concatenates all of these files together
+
+    Note that the gather_AAIMONs script does not do ANY filtering. This is all done earlier by run_calculate_AAIMONs.
+    It is assumed that for homologues that did not pass the filter (e.g., because they had X in the sequence),
+    that no AAIMON or AAIMON slope was calculated.
+
+    Parameters
+    ----------
+    pathdict : dict
+        Dictionary of the key paths and files associated with that List number.
+    logging : logging.Logger
+        Logger for printing to console and logfile.
+    s : dict
+        Settings dictionary extracted from excel settings file.
+
+    Saved Files and Figures
+    -----------------------
+    list_cr_summary_csv : csv
+        comma separated csv file with the AAIMON ratios etc
+        contains all data within the {}_cr_mean.csv summary file for each protein
+    pretty_alignments_csv : csv
+        comma separated csv file with the pretty alignments of all the outliers
+    data_characterising_each_homol_TMD.pickle : pickle
+        Raw AAIMON and % identity (or % aa sub rate) datapoints for all TM of all homologues of all proteins
+        Used to create large scatterplot of all datapoints.
+
+    Returns
+    -------
+    pathdict : dict
+        Dictionary of the key paths and files associated with that List number.
+        In special cases, the pathdict is modified.
+    """
     logging.info("~~~~~~~~~~~~                           starting gather_AAIMONs                      ~~~~~~~~~~~~")
     df = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
 
