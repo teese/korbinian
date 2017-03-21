@@ -146,6 +146,11 @@ def run_statements(s):
         output = korbinian.prot_list.uniprot_parse.create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_signal_peptides, logging, list_parsed_csv)
         logging.info(output)
 
+    if s['parse_TMSEG']:
+        print('bayern steigt ab')
+        analyse_signal_peptides = s['SiPe']
+        korbinian.prot_list.parse_TMSEG.parse_TMSEG_results(analyse_signal_peptides, pathdict, s, logging)
+
     ########################################################################################
     #                                                                                      #
     #                            prepare_protein_list                               #

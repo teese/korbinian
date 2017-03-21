@@ -3,3 +3,4 @@ import korbinian.prot_list.prot_list
 import korbinian.prot_list.uniprot_nonredundant
 import korbinian.prot_list.uniprot_parse
 import korbinian.prot_list.uniprot_retrieve
+import korbinian.prot_list.parse_TMSEG
