@@ -179,15 +179,14 @@ def gather_AAIMONs(pathdict, logging, s):
     if s['save_df_characterising_each_homol_TMD']:
 
         # defining cutoff for max and min number of homologues for each protein
-        max_num_homologues = s['cutoff_max_characterising_each_homol_TMD']
-        min_num_homologues = s['cutoff_min_characterising_each_homol_TMD']
+        min_num_homologues = s['min_homol']
 
         # filter summary file for min and max number of homologues based on TM01 number of homologues
         #sys.stdout.write('Dropped homologues after filtering: \n')
         list_of_acc_to_keep = []
         for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
             TM01_AAIMON_n_homol = pd.to_numeric(dfg.loc[acc, 'TM01_AAIMON_n_homol'])
-            if max_num_homologues > TM01_AAIMON_n_homol > min_num_homologues:
+            if TM01_AAIMON_n_homol > min_num_homologues:
                 list_of_acc_to_keep.append(acc)
 
         # keep only proteins that have the desired number of homologues
