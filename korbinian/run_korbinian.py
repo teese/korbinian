@@ -160,12 +160,6 @@ def run_statements(s):
     if s["prepare_protein_list"]:
         korbinian.prot_list.prot_list.prepare_protein_list(s, pathdict, logging)
 
-    if s["calc_accurate_random_identity"]:
-        if s["use_multiprocessing"]:
-            korbinian.prot_list.prot_list.calc_randTM_and_randnonTM(s, pathdict, logging, seq_len=1000, number_seq=1000, multiprocessing_mode=True)
-        else:
-            korbinian.prot_list.prot_list.calc_randTM_and_randnonTM(s, pathdict, logging, seq_len=10000, number_seq=1000, multiprocessing_mode=False)
-
     if s['generate_scampi_input_files']:
         korbinian.cons_ratio.SCAMPI.generate_scampi_input_files(pathdict, s, logging)
 

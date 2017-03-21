@@ -122,8 +122,65 @@ def calc_aa_propensity(seq):
     aa_prop_norm_ser.index.name = "freq"
     return aa_prop_norm_ser
 
+def calc_random_aa_ident_from_ser(aa_prop_ser):
+    """ Calculates the random AA identity from an input series of AA propensity values.
 
-def calc_random_aa_ident(aa_prop_csv_in, rand_seq_ident_csv_out, seq_len=1000, number_seq=1000, ident=0.7, multiprocessing_mode=False):
+    Parameters
+    ----------
+    aa_prop_ser : pd.Series
+        Series of AA propensity values
+        index : A, C, D, E etc
+        values : 0.04, 0.06, .20 etc
+
+    Returns
+    -------
+    calc_rand_ident : float
+        Calculated random identity value, e.g. 0.092.
+    """
+    all_aa = "ACDEFGHIKLMNPQRSTVWY"
+    # check that the index has 20 aa
+    if not list(aa_prop_ser.index) == list(all_aa):
+        raise ValueError("Index must be comprised of 20 amino acids, in capitals, single-letter notation.")
+    # multiply the probabilities by themselves
+    # if 25% of the residues are leucines, and the probability of them staying leucines is 25%
+    # that means that 0.25 * 0.25 is the random identity of leucine
+    # calculate this for all AA and simply sum!
+    # this gives the random identity overall!
+    aa_prop_ser = aa_prop_ser * aa_prop_ser
+    calc_rand_ident = aa_prop_ser.sum()
+    return calc_rand_ident
+
+def calc_random_aa_ident(aa_prop_csv_in, rand_seq_ident_csv_out):
+    """Mathematical calculation of random amino acid identity based on a particular amino acid propensity.
+
+    Protein regions with a limited aa propensity (e.g. transmembrane regions) have a measurable amino
+    acid identity EVEN IN NON-HOMOLOGUES. This is referred to here as the random amino acid identity.
+    This formula takes the aa propensity of a sequence or dataset as an input, and calculates the random aa identity.
+
+    Parameters
+    ----------
+    aa_prop_csv_in: csv
+        input csv file containing aa propensity for a particular sequence or dataset.
+        Typically obtained from the function calc_aa_propensity_from_csv_col
+
+    rand_seq_ident_csv_out: csv
+        Output csv file contaning calculated random aa identity (due to limited aa propensity), and all the input values
+
+    """
+    # open csv into a pandas series, normally with all 20 aa as the index, and a proportion (0.08, 0.09 etc) as the data.
+    aa_prop_ser = pd.Series.from_csv(aa_prop_csv_in, sep="\t")
+    # calculate the random identity mathematically
+    random_aa_identity = calc_random_aa_ident_from_ser(aa_prop_ser)
+    # create a output series to contain all the output information
+    output_ser = pd.Series()
+    output_ser["random_sequence_identity_output"] = random_aa_identity
+    aa_prop_ser.index = aa_prop_ser.index + "_input"
+    output_ser = pd.concat([output_ser, aa_prop_ser])
+    # save the setries as csv file
+    output_ser.to_csv(rand_seq_ident_csv_out, sep="\t")
+    sys.stdout.write("calc_random_aa_ident is finished\n")
+
+def calc_random_aa_ident_via_randomisation(aa_prop_csv_in, rand_seq_ident_csv_out, seq_len=1000, number_seq=1000, ident=0.0, multiprocessing_mode=False):
     """Calculation of random amino acid identity based on a particular amino acid propensity.
 
     Protein regions with a limited aa propensity (e.g. transmembrane regions) have a measurable amino
@@ -148,7 +205,7 @@ def calc_random_aa_ident(aa_prop_csv_in, rand_seq_ident_csv_out, seq_len=1000, n
 
     ident: float
         desired overall identity of randomly created sequence matrix. This will not affect the random aa identity,
-        but smaller values might increase the presicion of the calculation. Default value: 0.7
+        but smaller values might increase the precision of the calculation. Default value: 0.0 (completely randomised)
 
     Returns
     -------
@@ -263,7 +320,7 @@ def calc_random_aa_ident(aa_prop_csv_in, rand_seq_ident_csv_out, seq_len=1000, n
     # resulted in the same aa residue as in the original reference sequence
     random_aa_identity = (observed_mean_cons_rate_all_pos - ident ) / (1 - ident)
 
-    # create a output seires to contain all the output information
+    # create a output series to contain all the output information
     output_ser = pd.Series()
     output_ser["random_sequence_identity_output"] = random_aa_identity
     aa_prop_ser.index = aa_prop_ser.index + "_input"
@@ -579,18 +636,19 @@ parser.add_argument("-o",  "--output",
 parser.add_argument("-c", "--column_name",
                     default=None,
                     help='Column name in input file that should be used for analysis.')
-parser.add_argument("-l", "--length",
-                    default=1000,
-                    help='Sequence length for calc_rand_aa_ident.')
-parser.add_argument("-n", "--number_seq",
-                    default=1000,
-                    help='Number of sequences for calc_rand_aa_ident.')
-parser.add_argument("-d", "--ident_in_matrix",
-                    default=0.7,
-                    help='Amino acid identity in mutation matrix for calc_rand_aa_ident.')
-parser.add_argument("-x", "--full_length_identity",
-                    default=None,
-                    help='Average amino acid identity of full sequences in alignment for calc_MSA_n_factor.')
+# INPUT for random identity via the randomisation method is not really necessary
+# parser.add_argument("-l", "--length",
+#                     default=1000,
+#                     help='Sequence length for calc_rand_aa_ident.')
+# parser.add_argument("-n", "--number_seq",
+#                     default=1000,
+#                     help='Number of sequences for calc_rand_aa_ident.')
+# parser.add_argument("-d", "--ident_in_matrix",
+#                     default=0.7,
+#                     help='Amino acid identity in mutation matrix for calc_rand_aa_ident.')
+# parser.add_argument("-x", "--full_length_identity",
+#                     default=None,
+#                     help='Average amino acid identity of full sequences in alignment for calc_MSA_n_factor.')
 parser.add_argument("-a", "--rand_aa_ident_A",
                     default=None,
                     help='Random aa identity for region A (e.g. transmembrane) for use in calc_MSA_n_factor.')
@@ -629,8 +687,7 @@ if __name__ == '__main__':
                              "-f calc_rand_aa_ident -i INPUTFILE -o OUTPUTFILE -s/-l/-n/-d OPTIONAL_ARGUMENTS")
         else:
             # use the supplied inputs from the command line to run calc_random_aa_ident
-            calc_random_aa_ident(aa_prop_csv_in=args.input, rand_seq_ident_csv_out=args.output, seq_len=int(args.length),
-                                 number_seq=int(args.number_seq), ident=float(args.ident_in_matrix))
+            calc_random_aa_ident(aa_prop_csv_in=args.input, rand_seq_ident_csv_out=args.output)
             #sys.stdout.write("\nFinished. Output file : {}".format(args.output))
     elif args.function == "calc_n_factor":
         # write a message if any of the necessary arguments are missing
