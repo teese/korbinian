@@ -21,11 +21,12 @@ import tarfile
 import threading
 import time
 import zipfile
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
-import smtplib
+
 
 def aaa(df_or_series):
     """ Function for use in debugging.
@@ -122,25 +123,6 @@ def improve_ggplot_for_4_plots(axarr,row_nr,col_nr,backgroundcolour,legend_obj):
     axarr[row_nr, col_nr].set_axis_bgcolor(backgroundcolour)
     #change background colour of legend box
     legend_obj.get_frame().set_facecolor(backgroundcolour)
-
-
-    
-def KW_list_contains_any_desired_KW(KW_list_to_search,list_desired_KW):
-    ''' Determine if two lists contain any common values.
-    Used to determine, for example, if a list of keywords contains any
-    enzyme related words, from another list
-    input:
-    KW_list_to_search
-    list_desired_KW
-    note: in theory, this function could be updated to use set(), which should be slightly quicker
-    '''
-    is_enzyme = False
-    for KW in list_desired_KW:
-        if KW in KW_list_to_search:
-            is_enzyme = True
-            break
-    return is_enzyme
-
 
 
 def get_signif_symbol(number):
@@ -1666,35 +1648,3 @@ def calc_alpha_from_datapoints(data):
         alpha = 0.9
     return float(alpha)
 
-def get_list_enzyme_KW_and_list_ignored_KW():
-    ''' defines keywords that are Enzyme associated and keywords that are ignored
-
-        Parameters
-    ----------
-    none
-
-        Return
-    ----------
-    list_enzyme_KW: list
-        list of enzyme associated keywords
-    list_ignored_KW: list
-        list of keywords that can be ignored
-
-    '''
-    list_enzyme_KW = ['Transferase', 'Hydrolase', 'Glycosyltransferase', 'Protease', 'Kinase', 'Oxidoreductase', 'Metalloprotease', 'Serine protease',
-                      'Protein phosphatase', 'Ligase', 'Acyltransferase', 'Serine/threonine-protein kinase', 'Glycosidase', 'Aminopeptidase',
-                      'Isomerase', 'Methyltransferase', 'Carboxypeptidase', 'Hydroxylation', 'Aspartyl protease', 'Serine esterase',
-                      'Lipid biosynthesis', 'GPI-anchor biosynthesis', 'Steroid biosynthesis', 'Melanin biosynthesis', 'Thyroid hormones biosynthesis',
-                      'Phospholipid biosynthesis', 'Sterol biosynthesis', 'Glutathione biosynthesis', 'Cholesterol biosynthesis',
-                      'Fatty acid biosynthesis', 'Prostaglandin biosynthesis', 'cGMP biosynthesis', 'Leukotriene biosynthesis', 'Catecholamine biosynthesis',
-                      'Lipid metabolism', 'Carbohydrate metabolism', 'Steroid metabolism', 'Sterol metabolism', 'Sphingolipid metabolism',
-                      'Cholesterol metabolism', 'Fatty acid metabolism', 'Phospholipid metabolism', 'Catecholamine metabolism', 'Prostaglandin metabolism',
-                      'Glycogen metabolism', 'Fucose metabolism']
-
-    list_ignored_KW = ['Transmembrane', 'Complete proteome', 'Reference proteome', 'Membrane',
-                       'Transmembrane helix', 'Cell membrane', 'Repeat', 'Alternative splicing', 'Sodium', 'Potassium', 'Direct protein sequencing',
-                       'Transducer', 'Polymorphism', 'Glycoprotein', 'Calcium transport', 'Ion transport', 'Transport', 'Protein transport',
-                       'Voltage-gated channel', 'ATP-binding', 'Calcium', 'Zinc', 'Synapse', 'Signal', 'Disulfide bond', '3D-structure', 'Host-virus interaction', 'Palmitate',
-                       'Olfaction']
-
-    return list_enzyme_KW, list_ignored_KW

@@ -57,7 +57,7 @@ def keyword_analysis(pathdict, s, logging):
 
 
     # define list of ignored and enzyme keywords
-    list_enzyme_KW, list_ignored_KW = utils.get_list_enzyme_KW_and_list_ignored_KW()
+    list_enzyme_KW, list_ignored_KW = get_list_enzyme_KW_and_list_ignored_KW()
 
     # remove proteins containing nan in AAIMON_slope_mean_all_TMDs
     list_of_acc_without_nan = []
@@ -76,10 +76,10 @@ def keyword_analysis(pathdict, s, logging):
             df['uniprot_KW_for_analysis'] = df['uniprot_KW_for_analysis'].apply(lambda x: ast.literal_eval(x))
 
         # check if protein is an Enzyme or GPCR
-        df['enzyme'] = df['uniprot_KW_for_analysis'].apply(utils.KW_list_contains_any_desired_KW, args=(list_enzyme_KW,))
+        df['enzyme'] = df['uniprot_KW_for_analysis'].apply(KW_list_contains_any_desired_KW, args=(list_enzyme_KW,))
         # check if protein is a GPCR
         list_GPCR_KW = ['G-protein coupled receptor']
-        df['GPCR'] = df['uniprot_KW_for_analysis'].apply(utils.KW_list_contains_any_desired_KW, args=(list_GPCR_KW,))
+        df['GPCR'] = df['uniprot_KW_for_analysis'].apply(KW_list_contains_any_desired_KW, args=(list_GPCR_KW,))
 
         # remove ignored keywords; replace Enzyme keywords with single keyword 'Enzyme
         sys.stdout.write('removing ignored keywords; replacing enzyme associated keywords with "Enzyme"\n')
@@ -139,7 +139,7 @@ def keyword_analysis(pathdict, s, logging):
     # create bool in column for keyword to remove
     for element in keywords_for_exclusion:
         excl_list = ['{}'.format(element)]
-        df[element] = df['uniprot_KW_for_analysis'].apply(utils.KW_list_contains_any_desired_KW, args=(excl_list,))
+        df[element] = df['uniprot_KW_for_analysis'].apply(KW_list_contains_any_desired_KW, args=(excl_list,))
 
     if list_KW_counts_major:
         # initialise pandas dataframe with keywords as index
@@ -582,3 +582,54 @@ def keyword_analysis(pathdict, s, logging):
         return 'no valid keywords found! change "cutoff_major_keywords" setting! \ncurrent value: {}'.format(s['cutoff_major_keywords'])
 
     return "\n~~~~~~~~~~~~                      finished keyword_analysis                         ~~~~~~~~~~~~"
+
+
+def get_list_enzyme_KW_and_list_ignored_KW():
+    ''' defines keywords that are Enzyme associated and keywords that are ignored
+
+        Parameters
+    ----------
+    none
+
+        Return
+    ----------
+    list_enzyme_KW: list
+        list of enzyme associated keywords
+    list_ignored_KW: list
+        list of keywords that can be ignored
+
+    '''
+    list_enzyme_KW = ['Transferase', 'Hydrolase', 'Glycosyltransferase', 'Protease', 'Kinase', 'Oxidoreductase', 'Metalloprotease', 'Serine protease',
+                      'Protein phosphatase', 'Ligase', 'Acyltransferase', 'Serine/threonine-protein kinase', 'Glycosidase', 'Aminopeptidase',
+                      'Isomerase', 'Methyltransferase', 'Carboxypeptidase', 'Hydroxylation', 'Aspartyl protease', 'Serine esterase',
+                      'Lipid biosynthesis', 'GPI-anchor biosynthesis', 'Steroid biosynthesis', 'Melanin biosynthesis', 'Thyroid hormones biosynthesis',
+                      'Phospholipid biosynthesis', 'Sterol biosynthesis', 'Glutathione biosynthesis', 'Cholesterol biosynthesis',
+                      'Fatty acid biosynthesis', 'Prostaglandin biosynthesis', 'cGMP biosynthesis', 'Leukotriene biosynthesis', 'Catecholamine biosynthesis',
+                      'Lipid metabolism', 'Carbohydrate metabolism', 'Steroid metabolism', 'Sterol metabolism', 'Sphingolipid metabolism',
+                      'Cholesterol metabolism', 'Fatty acid metabolism', 'Phospholipid metabolism', 'Catecholamine metabolism', 'Prostaglandin metabolism',
+                      'Glycogen metabolism', 'Fucose metabolism']
+
+    list_ignored_KW = ['Transmembrane', 'Complete proteome', 'Reference proteome', 'Membrane',
+                       'Transmembrane helix', 'Cell membrane', 'Repeat', 'Alternative splicing', 'Sodium', 'Potassium', 'Direct protein sequencing',
+                       'Transducer', 'Polymorphism', 'Glycoprotein', 'Calcium transport', 'Ion transport', 'Transport', 'Protein transport',
+                       'Voltage-gated channel', 'ATP-binding', 'Calcium', 'Zinc', 'Synapse', 'Signal', 'Disulfide bond', '3D-structure', 'Host-virus interaction', 'Palmitate',
+                       'Olfaction']
+
+    return list_enzyme_KW, list_ignored_KW
+
+
+def KW_list_contains_any_desired_KW(KW_list_to_search,list_desired_KW):
+    ''' Determine if two lists contain any common values.
+    Used to determine, for example, if a list of keywords contains any
+    enzyme related words, from another list
+    input:
+    KW_list_to_search
+    list_desired_KW
+    note: in theory, this function could be updated to use set(), which should be slightly quicker
+    '''
+    is_enzyme = False
+    for KW in list_desired_KW:
+        if KW in KW_list_to_search:
+            is_enzyme = True
+            break
+    return is_enzyme
