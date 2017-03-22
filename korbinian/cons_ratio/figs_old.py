@@ -2,6 +2,8 @@ from scipy.stats import ttest_ind
 import ast
 import csv
 import itertools
+
+import korbinian.cons_ratio.keywords
 import korbinian.utils as utils
 import matplotlib.pyplot as plt
 import numpy as np
@@ -1979,7 +1981,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                               'Phospholipid metabolism', 'Catecholamine metabolism', 'Prostaglandin metabolism',
                               'Glycogen metabolism', 'Fucose metabolism']
 
-            df['enzyme'] = df['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args=(list_enzyme_KW,))
+            df['enzyme'] = df['uniprot_KW'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=(list_enzyme_KW,))
 
             newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[Fig_Nr]
             # if a new figure should be created (either because the orig is full, or the last TMD is analysed)

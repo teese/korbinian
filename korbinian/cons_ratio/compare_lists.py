@@ -1358,7 +1358,7 @@ def compare_lists (s):
         for ax, prot_list in zip(axes.flat, protein_lists):
             # check if protein is a GPCR
             list_GPCR_KW = ['G-protein coupled receptor']
-            df_dict[prot_list]['GPCR'] = df_dict[prot_list]['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args=(list_GPCR_KW,))
+            df_dict[prot_list]['GPCR'] = df_dict[prot_list]['uniprot_KW'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=(list_GPCR_KW,))
             df_GPCR = df_dict[prot_list][df_dict[prot_list].GPCR == True]
             # check if df_GPCR contains elements
             if df_GPCR.shape[0] == 0:

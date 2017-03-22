@@ -69,13 +69,13 @@ def gather_AAIMONs(pathdict, logging, s):
         if isinstance(df['KW'][0], str):
             df['KW'] = df['KW'].apply(lambda x: ast.literal_eval(x))
         # get list of enzyme keywords
-        list_enzyme_KW, list_ignored_KW = utils.get_list_enzyme_KW_and_list_ignored_KW()
+        list_enzyme_KW, list_ignored_KW = korbinian.cons_ratio.keywords.get_list_enzyme_KW_and_list_ignored_KW()
         # create column per allowed keyword that holds a bool if keyword is present in that protein
         for KW in allowed_KW:
             if KW == 'Enzyme':
-                df['Enzyme'] = df['KW'].apply(utils.KW_list_contains_any_desired_KW, args=(list_enzyme_KW,))
+                df['Enzyme'] = df['KW'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=(list_enzyme_KW,))
             else:
-                df[KW] = df['KW'].apply(utils.KW_list_contains_any_desired_KW, args=([KW],))
+                df[KW] = df['KW'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=([KW],))
         # create column for every protein holding bool if protein contains at least one of the allowed keywords
         for acc in df.index:
             df.loc[acc, 'keep'] = df.loc[acc, allowed_KW].any()
@@ -85,9 +85,9 @@ def gather_AAIMONs(pathdict, logging, s):
         # drop all proteins that contain one of the disallowed keywords
         for KW in disallowed_KW:
             if KW == 'Enzyme':
-                df['Enzyme'] = df['KW'].apply(utils.KW_list_contains_any_desired_KW, args=(list_enzyme_KW,))
+                df['Enzyme'] = df['KW'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=(list_enzyme_KW,))
             else:
-                df[KW] = df['KW'].apply(utils.KW_list_contains_any_desired_KW, args=([KW],))
+                df[KW] = df['KW'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=([KW],))
             df = df.loc[df[KW] == False]
         # remove copied and edited keyword list
         df = df.drop('KW', 1)

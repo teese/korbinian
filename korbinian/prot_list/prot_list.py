@@ -455,9 +455,9 @@ def prepare_protein_list(s, pathdict, logging):
         if isinstance(df['uniprot_KW'][0], str):
             df['uniprot_KW'] = df['uniprot_KW'].apply(lambda x: ast.literal_eval(x))
         # check for specific keywords
-        df['Cell_membrane'] = df['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args=(['Cell membrane'],))
-        df['Endoplasmic_reticulum'] = df['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args=(['Endoplasmic reticulum'],))
-        df['Golgi_apparatus'] = df['uniprot_KW'].apply(utils.KW_list_contains_any_desired_KW, args=(['Golgi apparatus'],))
+        df['Cell_membrane'] = df['uniprot_KW'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=(['Cell membrane'],))
+        df['Endoplasmic_reticulum'] = df['uniprot_KW'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=(['Endoplasmic reticulum'],))
+        df['Golgi_apparatus'] = df['uniprot_KW'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=(['Golgi apparatus'],))
 
     ########################################################################################
     #                                                                                      #
