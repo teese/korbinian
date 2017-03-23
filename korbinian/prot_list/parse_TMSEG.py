@@ -4,13 +4,34 @@ import korbinian
 import sys
 import korbinian.utils as utils
 import os
+import csv
 
 def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
     logging.info("~~~~~~~~~~~~                        starting parse_TMSEG_results                    ~~~~~~~~~~~~")
-    TMSEG_results_filepath = os.path.join(s['data_dir'], 'TMSEG', 'humanU90.pred')
-    TMSEG_nonTM_outpath = os.path.join(s['data_dir'], 'TMSEG', 'humanU90_nonTM.txt')
+    list_number = s['list_number']
 
-    infile = os.path.join(TMSEG_results_filepath, 'humanU90.pred')
+
+    # define the uniprot directory with selected records
+    uniprot_dir_sel = os.path.join(s["data_dir"], 'uniprot', 'selected')
+    selected_uniprot_records_flatfile = os.path.join(uniprot_dir_sel, 'List%02d_selected_uniprot_records_flatfile.txt' % list_number)
+    n_aa_before_tmd = s["n_aa_before_tmd"]
+    n_aa_after_tmd = s["n_aa_after_tmd"]
+    list_parsed_csv = pathdict["list_parsed_csv"]
+    analyse_signal_peptides = s['SiPe']
+    output = korbinian.prot_list.uniprot_parse.create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_signal_peptides, logging, list_parsed_csv)
+    logging.info(output)
+
+    TMSEG_results_filepath = os.path.join(s['data_dir'], 'TMSEG', 'List{:02d}_TMSEG_results.txt'.format(list_number))
+    TMSEG_nonTM_outpath = pathdict['TMSEG_nonTM']
+
+    list_parsed = pd.read_csv(pathdict["list_parsed_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
+
+    columns_to_keep = ['organism_domain', 'create_csv_from_uniprot_flatfile', 'uniprot_acc', 'uniprot_all_accessions', 'uniprot_entry_name', 'uniprot_features',
+                       'uniprot_orgclass', 'uniprot_SiPe', 'singlepass', 'typeI', 'typeII', 'uniprot_KW', 'organism', 'prot_descr', 'membrane',
+                       'multipass', 'gene_name', 'comments_subcellular_location_uniprot']
+    list_indices = list(list_parsed.index)
+    list_parsed = list_parsed[columns_to_keep]
+
     # read data from file
     input_data = []
     with open(TMSEG_results_filepath) as data_file:
@@ -38,7 +59,14 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
     df['prot_descr'] = input_data[2::5]
     df['full_seq'] = input_data[3::5]
     df['topology'] = input_data[4::5]
-    df['organism'] = df.uniprot_entry_name.apply(lambda x: x[-5:])
+
+    keep = []
+    for acc in df.index:
+        if acc in list_indices:
+            keep.append(acc)
+    df = df.loc[keep,:]
+    if df.shape[0] == 0:
+        return sys.stdout.write('no remaining proteins in list!')
 
     # get list of uniprot accessions of proteins where no transmembrane region was predicted
     list_nonTMD = []
@@ -154,7 +182,7 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
         df.loc[row, 'nonTMD_seq'] = sequence
         df.loc[row, 'len_nonTMD'] = len(sequence)
 
-    if analyse_sp:
+    if analyse_sp == True:
         for acc in df.index:
             SiPe_indices = df.loc[acc, 'SiPe_indices']
             list_of_TMDs = df.loc[acc, 'list_of_TMDs']
@@ -164,8 +192,11 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
                 list_of_TMDs.append('SP01')
                 df.set_value(row, "list_of_TMDs", list_of_TMDs)
 
-
-    df.to_csv(os.path.join(s['data_dir'], 'TMSEG', 'ListXY_TMSEG.csv'))
+    cols_to_drop = ['topology', 'M_indices', 'SiPe_indices', 'Membrane_Borders', 'TM_indices']
+    df = pd.merge(df, list_parsed, left_index=True, right_index=True, suffixes=('', '_list_parsed'))
+    df.drop(cols_to_drop, axis=1, inplace=True)
+    df['parse_TMSEG'] = True
+    df.to_csv(pathdict["list_parsed_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     logging.info("\n~~~~~~~~~~~~                       parse_TMSEG_results is finished                  ~~~~~~~~~~~~")
 
