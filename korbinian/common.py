@@ -242,6 +242,7 @@ def create_pathdict(base_filename_summaries, s):
     # SCAMPI output file location
     pathdict['SCAMPI'] = os.path.join('%s_SCAMPI' % base_filename_summaries, 'query.top.txt')
     pathdict['SCAMPI_nonTM'] = os.path.join('%s_SCAMPI' % base_filename_summaries, 'query.nonTM_list.txt')
+    pathdict['TMSEG_nonTM'] = os.path.join('%s_SCAMPI' % base_filename_summaries, 'List{:02d}_TMSEG_nonTM.txt'.format(list_number))
 
     """OUTPUT FILES FOR OLD SCRIPTS"""
     pathdict["dfout08_simap_AAIMON"] = '%s_simap_AAIMON.csv' % base_filename_summaries

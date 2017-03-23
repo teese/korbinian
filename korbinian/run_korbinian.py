@@ -147,7 +147,6 @@ def run_statements(s):
         logging.info(output)
 
     if s['parse_TMSEG']:
-        print('bayern steigt ab')
         analyse_signal_peptides = s['SiPe']
         korbinian.prot_list.parse_TMSEG.parse_TMSEG_results(analyse_signal_peptides, pathdict, s, logging)
 

@@ -44,7 +44,12 @@ def prepare_protein_list(s, pathdict, logging):
             for line in source:
                 line = line.strip()
                 SCAMPI_nonTM_list.append(line)
-        df = df.drop(SCAMPI_nonTM_list, axis=0)
+        keep_after_SCAMPI = []
+        for acc in df.index:
+            if not acc in SCAMPI_nonTM_list:
+                keep_after_SCAMPI.append(acc)
+        df = df.loc[keep_after_SCAMPI,:]
+        #df = df.drop(SCAMPI_nonTM_list, axis=0)
         n_prot_AFTER_dropping_SCAMPI_nonTM_seqences = df.shape[0]
     else:
         modification_date = None

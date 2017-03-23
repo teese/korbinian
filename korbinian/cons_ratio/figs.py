@@ -2110,7 +2110,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                                             alpha=0.9,
                                             linewidth=linewidth)
 
-        ax.set_xlabel('AAIMON slope $*10^{-3}$', fontsize=fontsize)
+        ax.set_xlabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
         # move the x-axis label closer to the x-axis
         ax.xaxis.set_label_coords(0.5, -0.085)
         # x and y axes min and max

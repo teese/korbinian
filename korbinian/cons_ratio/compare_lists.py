@@ -255,7 +255,7 @@ def compare_lists (s):
     #                                                             #
     ###############################################################
 
-    ax.set_xlabel('AAIMON slope $*10^{-3}$', fontsize=fontsize, labelpad=20)
+    ax.set_xlabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize, labelpad=20)
     # move the x-axis label closer to the x-axis
     ax.xaxis.set_label_coords(0.5, -0.085)
     # x and y axes min and max
@@ -1216,7 +1216,7 @@ def compare_lists (s):
     #                                                             #
     ###############################################################
 
-    ax.set_xlabel('AAIMON slope $*10^{-3}$', fontsize=fontsize, labelpad=20)
+    ax.set_xlabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize, labelpad=20)
     # move the x-axis label closer to the x-axis
     ax.xaxis.set_label_coords(0.5, -0.085)
     # x and y axes min and max
@@ -1300,11 +1300,11 @@ def compare_lists (s):
             data_nonTMD = df_dict[prot_list].nonTMD_perc_ident_mean * 100
             xdat, ydat = data_TMD, data_nonTMD
 
-            # plot a linear regression line for all datapoints
-            fit = np.polyfit(xdat, ydat, deg=1)
-            fit_fn = np.poly1d(fit)
-            x = xyrange[0]
-            ax.plot(x, fit_fn(x), color='k', linewidth=1)
+            # # plot a linear regression line for all datapoints
+            # fit = np.polyfit(xdat, ydat, deg=1)
+            # fit_fn = np.poly1d(fit)
+            # x = xyrange[0]
+            # ax.plot(x, fit_fn(x), color='k', linewidth=1)
 
             # histogram the data
             hh, locx, locy = scipy.histogram2d(xdat, ydat, range=xyrange, bins=bins)
