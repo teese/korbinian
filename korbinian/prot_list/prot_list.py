@@ -246,7 +246,7 @@ def prepare_protein_list(s, pathdict, logging):
 
     # FASTAGAP: create filename for zip that holds the .fas files
     df['fastagap_zip'] = df['homol_base'] + '_fastagap.zip'
-    df['fastagap_pos_arrays_zip'] = df['homol_base'] + 'fastagap_pos_arrays.zip'
+    df['fastagap_pos_arrays_zip'] = df['homol_base'] + '_fastagap_pos_arrays.zip'
     df['fastagap_base'] = df['homol_base'] + '_homol_seq_plus_surr_'
 
     # FASTA: create basal name for fasta file with the TMD seqs (eg A0A1F4_EYS_DROME_homol_seq_ + TM01.fas)

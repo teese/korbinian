@@ -26,7 +26,7 @@ def read_scampi_data(pathdict, s, logging, df):
     query.top.txt : holds all topology information of SCAMPI output.
 
     """
-    #pathdict['SCAMPI'] = '/Volumes/Musik/Databases/summaries/01/List01_SCAMPI/query.top.txt'
+    #pathdict['SCAMPI_top'] = '/Volumes/Musik/Databases/summaries/01/List01_SCAMPI/query.top.txt'
     logging.info('\n~~~~~~~~~~~~                           using scampi data                            ~~~~~~~~~~~~')
     # define columns to replace
     columns_to_replace = ['nonTMD_seq', 'number_of_TMDs', 'list_of_TMDs']
@@ -43,7 +43,7 @@ def read_scampi_data(pathdict, s, logging, df):
     # read text file from disk, Check SCAMPI output for accession numbers in acc list and read the toplology
     topo_list = []
 
-    with open(pathdict['SCAMPI']) as data_file:
+    with open(pathdict['SCAMPI_top']) as data_file:
         for line in data_file:
             line = line.strip()
             if line[0] == '>':
