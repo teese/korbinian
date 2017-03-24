@@ -248,6 +248,7 @@ def create_pathdict(base_filename_summaries, s):
     pathdict['TMSEG_top'] = os.path.join(pathdict['TMSEG_dir'], 'topology_fasta.txt')
     pathdict['TMSEG_nonTM'] = os.path.join(pathdict['TMSEG_dir'], 'nonTM_acc_list.txt')
     pathdict['SignalP_dir'] = os.path.join(pathdict['predictions_basename'], "SignalP")
+    pathdict['SignalP_SiPe_acc'] = os.path.join(pathdict['SignalP_dir'], "gff.txt")
 
     """OUTPUT FILES FOR OLD SCRIPTS"""
     pathdict["dfout08_simap_AAIMON"] = '%s_simap_AAIMON.csv' % base_filename_summaries

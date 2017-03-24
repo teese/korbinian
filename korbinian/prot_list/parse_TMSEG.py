@@ -5,11 +5,12 @@ import sys
 import korbinian.utils as utils
 import os
 import csv
+import ast
 
 def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
     logging.info("~~~~~~~~~~~~                        starting parse_TMSEG_results                    ~~~~~~~~~~~~")
-    list_number = s['list_number']
 
+    list_number = s['list_number']
 
     # define the uniprot directory with selected records
     uniprot_dir_sel = os.path.join(s["data_dir"], 'uniprot', 'selected')
@@ -21,7 +22,7 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
     output = korbinian.prot_list.uniprot_parse.create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_signal_peptides, logging, list_parsed_csv)
     logging.info(output)
 
-    TMSEG_results_filepath = os.path.join(s['data_dir'], 'TMSEG', 'List{:02d}_TMSEG_results.txt'.format(list_number))
+    TMSEG_results_filepath = pathdict['TMSEG_top']
     TMSEG_nonTM_outpath = pathdict['TMSEG_nonTM']
 
     list_parsed = pd.read_csv(pathdict["list_parsed_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
@@ -129,39 +130,49 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
 
     sys.stdout.write('slicing TMD and nonTMD sequences:\n')
 
-    for row_nr, row in enumerate(df.index):
+    for n, acc in enumerate(df.index):
         # get nested tuple of TMDs
-        nested_tup_TMs = df.loc[row, "TM_indices"]
+        nested_tup_TMs = df.loc[acc, "TM_indices"]
         # slice long list of TMD names to get an appropriate list for that protein [TM01, TM02, TM03, etc.
         len_nested_tup_TMs = len(nested_tup_TMs)
         list_of_TMDs = long_list_of_TMDs[:len_nested_tup_TMs]
         # add that list to the dataframe (could also be added as a stringlist, but that's irritating somehow)
-        df.set_value(row, "list_of_TMDs", list_of_TMDs)
+        df.set_value(acc, "list_of_TMDs", list_of_TMDs)
         # set seq for slicing
-        full_seq = df.loc[row, "full_seq"]
-        # topology = dft.loc[row, "Topology"]
+        full_seq = df.loc[acc, "full_seq"]
+        # topology = dft.loc[acc, "Topology"]
         # iterate through all the TMDs of that protein, slicing out the sequences
         for i in range(len(list_of_TMDs)):
             TMD = list_of_TMDs[i]
             tup = nested_tup_TMs[i]
-            df.loc[row, "%s_start" % TMD] = tup[0]
-            df.loc[row, "%s_end" % TMD] = tup[1]
-            df.loc[row, "%s_seq" % TMD] = utils.slice_with_listlike(full_seq, tup)
-            df.loc[row, "%s_seqlen" % TMD] = len(df.loc[row, "%s_seq" % TMD])
-            # dft.loc[row, TMD + "_top"] = utils.slice_with_listlike(topology, tup)
-        if row_nr % 50 == 0 and n != 0:
+            df.loc[acc, "%s_start" % TMD] = tup[0]
+            df.loc[acc, "%s_end" % TMD] = tup[1]
+            df.loc[acc, "%s_seq" % TMD] = utils.slice_with_listlike(full_seq, tup)
+            df.loc[acc, "%s_seqlen" % TMD] = len(df.loc[acc, "%s_seq" % TMD])
+            # dft.loc[acc, TMD + "_top"] = utils.slice_with_listlike(topology, tup)
+        # add signal peptides and their corresponding values to list_of_TMDs
+        if analyse_sp == True:
+            SiPe_indices = df.loc[acc, 'SiPe_indices']
+            if SiPe_indices != []:
+                df.loc[acc, 'SP01_start'] = SiPe_indices[0]
+                df.loc[acc, 'SP01_end'] = SiPe_indices[-1]
+                df.loc[acc, 'SP01_seq'] = full_seq[SiPe_indices[0]:SiPe_indices[-1]+1]
+                list_of_TMDs.append('SP01')
+                df.set_value(acc, "list_of_TMDs", list_of_TMDs)
+
+        if n % 50 == 0 and n != 0:
             sys.stdout.write(". ")
             sys.stdout.flush()
-            if row_nr % 500 == 0:
+            if n % 500 == 0:
                 sys.stdout.write("\n")
                 sys.stdout.flush()
 
         ''' ~~   SLICE nonTMD sequence  ~~ '''
-        list_of_TMDs = df.loc[row, 'list_of_TMDs']
+        list_of_TMDs = df.loc[acc, 'list_of_TMDs'].copy()
         if 'SP01' in list_of_TMDs:
             list_of_TMDs.remove('SP01')
         # sequence from N-term. to first TMD
-        nonTMD_first = df.loc[row, 'full_seq'][0: (df.loc[row, 'TM01_start'] - 1).astype('int64')]
+        nonTMD_first = df.loc[acc, 'full_seq'][0: (df.loc[acc, 'TM01_start'] - 1).astype('int64')]
         sequence = nonTMD_first
         # only for multipass proteins, generate sequences between TMDs
         if len(list_of_TMDs) == 0:
@@ -173,24 +184,17 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
                 TMD = list_of_TMDs[TM_Nr]
                 # the next TMD, which contains the end index, is the next item in the list
                 next_TMD = list_of_TMDs[TM_Nr + 1]
-                between_TM_and_TMplus1 = df.loc[row, 'full_seq'][df.loc[row, '%s_end' % TMD].astype('int64'): df.loc[row, '%s_start' % next_TMD].astype('int64') - 1]
+                between_TM_and_TMplus1 = df.loc[acc, 'full_seq'][df.loc[acc, '%s_end' % TMD].astype('int64'): df.loc[acc, '%s_start' % next_TMD].astype('int64') - 1]
                 sequence += between_TM_and_TMplus1
         last_TMD = list_of_TMDs[-1]
         # sequence from last TMD to C-term.
-        nonTMD_last = df.loc[row, 'full_seq'][df.loc[row, '%s_end' % last_TMD].astype('int64'):df.loc[row, 'seqlen'].astype('int64')]
+        nonTMD_last = df.loc[acc, 'full_seq'][df.loc[acc, '%s_end' % last_TMD].astype('int64'):df.loc[acc, 'seqlen'].astype('int64')]
         sequence += nonTMD_last
-        df.loc[row, 'nonTMD_seq'] = sequence
-        df.loc[row, 'len_nonTMD'] = len(sequence)
+        df.loc[acc, 'nonTMD_seq'] = sequence
+        df.loc[acc, 'len_nonTMD'] = len(sequence)
 
-    if analyse_sp == True:
-        for acc in df.index:
-            SiPe_indices = df.loc[acc, 'SiPe_indices']
-            list_of_TMDs = df.loc[acc, 'list_of_TMDs']
-            if SiPe_indices != []:
-                df.loc[acc, 'SP01_start'] = SiPe_indices[0]
-                df.loc[acc, 'SP01_end'] = SiPe_indices[-1]
-                list_of_TMDs.append('SP01')
-                df.set_value(row, "list_of_TMDs", list_of_TMDs)
+
+
 
     cols_to_drop = ['topology', 'M_indices', 'SiPe_indices', 'Membrane_Borders', 'TM_indices']
     df = pd.merge(df, list_parsed, left_index=True, right_index=True, suffixes=('', '_list_parsed'))
