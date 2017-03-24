@@ -19,7 +19,7 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
     n_aa_after_tmd = s["n_aa_after_tmd"]
     list_parsed_csv = pathdict["list_parsed_csv"]
     analyse_signal_peptides = s['SiPe']
-    output = korbinian.prot_list.uniprot_parse.create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_signal_peptides, logging, list_parsed_csv)
+    output = korbinian.prot_list.uniprot_parse.create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_signal_peptides, logging, list_parsed_csv, slice=False)
     logging.info(output)
 
     TMSEG_results_filepath = pathdict['TMSEG_top']
@@ -116,7 +116,7 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
     df["Membrane_Borders"] = nested_list_of_membrane_borders_python_indexstyle
 
     # Creating new column, which contains the number of TMDS
-    df["number_of_TMDs"] = df.Membrane_Borders.apply(lambda x: len(x) / 2)
+    #df["number_of_TMDs"] = df.Membrane_Borders.apply(lambda x: len(x) / 2)
     df["TM_indices"] = df["Membrane_Borders"].apply(lambda x: tuple(zip(x[::2], x[1::2])))
     # create a list of [TM01, TM02, TM03, etc.
     long_list_of_TMDs = []
@@ -166,6 +166,8 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
             if n % 500 == 0:
                 sys.stdout.write("\n")
                 sys.stdout.flush()
+
+        df.loc[acc, "number_of_TMDs"] = len(list_of_TMDs)
 
         ''' ~~   SLICE nonTMD sequence  ~~ '''
         list_of_TMDs = df.loc[acc, 'list_of_TMDs'].copy()
