@@ -12,6 +12,9 @@ import os
 def keyword_analysis(pathdict, s, logging):
     """
 
+
+    Martin to write docstring and drop proteins with not enough homologues.
+
     Parameters
     ----------
     pathdict
