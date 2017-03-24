@@ -38,6 +38,12 @@ def keyword_analysis(pathdict, s, logging):
     # merge cr_summary and summary file, if columns are equal in both files, suffix _dfc will be added in cr_summary column names for backwards compatibility
     df = pd.merge(dfc, dfu, left_index=True, right_index=True, suffixes=('_dfc', ''))
 
+    # drop proteins with less then x homologues
+    min_homol = s['min_homol']
+    sys.stdout.write('number of proteins before min. number of homologues cutoff: {}\n'. format(df.shape[0]))
+    df = df[df.TM01_AAIMON_n_homol >= min_homol]
+    sys.stdout.write('number of proteins after min. number of homologues cutoff: {}\n'.format(df.shape[0])), sys.stdout.flush()
+
     # create folder in list summary directory to hold keyword data
     if not os.path.exists(pathdict["keywords"]):
         os.makedirs(pathdict["keywords"])

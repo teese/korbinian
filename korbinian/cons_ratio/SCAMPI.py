@@ -165,7 +165,7 @@ def generate_scampi_input_files(pathdict, s, logging):
     # load list parsed from uniprot
     df = pd.read_csv(pathdict["list_parsed_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
     # specify outpath
-    outpath = '{}_SCAMPI'.format(pathdict['base_filename_summaries'])
+    outpath = pathdict['SCAMPI_dir']
     # make folder for output
     if not os.path.exists(outpath):
         os.makedirs(outpath)
@@ -188,7 +188,7 @@ def generate_SignalP_input_files(pathdict, s, logging):
     # load list parsed from uniprot
     df = pd.read_csv(pathdict["list_parsed_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
     # specify outpath
-    outpath = '{}_SCAMPI'.format(pathdict['base_filename_summaries'])
+    outpath = pathdict['SignalP_dir']
     # make folder for output
     if not os.path.exists(outpath):
         os.makedirs(outpath)

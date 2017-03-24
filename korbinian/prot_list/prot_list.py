@@ -55,7 +55,7 @@ def prepare_protein_list(s, pathdict, logging):
         modification_date = None
 
     # load SignalP file containing all proteins that have signal peptides
-    SignalP_SiPe_path = os.path.join('%s_SCAMPI'%pathdict["base_filename_summaries"], 'gff.txt')
+    SignalP_SiPe_path = pathdict['SignalP_SiPe_acc']
     n_prot_AFTER_dropping_non_trusted_SiPe = 'SignalP output file not found!'
     if os.path.isfile(SignalP_SiPe_path):
         modification_date_SignalP = time.ctime(os.path.getmtime(SignalP_SiPe_path))
@@ -80,27 +80,47 @@ def prepare_protein_list(s, pathdict, logging):
     else:
         modification_date_SignalP = None
 
-    # load PrediSi file containing all proteins that have signal peptides
-    PrediSi_inpath = os.path.join('%s_SCAMPI' % pathdict["base_filename_summaries"], 'SiPe_PrediSi.txt')
-    n_prot_AFTER_dropping_non_trusted_SiPe_PrediSi = 'PrediSi output file not found!'
-    if os.path.isfile(PrediSi_inpath):
-        modification_date_PrediSi = time.ctime(os.path.getmtime(PrediSi_inpath))
-        PrediSi_SiPe_list = korbinian.cons_ratio.SCAMPI.get_PrediSi_SiPe_acc(PrediSi_inpath)
-        # create column containing bool if signal peptide is predicted by PrediSi
+    # drop all TMSEG nonTM proteins
+    n_prot_AFTER_dropping_TMSEG_nonTM_proteins = 'TMSEG output file not found!'
+    if os.path.isfile(pathdict['TMSEG_nonTM']):
+        modification_date_TMSEG_nonTM = time.ctime(os.path.getmtime(pathdict['TMSEG_nonTM']))
+        TMSEG_nonTM_list = []
+        with open(pathdict['TMSEG_nonTM']) as source:
+            for line in source:
+                line = line.strip()
+                TMSEG_nonTM_list.append(line)
+
+        keep_after_TMSEG = []
         for acc in df.index:
-            if acc in PrediSi_SiPe_list:
-                df.loc[acc, 'PrediSi_SiPe'] = True
-            else:
-                df.loc[acc, 'PrediSi_SiPe'] = False
-        # drop all proteins where Uniprot did not get signal peptide
-        drop = []
-        for acc in df.index:
-            if df.loc[acc, 'uniprot_SiPe'] == False and df.loc[acc, 'PrediSi_SiPe'] == True:
-                drop.append(acc)
-        df = df.drop(drop, axis=0)
-        n_prot_AFTER_dropping_non_trusted_SiPe_PrediSi = df.shape[0]
+            if not acc in TMSEG_nonTM_list:
+                keep_after_TMSEG.append(acc)
+        df = df.loc[keep_after_TMSEG, :]
+        n_prot_AFTER_dropping_TMSEG_nonTM_proteins = df.shape[0]
     else:
-        modification_date_PrediSi = None
+        modification_date_TMSEG_nonTM = None
+
+
+    # # load PrediSi file containing all proteins that have signal peptides
+    # PrediSi_inpath = os.path.join('%s_SCAMPI' % pathdict["base_filename_summaries"], 'SiPe_PrediSi.txt')
+    # n_prot_AFTER_dropping_non_trusted_SiPe_PrediSi = 'PrediSi output file not found!'
+    # if os.path.isfile(pathdict['TMSEG_nonTM']):
+    #     modification_date_PrediSi = time.ctime(os.path.getmtime(pathdict['TMSEG_nonTM']))
+    #     PrediSi_SiPe_list = korbinian.cons_ratio.SCAMPI.get_PrediSi_SiPe_acc(PrediSi_inpath)
+    #     # create column containing bool if signal peptide is predicted by PrediSi
+    #     for acc in df.index:
+    #         if acc in PrediSi_SiPe_list:
+    #             df.loc[acc, 'PrediSi_SiPe'] = True
+    #         else:
+    #             df.loc[acc, 'PrediSi_SiPe'] = False
+    #     # drop all proteins where Uniprot did not get signal peptide
+    #     drop = []
+    #     for acc in df.index:
+    #         if df.loc[acc, 'uniprot_SiPe'] == False and df.loc[acc, 'PrediSi_SiPe'] == True:
+    #             drop.append(acc)
+    #     df = df.drop(drop, axis=0)
+    #     n_prot_AFTER_dropping_non_trusted_SiPe_PrediSi = df.shape[0]
+    # else:
+    #    modification_date_PrediSi = None
 
 
     if s['use_scampi_TM_regions']:
@@ -344,7 +364,7 @@ def prepare_protein_list(s, pathdict, logging):
             # skip to next protein
             continue
 
-        list_of_TMDs = df.loc[acc, 'list_of_TMDs']
+        list_of_TMDs = df.loc[acc, 'list_of_TMDs'].copy()
         # if len(list_of_TMDs) == 1:
         #     # there is only one TMD, add it as the TMD_seq_joined and as the lipo mean
         #     df.loc[acc, 'TMD_seq_joined'] = df.loc[acc, 'TM01_seq']
@@ -380,7 +400,8 @@ def prepare_protein_list(s, pathdict, logging):
             # calculate lipophilicity, add new col for each TMD, add to list in order to calc mean for all TMDs
             lipo = utils.calc_lipophilicity(seq)
             df.loc[acc, '%s_lipo' % TMD] = lipo
-            lipo_list.append(lipo)
+            if TMD != 'SP01':
+                lipo_list.append(lipo)
 
         df.loc[acc, 'TMD_seq_joined'] = TMD_seq_joined
         # calc the mean lipophilicity
@@ -389,7 +410,10 @@ def prepare_protein_list(s, pathdict, logging):
         # calc the mean seqlen of all TMDs
         df.loc[acc, 'len_TMD_mean'] = np.array(TMD_seqlen_list).mean()
         # get last TMD
-        last_TMD = list_of_TMDs[-1]
+        if 'SP01' in list_of_TMDs:
+            last_TMD = list_of_TMDs[-2]
+        else:
+            last_TMD = list_of_TMDs[-1]
         df.loc[acc, 'last_TMD'] = last_TMD
         # get lipo of last TMD
         df.loc[acc, 'lipo_last_TMD'] = df.loc[acc, '%s_lipo' % last_TMD]
@@ -487,9 +511,9 @@ def prepare_protein_list(s, pathdict, logging):
     if modification_date_SignalP is not None:
         logging.info("modification_date of SignalP file: {}".format(modification_date_SignalP))
 
-    logging.info('n_prot_AFTER_non_trusted_Signal_Peptides_PrediSi: {}'.format(n_prot_AFTER_dropping_non_trusted_SiPe_PrediSi))
-    if modification_date_SignalP is not None:
-        logging.info("modification_date of PrediSi file: {}".format(modification_date_PrediSi))
+    logging.info('n_prot_AFTER_dropping_TMSEG_nonTM_proteins: {}'.format(n_prot_AFTER_dropping_TMSEG_nonTM_proteins))
+    if modification_date_TMSEG_nonTM is not None:
+        logging.info("modification_date of TMSEG nonTM file: {}".format(modification_date_TMSEG_nonTM))
 
     logging.info('n_prot_AFTER_dropping_without_list_TMDs: {}'.format(n_prot_AFTER_dropping_without_list_TMDs)) # line 107
 
