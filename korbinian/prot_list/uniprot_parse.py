@@ -11,7 +11,7 @@ import pandas as pd
 import re
 import sys
 
-def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_sp, logging, list_parsed_csv):
+def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_sp, logging, list_parsed_csv, slice=True):
     """ Parses a flatfile of UniProt records to csv.
 
     Parameters
@@ -297,36 +297,37 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
         dfu['list_of_TMDs'] = dfu['list_of_TMDs'].astype(str)
 
         ''' ~~   SLICE nonTMD sequence FROM UNIPROT SEQ    ~~ '''
-        sys.stdout.write ('\nslicing nonTMD sequences:')
-        valid_acc_list = dfu.loc[dfu['list_of_TMDs'].notnull()].loc[dfu['list_of_TMDs'] != "nan"].index
-        for n, acc in enumerate(valid_acc_list):
-            if n % 10 == 0 and n is not 0:
-                sys.stdout.write('.')
-                sys.stdout.flush()
-                if n % 200 == 0 and n is not 0:
-                    sys.stdout.write('\n')
+        if slice == True:
+            sys.stdout.write ('\nslicing nonTMD sequences:')
+            valid_acc_list = dfu.loc[dfu['list_of_TMDs'].notnull()].loc[dfu['list_of_TMDs'] != "nan"].index
+            for n, acc in enumerate(valid_acc_list):
+                if n % 10 == 0 and n is not 0:
+                    sys.stdout.write('.')
                     sys.stdout.flush()
-            list_of_TMDs = ast.literal_eval(dfu.loc[acc, 'list_of_TMDs'])
-            if 'SP01' in list_of_TMDs:
-                list_of_TMDs.remove('SP01')
-            # sequence from N-term. to first TMD
-            nonTMD_first = dfu.loc[acc, 'full_seq'][0: (dfu.loc[acc, 'TM01_start']-1).astype('int64')]
-            sequence = nonTMD_first
-            # only for multipass proteins, generate sequences between TMDs
-            if len(list_of_TMDs) > 1:
-                for TM_Nr in range(len(list_of_TMDs) - 1):
-                    # the TMD is the equivalent item in the list
-                    TMD = list_of_TMDs[TM_Nr]
-                    # the next TMD, which contains the end index, is the next item in the list
-                    next_TMD = list_of_TMDs[TM_Nr + 1]
-                    between_TM_and_TMplus1 = dfu.loc[acc, 'full_seq'][dfu.loc[acc, '%s_end' %TMD].astype('int64'): dfu.loc[acc, '%s_start' %next_TMD].astype('int64')-1]
-                    sequence += between_TM_and_TMplus1
-            last_TMD = list_of_TMDs[-1]
-            # sequence from last TMD to C-term.
-            nonTMD_last = dfu.loc[acc, 'full_seq'][dfu.loc[acc, '%s_end' %last_TMD].astype('int64'):dfu.loc[acc, 'seqlen']]
-            sequence += nonTMD_last
-            dfu.loc[acc, 'nonTMD_seq'] = sequence
-            dfu.loc[acc, 'len_nonTMD'] = len(sequence)
+                    if n % 200 == 0 and n is not 0:
+                        sys.stdout.write('\n')
+                        sys.stdout.flush()
+                list_of_TMDs = ast.literal_eval(dfu.loc[acc, 'list_of_TMDs'])
+                if 'SP01' in list_of_TMDs:
+                    list_of_TMDs.remove('SP01')
+                # sequence from N-term. to first TMD
+                nonTMD_first = dfu.loc[acc, 'full_seq'][0: (dfu.loc[acc, 'TM01_start']-1).astype('int64')]
+                sequence = nonTMD_first
+                # only for multipass proteins, generate sequences between TMDs
+                if len(list_of_TMDs) > 1:
+                    for TM_Nr in range(len(list_of_TMDs) - 1):
+                        # the TMD is the equivalent item in the list
+                        TMD = list_of_TMDs[TM_Nr]
+                        # the next TMD, which contains the end index, is the next item in the list
+                        next_TMD = list_of_TMDs[TM_Nr + 1]
+                        between_TM_and_TMplus1 = dfu.loc[acc, 'full_seq'][dfu.loc[acc, '%s_end' %TMD].astype('int64'): dfu.loc[acc, '%s_start' %next_TMD].astype('int64')-1]
+                        sequence += between_TM_and_TMplus1
+                last_TMD = list_of_TMDs[-1]
+                # sequence from last TMD to C-term.
+                nonTMD_last = dfu.loc[acc, 'full_seq'][dfu.loc[acc, '%s_end' %last_TMD].astype('int64'):dfu.loc[acc, 'seqlen']]
+                sequence += nonTMD_last
+                dfu.loc[acc, 'nonTMD_seq'] = sequence
+                dfu.loc[acc, 'len_nonTMD'] = len(sequence)
 
         # indicate that the create_csv_from_uniprot_flatfile function has been run
         dfu['create_csv_from_uniprot_flatfile'] = True

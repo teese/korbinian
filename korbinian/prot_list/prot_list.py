@@ -308,11 +308,14 @@ def prepare_protein_list(s, pathdict, logging):
 
     min_TMDs = s["min_TMDs"]
     max_TMDs = s["max_TMDs"]
-    analyse_signal_peptides = s["SiPe"]
-    if analyse_signal_peptides == True:
-        max_TMDs += 1
     df.dropna(subset=["number_of_TMDs"], inplace=True)
-    df = df.loc[df["number_of_TMDs"].apply(lambda x: min_TMDs <= x <= max_TMDs)]
+    for acc in df.index:
+        list_of_TMDs = df.loc[acc, "list_of_TMDs"]
+        if "SP01" in list_of_TMDs:
+            df.loc[acc, "number_of_TMDs_excl_SP"] = df.loc[acc, "number_of_TMDs"] - 1
+        else:
+            df.loc[acc, "number_of_TMDs_excl_SP"] = df.loc[acc, "number_of_TMDs"]
+    df = df.loc[df["number_of_TMDs_excl_SP"].apply(lambda x: min_TMDs <= x <= max_TMDs)]
     n_prot_AFTER_n_TMDs_cutoff = df.shape[0]
     if n_prot_AFTER_n_TMDs_cutoff == 0:
         raise ValueError("The list {} has no valid proteins after n_TMDs_cutoff.".format(s["list_number"]))
@@ -323,7 +326,8 @@ def prepare_protein_list(s, pathdict, logging):
     #                                                                                      #
     ########################################################################################
 
-    max_num_TMDs = df["number_of_TMDs"].max()
+    max_num_TMDs = df["number_of_TMDs_excl_SP"].max()
+
     n_aa_before_tmd = s["n_aa_before_tmd"]
     n_aa_after_tmd = s["n_aa_after_tmd"]
 
@@ -336,7 +340,6 @@ def prepare_protein_list(s, pathdict, logging):
         df = korbinian.prot_list.prot_list.get_indices_TMD_plus_surr_for_summary_file(df, TMD, n_aa_before_tmd, n_aa_after_tmd)
         # slice out the TMD_seq_plus_surr for each TMD
         df['%s_seq_plus_surr' % TMD] = df[df['%s_start' % TMD].notnull()].apply(utils.slice_uniprot_TMD_plus_surr_seq, args=(TMD,), axis=1)
-
 
     ########################################################################################
     #                                                                                      #
