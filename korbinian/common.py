@@ -239,10 +239,15 @@ def create_pathdict(base_filename_summaries, s):
     # create random identity TM and nonTM csv files
     pathdict["rand_ident_TM_csv"] = os.path.join("{base}_rand".format(base = base_filename_summaries), "List{ln:02d}_rand_TM.csv".format(ln=list_number))
     pathdict["rand_ident_nonTM_csv"] = os.path.join("{base}_rand".format(base = base_filename_summaries), "List{ln:02d}_rand_nonTM.csv".format(ln=list_number))
-    # SCAMPI output file location
-    pathdict['SCAMPI'] = os.path.join('%s_SCAMPI' % base_filename_summaries, 'query.top.txt')
-    pathdict['SCAMPI_nonTM'] = os.path.join('%s_SCAMPI' % base_filename_summaries, 'query.nonTM_list.txt')
-    pathdict['TMSEG_nonTM'] = os.path.join('%s_SCAMPI' % base_filename_summaries, 'List{:02d}_TMSEG_nonTM.txt'.format(list_number))
+    # output file location of prediction algorithms (SCAMPI, TMSEG, SignalP etc)
+    pathdict['predictions_basename'] = '%s_predictions' % base_filename_summaries
+    pathdict['SCAMPI_dir'] = os.path.join(pathdict['predictions_basename'], "SCAMPI")
+    pathdict['SCAMPI_top'] = os.path.join(pathdict['SCAMPI_dir'], 'query.top.txt')
+    pathdict['SCAMPI_nonTM'] = os.path.join(pathdict['SCAMPI_dir'], 'query.nonTM_list.txt')
+    pathdict['TMSEG_dir'] = os.path.join(pathdict['predictions_basename'], "TMSEG")
+    pathdict['TMSEG_top'] = os.path.join(pathdict['TMSEG_dir'], 'topology_fasta.txt')
+    pathdict['TMSEG_nonTM'] = os.path.join(pathdict['TMSEG_dir'], 'nonTM_acc_list.txt')
+    pathdict['SignalP_dir'] = os.path.join(pathdict['predictions_basename'], "SignalP")
 
     """OUTPUT FILES FOR OLD SCRIPTS"""
     pathdict["dfout08_simap_AAIMON"] = '%s_simap_AAIMON.csv' % base_filename_summaries

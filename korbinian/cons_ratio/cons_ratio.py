@@ -116,6 +116,7 @@ def calculate_AAIMONs(p):
     """
     pathdict, s, logging = p["pathdict"], p["s"], p["logging"]
     acc = p["acc"]
+    sys.stdout.write("|{}|".format(acc)), sys.stdout.flush()
     protein_name = p["protein_name"]
     rand_TM = p["rand_TM"]
     rand_nonTM = p["rand_nonTM"]
