@@ -10,6 +10,7 @@ import sys
 import zipfile
 import os
 import pickle
+import scipy
 
 def save_figures_describing_proteins_in_list(pathdict, s, logging):
     logging.info("~~~~~~~~~~~~         starting run_save_figures_describing_proteins_in_list          ~~~~~~~~~~~~")
@@ -112,6 +113,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['save_png']:
         sys.stdout.write(' .png ')
     sys.stdout.write('\n')
+
+    # for Figs 97 and 98 set data to 'None' not to load data twice
+    data = None
 
     if s['Fig01_Histogram_of_mean_AAIMON_and_AASMON_ratios_SP_vs_MP']:
         Fig_Nr = 1
@@ -2320,18 +2324,80 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
             utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
+    if s['Fig97_Density_AAIMON_vs_perc_ident_all_homol_all_proteins']:
+        Fig_Nr = 97
+        Fig_name = 'List{:02d}_Fig98_Density_AAIMON_vs_perc_ident_all_homol_all_proteins'.format(list_number)
+
+        if data == None:
+            # read data from disk
+            in_zipfile = pathdict["save_df_characterising_each_homol_TMD"]
+            if os.path.isfile(in_zipfile):
+                with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
+                    data = pickle.load(openzip.open("data_characterising_each_homol_TMD.pickle", "r"))
+                    binned_data = pickle.load(openzip.open("binned_data_characterising_each_homol_TMD.pickle", "r"))
+            else:
+                raise FileNotFoundError("{} not found".format(in_zipfile))
+
+        vmax = s['vmax']
+
+        fig, ax = plt.subplots(figsize=(5, 5))
+
+        x = data[:, 0]  # FASTA_gapped_identity
+        y = data[:, 1]  # AAIMON for each TMD
+
+        # histogram definition
+        # data range
+        xyrange = [[0, 60], [0, 3]]
+        # number of bins
+        bins = [120, 120]
+        # density threshold
+        thresh = 1
+
+        # histogram the data
+        hh, locx, locy = scipy.histogram2d(x, y, range=xyrange, bins=bins)
+
+        # fill the areas with low density by NaNs
+        hh[hh < thresh] = np.nan
+
+        # ax.scatter(x=x, y=y, color="#EE762C", alpha=0.2, s=0.008, marker='x', linewidths=0.003)
+
+        im = ax.imshow(np.flipud(hh.T), cmap='Oranges', extent=np.array(xyrange).flatten(),
+                       interpolation='none', origin='upper', aspect='auto', vmin=0, vmax=vmax)
+
+        ax.plot(binned_data[:, 0], binned_data[:, 1], color='#0F3750', label='AAIMON')
+        ax.plot(binned_data[:, 0], binned_data[:, 2], color='#9ECEEC', label='AAIMON norm.')
+        # ax.grid(False, which='both')
+        ax.tick_params(axis='both', which='major', length=3, width=1, color='#CCCCCC')
+        ax.set_xlabel('% observed changes', fontsize=fontsize)
+        ax.set_ylabel('AAIMON', rotation=90, fontsize=fontsize)
+
+        # get colorbar from latest imshow element (color scale should be the same for all subplots)
+        # fig.subplots_adjust(right=0.8)
+        cbar_ax = fig.add_axes([0.12, 0.89, 0.78, 0.02])
+        fig.colorbar(im, cax=cbar_ax, orientation='horizontal')
+        cbar_ax.xaxis.set_ticks_position('top')
+        labels = cbar_ax.get_xmajorticklabels()
+        labels[-1] = '>{}    '.format(vmax)
+        cbar_ax.set_xticklabels(labels)
+        cbar_ax.tick_params(pad=0, labelsize=fontsize)
+        ax.tick_params(pad=1, labelsize=fontsize)
+        ax.legend(frameon=True, loc='upper left', fontsize=fontsize - 2)
+
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
     if s['Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins']:
         Fig_Nr = 98
         Fig_name = 'List{:02d}_Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins'.format(list_number)
 
-        # read data from disk
-        in_zipfile = pathdict["save_df_characterising_each_homol_TMD"]
-        if os.path.isfile(in_zipfile):
-            with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
-                data = pickle.load(openzip.open("data_characterising_each_homol_TMD.pickle", "r"))
-                binned_data = pickle.load(openzip.open("binned_data_characterising_each_homol_TMD.pickle", "r"))
-        else:
-            raise FileNotFoundError("{} not found".format(in_zipfile))
+        if data == None:
+            # read data from disk
+            in_zipfile = pathdict["save_df_characterising_each_homol_TMD"]
+            if os.path.isfile(in_zipfile):
+                with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
+                    data = pickle.load(openzip.open("data_characterising_each_homol_TMD.pickle", "r"))
+                    binned_data = pickle.load(openzip.open("binned_data_characterising_each_homol_TMD.pickle", "r"))
+            else:
+                raise FileNotFoundError("{} not found".format(in_zipfile))
 
         marker = 'x'
         datapointsize = 0.08

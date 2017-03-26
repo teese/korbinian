@@ -1269,73 +1269,62 @@ def compare_lists (s):
     title = '% AA identity TMD vs nonTMD'
     Fig_name = 'Fig16_perc_AA_identity_TMD_vs_nonTMD'
 
-    if len(df_dict) > 4:
-        sys.stdout.write('cannot create plot, too many lists')
+    fig, axes = plt.subplots(ncols=len(df_dict), nrows=1, sharex=True, sharey=True, figsize=(len(df_dict) * 2.5, 5))
 
-    elif len(df_dict) <= 4:
+    for n, (ax, prot_list) in enumerate(zip(axes.flat, protein_lists)):
 
-        fig, axes = plt.subplots(ncols=2, nrows=2, sharex=False, sharey=True, figsize=(5, 5))
-        # fig.set_size_inches(5, 5)
+        ax.plot([0, 100], [0, 100], color='#CCCCCC', linewidth=1)
+        # ax.set_aspect('equal')
+        ax.grid(False, which='both')
+        ax.tick_params(axis='both', which='major', length=3, width=1, color='#CCCCCC')
+        ax.set(adjustable='box-forced', aspect='equal')
+        ax.set_xticks([0, 25, 50, 75, 100])
+        ax.set_yticks([0, 25, 50, 75, 100])
+        # histogram definition
+        # data range
+        xyrange = [[0, 100], [0, 100]]
+        # number of bins
+        bins = [50, 50]
+        # density threshold
+        thresh = 1
 
-        for ax in axes.flat:
-            ax.plot([0, 100], [0, 100], color='#CCCCCC', linewidth=1)
-            # ax.set_aspect('equal')
-            ax.grid(False, which='both')
-            ax.tick_params(axis='both', which='major', length=3, width=1, color='#CCCCCC')
-            ax.set(adjustable='box-forced', aspect='equal')
-            ax.set_xticks([0, 25, 50, 75, 100])
-            ax.set_yticks([0, 25, 50, 75, 100])
+        # data definition
+        data_TMD = df_dict[prot_list].TMD_perc_identity_mean_all_TMDs * 100
+        data_nonTMD = df_dict[prot_list].nonTMD_perc_ident_mean * 100
+        xdat, ydat = data_TMD, data_nonTMD
 
-        for ax, prot_list in zip(axes.flat, protein_lists):
-            # histogram definition
-            # data range
-            xyrange = [[0, 100], [0, 100]]
-            # number of bins
-            bins = [50, 50]
-            # density threshold
-            thresh = 1
+        # histogram the data
+        hh, locx, locy = scipy.histogram2d(xdat, ydat, range=xyrange, bins=bins)
 
-            # data definition
-            data_TMD = df_dict[prot_list].TMD_perc_identity_mean_all_TMDs * 100
-            data_nonTMD = df_dict[prot_list].nonTMD_perc_ident_mean * 100
-            xdat, ydat = data_TMD, data_nonTMD
+        # fill the areas with low density by NaNs
+        hh[hh < thresh] = np.nan
 
-            # # plot a linear regression line for all datapoints
-            # fit = np.polyfit(xdat, ydat, deg=1)
-            # fit_fn = np.poly1d(fit)
-            # x = xyrange[0]
-            # ax.plot(x, fit_fn(x), color='k', linewidth=1)
+        # if there are just a few datapoints, multiply count to get visible values
+        if len(xdat) < 50:
+            hh = hh * 5
+            ax.annotate('count in bin $*5$', fontsize=5, xy=(69, 1))
 
-            # histogram the data
-            hh, locx, locy = scipy.histogram2d(xdat, ydat, range=xyrange, bins=bins)
+        # plot the data with imshow
+        im = ax.imshow(np.flipud(hh.T), cmap='Oranges', extent=np.array(xyrange).flatten(),
+                       interpolation='none', origin='upper', aspect='equal', vmin=1, vmax=10)
 
-            # fill the areas with low density by NaNs
-            hh[hh < thresh] = np.nan
+        ax.annotate(dfv.loc[prot_list, 'list_description'], xy=(3, 90), color=dfv.loc[prot_list, 'color'], fontsize=10)
+        ax.tick_params(labelsize=10)
+        ax.annotate('TMD less conserved', xy=(1, 7), rotation=90, fontsize=5, ha='left', va='bottom')
+        ax.annotate('TMD more conserved', xy=(7, 1), rotation=0, fontsize=5, ha='left', va='bottom')
 
-            # if there are just a few datapoints, multiply count to get visible values
-            if len(xdat) < 50:
-                hh = hh * 5
-                ax.annotate('count in bin $*5$', fontsize=5, xy=(69, 1))
+        if n == 0:
+            ax.set_ylabel('% AA identity nonTMD')
 
-            # plot the data with imshow
-            im = ax.imshow(np.flipud(hh.T), cmap='Oranges', extent=np.array(xyrange).flatten(),
-                           interpolation='none', origin='upper', aspect='equal', vmin=1, vmax=10)
+    # get colorbar from latest imshow element (color scale should be the same for all subplots)
+    fig.subplots_adjust(right=0.8)
+    cbar_ax = fig.add_axes([0.81, 0.35, 0.04 / len(df_dict), 0.3])
+    fig.colorbar(im, cax=cbar_ax)
 
-            ax.annotate(dfv.loc[prot_list, 'list_description'], xy=(3, 90), color=dfv.loc[prot_list, 'color'], fontsize=10)
-            ax.tick_params(labelsize=10)
-            ax.annotate('TMD less conserved', xy=(1, 7), rotation=90, fontsize=5, ha='left', va='bottom')
-            ax.annotate('TMD more conserved', xy=(7, 1), rotation=0, fontsize=5, ha='left', va='bottom')
+    plt.subplots_adjust(wspace=0.15, hspace=0.05)
+    fig.text(0.465, 0.27, '% AA identity TMD', ha='center', fontsize=10)
 
-        # get colorbar from latest imshow element (color scale should be the same for all subplots)
-        fig.subplots_adjust(right=0.8)
-        cbar_ax = fig.add_axes([0.83, 0.15, 0.02, 0.7])
-        fig.colorbar(im, cax=cbar_ax)
-
-        plt.subplots_adjust(wspace=0.2, hspace=0.05)
-        fig.text(0.465, 0.08, '% AA identity TMD', ha='center', fontsize=10)
-        fig.text(0.03, 0.5, '% AA identity nonTMD', va='center', rotation='vertical', fontsize=10)
-
-        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
+    utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
     #---------------------------------------------------------------------------------------------------------------------------------#
     Fig_Nr = 17
