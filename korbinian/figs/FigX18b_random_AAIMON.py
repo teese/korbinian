@@ -223,7 +223,7 @@ if __name__ == "__main__":
     ########################################################################################
     ax.set_ylim(0.9, 1.3)
     ax.set_ylabel("AAIMON", fontsize=fontsize+2)
-    ax.set_xlabel("% observed AA substitutions in full protein", fontsize=fontsize+2)
+    ax.set_xlabel("% AA substitutions", fontsize=fontsize+2)
     ax.set_xlim(0, 75)
 
     # re-order the legend

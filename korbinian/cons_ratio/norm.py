@@ -75,8 +75,10 @@ def calc_AAIMON_aa_prop_norm_factor(obs_aa_ident_full_protein, rand_TM, rand_non
         E.g. 0.6, for 60% amino acid identity.
     rand_TM : float
         Random identity of the TM region.
+        e.g. 0.124 for 12.4%
     rand_nonTM : float
         Random identity of the nonTM region.
+        e.g. 0.059 for 5.9%
     fraction_TM_residues : float
         Fraction of TM residues in protein sequence, e.g. 0.1 (10% TM, 90% nonTM)
         Used to estimate the real underlying AA substitution rate from the observed AA subst. rate.

@@ -885,41 +885,55 @@ def compare_lists (s):
     Fig_name = 'Fig10_norm_factor_pairwise'
     fig, ax = plt.subplots()
     # define distance before randTM to stop drawing curves
-    d = 0.02
+    norm_fig_fontsize = 14
+
 
     for prot_list in protein_lists:
-        rand_TM = dfv.loc[prot_list, 'rand_TM']
-        rand_nonTM = dfv.loc[prot_list, 'rand_nonTM']
-        fraction_TM_residues = df_dict[prot_list]['perc_TMD'].mean()
-        sys.stdout.write("prot_list : {}, fraction_TM_residues : {}".format(prot_list, fraction_TM_residues))
-        # define the stop and start points for the two sections of graph
-        stop_before_rand_TM = (100 - rand_TM*100) - d
-        start_after_rand_TM = (100 - rand_TM*100) + d
-        # define the x-axis points for both sections
-        obs_changes_start = np.linspace(0, stop_before_rand_TM, 1000)
-        obs_changes_end = np.linspace(start_after_rand_TM, 101, 200)
+        ########################################################################################
+        #                                                                                      #
+        #                      get random identity from csv file                               #
+        #                                                                                      #
+        ########################################################################################
 
-        # plot two sections of the graph separately to avoid crossover in hyperbola
-        # Section 1 : from 0 up until just before the randTM
-        # Section 2 : from just after the randTM until 101
-        for obs_changes in [obs_changes_start, obs_changes_end]:
-            norm_factor = []
-            # convert to identity for use in the formula
-            identity = (100 - obs_changes) / 100
-            # go through each identity individually, and convert to norm factor
-            for aa_ident in identity:
-                norm_factor.append(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor(aa_ident, rand_TM, rand_nonTM, fraction_TM_residues))
-            norm_factor = np.array(norm_factor)
+        rand_TM_csv = r"D:\Databases\summaries\{n:02d}\List{n:02d}_rand\List{n:02d}_rand_TM.csv".format(n=prot_list)
+        serTM = pd.Series.from_csv(rand_TM_csv, sep="\t")
+        rand_TM = serTM["random_sequence_identity_output"]
+        rand_nonTM_csv = r"D:\Databases\summaries\{n:02d}\List{n:02d}_rand\List{n:02d}_rand_nonTM.csv".format(n=prot_list)
+        sernonTM = pd.Series.from_csv(rand_nonTM_csv, sep="\t")
+        rand_nonTM = sernonTM["random_sequence_identity_output"]
 
-            # stop the label from being duplicated for both sections of graph
-            if obs_changes[0] == 0:
-                label = dfv.loc[prot_list, 'list_description']
-            else:
-                label = None
-            # plot that section of the graph
-            ax.plot(obs_changes, norm_factor, color=dfv.loc[prot_list, 'color'],
-                    alpha=alpha, linewidth=linewidth,
-                    label=label)
+        # calculate the average percentage of residues within the TM region
+        fraction_TM_residues = df_dict[prot_list]['perc_TMD'].mean() / 100
+        sys.stdout.write("prot_list : {:02d}, fraction_TM_residues : {:0.03f}".format(prot_list, fraction_TM_residues))
+
+        #create a new dataframe to hold the data for percentage identity and the normalisation factors
+        df_norm = pd.DataFrame()
+        # create datapoints for line, percent amino acid substitutions
+        df_norm["perc_aa_sub"] = np.linspace(0,1.2,1000)
+        # get the percentage identity
+        df_norm["perc_aa_ident"] = 1 - df_norm["perc_aa_sub"]
+        # calculate the norm factors
+        df_norm["norm"] = df_norm["perc_aa_ident"].apply(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor, args=(rand_TM, rand_nonTM, fraction_TM_residues))
+        # get rid of any very high or low values
+        df_norm = df_norm.loc[df_norm["norm"] > -10]
+        df_norm = df_norm.loc[df_norm["norm"] < 10]
+
+        # HYPERBOLIC GRAPH NEEDS TO BE SPLIT INTO THE TWO SIDES TO AVOID UGLY CROSSOVER EFFECT
+
+        # get the indices for the highest and lowest norm factors
+        index_max = df_norm["norm"].idxmax()
+        index_min = df_norm["norm"].idxmin()
+
+        label = dfv.loc[prot_list, 'list_description']
+
+        # plot that section of the graph, from beginning to where values are high
+        # convert to array to avoid auto legend)
+        ax.plot(df_norm["perc_aa_sub"][:index_max]*100, np.array(df_norm["norm"][:index_max]), color=dfv.loc[prot_list, 'color'],
+                alpha=alpha, linewidth=linewidth,
+                label=None)
+        # plot that section of the graph, from most negative value until the end
+        ax.plot(df_norm["perc_aa_sub"][index_min:]*100, np.array(df_norm["norm"][index_min:]), color=dfv.loc[prot_list, 'color'],
+                alpha=alpha, linewidth=linewidth, label=label)
 
     ###############################################################
     #                                                             #
@@ -927,29 +941,26 @@ def compare_lists (s):
     #                                                             #
     ###############################################################
 
-    ax.set_xlabel('% AA substitutions in full protein', fontsize=fontsize)
+    ax.set_xlabel('% AA substitutions', fontsize=norm_fig_fontsize)
     # x and y axes min and max
     xlim_min = 0
-    xlim_max = 100
+    xlim_max = 120
     ax.set_xlim(xlim_min, xlim_max)
     ylim_min = 0
     ylim_max = 3
     ax.set_ylim(ylim_min, ylim_max)
-    ax.set_ylabel('norm. factor', rotation='vertical', fontsize=fontsize)
+    ax.set_ylabel('normalisation factor', rotation='vertical', fontsize=norm_fig_fontsize)
     # change axis font size
-    ax.tick_params(labelsize=fontsize)
+    ax.tick_params(labelsize=norm_fig_fontsize)
     ax.xaxis.set_label_coords(0.5, -0.08)
 
     # Get artists and labels for legend and chose which ones to display
     handles, labels = ax.get_legend_handles_labels()
     display = (list(range(0, len(protein_lists) + 1, 1)))
     # Create legend
-    ax.legend([handle for i, handle in enumerate(handles) if i in display],
-              [label for i, label in enumerate(labels) if i in display],
-              fontsize=fontsize - 3, frameon=True, loc='upper left')
+    ax.legend(fontsize=norm_fig_fontsize, frameon=True, loc='upper left')
 
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
-
 
     #--------------------------------------------------------------------------------------------------------------------------------#
     Fig_Nr = 11
@@ -1345,21 +1356,22 @@ def compare_lists (s):
             ax.set_yticklabels([])
 
         for ax, prot_list in zip(axes.flat, protein_lists):
-            # check if protein is a GPCR
-            list_GPCR_KW = ['G-protein coupled receptor']
-            df_dict[prot_list]['GPCR'] = df_dict[prot_list]['uniprot_KW'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=(list_GPCR_KW,))
-            df_GPCR = df_dict[prot_list][df_dict[prot_list].GPCR == True]
-            # check if df_GPCR contains elements
-            if df_GPCR.shape[0] == 0:
-                continue
+            if "uniprot_KW" in df_dict[prot_list]:
+                # check if protein is a GPCR
+                list_GPCR_KW = ['G-protein coupled receptor']
+                df_dict[prot_list]['GPCR'] = df_dict[prot_list]['uniprot_KW'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=(list_GPCR_KW,))
+                df_GPCR = df_dict[prot_list][df_dict[prot_list].GPCR == True]
+                # check if df_GPCR contains elements
+                if df_GPCR.shape[0] == 0:
+                    continue
 
-            hist_data = df_GPCR.number_of_TMDs.value_counts().values
-            hist_data_norm = hist_data / hist_data.max()
-            bins = df_GPCR.number_of_TMDs.value_counts().index
+                hist_data = df_GPCR.number_of_TMDs.value_counts().values
+                hist_data_norm = hist_data / hist_data.max()
+                bins = df_GPCR.number_of_TMDs.value_counts().index
 
-            ax.bar(bins, hist_data_norm, align='center', color=dfv.loc[prot_list, 'color'])
-            ax.annotate(dfv.loc[prot_list, 'list_description'], xy=(0.5, 1.05), color=dfv.loc[prot_list, 'color'], fontsize=fontsize - 2)
-            ax.annotate('only GPCRs\nn = {}'.format(len(df_GPCR)), xy=(0.5, 0.80), fontsize=fontsize - 2, alpha=0.5)
+                ax.bar(bins, hist_data_norm, align='center', color=dfv.loc[prot_list, 'color'])
+                ax.annotate(dfv.loc[prot_list, 'list_description'], xy=(0.5, 1.05), color=dfv.loc[prot_list, 'color'], fontsize=fontsize - 2)
+                ax.annotate('only GPCRs\nn = {}'.format(len(df_GPCR)), xy=(0.5, 0.80), fontsize=fontsize - 2, alpha=0.5)
 
         plt.tight_layout()
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)

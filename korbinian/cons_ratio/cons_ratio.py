@@ -186,6 +186,11 @@ def calculate_AAIMONs(p):
     # The mean fasta identity of homologues should almost always be around the centre of the min and max in the settings.
     mean_ser['FASTA_ident_mean'] = float('%0.2f' % dfh['FASTA_identity'].mean())
     # add mean observed changes as a percentage value to mean_ser
+    if "obs_changes" not in dfh.columns:
+        os.remove(p['homol_df_orig_zip'])
+        message = "{} parsed simap file is out of date, will be removed".format(acc)
+        logging.info(message)
+        return acc, False, message
     mean_ser['obs_changes_mean'] = float('%0.2f' % dfh['obs_changes'].mean())
 
     # number of identical residues in each FASTA alignment can be calculated from identity and overlap
