@@ -174,7 +174,7 @@ def parse_SIMAP_to_csv(p):
 
     # NEW: XML is parsed if only the homol_in_tar (feature tables are not necessary)
     if not homol_in_tar:
-        warning = "{} skipped, homologues in tarball could not be accessed".format(p['protein_name'])
+        warning = "{} skipped (no homologues)".format(p['protein_name'])
         logging.info(warning)
         return acc, False, warning
 

@@ -203,7 +203,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         Fig_name = 'List{:02d}_Fig02_Histogram_of_standard_deviations_for_AAIMON_and_AASMON'.format(list_number)
         # create a new figure
         fig, ax = plt.subplots()
-        
+
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
         hist_data_AAIMON_std = np.array(df['AAIMON_std_all_TMDs'].dropna())
         # use numpy to create a histogram
