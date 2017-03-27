@@ -804,6 +804,8 @@ def compare_lists (s):
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
 
+    detailled_data = True
+
     # sys.stdout.write('\ncalculating mean length of TMD regions: - add this stuff to prepare_protein_list ?!?')
     # for prot_list in df_dict.keys():
     #     sys.stdout.write('\nprotein list: {}\n'.format(prot_list))
@@ -820,7 +822,18 @@ def compare_lists (s):
         ###   non-normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
         # hist_data = np.array(df_dict[prot_list]['nonTMD_SW_align_len_excl_gaps_mean'])
-        hist_data = np.array(df_dict[prot_list]['len_TMD_mean'])
+        if detailled_data == True:
+            data = df_dict[prot_list]
+            list_len_TMD = []
+            for acc in data.index:
+                list_of_TMDs = ast.literal_eval(data.loc[acc, 'list_of_TMDs'])
+                for TMD in list_of_TMDs:
+                    seqlen = data.loc[acc, '%s_seqlen' % TMD]
+                    list_len_TMD.append(seqlen)
+            hist_data = np.array(list_len_TMD)
+        else:
+            hist_data = np.array(df_dict[prot_list]['len_TMD_mean'])
+
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -1281,7 +1294,7 @@ def compare_lists (s):
     Fig_name = 'Fig16_perc_AA_identity_TMD_vs_nonTMD'
 
     fig, axes = plt.subplots(ncols=len(df_dict), nrows=1, sharex=True, sharey=True, figsize=(len(df_dict) * 2.5, 5))
-
+    vmax = 10
     for n, (ax, prot_list) in enumerate(zip(axes.flat, protein_lists)):
 
         ax.plot([0, 100], [0, 100], color='#CCCCCC', linewidth=1)
@@ -1317,12 +1330,12 @@ def compare_lists (s):
 
         # plot the data with imshow
         im = ax.imshow(np.flipud(hh.T), cmap='Oranges', extent=np.array(xyrange).flatten(),
-                       interpolation='none', origin='upper', aspect='equal', vmin=1, vmax=10)
+                       interpolation='none', origin='upper', aspect='equal', vmin=1, vmax=vmax)
 
         ax.annotate(dfv.loc[prot_list, 'list_description'], xy=(3, 90), color=dfv.loc[prot_list, 'color'], fontsize=10)
         ax.tick_params(labelsize=10)
-        ax.annotate('TMD less conserved', xy=(1, 7), rotation=90, fontsize=5, ha='left', va='bottom')
-        ax.annotate('TMD more conserved', xy=(7, 1), rotation=0, fontsize=5, ha='left', va='bottom')
+        ax.annotate('TMD less conserved', xy=(1, 7), rotation=90, fontsize=8, ha='left', va='bottom')
+        ax.annotate('TMD more conserved', xy=(7, 1), rotation=0, fontsize=8, ha='left', va='bottom')
 
         if n == 0:
             ax.set_ylabel('% AA identity nonTMD')
@@ -1331,6 +1344,9 @@ def compare_lists (s):
     fig.subplots_adjust(right=0.8)
     cbar_ax = fig.add_axes([0.81, 0.35, 0.04 / len(df_dict), 0.3])
     fig.colorbar(im, cax=cbar_ax)
+    labels = cbar_ax.get_ymajorticklabels()
+    labels[-1] = '>{}'.format(vmax)
+    cbar_ax.set_yticklabels(labels)
 
     plt.subplots_adjust(wspace=0.15, hspace=0.05)
     fig.text(0.465, 0.27, '% AA identity TMD', ha='center', fontsize=10)
