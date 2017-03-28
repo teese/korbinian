@@ -819,21 +819,13 @@ def compare_lists (s):
     #         df_dict[prot_list].loc[acc, 'TMD_len_mean'] = np.mean(list_TMD_lenghts)
 
     for prot_list in protein_lists:
-        ###   non-normalised AAIMON   ###
-        # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        # hist_data = np.array(df_dict[prot_list]['nonTMD_SW_align_len_excl_gaps_mean'])
-        if detailled_data == True:
-            data = df_dict[prot_list]
-            list_len_TMD = []
-            for acc in data.index:
-                list_of_TMDs = ast.literal_eval(data.loc[acc, 'list_of_TMDs'])
-                for TMD in list_of_TMDs:
-                    seqlen = data.loc[acc, '%s_seqlen' % TMD]
-                    list_len_TMD.append(seqlen)
-            hist_data = np.array(list_len_TMD)
-        else:
-            hist_data = np.array(df_dict[prot_list]['len_TMD_mean'])
-
+        # collect length data for all TMDs individually
+        data = df_dict[prot_list]
+        list_len_TMDs = []
+        for n in range(1, data.number_of_TMDs.max().astype(int) + 1):
+            TMD = 'TM%02d' % n
+            list_len_TMDs.extend(data['%s_seqlen' % TMD].dropna())
+        hist_data = np.array(list_len_TMDs)
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
