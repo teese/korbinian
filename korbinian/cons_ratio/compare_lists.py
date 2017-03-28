@@ -822,7 +822,7 @@ def compare_lists (s):
         # collect length data for all TMDs individually
         data = df_dict[prot_list]
         list_len_TMDs = []
-        for n in range(1, data.number_of_TMDs.max().astype(int) + 1):
+        for n in range(1, data.number_of_TMDs_excl_SP.max().astype(int) + 1):
             TMD = 'TM%02d' % n
             list_len_TMDs.extend(data['%s_seqlen' % TMD].dropna())
         hist_data = np.array(list_len_TMDs)
@@ -900,11 +900,11 @@ def compare_lists (s):
         #                                                                                      #
         ########################################################################################
 
-        rand_TM_csv = r"D:\Databases\summaries\{n:02d}\List{n:02d}_rand\List{n:02d}_rand_TM.csv".format(n=prot_list)
-        serTM = pd.Series.from_csv(rand_TM_csv, sep="\t")
+        rand_TM_path = os.path.join(s["data_dir"], "summaries", "{ln:02d}/List{ln:02d}_rand/List{ln:02d}_rand_TM.csv".format(ln=prot_list))
+        rand_nonTM_path = os.path.join(s["data_dir"], "summaries", "{ln:02d}/List{ln:02d}_rand/List{ln:02d}_rand_nonTM.csv".format(ln=prot_list))
+        serTM = pd.Series.from_csv(rand_TM_path, sep="\t")
         rand_TM = serTM["random_sequence_identity_output"]
-        rand_nonTM_csv = r"D:\Databases\summaries\{n:02d}\List{n:02d}_rand\List{n:02d}_rand_nonTM.csv".format(n=prot_list)
-        sernonTM = pd.Series.from_csv(rand_nonTM_csv, sep="\t")
+        sernonTM = pd.Series.from_csv(rand_nonTM_path, sep="\t")
         rand_nonTM = sernonTM["random_sequence_identity_output"]
 
         # calculate the average percentage of residues within the TM region
@@ -1373,9 +1373,9 @@ def compare_lists (s):
                 if df_GPCR.shape[0] == 0:
                     continue
 
-                hist_data = df_GPCR.number_of_TMDs.value_counts().values
+                hist_data = df_GPCR.number_of_TMDs_excl_SP.value_counts().values
                 hist_data_norm = hist_data / hist_data.max()
-                bins = df_GPCR.number_of_TMDs.value_counts().index
+                bins = df_GPCR.number_of_TMDs_excl_SP.value_counts().index
 
                 ax.bar(bins, hist_data_norm, align='center', color=dfv.loc[prot_list, 'color'])
                 ax.annotate(dfv.loc[prot_list, 'list_description'], xy=(0.5, 1.05), color=dfv.loc[prot_list, 'color'], fontsize=fontsize - 2)

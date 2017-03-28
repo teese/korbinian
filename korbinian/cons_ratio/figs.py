@@ -1466,10 +1466,10 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         xlabel = 'average conservation ratio (membranous over nonmembranous)'
         # legend =
 
-        max_num_TMDs = df.number_of_TMDs.max()
+        number_of_TMDs_excl_SP = df.number_of_TMDs_excl_SP.max()
         legend = []
         data_to_plot = []
-        for i in range(1, max_num_TMDs.astype(np.int64) + 1):
+        for i in range(1, number_of_TMDs_excl_SP.astype(np.int64) + 1):
             TM = 'TM%02d' % i
             hist_data_AAIMON_each_TM = df['TM%02d_AAIMON_mean' % i].dropna()
             if len(hist_data_AAIMON_each_TM) > 0:
@@ -1728,7 +1728,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 xlabel = 'average conservation ratio (membranous over nonmembranous)'
                 # legend =
 
-                max_num_TMDs = df_GPCR.number_of_TMDs.max()
+                number_of_TMDs_excl_SP = df_GPCR.number_of_TMDs_excl_SP.max()
                 legend = []
                 data_to_plot = []
                 for i in range(1, max_num_TMDs.astype(np.int64) + 1):
@@ -2238,7 +2238,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         TMD_counts_major = TMD_counts[TMD_counts >= boxplot_cutoff_number_of_TMDs]
         max_num_TMDs = TMD_counts_major.index.max()
 
-        if pd.notnull(max_num_TMDs):
+        if pd.notnull(number_of_TMDs_excl_SP):
             # title = str(keyword) + '_Boxplot'
             # Fig_name = str(str(Fig_Nr) + '._' + 'Keyword_' + title)
             fig, ax = plt.subplots()
@@ -2246,7 +2246,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
             legend = []
             data_to_plot = []
-            for i in range(1, max_num_TMDs.astype('int') + 1):
+            for i in range(1, number_of_TMDs_excl_SP.astype('int') + 1):
                 TM = 'TM%02d' % i
                 hist_data_AAIMON_each_TM = df['TM%02d_lipo' % i].dropna()
                 if len(hist_data_AAIMON_each_TM) > 0:
@@ -2255,7 +2255,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
             # add values of every TMD number that is larger than the boxplot_cutoff_number_of_TMDs to final bin
             data_for_final_bin = []
-            for i in range(max_num_TMDs.astype('int') + 1, df.number_of_TMDs.max().astype('int') + 1):
+            for i in range(number_of_TMDs_excl_SP.astype('int') + 1, df.number_of_TMDs.max().astype('int') + 1):
                 # TM_final = 'TM%02d' % i
                 hist_data_AAIMON_each_TM_final_bin = df['TM%02d_lipo' % i].dropna()
                 # if len(hist_data_AAIMON_each_TM) > 0:
