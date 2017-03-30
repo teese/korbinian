@@ -1513,16 +1513,16 @@ def convert_summary_csv_to_input_list(s, pathdict, logging, list_excluded_acc=No
     # convert values to list
     list_p = list(df_as_dict.values())
 
-    # extract values from settings file based on entered list number
-    rand_TM = s["rand_TM"]
-    rand_nonTM = s["rand_nonTM"]
+    # # extract values from settings file based on entered list number
+    # rand_TM = s["rand_TM"]
+    # rand_nonTM = s["rand_nonTM"]
 
     for p in list_p:
         p["s"] = s
         p["pathdict"] = pathdict
         p["logging"] = logging
-        p["rand_TM"] = rand_TM
-        p["rand_nonTM"] = rand_nonTM
+        # p["rand_TM"] = rand_TM
+        # p["rand_nonTM"] = rand_nonTM
 
     return list_p
 

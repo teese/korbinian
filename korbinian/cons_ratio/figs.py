@@ -105,6 +105,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     for acc in df.index:
         for TMD in ast.literal_eval(df.loc[acc, 'list_of_TMDs']):
             df_mean_AAIMON_each_TM.loc[acc, '{a}_AAIMON_mean'.format(a=TMD)] = df.loc[acc, '{b}_AAIMON_mean'.format(b=TMD)]
+    # count the maximum number of TMDs (excluding signal peptides) in the dataset
+    max_num_TMDs = df.number_of_TMDs_excl_SP.max()
 
     # logging saved data types
     sys.stdout.write('\nSaving figures as: ')
@@ -1795,7 +1797,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         alpha = 0.25
         col_width_value = 0.95
-        max_num_TMDs = df.number_of_TMDs.max()
         legend = []
         data_to_plot = []
         # iterate through df and get all AAIMONs with specified number of TMD
@@ -2067,10 +2068,10 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig28_Histogram_AAIMON_slope_TM01_vs_lastTM']:
         ###### for backwards compatibility ##### can be removed if all data is re-processed after march 5 2017
         if not 'AAIMON_slope_last_TMD' in df.columns:
-            print('AAIMON_slope_last_TMD not in dataframe -> older version of data, re-run "gather_AAIMON_ratios"; adding data for figure')
+            sys.stdout.write('AAIMON_slope_last_TMD not in dataframe -> older version of data, re-run "gather_AAIMON_ratios"; adding data for figure')
             for n, acc in enumerate(df.index):
                 if n % 200 == 0:
-                    print('. ', end='', flush=True)
+                    sys.stdout.write('. '), sys.stdout.flush()
                 last_TMD = df.loc[acc, 'last_TMD']
                 df.loc[acc, 'AAIMON_slope_last_TMD'] = df.loc[acc, '%s_AAIMON_slope' % last_TMD]
 
@@ -2255,7 +2256,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
             # add values of every TMD number that is larger than the boxplot_cutoff_number_of_TMDs to final bin
             data_for_final_bin = []
-            for i in range(number_of_TMDs_excl_SP.astype('int') + 1, df.number_of_TMDs.max().astype('int') + 1):
+            for i in range(number_of_TMDs_excl_SP.astype('int') + 1, df.number_of_TMDs_excl_SP.max().astype('int') + 1):
                 # TM_final = 'TM%02d' % i
                 hist_data_AAIMON_each_TM_final_bin = df['TM%02d_lipo' % i].dropna()
                 # if len(hist_data_AAIMON_each_TM) > 0:
@@ -2342,6 +2343,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         fig, ax = plt.subplots(figsize=(5, 5))
 
+        print("Mark gets an error here")
+        print("shape", data.shape)
+        print("first datapoints", data[0:5])
         x = data[:, 0]  # FASTA_gapped_identity
         y = data[:, 1]  # AAIMON for each TMD
 

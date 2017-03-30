@@ -123,18 +123,18 @@ def prepare_protein_list(s, pathdict, logging):
     #    modification_date_PrediSi = None
 
 
-    if s['use_scampi_TM_regions']:
+    if s['TM_def'] == "SCAMPI":
         df = korbinian.cons_ratio.SCAMPI.read_scampi_data(pathdict, s, logging, df)
 
     if "uniprot_entry_name" in df.columns:
         # join the accession and entry name to create a "protein name" for naming files
-        df['protein_name'] = df.uniprot_acc + '_' + df.uniprot_entry_name
+        df['protein_name'] = df.uniprot_acc
     else:
         # the list of proteins did not come from UniProt. Simply use the accession to name the files.
         df['protein_name'] = df.index
 
     # convert the list_of_TMDs to a python object, if it is a string
-    if not s['use_scampi_TM_regions']:
+    if not s['TM_def'] == "SCAMPI":
         df['list_of_TMDs'] = df['list_of_TMDs'].dropna().apply(lambda x : ast.literal_eval(x))
 
     if s["add_user_subseqs"] == True:
@@ -213,18 +213,19 @@ def prepare_protein_list(s, pathdict, logging):
 
     simap_dir = s["simap_dir"]
     utils.make_sure_path_exists(simap_dir)
-    homol_dir = os.path.join(s["data_dir"], "homol")
-    utils.make_sure_path_exists(homol_dir)
+    homol_dir = os.path.join(s["data_dir"], "homol") # D:\Databases\homol
+    parsed_dir = os.path.join(homol_dir, "parsed") # D:\Databases\homol\parsed
+    sliced_dir = os.path.join(homol_dir, "sliced") # D:\Databases\homol\sliced
+    utils.make_sure_path_exists(parsed_dir)
+    utils.make_sure_path_exists(sliced_dir)
 
+
+    ########################################################################################
+    #                                     SIMAP directory                                 #
+    ########################################################################################
     df['simap_filename_base'] = simap_dir + '/' + df.first_two_letters_of_uniprot_acc + '/' + df.protein_name
     # normalise path to suit operating system
     df['simap_filename_base'] = df['simap_filename_base'].apply(lambda x: os.path.normpath(x))
-
-    # create the homologue basename, e.g. "D:\Databases\homol\P0\P0A334_KCSA_STRLI"
-    # note that because UniProt protein names change, this should at some stage be changed from protein_name to acc alone
-    df['homol_base'] = homol_dir + '/' + df.first_two_letters_of_uniprot_acc + '/' + df.protein_name
-    # normalise path to suit operating system
-    df['homol_base'] = df['homol_base'].apply(lambda x : os.path.normpath(x))
 
     # create filenames for simap output
     df['SIMAP_tar'] = df.simap_filename_base + '_SIMAP.tar.gz'
@@ -233,52 +234,74 @@ def prepare_protein_list(s, pathdict, logging):
     your_name = unicodedata.normalize('NFKD', s["your_name"][:20]).encode('ascii', 'ignore').decode("utf-8")
     df['SIMAP_download_date_file_path'] = df.simap_filename_base + '--{}--{}.txt'.format(strftime("%Y%m%d"), your_name)
 
+
+    ########################################################################################
+    #                                     parsed directory                                 #
+    ########################################################################################
+    df['homol_parsed'] = parsed_dir + '/' + df.first_two_letters_of_uniprot_acc + '/' + df.protein_name # D:\Databases\homol\parsed\A0\A0A0A1Y489
+    df['homol_parsed'] = df['homol_parsed'].apply(lambda x: os.path.normpath(x))
     # ORIG: create filename for csv parsed from homologue XML file, stored temp as file, then zipped and pickled
-    df['SIMAP_orig_csv'] = df['homol_base'] + '_orig.csv'
+    df['SIMAP_orig_csv'] = df['homol_parsed'] + '_orig.csv'
     # ORIG: create filename for csv with alignment_pretty, for visual analysis of homologues
-    df['SIMAP_align_pretty_csv'] = df['homol_base'] + '_align_pretty.csv'
+    df['SIMAP_align_pretty_csv'] = df['homol_parsed'] + '_align_pretty.csv'
     # ORIG: create filename pickled dataframe
-    df['homol_df_orig_pickle'] = df['homol_base'] + '_df_orig.pickle'
+    df['homol_df_orig_pickle'] = df['homol_parsed'] + '_df_orig.pickle'
     # ORIG: create filename for zip that holds the XML parsed to a table (i.e. pandas dataframe, pickled)
-    df['homol_df_orig_zip'] = df['homol_base'] + '_homol_orig_table.zip'
+    df['homol_df_orig_zip'] = df['homol_parsed'] + '_homol_orig_table.zip'
+
+    ########################################################################################
+    #                                                                                      #
+    #       create a flexible basename (flexibase) that can distinguish between sliced     #
+    #                     files with and without signal peptides                           #
+    #                                                                                      #
+    ########################################################################################
+    TM_definitions_dir = s["TM_def"]
+    region_dir = s["regions"]
+    # create directory, e.g.D:\Databases\homol\sliced\TMSEG\SiPe_TM\P9\
+    df['homol_flexidir'] = sliced_dir + '/' + TM_definitions_dir + '/' + region_dir + '/' + df.first_two_letters_of_uniprot_acc
+    # create basename, e.g.D:\Databases\homol\sliced\TMSEG\SiPe_TM\P9\P95834
+    df['homol_flexibase'] = df['homol_flexidir'] + '/' + df.protein_name + "_" + TM_definitions_dir + "_" + region_dir
+    # normalise paths
+    df['homol_flexidir'] = df['homol_flexidir'].apply(lambda x: os.path.normpath(x))
+    df['homol_flexibase'] = df['homol_flexibase'].apply(lambda x: os.path.normpath(x))
 
     # SLICED (FASTA AND AAIMON): create filename for zip that holds the tables (pickled dataframes) for each TMD
-    df['fa_cr_sliced_TMDs_zip'] = df['homol_base'] + '_fa_cr_sliced_TMDs.zip'
+    df['fa_cr_sliced_TMDs_zip'] = df['homol_flexibase'] + '_fa_cr_sliced_TMDs.zip'
 
     # FASTA: create filename for zip that holds the tables (pickled dataframes) for each TMD
-    df['fa_TMDs_zip'] = df['homol_base'] + '_fa_TMDs.zip'
+    df['fa_TMDs_zip'] = df['homol_flexibase'] + '_fa_TMDs.zip'
     # FASTA: create filename for zip that holds the .fas files
-    df['fa_fasta_zip'] = df['homol_base'] + '_fa_fasta.zip'
+    df['fa_fasta_zip'] = df['homol_flexibase'] + '_fa_fasta.zip'
 
     # CONS_RATIOS: create filename for zip holding the tables (pickled dataframes with seqs) for each TMD
-    df['homol_cr_TMDs_zip'] = df['homol_base'] + '_cr_tables.zip'
+    df['homol_cr_TMDs_zip'] = df['homol_flexibase'] + '_cr_tables.zip'
     # CONS_RATIOS: create filename for zip holding the ratios
-    df['homol_cr_ratios_zip'] = df['homol_base'] + '_cr_ratios.zip'
+    df['homol_cr_ratios_zip'] = df['homol_flexibase'] + '_cr_ratios.zip'
     # CONS_RATIOS: create filename for zip holding the figures
-    df['homol_cr_figs_zip'] = df['homol_base'] + '_cr_figs.zip'
+    df['homol_cr_figs_zip'] = df['homol_flexibase'] + '_cr_figs.zip'
 
     # GAPS: create filename for zip holding the tables (pickled dataframes with seqs) for each TMD
-    df['homol_gap_tables_zip'] = df['homol_base'] + '_gap_tables.zip'
+    df['homol_gap_tables_zip'] = df['homol_flexibase'] + '_gap_tables.zip'
     # GAPS: create filename for zip holding the gap numbers (pickled dataframes) for each TMD
-    df['homol_gap_nums_zip'] = df['homol_base'] + '_gap_nums.zip'
+    df['homol_gap_nums_zip'] = df['homol_flexibase'] + '_gap_nums.zip'
     # GAPS: create filename for zip folding the figures (pickled dataframes) for each TMD
-    df['homol_gap_figs_zip'] = df['homol_base'] + '_gap_figs.zip'
+    df['homol_gap_figs_zip'] = df['homol_flexibase'] + '_gap_figs.zip'
 
     # FASTAGAP: create filename for zip that holds the .fas files
-    df['fastagap_zip'] = df['homol_base'] + '_fastagap.zip'
-    df['fastagap_pos_arrays_zip'] = df['homol_base'] + '_fastagap_pos_arrays.zip'
-    df['fastagap_base'] = df['homol_base'] + '_homol_seq_plus_surr_'
+    df['fastagap_zip'] = df['homol_flexibase'] + '_fastagap.zip'
+    df['fastagap_pos_arrays_zip'] = df['homol_flexibase'] + '_fastagap_pos_arrays.zip'
+    df['fastagap_base'] = df['homol_flexibase'] + '_homol_seq_plus_surr_'
 
     # FASTA: create basal name for fasta file with the TMD seqs (eg A0A1F4_EYS_DROME_homol_seq_ + TM01.fas)
     df['fasta_file_BASENAME'] = df.protein_name + '_homol_seq_'
-    df['fasta_file_BASENAMEPATH'] = df.homol_base + '_homol_seq_'
+    df['fasta_file_BASENAMEPATH'] = df.homol_flexibase + '_homol_seq_'
     # FASTA: name the fasta file with surrounding seq (eg A0A1F4_EYS_DROME_homol_seq_plus_surr_ + TM01.fas)
     df['fasta_file_plus_surr_BASENAME'] = df.protein_name + '_homol_seq_plus_surr_'
-    df['fasta_file_plus_surr_BASENAMEPATH'] = df.homol_base + '_homol_seq_plus_surr_'
+    df['fasta_file_plus_surr_BASENAMEPATH'] = df.homol_flexibase + '_homol_seq_plus_surr_'
 
     # create a basename for the output histograms
-    df['AAIMON_hist_path_prefix'] = df.homol_base + '_AAIMON_hist'
-    df['norm_scatter_path_prefix'] = df.homol_base + '_norm_scatter'
+    df['AAIMON_hist_path_prefix'] = df.homol_flexibase + '_AAIMON_hist'
+    df['norm_scatter_path_prefix'] = df.homol_flexibase + '_norm_scatter'
 
     ########################################################################################
     #                                                                                      #

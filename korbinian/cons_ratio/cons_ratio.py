@@ -52,6 +52,8 @@ def run_calculate_AAIMONs(pathdict, s, logging):
         # REPLACES THE ORIGINAL VALUES FROM THE LISTS TAB OF THE SETTINGS FILE
         s["rand_TM"] = TM_ser["random_sequence_identity_output"]
         s["rand_nonTM"] = nonTM_ser["random_sequence_identity_output"]
+    else:
+        raise FileNotFoundError("CSV files with calculated random identity were not found.\nRe-run prepare lists.\n{}\n{}".format(rand_ident_TM_csv, rand_ident_nonTM_csv))
 
     # create list of protein dictionaries to process
     list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging, list_excluded_acc=not_in_homol_db)
@@ -118,8 +120,6 @@ def calculate_AAIMONs(p):
     acc = p["acc"]
     sys.stdout.write("|{}|".format(acc)), sys.stdout.flush()
     protein_name = p["protein_name"]
-    rand_TM = p["rand_TM"]
-    rand_nonTM = p["rand_nonTM"]
     fraction_TM_residues = p["perc_TMD"] / 100
     max_gaps = s["cr_max_n_gaps_in_TMD"]
     max_lipo_homol = s["max_lipo_homol"]
@@ -232,7 +232,7 @@ def calculate_AAIMONs(p):
     #                Calculation of normalization factor for each homologue                #
     #                                                                                      #
     ########################################################################################
-    dfh['norm_factor'] = dfh['FASTA_gapped_identity'].apply(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor, args=(rand_TM, rand_nonTM, fraction_TM_residues))
+    dfh['norm_factor'] = dfh['FASTA_gapped_identity'].apply(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor, args=(s["rand_TM"], s["rand_nonTM"], fraction_TM_residues))
     mean_ser["norm_factor_max"] = dfh['norm_factor'].max()
     mean_ser["norm_factor_min"] = dfh['norm_factor'].min()
     mean_ser["norm_factor_mean"] = dfh['norm_factor'].mean()

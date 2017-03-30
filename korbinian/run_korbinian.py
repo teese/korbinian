@@ -137,18 +137,18 @@ def run_statements(s):
         input_uniprot_flatfile = "needs to be defined if you use this function!"
         korbinian.prot_list.uniprot_retrieve.retrieve_uniprot_data_for_acc_list_in_xlsx_file(excelfile_with_uniprot_accessions, input_uniprot_flatfile, selected_uniprot_records_flatfile, logging)
 
-    if s["create_csv_from_uniprot_flatfile"]:
-        ''' ~~ DETERMINE START AND STOP INDICES FOR TMD PLUS SURROUNDING SEQ ~~ '''
-        n_aa_before_tmd = s["n_aa_before_tmd"]
-        n_aa_after_tmd = s["n_aa_after_tmd"]
-        list_parsed_csv = pathdict["list_parsed_csv"]
-        analyse_signal_peptides = s['SiPe']
-        output = korbinian.prot_list.uniprot_parse.create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_signal_peptides, logging, list_parsed_csv)
-        logging.info(output)
 
-    if s['parse_TMSEG']:
-        analyse_signal_peptides = s['SiPe']
-        korbinian.prot_list.parse_TMSEG.parse_TMSEG_results(analyse_signal_peptides, pathdict, s, logging)
+    if s["create_protein_list"]:
+        analyse_signal_peptides = True if "SiPe" in s["regions"] else False
+        if "TMSEG" in s['TM_def']:
+            korbinian.prot_list.parse_TMSEG.parse_TMSEG_results(analyse_signal_peptides, pathdict, s, logging)
+        elif "UniProt" in s['TM_def'] or "SCAMPI" in s['TM_def']:
+            ''' ~~ DETERMINE START AND STOP INDICES FOR TMD PLUS SURROUNDING SEQ ~~ '''
+            n_aa_before_tmd = s["n_aa_before_tmd"]
+            n_aa_after_tmd = s["n_aa_after_tmd"]
+            list_parsed_csv = pathdict["list_parsed_csv"]
+            output = korbinian.prot_list.uniprot_parse.create_protein_list(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_signal_peptides, logging, list_parsed_csv)
+            logging.info(output)
 
     ########################################################################################
     #                                                                                      #

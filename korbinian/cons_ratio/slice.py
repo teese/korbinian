@@ -149,6 +149,8 @@ def slice_TMD_1_prot_from_homol(p):
             # skip this protein
             return acc, False, warning
 
+    utils.make_sure_path_exists(fa_cr_sliced_TMDs_zip, isfile=True)
+
     # open new zipfile (NOTE, it must be closed later!!)
     with zipfile.ZipFile(fa_cr_sliced_TMDs_zip, mode="a", compression=zipfile.ZIP_DEFLATED) as homol_sliced_zip:
 
