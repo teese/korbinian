@@ -1183,10 +1183,10 @@ def compare_lists (s):
     for prot_list in protein_lists:
         ###### for backwards compatibility ##### can be removed if all data is re-processed after march 5 2017
         if not 'AAIMON_slope_last_TMD' in df_dict[prot_list].columns:
-            print('List{:02d}: AAIMON_slope_last_TMD not in dataframe -> older version of data, re-run "gather_AAIMON_ratios"; adding data for figure'.format(prot_list))
+            sys.stdout.write('List{:02d}: AAIMON_slope_last_TMD not in dataframe -> older version of data, re-run "gather_AAIMON_ratios"; adding data for figure'.format(prot_list))
             for n, acc in enumerate(df_dict[prot_list].index):
                 if n % 200 == 0:
-                    print('. ', end='', flush=True)
+                    sys.stdout.write(". "), sys.stdout.flush()
                 last_TMD = df_dict[prot_list].loc[acc, 'last_TMD']
                 df_dict[prot_list].loc[acc, 'AAIMON_slope_last_TMD'] = df_dict[prot_list].loc[acc, '%s_AAIMON_slope' % last_TMD]
 

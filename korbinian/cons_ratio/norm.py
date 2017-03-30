@@ -27,9 +27,10 @@ def calc_AAIMON_aa_prop_norm_factor(obs_aa_ident_full_protein, rand_TM, rand_non
     This correlates to the percentage of "unobserved" substitutions within each region, which
     result in exactly the same amino acid, due to the restricted AA propensity. There are several
     ways that this could be calculated.
+        - for AA identity, by taking the sum of the square of the AA propensities for each AA
         - by aligning non-homologous
         - by creating and aligning random sequences, based on a particular amino acid propensity
-        - using the formula for entropy, and the propensity of each amino acid.
+        - plugging the AA propensity into the scoring formula, for e.g. Entropy
     Note: it is also very likely that this can be calculated based on dS/dN data.
 
     Example calculation:

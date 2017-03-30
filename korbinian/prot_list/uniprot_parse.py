@@ -11,7 +11,7 @@ import pandas as pd
 import re
 import sys
 
-def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_sp, logging, list_parsed_csv, slice=True):
+def create_protein_list(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_sp, logging, list_parsed_csv, slice=True):
     """ Parses a flatfile of UniProt records to csv.
 
     Parameters
@@ -42,9 +42,9 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
         CSV from dfu, with info for a protein on each row.
 
     """
-    logging.info('~~~~~~~~~~~~                 starting create_csv_from_uniprot_flatfile              ~~~~~~~~~~~~')
+    logging.info('~~~~~~~~~~~~                 starting create_protein_list              ~~~~~~~~~~~~')
     if not os.path.isfile(selected_uniprot_records_flatfile):
-        return "create_csv_from_uniprot_flatfile could not be run. Uniprot flatfile not found. ({})".format(selected_uniprot_records_flatfile)
+        return "create_protein_list could not be run. Uniprot flatfile not found. ({})".format(selected_uniprot_records_flatfile)
     uniprot_dict_all_proteins = {}
     with open(selected_uniprot_records_flatfile, "r") as f:
         records = SwissProt.parse(f)
@@ -329,13 +329,13 @@ def create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_bef
                 dfu.loc[acc, 'nonTMD_seq'] = sequence
                 dfu.loc[acc, 'len_nonTMD'] = len(sequence)
 
-        # indicate that the create_csv_from_uniprot_flatfile function has been run
-        dfu['create_csv_from_uniprot_flatfile'] = True
+        # indicate that the create_protein_list function has been run
+        dfu['create_protein_list'] = True
         # save to a csv
         utils.make_sure_path_exists(list_parsed_csv, isfile=True)
         dfu.to_csv(list_parsed_csv, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
-    return '\n%i uniprot records parsed to csv\n~~~~~~~~~~~~                 finished create_csv_from_uniprot_flatfile              ~~~~~~~~~~~~' % count_of_uniprot_records_added_to_csv
+    return '\n%i uniprot records parsed to csv\n~~~~~~~~~~~~                 finished create_protein_list              ~~~~~~~~~~~~' % count_of_uniprot_records_added_to_csv
 
 def create_dictionary_of_comments(uniprot_record_handle):
     """ Create a dictionary of the comments from a UniProt record.

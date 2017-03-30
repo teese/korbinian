@@ -18,8 +18,8 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
     n_aa_before_tmd = s["n_aa_before_tmd"]
     n_aa_after_tmd = s["n_aa_after_tmd"]
     list_parsed_csv = pathdict["list_parsed_csv"]
-    analyse_signal_peptides = s['SiPe']
-    output = korbinian.prot_list.uniprot_parse.create_csv_from_uniprot_flatfile(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_signal_peptides, logging, list_parsed_csv, slice=False)
+    analyse_signal_peptides = True if "SiPe" in s["regions"] else False
+    output = korbinian.prot_list.uniprot_parse.create_protein_list(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_signal_peptides, logging, list_parsed_csv, slice=False)
     logging.info(output)
 
     TMSEG_results_filepath = pathdict['TMSEG_top']
@@ -27,7 +27,7 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
 
     list_parsed = pd.read_csv(pathdict["list_parsed_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
 
-    columns_to_keep = ['organism_domain', 'create_csv_from_uniprot_flatfile', 'uniprot_acc', 'uniprot_all_accessions', 'uniprot_entry_name', 'uniprot_features',
+    columns_to_keep = ['organism_domain', 'create_protein_list', 'uniprot_acc', 'uniprot_all_accessions', 'uniprot_entry_name', 'uniprot_features',
                        'uniprot_orgclass', 'uniprot_SiPe', 'singlepass', 'typeI', 'typeII', 'uniprot_KW', 'organism', 'prot_descr', 'membrane',
                        'multipass', 'gene_name', 'comments_subcellular_location_uniprot']
     list_indices = list(list_parsed.index)
