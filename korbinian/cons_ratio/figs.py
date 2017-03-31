@@ -54,7 +54,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     sys.stdout.write('\nopacity of datapoints: {a:.2f}\n'.format(a=alpha_dpd))
     # filter to remove proteins that have less than ~5 homologues
     # this is only important for the beta-barrel dataset, which has a lot of these proteins!
-    min_n_homol = s["min_n_homol_for_figs"]
+    min_n_homol = s["min_homol"]
     n_prot_before_n_homol_cutoff = df.shape[0]
     df = df.loc[df['TM01_AAIMON_n_homol'] >= min_n_homol]
     n_prot_after_n_homol_cutoff = df.shape[0]
@@ -117,7 +117,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     sys.stdout.write('\n')
 
     # for Figs 97 and 98 set data to 'None' not to load data twice
-    data = None
+    #data = False
+    #binned_data = False
 
     if s['Fig01_Histogram_of_mean_AAIMON_and_AASMON_ratios_SP_vs_MP']:
         Fig_Nr = 1
@@ -2239,7 +2240,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         TMD_counts_major = TMD_counts[TMD_counts >= boxplot_cutoff_number_of_TMDs]
         max_num_TMDs = TMD_counts_major.index.max()
 
-        if pd.notnull(number_of_TMDs_excl_SP):
+        if pd.notnull(max_num_TMDs):
             # title = str(keyword) + '_Boxplot'
             # Fig_name = str(str(Fig_Nr) + '._' + 'Keyword_' + title)
             fig, ax = plt.subplots()
@@ -2247,7 +2248,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
             legend = []
             data_to_plot = []
-            for i in range(1, number_of_TMDs_excl_SP.astype('int') + 1):
+            for i in range(1, max_num_TMDs.astype('int') + 1):
                 TM = 'TM%02d' % i
                 hist_data_AAIMON_each_TM = df['TM%02d_lipo' % i].dropna()
                 if len(hist_data_AAIMON_each_TM) > 0:
@@ -2256,7 +2257,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
             # add values of every TMD number that is larger than the boxplot_cutoff_number_of_TMDs to final bin
             data_for_final_bin = []
-            for i in range(number_of_TMDs_excl_SP.astype('int') + 1, df.number_of_TMDs_excl_SP.max().astype('int') + 1):
+            for i in range(max_num_TMDs.astype('int') + 1, df.number_of_TMDs_excl_SP.max().astype('int') + 1):
                 # TM_final = 'TM%02d' % i
                 hist_data_AAIMON_each_TM_final_bin = df['TM%02d_lipo' % i].dropna()
                 # if len(hist_data_AAIMON_each_TM) > 0:
@@ -2327,17 +2328,16 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
     if s['Fig97_Density_AAIMON_vs_perc_ident_all_homol_all_proteins']:
         Fig_Nr = 97
-        Fig_name = 'List{:02d}_Fig98_Density_AAIMON_vs_perc_ident_all_homol_all_proteins'.format(list_number)
+        Fig_name = 'List{:02d}_Fig97_Density_AAIMON_vs_perc_ident_all_homol_all_proteins'.format(list_number)
 
-        if data == None:
-            # read data from disk
-            in_zipfile = pathdict["save_df_characterising_each_homol_TMD"]
-            if os.path.isfile(in_zipfile):
-                with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
-                    data = pickle.load(openzip.open("data_characterising_each_homol_TMD.pickle", "r"))
-                    binned_data = pickle.load(openzip.open("binned_data_characterising_each_homol_TMD.pickle", "r"))
-            else:
-                raise FileNotFoundError("{} not found".format(in_zipfile))
+        # read data from disk
+        in_zipfile = pathdict["save_df_characterising_each_homol_TMD"]
+        if os.path.isfile(in_zipfile):
+            with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
+                data = pickle.load(openzip.open("data_characterising_each_homol_TMD.pickle", "r"))
+                binned_data = pickle.load(openzip.open("binned_data_characterising_each_homol_TMD.pickle", "r"))
+        else:
+            raise FileNotFoundError("{} not found".format(in_zipfile))
 
         vmax = s['vmax']
 
@@ -2393,15 +2393,14 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         Fig_Nr = 98
         Fig_name = 'List{:02d}_Fig98_Scatterplot_AAIMON_vs_perc_ident_all_homol_all_proteins'.format(list_number)
 
-        if data == None:
-            # read data from disk
-            in_zipfile = pathdict["save_df_characterising_each_homol_TMD"]
-            if os.path.isfile(in_zipfile):
-                with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
-                    data = pickle.load(openzip.open("data_characterising_each_homol_TMD.pickle", "r"))
-                    binned_data = pickle.load(openzip.open("binned_data_characterising_each_homol_TMD.pickle", "r"))
-            else:
-                raise FileNotFoundError("{} not found".format(in_zipfile))
+        # read data from disk
+        in_zipfile = pathdict["save_df_characterising_each_homol_TMD"]
+        if os.path.isfile(in_zipfile):
+            with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
+                data = pickle.load(openzip.open("data_characterising_each_homol_TMD.pickle", "r"))
+                binned_data = pickle.load(openzip.open("binned_data_characterising_each_homol_TMD.pickle", "r"))
+        else:
+            raise FileNotFoundError("{} not found".format(in_zipfile))
 
         marker = 'x'
         datapointsize = 0.08
@@ -2458,6 +2457,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if s['Fig99_Linegraph_CI_95_AAIMON_vs_perc_ident_all_homol_all_proteins']:
         Fig_Nr = 99
         Fig_name = 'List{:02d}_Fig99_Linegraph_CI_95_AAIMON_vs_perc_ident_all_homol_all_proteins'.format(list_number)
+
 
         # read data from disk
         in_zipfile = pathdict["save_df_characterising_each_homol_TMD"]

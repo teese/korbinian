@@ -1382,5 +1382,30 @@ def compare_lists (s):
         plt.tight_layout()
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
+    # ---------------------------------------------------------------------------------------------------------------------------------#
+    Fig_Nr = 18
+    title = 'delta mTM/nonTM normalised vs non-normalised'
+    Fig_name = 'Fig18_d_mTM_nonTM_norm_vs_nonnorm'
+
+    # difference of AAIMON and AAIMON_n
+    fig, ax = plt.subplots()
+
+    mean_diff = []
+    for n, prot_list in enumerate(protein_lists):
+        slope = df_dict[prot_list].AAIMON_slope_mean_all_TMDs * 1000
+        slope_n = df_dict[prot_list].AAIMON_n_slope_mean_all_TMDs * 1000
+        diff = np.mean(abs(slope - slope_n))
+        mean_diff.append(diff)
+
+    ax.bar(range(1, len(protein_lists) + 1), mean_diff, edgecolor='k', color='#0076B8')
+    ax.set_xticks(range(1, len(protein_lists) + 1))
+    label = [element.replace('_', '\n') for element in dfv.list_description.tolist()]
+    ax.set_xticklabels(label)
+    ax.set_ylabel(r'$\Delta$ m$_{\rm TM/nonTM} *10^{\rm -3}$ norm. vs. non-norm.', fontsize=fontsize)
+    ax.tick_params(labelsize=fontsize)
+    plt.tight_layout()
+
+    utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
+
     #dfv.to_csv(os.path.join(base_filepath, 'Lists_%s_variables.csv'%str_protein_lists))
     sys.stdout.write("\n~~~~~~~~~~~~         compare_lists finished           ~~~~~~~~~~~~\n")
