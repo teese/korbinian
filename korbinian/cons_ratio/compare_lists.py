@@ -82,8 +82,6 @@ def compare_lists (s):
         dfv.loc[prot_list, 'compare_dir'] = base_filepath
         dfv.loc[prot_list, 'color'] = color_list[n]
         dfv.loc[prot_list, 'min_homol'] = s['min_homol'][prot_list]
-        dfv.loc[prot_list, 'rand_TM'] = s['rand_TM'][prot_list]
-        dfv.loc[prot_list, 'rand_nonTM'] = s['rand_nonTM'][prot_list]
 
         # read list summary.csv and cr_summary.csv from disk, join them to one big dataframe
         dfx = pd.read_csv(dfv.loc[prot_list, 'base_filename_lists'], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
