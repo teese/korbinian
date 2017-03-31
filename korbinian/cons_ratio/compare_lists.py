@@ -9,6 +9,7 @@ import datetime
 import korbinian.utils as utils
 import korbinian
 import scipy
+import seaborn as sns
 
 
 def compare_lists (s):
@@ -1403,6 +1404,48 @@ def compare_lists (s):
     ax.set_xticklabels(label)
     ax.set_ylabel(r'$\Delta$ m$_{\rm TM/nonTM} *10^{\rm -3}$ norm. vs. non-norm.', fontsize=fontsize)
     ax.tick_params(labelsize=fontsize)
+    plt.tight_layout()
+
+    utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
+
+    # ---------------------------------------------------------------------------------------------------------------------------------#
+    Fig_Nr = 19
+    title = 'heatmap deltas between datasets'
+    Fig_name = 'Fig19_Heatmap_d_AAIMON_slope_between_datasets'
+
+    # add mean values to dfv
+    for prot_list in protein_lists:
+        dfv.loc[prot_list, 'mean_AAIMON_slope'] = np.mean(df_dict[prot_list].AAIMON_slope_mean_all_TMDs * 1000)
+    # initialise empty lists to hold data, annotations and labels
+    heatmap_data = []
+    heatmap_text = []
+    labels = []
+    for prot_list_1 in protein_lists:
+        labels.append('List{:02d}'.format(prot_list_1))
+        list_data = []
+        list_text = []
+        for prot_list_2 in protein_lists:
+            data = (dfv.loc[prot_list_2, 'mean_AAIMON_slope'] - dfv.loc[prot_list_1, 'mean_AAIMON_slope'])
+            list_text.append('{:.02f}'.format(data))
+            list_data.append(data)
+        heatmap_data.append(list_data)
+        heatmap_text.append(list_text)
+    heatmap_data = np.array(heatmap_data)
+    heatmap_text = np.array(heatmap_text)
+
+    fig, ax = plt.subplots()
+
+    diagonal = np.zeros_like(heatmap_data, dtype=np.bool)
+    np.fill_diagonal(diagonal, True)
+    label = [element.replace('_', '\n') for element in dfv.list_description.tolist()]
+    ax = sns.heatmap(heatmap_data, annot=heatmap_text, fmt="", square=True, mask=diagonal, linewidths=2,
+                     annot_kws={"size": fontsize + 2})
+    ax.set_xticklabels(label, fontsize=fontsize)
+    ax.set_yticklabels(reversed(label), rotation=0, fontsize=fontsize)
+    # get colorbar axis for labelling
+    cbar_ax = ax.collections[0].colorbar
+    cbar_ax.set_label(r'$\Delta$ m$_{\rm TM/nonTM}*10^{\rm -3}$ between datasets', fontsize=fontsize)
+    cbar_ax.ax.tick_params(labelsize=fontsize)
     plt.tight_layout()
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
