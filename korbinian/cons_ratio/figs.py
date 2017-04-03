@@ -1973,62 +1973,125 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
 
-    if s['Fig25_Scatterplot_AAIMON_n_vs_obs_changes_mean']:
+    if s['Fig25_Distribution_AAIMON_AAIMON_slope_vs_obs_changes']:
         Fig_Nr = 25
-        title = 'AAIMON_n  vs. obs_changes_mean'
-        Fig_name = 'List{:02d}_Fig25_Scatterplot_AAIMON_n_vs_obs_changes_mean'.format(list_number)
-        fig, ax = plt.subplots()
+        title = 'compare AAIMON with AAIMON_slope'
+        Fig_name = 'List{:02d}_Fig25_Distribution_AAIMON_AAIMON_slope_vs_obs_changes'.format(list_number)
 
-        ax.scatter(df['obs_changes_mean'], df['AAIMON_mean_all_TMDs_n'], color='b', alpha=alpha_dpd, s=datapointsize)
-        ax.set_ylabel('AAIMON_n', rotation='vertical', fontsize=fontsize)
-        ax.set_xlabel('obs_changes_mean', fontsize=fontsize)
+        vmax = 3
+        fig, (ax1, ax2) = plt.subplots(2, sharex=True, sharey=False, figsize=(5, 10))
 
-        #ax2 = ax.twinx()
-        #ax2.scatter(df['obs_changes_mean'], df['AAIMON_mean_all_TMDs_n'], color="r", alpha=alpha_dpd, s=datapointsize)
-        #ax2.set_ylabel('AAIMON_n', rotation='vertical', color='r', fontsize=fontsize)
+        # histogram definition
+        # data range
+        xyrange = [[0, 60], [0.2, 1.8]]
+        # number of bins
+        bins = [120, 120]
+        # density threshold
+        thresh = 1
 
-        ax.set_xlim(0, 60)
-        ax.set_ylim(0.2, 1.8)
-        #ax2.set_ylim(0.4, 1.6)
+        # plot AAIMON data
+        x = df.obs_changes_mean
+        y = df.AAIMON_mean_all_TMDs
+        # histogram the data
+        hh, locx, locy = scipy.histogram2d(x, y, range=xyrange, bins=bins)
+        # fill the areas with low density by NaNs
+        hh[hh < thresh] = np.nan
+        im = ax1.imshow(np.flipud(hh.T), cmap='Oranges', extent=np.array(xyrange).flatten(),
+                        interpolation='none', origin='upper', aspect='auto', vmin=0, vmax=vmax)
 
-        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
-                    xycoords='axes fraction', alpha=0.75)
-        # add figure title to top left of subplot
-        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
-                    alpha=0.75)
+        # plot AAIMON_slope data with changed xyrange
+        xyrange = [[0, 60], [-20, 20]]
+        # plot AAIMON_slope data
+        x = df.obs_changes_mean
+        y = df.AAIMON_slope_mean_all_TMDs * 1000
+        # histogram the data
+        hh, locx, locy = scipy.histogram2d(x, y, range=xyrange, bins=bins)
+        # fill the areas with low density by NaNs
+        hh[hh < thresh] = np.nan
+        im = ax2.imshow(np.flipud(hh.T), cmap='Oranges', extent=np.array(xyrange).flatten(),
+                        interpolation='none', origin='upper', aspect='auto', vmin=0, vmax=vmax)
 
-        # change axis font size
-        ax.tick_params(labelsize=fontsize)
-        #ax2.tick_params(labelsize=fontsize)
+        # define axis limits and parameters, set labels
+        ax1.set_ylim(0.2, 1.8)
+        ax2.set_ylim(-20, 20)
+        ax1.tick_params(labelsize=fontsize, pad=2)
+        ax2.tick_params(labelsize=fontsize, pad=2)
+        ax1.set_ylabel('AAIMON', fontsize=fontsize)
+        ax2.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
+        ax1.set(adjustable='box-forced')
+        ax2.set(adjustable='box-forced')
+        plt.xlabel('% observed changes', fontsize=fontsize)
+
+        # add colorbar
+        cbar_ax = fig.add_axes([0.12, 0.89, 0.78, 0.01])
+        fig.colorbar(im, cax=cbar_ax, orientation='horizontal')
+        cbar_ax.xaxis.set_ticks_position('top')
+        labels = cbar_ax.get_xmajorticklabels()
+        labels[-1] = '>{}'.format(vmax)
+        cbar_ax.set_xticklabels(labels)
+        cbar_ax.tick_params(pad=0, labelsize=fontsize)
+        # remove white space between subplots
+        fig.subplots_adjust(wspace=0.2, hspace=0.075)
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s['Fig26_Scatterplot_AAIMON_n_slope_vs_obs_changes_mean']:
-        Fig_Nr = 26
-        title = 'AAIMON_n_slope  vs. obs_changes_mean'
-        Fig_name = 'List{:02d}_Fig26_Scatterplot_AAIMON_n_slope_vs_obs_changes_mean'.format(list_number)
-        fig, ax = plt.subplots()
+        # Fig_Nr = 25
+        # title = 'AAIMON_n  vs. obs_changes_mean'
+        # Fig_name = 'List{:02d}_Fig25_Scatterplot_AAIMON_n_vs_obs_changes_mean'.format(list_number)
+        # fig, ax = plt.subplots()
+        #
+        # ax.scatter(df['obs_changes_mean'], df['AAIMON_mean_all_TMDs_n'], color='b', alpha=alpha_dpd, s=datapointsize)
+        # ax.set_ylabel('AAIMON_n', rotation='vertical', fontsize=fontsize)
+        # ax.set_xlabel('obs_changes_mean', fontsize=fontsize)
+        #
+        # #ax2 = ax.twinx()
+        # #ax2.scatter(df['obs_changes_mean'], df['AAIMON_mean_all_TMDs_n'], color="r", alpha=alpha_dpd, s=datapointsize)
+        # #ax2.set_ylabel('AAIMON_n', rotation='vertical', color='r', fontsize=fontsize)
+        #
+        # ax.set_xlim(0, 60)
+        # ax.set_ylim(0.2, 1.8)
+        # #ax2.set_ylim(0.4, 1.6)
+        #
+        # ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+        #             xycoords='axes fraction', alpha=0.75)
+        # # add figure title to top left of subplot
+        # ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+        #             alpha=0.75)
+        #
+        # # change axis font size
+        # ax.tick_params(labelsize=fontsize)
+        # #ax2.tick_params(labelsize=fontsize)
+        #
+        # utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-        ax.scatter(df['obs_changes_mean'], df['AAIMON_n_slope_mean_all_TMDs'], color="r", alpha=alpha_dpd, s=datapointsize)
-        ax.set_ylabel('AAIMON_n_slope', rotation='vertical', fontsize=fontsize)
-        ax.set_xlabel('obs_changes_mean', fontsize=fontsize)
 
-
-        ax.set_xlim(0, 60)
-        ax.set_ylim(-0.020, 0.020)
-        # ax2.set_ylim(0.4, 1.6)
-
-        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
-                    xycoords='axes fraction', alpha=0.75)
-        # add figure title to top left of subplot
-        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
-                    alpha=0.75)
-
-        # change axis font size
-        ax.tick_params(labelsize=fontsize)
-        # ax2.tick_params(labelsize=fontsize)
-
-        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+    # DEPRECIATED - integrated into Fig25!
+    # if s['Fig26_Scatterplot_AAIMON_n_slope_vs_obs_changes_mean']:
+    #     Fig_Nr = 26
+    #     title = 'AAIMON_n_slope  vs. obs_changes_mean'
+    #     Fig_name = 'List{:02d}_Fig26_Scatterplot_AAIMON_n_slope_vs_obs_changes_mean'.format(list_number)
+    #     fig, ax = plt.subplots()
+    #
+    #     ax.scatter(df['obs_changes_mean'], df['AAIMON_n_slope_mean_all_TMDs'], color="r", alpha=alpha_dpd, s=datapointsize)
+    #     ax.set_ylabel('AAIMON_n_slope', rotation='vertical', fontsize=fontsize)
+    #     ax.set_xlabel('obs_changes_mean', fontsize=fontsize)
+    #
+    #
+    #     ax.set_xlim(0, 60)
+    #     ax.set_ylim(-0.020, 0.020)
+    #     # ax2.set_ylim(0.4, 1.6)
+    #
+    #     ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+    #                 xycoords='axes fraction', alpha=0.75)
+    #     # add figure title to top left of subplot
+    #     ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+    #                 alpha=0.75)
+    #
+    #     # change axis font size
+    #     ax.tick_params(labelsize=fontsize)
+    #     # ax2.tick_params(labelsize=fontsize)
+    #
+    #     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig27_Scatterplot_perc_identity_nonTMD_vs_TMD']:
         Fig_Nr = 27
