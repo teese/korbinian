@@ -31,7 +31,7 @@ def extract_omp_IDs_from_nr_fasta(ListXX_OMPdb_nr_fasta, ListXX_OMPdb_nr_acc, lo
                 f_out.write("%s\n" % ID)
     logging.info("extract_omp_IDs_from_nr_fasta is completed")
 
-def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_flatfile, OMPdb_list_csv, logging):
+def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_flatfile, OMPdb_list_csv, logging, s):
     """ Extracts ID, seq and topology data from the full OMPdb flatfile, saves to csv.
 
     Parameters
@@ -58,7 +58,15 @@ def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_
 
     # Creating dictionary keywords
     keywords = {"Uniprot": [], "Family": [], "Gene_Name": [], "Organism": [], "NCBI_TaxID": [], "Coverage(%)": [],
-                "Sequence": [], "len_Sequence": [], "Topology_Reli": [], "Topology": []}
+                "Sequence": [], "len_Sequence": [], "Topology_Reli": [], "Topology": [], "Description": [], "Pfam_ID": []}
+
+    # check if signal peptides should be extracted
+    analyse_SiPe = False
+    if 'SiPe' in s['regions']:
+        analyse_SiPe = True
+        keywords.update({"SP01_start": [], "SP01_end": [], "SP01_seq": [], "SiPe_source": []})
+
+    logging.info('analyse_SiPe: {}'.format(analyse_SiPe))
 
     # Start settings which are changed during the for loop
     take_next_seq = False
@@ -94,12 +102,29 @@ def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_
                     sys.stdout.flush()
             if "FAMILY" in line and take_ID == True:
                 keywords["Family"].append(" ".join(line[9:]))
+            if "DESCRIPTION" in line and take_ID == True:
+                keywords["Description"].append(" ".join(line[4:]))
             if "GENE_NAME" in line and take_ID == True:
                 keywords["Gene_Name"].append(" ".join(line[6:]))
             if "ORGANISM" in line and take_ID == True:
                 keywords["Organism"].append(" ".join(line[7:]))
             if "NCBI_TAXID" in line and take_ID == True:
                 keywords["NCBI_TaxID"].append(line[-1])
+            if "DB_REF" in line and take_ID == True:
+                line = line[9:]
+                if "Pfam" in line[0][:-1]:
+                    keywords["Pfam_ID"].append(line[1].split('|'))
+            if "SIGNAL_PEPTIDE" in line and take_ID == True and analyse_SiPe == True:
+                if ' '.join(line[1:]) != 'No information available':
+                    keywords["SP01_start"].append(line[1][0])
+                    keywords["SP01_end"].append(line[1][2:-1])
+                    keywords["SP01_seq"].append(line[2][:-1])
+                    keywords["SiPe_source"].append(' '.join(line[-2:]))
+                else:
+                    keywords["SP01_start"].append(np.nan)
+                    keywords["SP01_end"].append(np.nan)
+                    keywords["SP01_seq"].append(np.nan)
+                    keywords["SiPe_source"].append(np.nan)
             if "COVERAGE(%)" in line and take_ID == True:
                 keywords["Coverage(%)"].append(line[-1])
             if "SEQUENCE" in line and take_ID == True:
@@ -138,7 +163,7 @@ def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_
     logging.info("parse_OMPdb_all_selected_to_csv is completed. Dataframe shape = {}".format(dfKW.shape))
 
 
-def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_csv, list_parsed_csv, OMPdb_topology_reliability_cutoff, logging):
+def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_csv, list_parsed_csv, OMPdb_topology_reliability_cutoff, logging, s):
     """ Take a csv parsed from OMPdb, get the TM indices and slice the TMDs for each protein
 
     Parameters:
@@ -152,6 +177,11 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_csv, list_parsed_
     """
     logging.info('~~~~~~~~~starting get_omp_TM_indices_and_slice_from_summary_table~~~~~~~~~')
     df_KW = pd.read_csv(OMPdb_list_csv, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+
+    # check if signal peptides should be extracted, modify keywords dict
+    analyse_SiPe = False
+    if 'SiPe' in s['regions']:
+        analyse_SiPe = True
 
     # get sequence length
     df_KW["seqlen"] = df_KW["Sequence"].str.len()
@@ -256,8 +286,9 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_csv, list_parsed_
                 sys.stdout.write("\n")
                 sys.stdout.flush()
 
+
         ''' ~~   SLICE nonTMD sequence  ~~ '''
-        list_of_TMDs = df_KW.loc[row, 'list_of_TMDs']
+        #list_of_TMDs = df_KW.loc[row, 'list_of_TMDs'].copy()
         if 'SP01' in list_of_TMDs:
             list_of_TMDs.remove('SP01')
         # sequence from N-term. to first TMD
@@ -281,6 +312,11 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_csv, list_parsed_
         sequence += nonTMD_last
         df_KW.loc[row, 'nonTMD_seq'] = sequence
         df_KW.loc[row, 'len_nonTMD'] = len(sequence)
+
+        if analyse_SiPe == True:
+            if pd.notnull(df_KW.loc[row, 'SP01_start']):
+                list_of_TMDs.append('SP01')
+                df_KW.set_value(row, "list_of_TMDs", list_of_TMDs)
 
     ########################################################################################
     #                                                                                      #

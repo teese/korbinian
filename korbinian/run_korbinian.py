@@ -107,13 +107,13 @@ def run_statements(s):
         ListXX_OMPdb_nr_acc = os.path.join(s["data_dir"], "OMPdb", "List{:02d}_OMPdb_nr_acc.txt".format(list_number))
         ListXX_OMPdb_redundant_flatfile = os.path.join(s["data_dir"], "OMPdb", "List{:02d}_OMPdb_redundant_flatfile.flat".format(list_number))
         OMPdb_list_csv = os.path.join(s["data_dir"], "OMPdb", "List{:02d}_OMPdb_summary.csv".format(list_number))
-        korbinian.prot_list.parse_OMPdb.parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_flatfile, OMPdb_list_csv, logging)
+        korbinian.prot_list.parse_OMPdb.parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_flatfile, OMPdb_list_csv, logging, s)
 
     if s["OMPdb_get_TM_indices_and_slice"]:
         OMPdb_list_csv = os.path.join(s["data_dir"], "OMPdb", "List{:02d}_OMPdb_summary.csv".format(list_number))
         list_parsed_csv = pathdict["list_parsed_csv"]
         OMPdb_topology_reliability_cutoff = s["OMPdb_topology_reliability_cutoff"]
-        korbinian.prot_list.parse_OMPdb.get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_csv, list_parsed_csv, OMPdb_topology_reliability_cutoff, logging)
+        korbinian.prot_list.parse_OMPdb.get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_csv, list_parsed_csv, OMPdb_topology_reliability_cutoff, logging, s)
 
     ########################################################################################
     #                                                                                      #
