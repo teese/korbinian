@@ -87,6 +87,8 @@ def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_
     # Checking ListXX_OMPdb_redundant_flatfile(complete OMPdb in very unfriendly formatting)for IDs(which are stored in list of Potential IDs) and extracting information
     with open(ListXX_OMPdb_redundant_flatfile) as data_file:
         counter = 0
+        db_cross_ref = {}
+        save_db_cross_ref = False
         for line in data_file:
             line = line.strip().split(" ")
             # Further settings which are changed every loop
@@ -111,9 +113,8 @@ def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_
             if "NCBI_TAXID" in line and take_ID == True:
                 keywords["NCBI_TaxID"].append(line[-1])
             if "DB_REF" in line and take_ID == True:
-                line = line[9:]
-                if "Pfam" in line[0][:-1]:
-                    keywords["Pfam_ID"].append(line[1].split('|'))
+                # add database cross references to special dict
+                db_cross_ref.update({line[9][:-1]: line[10].split('|')})
             if "SIGNAL_PEPTIDE" in line and take_ID == True and analyse_SiPe == True:
                 if ' '.join(line[1:]) != 'No information available':
                     keywords["SP01_start"].append(line[1][0])
@@ -128,9 +129,20 @@ def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_
             if "COVERAGE(%)" in line and take_ID == True:
                 keywords["Coverage(%)"].append(line[-1])
             if "SEQUENCE" in line and take_ID == True:
+                # after the "SEQUENCE" statement in a line, all db cross references are collected and can be saved
+                save_db_cross_ref = True
                 keywords["len_Sequence"].append(line[7])
                 take_next_seq = True
                 sequence_header = True
+            # add db cross references from previous protein to keywords dict
+            if save_db_cross_ref == True:
+                if "Pfam" in db_cross_ref.keys():
+                    keywords["Pfam_ID"].append(db_cross_ref["Pfam"])
+                else:
+                    keywords["Pfam_ID"].append(np.nan)
+                # reset db_cross_ref for next cycle
+                save_db_cross_ref = False
+                db_cross_ref = {}
             if "TOPOLOGY" in line and take_ID == True:
                 Raw_Sequences.extend(";")
                 keywords["Topology_Reli"].append(line[-1].strip('"').strip("%"))
