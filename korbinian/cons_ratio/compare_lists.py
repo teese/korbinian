@@ -1450,5 +1450,58 @@ def compare_lists (s):
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
+    # ---------------------------------------------------------------------------------------------------------------------------------#
+    Fig_Nr = 20
+    title = 'compare percentage of different keywords'
+    Fig_name = 'Fig20_perc_of_different_keywords' # optimised for two lists containing keywords
+
+    KW_to_compare = ['Cell membrane', 'Endoplasmic reticulum', 'Golgi apparatus', 'Enzyme', 'G-protein coupled receptor']
+    if 'Enzyme' in KW_to_compare:
+        compare_enzyme = True
+        KW_to_compare.remove('Enzyme')
+        list_enzyme, list_ignored = korbinian.cons_ratio.keywords.get_list_enzyme_KW_and_list_ignored_KW()
+    else:
+        compare_enzyme = False
+    protein_lists_KW = []
+    df = pd.DataFrame(index=dfv.index)
+    df['list_description'] = dfv['list_description']
+    for n, prot_list in enumerate(protein_lists):
+        if not 'uniprot_KW' in df_dict[prot_list].columns:
+            continue
+        protein_lists_KW.append(prot_list)
+        if type(df_dict[prot_list].ix[0, 'uniprot_KW']) == str:
+            df_dict[prot_list]['uniprot_KW'] = df_dict[prot_list]['uniprot_KW'].apply(lambda x: ast.literal_eval(x))
+        df_dict[prot_list]['perc_of_dataset'] = 100 / len(df_dict[prot_list])
+        for keyword in KW_to_compare:
+            df_dict[prot_list][keyword] = df_dict[prot_list].uniprot_KW.apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=([keyword],))
+            df.loc[prot_list, '_'.join(keyword.split(' '))] = sum(df_dict[prot_list][df_dict[prot_list][keyword] == True]['perc_of_dataset'])
+        if compare_enzyme == True:
+            df_dict[prot_list]['Enzyme'] = df_dict[prot_list].uniprot_KW.apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=(list_enzyme,))
+            df.loc[prot_list, 'Enzyme'] = sum(df_dict[prot_list][df_dict[prot_list]['Enzyme'] == True]['perc_of_dataset'])
+
+    df = df.set_index(['list_description']).dropna().T
+
+    fig, ax = plt.subplots()
+    n = len(protein_lists_KW)
+    # width of bar
+    width = 0.8 / n
+    # indices (position of bar)
+    ind = np.arange(df.shape[0])
+    for m, prot_list in enumerate(protein_lists_KW):
+        list_description = dfv.loc[prot_list, 'list_description']
+        ind_for_list = ind + width * m
+        ax.bar(ind_for_list, df[list_description], width=width, color=dfv.loc[prot_list, 'color'], label=dfv.loc[prot_list, 'list_description'], edgecolor='k')
+    xtick_locations = ind + width / 2  # - n/2*width
+    ax.set_xticks(xtick_locations)
+    label = [element.replace('_', '\n') for element in df.index]
+    ax.set_xticklabels(label, rotation=0)
+    ax.tick_params(labelsize=fontsize, pad=3)
+    ax.set_ylabel('% of dataset', fontsize=fontsize)
+    ax.legend(frameon=True, fontsize=fontsize)
+
+    plt.tight_layout()
+    utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
+
+
     #dfv.to_csv(os.path.join(base_filepath, 'Lists_%s_variables.csv'%str_protein_lists))
     sys.stdout.write("\n~~~~~~~~~~~~         compare_lists finished           ~~~~~~~~~~~~\n")
