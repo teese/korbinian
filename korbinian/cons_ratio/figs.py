@@ -390,7 +390,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.set_xlim(xmin=0, xmax=17)
         # move the x-axis label closer to the x-axis
         # ax.xaxis.set_label_coords(0.45, -0.085)
-        ax.set_ylabel('Average AAIMON ratio for all TMDs', fontsize=fontsize)
+        ax.set_ylabel('Average TM/nonTM conservation for all TMDs', fontsize=fontsize)
         ax2.set_ylabel('Number of proteins in bin', fontsize=fontsize)
         ## Remove top axes and right axes ticks
         ax.get_xaxis().tick_bottom()
@@ -495,7 +495,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.set_ylim(ymin=0, ymax=2)
         # move the x-axis label closer to the x-axis
         # ax.xaxis.set_label_coords(0.45, -0.085)
-        ax.set_ylabel('Average AAIMON ratio for all TMDs', fontsize=fontsize)
+        ax.set_ylabel('Average TM/nonTM conservation for all TMDs', fontsize=fontsize)
         ## Remove top axes and right axes ticks
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
@@ -624,7 +624,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.set_ylim(ymin=0, ymax=2)
         # move the x-axis label closer to the x-axis
         # ax.xaxis.set_label_coords(0.45, -0.085)
-        ax.set_ylabel('Average AAIMON ratio for all TMDs', fontsize=fontsize)
+        ax.set_ylabel('Average TM/nonTM conservation for all TMDs', fontsize=fontsize)
         ## Remove top axes and right axes ticks
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
@@ -738,7 +738,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.set_ylim(ymin=0, ymax=2)
         # move the x-axis label closer to the x-axis
         # ax.xaxis.set_label_coords(0.45, -0.085)
-        ax.set_ylabel('Average AAIMON ratio for all TMDs', fontsize=fontsize)
+        ax.set_ylabel('Average TM/nonTM conservation for all TMDs', fontsize=fontsize)
         ## Remove top axes and right axes ticks
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
@@ -1779,6 +1779,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 ax.get_yaxis().tick_left()
                 ## Custom x-axis labels
                 ax.set_xticklabels(legend, rotation=45)
+                ax.set_ylabel('TM/nonTM conservation', fontsize=fontsize)
                 # add figure number to top left of subplot
                 ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
                             xycoords='axes fraction', alpha=0.75)
@@ -1840,7 +1841,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.set_xlabel('number of TMDs in protein', fontsize=fontsize)
         # move the x-axis label closer to the x-axis
         ax.xaxis.set_label_coords(0.45, -0.085)
-        ax.set_ylabel('Average AAIMON ratio for all TMDs', fontsize=fontsize)
+        ax.set_ylabel('Average TM/nonTM conservation for all TMDs', fontsize=fontsize)
         # Remove top axes and right axes ticks
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
@@ -1944,8 +1945,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         Fig_name = 'List{:02d}_Fig24_Scatterplot_AAIMON_n_vs._AAIMON_n_slope'.format(list_number)
         fig, ax = plt.subplots()
 
-        x = df['AAIMON_mean_all_TMDs_n']
-        y = df['AAIMON_n_slope_mean_all_TMDs']
+        x = df['AAIMON_mean_all_TMDs']
+        y = df['AAIMON_slope_mean_all_TMDs']*1000
 
         if len(x) > 5:
             # calculate linear regression for fitted line
@@ -1959,8 +1960,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             logging.info("The dataset has less than 5 proteins. Lines of best fit will not be calculated.")
 
         ax.scatter(x, y, alpha=alpha_dpd, s=datapointsize)
-        ax.set_ylabel('AAIMON_n_slope', rotation='vertical', fontsize=fontsize)
-        ax.set_xlabel('AAIMON_n', fontsize=fontsize)
+        ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', rotation='vertical', fontsize=fontsize)
+        ax.set_xlabel('TM/nonTM conservation', fontsize=fontsize)
         ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
                     xycoords='axes fraction', alpha=0.75)
         # add figure title to top left of subplot
@@ -2016,11 +2017,11 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax2.set_ylim(-20, 20)
         ax1.tick_params(labelsize=fontsize, pad=2)
         ax2.tick_params(labelsize=fontsize, pad=2)
-        ax1.set_ylabel('AAIMON', fontsize=fontsize)
+        ax1.set_ylabel('TM/nonTM conservation', fontsize=fontsize)
         ax2.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
         ax1.set(adjustable='box-forced')
         ax2.set(adjustable='box-forced')
-        plt.xlabel('% observed changes', fontsize=fontsize)
+        plt.xlabel('evolutionary distance (% substitutions)', fontsize=fontsize)
 
         # add colorbar
         cbar_ax = fig.add_axes([0.12, 0.89, 0.78, 0.01])
@@ -2406,9 +2407,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         fig, ax = plt.subplots(figsize=(5, 5))
 
-        print("Mark gets an error here")
-        print("shape", data.shape)
-        print("first datapoints", data[0:5])
+        # print("Mark gets an error here")
+        # print("shape", data.shape)
+        # print("first datapoints", data[0:5])
         x = data[:, 0]  # FASTA_gapped_identity
         y = data[:, 1]  # AAIMON for each TMD
 
@@ -2431,12 +2432,12 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         im = ax.imshow(np.flipud(hh.T), cmap='Oranges', extent=np.array(xyrange).flatten(),
                        interpolation='none', origin='upper', aspect='auto', vmin=0, vmax=vmax)
 
-        ax.plot(binned_data[:, 0], binned_data[:, 1], color='#0F3750', label='AAIMON')
-        ax.plot(binned_data[:, 0], binned_data[:, 2], color='#9ECEEC', label='AAIMON norm.')
+        ax.plot(binned_data[:, 0], binned_data[:, 1], color='#0F3750', label='non-normalised')
+        ax.plot(binned_data[:, 0], binned_data[:, 2], color='#9ECEEC', label='normalised')
         # ax.grid(False, which='both')
         ax.tick_params(axis='both', which='major', length=3, width=1, color='#CCCCCC')
-        ax.set_xlabel('% observed changes', fontsize=fontsize)
-        ax.set_ylabel('AAIMON', rotation=90, fontsize=fontsize)
+        ax.set_xlabel('evolutionary distance (% substitutions)', fontsize=fontsize)
+        ax.set_ylabel('TM/nonTM conservation', rotation=90, fontsize=fontsize)
 
         # get colorbar from latest imshow element (color scale should be the same for all subplots)
         # fig.subplots_adjust(right=0.8)
@@ -2489,10 +2490,10 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.set_ylim(ymin=0, ymax=3)
         ax.set_xlim(xmin=0, xmax=60)
         # label the x-axis for each plot, based on the TMD
-        ax.set_xlabel('% observed changes', fontsize=fontsize + 4)
+        ax.set_xlabel('evolutionary distance (% substitutions)', fontsize=fontsize + 4)
         # move the x-axis label closer to the x-axis
         # ax.xaxis.set_label_coords(0.45, -0.085)
-        ax.set_ylabel('AAIMON ratio', fontsize=fontsize + 4)
+        ax.set_ylabel('TM/nonTM conservation', fontsize=fontsize + 4)
         # change axis font size
         ax.tick_params(labelsize=fontsize)
         x_line = binned_data[:, 0]
@@ -2512,7 +2513,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.get_yaxis().tick_left()
 
 
-        ax.legend(['AAIMON', 'AAIMON norm.'], loc='upper left', fontsize=fontsize, frameon=True)  # create legend
+        ax.legend(['non-normalised', 'normalised'], loc='upper left', fontsize=fontsize, frameon=True)  # create legend
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png=True, save_pdf=False, dpi=150, close=False)
         utils.save_figure(fig, Fig_name + "_highres", base_filepath, save_png=True, save_pdf=False, dpi=600)
@@ -2552,8 +2553,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.set_ylim(ymin=0.5, ymax=2)
         ax.set_xlim(xmin=0, xmax=60)
         # label the x-axis for each plot, based on the TMD
-        ax.set_xlabel('% observed changes', fontsize=fontsize+2)
-        ax.set_ylabel('AAIMON ratio', fontsize=fontsize+2)
+        ax.set_xlabel('evolutionary distance (% substitutions)', fontsize=fontsize+2)
+        ax.set_ylabel('TM/nonTM conservation', fontsize=fontsize+2)
         # change axis font size
         ax.tick_params(labelsize=fontsize)
 
@@ -2578,7 +2579,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         # ax.xaxis.set_label_coords(0.45, -0.1)  # move x-axis label towards graph
 
-        ax.legend(['AAIMON', 'AAIMON norm.'], loc='upper right', fontsize=fontsize)  # create legend
+        ax.legend(['non-normalised', 'normalised'], loc='upper right', fontsize=fontsize)  # create legend
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 

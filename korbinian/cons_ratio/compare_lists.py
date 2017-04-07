@@ -160,7 +160,7 @@ def compare_lists (s):
     #                                                             #
     ###############################################################
 
-    ax.set_xlabel('AAIMON', fontsize=fontsize)
+    ax.set_xlabel('TM/nonTM conservation', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
     ax.xaxis.set_label_coords(0.5, -0.085)
     # x and y axes min and max
@@ -191,7 +191,7 @@ def compare_lists (s):
         AAIMON_norm = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
         # Create legend from custom artist/label lists
         ax.legend([handle for i, handle in enumerate(handles) if i in display] + [AAIMON, AAIMON_norm],
-                  [label for i, label in enumerate(labels) if i in display] + ['AAIMON', 'AAIMON norm.'],
+                  [label for i, label in enumerate(labels) if i in display] + ['non-normalised', 'normalised'],
                   fontsize=fontsize - 3, frameon=True)#, bbox_to_anchor=(1.07, 1.12))
     else:
         # Create custom artists
@@ -199,7 +199,7 @@ def compare_lists (s):
         AAIMON_norm = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
         # Create legend from custom artist/label lists
         ax.legend([AAIMON, AAIMON_norm],
-                  ['AAIMON', 'AAIMON norm.'],
+                  ['non-normalised', 'normalised'],
                   fontsize=fontsize - 3, frameon=True)#, bbox_to_anchor=(1.07, 1.12))
 
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
@@ -289,7 +289,7 @@ def compare_lists (s):
         AAIMON_norm = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
         # Create legend from custom artist/label lists
         ax.legend([handle for i, handle in enumerate(handles) if i in display] + [AAIMON, AAIMON_norm],
-                  [label for i, label in enumerate(labels) if i in display] + ['AAIMON slope', 'AAIMON slope norm.'],
+                  [label for i, label in enumerate(labels) if i in display] + ['non-normalised', 'normalised'],
                   fontsize=fontsize - 3, frameon=True, loc='upper right')#, bbox_to_anchor=(1.07, 1.12))
     else:
         # Create custom artists
@@ -297,7 +297,7 @@ def compare_lists (s):
         AAIMON_norm = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
         # Create legend from custom artist/label lists
         ax.legend([AAIMON, AAIMON_norm],
-                  ['AAIMON slope', 'AAIMON slope norm.'],
+                  ['non-normalised', 'normalised'],
                   fontsize=fontsize - 3, frameon=True, loc='upper right')#, bbox_to_anchor=(1.07, 1.12))
     #plt.gcf().subplots_adjust(bottom=0.15)
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
@@ -481,7 +481,7 @@ def compare_lists (s):
     #                                                             #
     ###############################################################
 
-    ax.set_xlabel('average % observed changes in homologues', fontsize=fontsize)
+    ax.set_xlabel('evolutionary distance (% substitutions)', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
     ax.xaxis.set_label_coords(0.5, -0.085)
     # x and y axes min and max
@@ -945,7 +945,7 @@ def compare_lists (s):
     #                                                             #
     ###############################################################
 
-    ax.set_xlabel('% AA substitutions', fontsize=norm_fig_fontsize)
+    ax.set_xlabel('evolutionary distance (% substitutions)', fontsize=norm_fig_fontsize)
     # x and y axes min and max
     xlim_min = 0
     xlim_max = 120
