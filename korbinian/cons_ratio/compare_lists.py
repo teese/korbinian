@@ -52,7 +52,7 @@ def compare_lists (s):
     # colours for List 1, 2 and 3
     color_list = ['#808080', '#D59460', '#005293']
     # add other HTML colours
-    color_list = color_list + ['#A1B11A', '#9ECEEC', '#0076B8', '#454545']
+    color_list = color_list + ['#A1B11A', '#9ECEEC', '#0076B8', '#454545', "#7b3294", "#c2a5cf", "#008837", "#a6dba0"]
 
     protein_lists = ast.literal_eval(s['protein_lists'])
     # initialise dataframe that hols all variables for every protein list

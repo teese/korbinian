@@ -243,7 +243,7 @@ def create_protein_list(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa
         # convert that nested dict into a pandas dataframe, transverse
         dfu = pd.DataFrame(uniprot_dict_all_proteins).sort_index().T
         # count records in dataframe
-        count_of_uniprot_records_added_to_csv = dfu.shape[0]
+        count_of_initial_uniprot_records = dfu.shape[0]
         # make a unique list of all TMD combinations in list([TM01], [TM01, TM03], etc)
         unique_TMD_combinations_orig = list(dfu.list_of_TMDs.astype(str).unique())
         # convert to python list
@@ -333,9 +333,12 @@ def create_protein_list(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa
         dfu['create_protein_list'] = True
         # save to a csv
         utils.make_sure_path_exists(list_parsed_csv, isfile=True)
+        # count records in dataframe
+        count_of_uniprot_records_added_to_csv = dfu.shape[0]
         dfu.to_csv(list_parsed_csv, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
-    return '\n%i uniprot records parsed to csv\n~~~~~~~~~~~~                 finished create_protein_list              ~~~~~~~~~~~~' % count_of_uniprot_records_added_to_csv
+
+    return '\n%i valid UniProt records parsed to csv (from %i initial)\n~~~~~~~~~~~~                 finished create_protein_list              ~~~~~~~~~~~~' % (count_of_uniprot_records_added_to_csv, count_of_initial_uniprot_records)
 
 def create_dictionary_of_comments(uniprot_record_handle):
     """ Create a dictionary of the comments from a UniProt record.
