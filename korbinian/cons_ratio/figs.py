@@ -1941,8 +1941,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
     if s['Fig24_Scatterplot_AAIMON_n_vs._AAIMON_n_slope']:
         Fig_Nr = 24
-        title = 'AAIMON_n vs. AAIMON_n_slope'
+        title = 'AAIMON vs. AAIMON_slope'
         Fig_name = 'List{:02d}_Fig24_Scatterplot_AAIMON_n_vs._AAIMON_n_slope'.format(list_number)
+        print('Fig24: Future warning! Figure name will be replaced to match the drawn non-normalised data!!')
         fig, ax = plt.subplots()
 
         x = df['AAIMON_mean_all_TMDs']
