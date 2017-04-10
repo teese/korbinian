@@ -44,6 +44,8 @@ def compare_lists (s):
     create_legend = True
     save_png = s['save_png']
     save_pdf = s['save_pdf']
+    n_bins_cons = 60
+    n_bins_lipo = 25
 
     ''' problems with RGB values in color_list when comparing less than 3 lists, colours were converted to HTML format'''
     #colour_dict = utils.create_colour_lists()
@@ -97,6 +99,17 @@ def compare_lists (s):
         # add dataframe to a dictionary of dataframes
         df_dict[prot_list] = df_temp
 
+
+    # check if structure data is plotted -> changed bins due to reduced number of proteins
+    reduce_bins = False
+    for element in dfv.list_description:
+        if 'STR' in element[:3]:
+            reduce_bins = True
+    if reduce_bins == True:
+        n_bins_cons = 20
+        n_bins_lipo = 15
+        sys.stdout.write('reduced number of bins due to structural data usage: n_bins_cons = {}; n_bins_lipo = {}\n\n'.format(n_bins_cons,n_bins_lipo))
+
     ###############################################################
     #                                                             #
     #                           plot data                         #
@@ -114,7 +127,7 @@ def compare_lists (s):
     Fig_Nr = 1
     title = 'histograms AAIMON and AAIMON_n'
     Fig_name = 'Fig01_Histograms_of_mean_AAIMON_and_AAIMON_n'
-    binlist = np.linspace(0, 2, 61)
+    binlist = np.linspace(0, 2, n_bins_cons+1)
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
 
@@ -192,7 +205,7 @@ def compare_lists (s):
         # Create legend from custom artist/label lists
         ax.legend([handle for i, handle in enumerate(handles) if i in display] + [AAIMON, AAIMON_norm],
                   [label for i, label in enumerate(labels) if i in display] + ['non-normalised', 'normalised'],
-                  fontsize=fontsize - 3, frameon=True)#, bbox_to_anchor=(1.07, 1.12))
+                  fontsize=fontsize - 3, frameon=True, loc='upper right')#, bbox_to_anchor=(1.07, 1.12))
     else:
         # Create custom artists
         AAIMON = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
@@ -200,7 +213,7 @@ def compare_lists (s):
         # Create legend from custom artist/label lists
         ax.legend([AAIMON, AAIMON_norm],
                   ['non-normalised', 'normalised'],
-                  fontsize=fontsize - 3, frameon=True)#, bbox_to_anchor=(1.07, 1.12))
+                  fontsize=fontsize - 3, frameon=True, loc='upper right')#, bbox_to_anchor=(1.07, 1.12))
 
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
 
@@ -208,7 +221,7 @@ def compare_lists (s):
     Fig_Nr = 2
     title = 'histograms AAIMON_slope and AAIMON_n_slope'
     Fig_name = 'Fig02_Histograms_of_mean_AAIMON_slope_and_AAIMON_n_slope'
-    binlist = np.linspace(-40, 40, 61)
+    binlist = np.linspace(-40, 40, n_bins_cons+1)
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
 
@@ -613,7 +626,7 @@ def compare_lists (s):
     Fig_name = 'Fig07_hist_lipo_mean_all_TMDs'
     min_ = -0.5
     max_ = 0.8
-    binlist = np.linspace(min_, max_, 26) #41
+    binlist = np.linspace(min_, max_, n_bins_lipo+1) #41
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
 
@@ -1077,7 +1090,7 @@ def compare_lists (s):
     Fig_name = 'Fig14_hist_lipo_TM01_vs_last_TM'
     min_ = -0.5
     max_ = 0.8
-    binlist = np.linspace(min_, max_, 41)
+    binlist = np.linspace(min_, max_, n_bins_lipo+1)
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
 
@@ -1175,7 +1188,7 @@ def compare_lists (s):
     Fig_Nr = 15
     title = 'histograms AAIMON_slope TM01 vs last TMD'
     Fig_name = 'Fig15_Histograms_AAIMON_slope_TM01_vs_lastTM'
-    binlist = np.linspace(-40, 40, 61)
+    binlist = np.linspace(-40, 40,  n_bins_cons+1)
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
 
@@ -1481,26 +1494,29 @@ def compare_lists (s):
 
     df = df.set_index(['list_description']).dropna().T
 
-    fig, ax = plt.subplots()
-    n = len(protein_lists_KW)
-    # width of bar
-    width = 0.8 / n
-    # indices (position of bar)
-    ind = np.arange(df.shape[0])
-    for m, prot_list in enumerate(protein_lists_KW):
-        list_description = dfv.loc[prot_list, 'list_description']
-        ind_for_list = ind + width * m
-        ax.bar(ind_for_list, df[list_description], width=width, color=dfv.loc[prot_list, 'color'], label=dfv.loc[prot_list, 'list_description'], edgecolor='k')
-    xtick_locations = ind + width / 2  # - n/2*width
-    ax.set_xticks(xtick_locations)
-    label = [element.replace('_', '\n') for element in df.index]
-    ax.set_xticklabels(label, rotation=0)
-    ax.tick_params(labelsize=fontsize, pad=3)
-    ax.set_ylabel('% of dataset', fontsize=fontsize)
-    ax.legend(frameon=True, fontsize=fontsize)
+    if protein_lists_KW != []:
+        fig, ax = plt.subplots()
+        n = len(protein_lists_KW)
+        # width of bar
+        width = 0.8 / n
+        # indices (position of bar)
+        ind = np.arange(df.shape[0])
+        for m, prot_list in enumerate(protein_lists_KW):
+            list_description = dfv.loc[prot_list, 'list_description']
+            ind_for_list = ind + width * m
+            ax.bar(ind_for_list, df[list_description], width=width, color=dfv.loc[prot_list, 'color'], label=dfv.loc[prot_list, 'list_description'], edgecolor='k')
+        xtick_locations = ind + width / 2  # - n/2*width
+        ax.set_xticks(xtick_locations)
+        label = [element.replace('_', '\n') for element in df.index]
+        ax.set_xticklabels(label, rotation=0)
+        ax.tick_params(labelsize=fontsize, pad=3)
+        ax.set_ylabel('% of dataset', fontsize=fontsize)
+        ax.legend(frameon=True, fontsize=fontsize)
 
-    plt.tight_layout()
-    utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
+        plt.tight_layout()
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
+    else:
+        sys.stdout.write('no uniprot keywords found, {} cannot be processed!'. format(Fig_name))
 
 
     #dfv.to_csv(os.path.join(base_filepath, 'Lists_%s_variables.csv'%str_protein_lists))
