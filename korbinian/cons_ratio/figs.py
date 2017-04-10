@@ -2408,9 +2408,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         fig, ax = plt.subplots(figsize=(5, 5))
 
-        # print("Mark gets an error here")
-        # print("shape", data.shape)
-        # print("first datapoints", data[0:5])
         x = data[:, 0]  # FASTA_gapped_identity
         y = data[:, 1]  # AAIMON for each TMD
 
