@@ -29,7 +29,10 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
 
     columns_to_keep = ['organism_domain', 'create_protein_list', 'uniprot_acc', 'uniprot_all_accessions', 'uniprot_entry_name', 'uniprot_features',
                        'uniprot_orgclass', 'uniprot_SiPe', 'singlepass', 'typeI', 'typeII', 'uniprot_KW', 'organism', 'prot_descr', 'membrane',
-                       'multipass', 'gene_name', 'comments_subcellular_location_uniprot']
+                       'multipass', 'gene_name', 'comments_subcellular_location_uniprot', 'uniprot_SiPe']
+    if analyse_sp == True:
+        columns_to_keep = columns_to_keep + ['SP01_start', 'SP01_end', 'SP01_seq']
+
     list_indices = list(list_parsed.index)
     list_parsed = list_parsed[columns_to_keep]
 
@@ -125,11 +128,12 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
 
     ## for the .set_value function, set dtype as object
     df["list_of_TMDs"] = ""
-    # dft["list_of_TMDs"].astype(object)
+    df["list_of_TMDs"].astype(object)
 
 
     sys.stdout.write('slicing TMD and nonTMD sequences:\n')
-
+    #df = pd.merge(df, list_parsed, left_index=True, right_index=True, suffixes=('', '_list_parsed'))
+    #df.to_csv('/Users/Maddin/Desktop/test.csv')
     for n, acc in enumerate(df.index):
         # get nested tuple of TMDs
         nested_tup_TMs = df.loc[acc, "TM_indices"]
@@ -137,6 +141,7 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
         len_nested_tup_TMs = len(nested_tup_TMs)
         list_of_TMDs = long_list_of_TMDs[:len_nested_tup_TMs]
         # add that list to the dataframe (could also be added as a stringlist, but that's irritating somehow)
+        #df.loc[acc, 'list_of_TMDs'] = list_of_TMDs
         df.set_value(acc, "list_of_TMDs", list_of_TMDs)
         # set seq for slicing
         full_seq = df.loc[acc, "full_seq"]
@@ -152,13 +157,19 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
             # dft.loc[acc, TMD + "_top"] = utils.slice_with_listlike(topo, tup)
         # add signal peptides and their corresponding values to list_of_TMDs
         if analyse_sp == True:
-            SiPe_indices = df.loc[acc, 'SiPe_indices']
-            if SiPe_indices != []:
-                df.loc[acc, 'SP01_start'] = SiPe_indices[0]
-                df.loc[acc, 'SP01_end'] = SiPe_indices[-1]
-                df.loc[acc, 'SP01_seq'] = full_seq[SiPe_indices[0]:SiPe_indices[-1]+1]
+            if type(list_parsed.loc[acc, 'SP01_seq']) == str:
                 list_of_TMDs.append('SP01')
                 df.set_value(acc, "list_of_TMDs", list_of_TMDs)
+
+
+            # # code necessary for TMSEG signal peptides - depreciated by MO 20.04.2017
+            # SiPe_indices = df.loc[acc, 'SiPe_indices']
+            # if SiPe_indices != []:
+            #     df.loc[acc, 'SP01_start'] = SiPe_indices[0]
+            #     df.loc[acc, 'SP01_end'] = SiPe_indices[-1]
+            #     df.loc[acc, 'SP01_seq'] = full_seq[SiPe_indices[0]:SiPe_indices[-1]+1]
+            #     list_of_TMDs.append('SP01')
+            #     df.set_value(acc, "list_of_TMDs", list_of_TMDs)
 
         if n % 50 == 0 and n != 0:
             sys.stdout.write(". ")

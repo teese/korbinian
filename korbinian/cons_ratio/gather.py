@@ -49,6 +49,8 @@ def gather_AAIMONs(pathdict, logging, s):
     """
     logging.info("~~~~~~~~~~~~                           starting gather_AAIMONs                      ~~~~~~~~~~~~")
     df = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
+    # make list_of_TMDs in df a python list
+    df.list_of_TMDs = df.list_of_TMDs.apply(lambda x: ast.literal_eval(x))
 
     if s['filter_keywords_in_gather']:
         # filter list file by keywords for exclusion analysis, e.g. enzyme only
@@ -170,6 +172,13 @@ def gather_AAIMONs(pathdict, logging, s):
         last_TMD = df.loc[acc, 'last_TMD']
         dfg.loc[acc, 'AAIMON_slope_last_TMD'] = dfg.loc[acc, '%s_AAIMON_slope' %last_TMD]
         dfg.loc[acc, 'AAIMON_n_slope_last_TMD'] = dfg.loc[acc, '%s_AAIMON_n_slope' % last_TMD]
+        # add mean AAIMON_slope of central TMDs to dfg
+        if df.loc[acc, 'number_of_TMDs'] >= 3:
+            list_of_central_TMDs = df.loc[acc, 'list_of_TMDs'][1:-1]
+            list_mean_slope_central_TMDs = []
+            for TMD in list_of_central_TMDs:
+                list_mean_slope_central_TMDs.append(pd.to_numeric(dfg.loc[acc, '%s_AAIMON_slope'%TMD]))
+            dfg.loc[acc, 'AAIMON_slope_central_TMDs'] = np.mean(list_mean_slope_central_TMDs)
 
         # count the number of TMDs for each protein
         dfg.loc[acc, 'number_of_TMDs'] = len(dfg.loc[acc, 'list_of_TMDs'].split(','))
