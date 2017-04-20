@@ -2295,7 +2295,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         ### this section specifies the last bin to avoid bins containing only one TMD
         # join all numbers of TMDs together into a large list
-        nested_list_all_TMDs = list(df['number_of_TMDs'])
+        nested_list_all_TMDs = list(df['number_of_TMDs_excl_SP'])
         # convert list to pandas series
         all_TMDs_series = pd.Series(nested_list_all_TMDs)
         # obtain series of TMD_counts

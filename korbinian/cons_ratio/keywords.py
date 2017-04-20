@@ -120,9 +120,9 @@ def keyword_analysis(pathdict, s, logging):
 
     # check if dataset is SP or MP
     dataset = 'none'
-    if df.number_of_TMDs.max() == 1:
+    if df.number_of_TMDs_excl_SP.max() == 1:
         dataset = 'SP'
-    elif df.number_of_TMDs.max() > 1:
+    elif df.number_of_TMDs_excl_SP.max() > 1:
         dataset = 'MP'
     else:
         dataset = 'Unknown'
@@ -368,7 +368,7 @@ def keyword_analysis(pathdict, s, logging):
 
                     ### this section specifies the last bin to avoid bins containing only one TMD
                     # join all numbers of TMDs together into a large list
-                    nested_list_all_TMDs = list(df_keyword['number_of_TMDs'])
+                    nested_list_all_TMDs = list(df_keyword['number_of_TMDs_excl_SP'])
                     # convert list to pandas series
                     all_TMDs_series = pd.Series(nested_list_all_TMDs)
                     # obtain series of TMD_counts
@@ -397,7 +397,7 @@ def keyword_analysis(pathdict, s, logging):
 
                         # add values of every TMD number that is larger than the boxplot_cutoff_number_of_TMDs to final bin
                         data_for_final_bin = []
-                        for i in range(max_num_TMDs.astype('int') + 1, df_keyword.number_of_TMDs.max().astype('int') + 1):
+                        for i in range(max_num_TMDs.astype('int') + 1, df_keyword.number_of_TMDs_excl_SP.max().astype('int') + 1):
                             # TM_final = 'TM%02d' % i
                             hist_data_AAIMON_each_TM_final_bin = df_keyword['TM%02d_AAIMON_slope' % i].dropna() * 1000
                             # if len(hist_data_AAIMON_each_TM) > 0:
@@ -481,7 +481,7 @@ def keyword_analysis(pathdict, s, logging):
 
                         # add values of every TMD number that is larger than the boxplot_cutoff_number_of_TMDs to final bin
                         data_for_final_bin = []
-                        for i in range(max_num_TMDs.astype('int') + 1, df_keyword.number_of_TMDs.max().astype('int') + 1):
+                        for i in range(max_num_TMDs.astype('int') + 1, df_keyword.number_of_TMDs_excl_SP.max().astype('int') + 1):
                             # TM_final = 'TM%02d' % i
                             hist_data_AAIMON_each_TM_final_bin = df_keyword['TM%02d_lipo' % i].dropna()
                             # if len(hist_data_AAIMON_each_TM) > 0:
