@@ -99,12 +99,23 @@ def compare_lists (s):
         df_temp = df_temp[df_temp.TM01_AAIMON_n_homol >= dfv.loc[prot_list, 'min_homol']]
         proteins_after_dropping = len(df_temp)
         sys.stdout.write('List{:02} - {}: number of dropped proteins {}\n'.format(prot_list, dfv.loc[prot_list,'list_description'], proteins_before_dropping - proteins_after_dropping))
+        # make list of TMDs a python list
+        df_temp.list_of_TMDs = df_temp.list_of_TMDs.apply(lambda x: ast.literal_eval(x))
         # check for uniprot keywords, make them a python list and search for GPCRs to exclude them later
         if 'uniprot_KW' in df_temp.columns:
             df_temp['uniprot_KW'] = df_temp['uniprot_KW'].apply(lambda x: ast.literal_eval(x))
             df_temp['GPCR'] = df_temp['uniprot_KW'].apply(KW_list_contains_any_desired_KW, args=(['G-protein coupled receptor'],))
         else:
             df_temp['GPCR'] = False
+
+        if not 'AAIMON_slope_central_TMDs' in df_temp.columns:
+            for acc in df_temp.index:
+                if df_temp.loc[acc, 'number_of_TMDs'] >= 3:
+                    list_of_central_TMDs = df_temp.loc[acc, 'list_of_TMDs'][1:-1]
+                    list_mean_slope_central_TMDs = []
+                    for TMD in list_of_central_TMDs:
+                        list_mean_slope_central_TMDs.append(pd.to_numeric(df_temp.loc[acc, '%s_AAIMON_slope' % TMD]))
+                    df_temp.loc[acc, 'AAIMON_slope_central_TMDs'] = np.mean(list_mean_slope_central_TMDs)
         # add dataframe to a dictionary of dataframes
         df_dict[prot_list] = df_temp
 
@@ -1224,26 +1235,20 @@ def compare_lists (s):
 
     # --------------------------------------------------------------------------------------------------------------------------------#
     Fig_Nr = 15
-    title = 'histograms AAIMON_slope TM01 vs last TMD'
-    Fig_name = 'Fig15_Histograms_AAIMON_slope_TM01_vs_lastTM'
-    binlist = np.linspace(-40, 40,  n_bins_cons+1)
+    title = 'hist_AAIMON_slope_first_vs_central_vs_last_TM_excl_GPCRs'
+    Fig_name = 'Fig15_hist_AAIMON_slope_first_vs_central_vs_last_TM_excl_GPCRs'
+    binlist = np.linspace(-40, 40, n_bins_cons + 1)
     fig, ax = plt.subplots()
-    offset = len(protein_lists) - 1
+    offset = len(protein_lists_mp) - 1
 
-    for prot_list in protein_lists:
-        ###### for backwards compatibility ##### can be removed if all data is re-processed after march 5 2017
-        if not 'AAIMON_slope_last_TMD' in df_dict[prot_list].columns:
-            sys.stdout.write('List{:02d}: AAIMON_slope_last_TMD not in dataframe -> older version of data, re-run "gather_AAIMON_ratios"; adding data for figure'.format(prot_list))
-            for n, acc in enumerate(df_dict[prot_list].index):
-                if n % 200 == 0:
-                    sys.stdout.write(". "), sys.stdout.flush()
-                last_TMD = df_dict[prot_list].loc[acc, 'last_TMD']
-                df_dict[prot_list].loc[acc, 'AAIMON_slope_last_TMD'] = df_dict[prot_list].loc[acc, '%s_AAIMON_slope' % last_TMD]
+    for prot_list in protein_lists_mp:
+        temp = df_dict[prot_list]
+        temp = temp[temp.GPCR == False]
+        temp = temp[temp['number_of_TMDs'] >= min_n_TMDs_first_last]
 
-
-        ###   AAIMON_slope TM01   ###
+        ###   AAIMON_slope central TMDs   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = (df_dict[prot_list]['TM01_AAIMON_slope'] * 1000).dropna()
+        hist_data = (temp['AAIMON_slope_central_TMDs'] * 1000).dropna()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -1258,9 +1263,25 @@ def compare_lists (s):
                                             alpha=alpha, linewidth=linewidth,
                                             label=dfv.loc[prot_list, 'list_description'])
 
+        ###   AAIMON_slope TM01   ###
+        # create numpy array of membranous over nonmembranous conservation ratios (identity)
+        hist_data = (temp['TM01_AAIMON_slope'] * 1000).dropna()
+        # use numpy to create a histogram
+        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+        freq_counts_normalised = freq_counts / freq_counts.max() + offset
+        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+        # add the final bin, which is physically located just after the last regular bin but represents all higher values
+        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, '-.', color=dfv.loc[prot_list, 'color'],
+                                            alpha=alpha, linewidth=linewidth)
+
         ###   AAIMON_slope last TMD   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = (df_dict[prot_list]['AAIMON_slope_last_TMD'] * 1000).dropna()
+        hist_data = (temp['AAIMON_slope_last_TMD'] * 1000).dropna()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -1290,7 +1311,7 @@ def compare_lists (s):
     xlim_max = 30
     ax.set_xlim(xlim_min, xlim_max)
     ylim_min = -0.01
-    ylim_max = len(protein_lists) + 0.01
+    ylim_max = len(protein_lists_mp) + 0.01
     ax.set_ylim(ylim_min, ylim_max)
     # set y-axis grid lines without tick labels
     ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
@@ -1313,21 +1334,22 @@ def compare_lists (s):
         handles, labels = ax.get_legend_handles_labels()
         display = (list(range(0, len(protein_lists) + 1, 1)))
         # Create custom artists
-        TM01 = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
+        TM01 = plt.Line2D((0, 1), (0, 0), color='k', linestyle='-.', linewidth=linewidth)
+        central_TM = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
         last_TM = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
         # Create legend from custom artist/label lists
-        ax.legend([handle for i, handle in enumerate(handles) if i in display] + [TM01, last_TM],
-                  [label for i, label in enumerate(labels) if i in display] + ['TM01', 'last TM'],
+        ax.legend([handle for i, handle in enumerate(handles) if i in display] + [TM01, central_TM, last_TM],
+                  [label for i, label in enumerate(labels) if i in display] + ['first TM', 'central TMDs', 'last TM'],
                   fontsize=fontsize - 3, frameon=True, loc='upper right')  # , bbox_to_anchor=(1.07, 1.12))
     else:
         # Create custom artists
-        TM01 = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
+        TM01 = plt.Line2D((0, 1), (0, 0), color='k', linestyle='-.', linewidth=linewidth)
+        central_TM = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
         last_TM = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
         # Create legend from custom artist/label lists
-        ax.legend([TM01, last_TM],
-                  ['TM01', 'last TM'],
+        ax.legend([TM01, central_TM, last_TM],
+                  ['first TM', 'central TMDs', 'last TM'],
                   fontsize=fontsize - 3, frameon=True, loc='upper right')  # , bbox_to_anchor=(1.07, 1.12))
-    # plt.gcf().subplots_adjust(bottom=0.15)
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
     # --------------------------------------------------------------------------------------------------------------------------------#
