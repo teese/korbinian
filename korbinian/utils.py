@@ -1648,3 +1648,9 @@ def calc_alpha_from_datapoints(data):
         alpha = 0.9
     return float(alpha)
 
+def get_publication_colors():
+    color_list = ['#808080', '#D59460', '#005293']
+    # add other HTML colours
+    color_list = color_list + ['#A1B11A', '#9ECEEC', '#0076B8', '#454545']
+    return color_list
+

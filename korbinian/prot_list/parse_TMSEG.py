@@ -59,7 +59,7 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
     df['uniprot_entry_name'] = input_data[1::5]
     df['prot_descr'] = input_data[2::5]
     df['full_seq'] = input_data[3::5]
-    df['topology'] = input_data[4::5]
+    df['topo'] = input_data[4::5]
 
     keep = []
     for acc in df.index:
@@ -72,7 +72,7 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
     # get list of uniprot accessions of proteins where no transmembrane region was predicted
     list_nonTMD = []
     for acc in df.index:
-        if 'N' in df.loc[acc, 'topology']:
+        if 'N' in df.loc[acc, 'topo']:
             list_nonTMD.append(acc)
 
     # write list of nonTM proteins to file
@@ -87,8 +87,8 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
 
     # add seqlen and indices for all TMD and SiPe regions
     df["seqlen"] = df.full_seq.apply(lambda x: len(x))
-    df['M_indices'] = df.topology.apply(getting_membrane_indices_from_helix_symbol)
-    df['SiPe_indices'] = df.topology.apply(getting_SiPe_indices_from_symbol)
+    df['M_indices'] = df.topo.apply(getting_membrane_indices_from_helix_symbol)
+    df['SiPe_indices'] = df.topo.apply(getting_SiPe_indices_from_symbol)
 
 
 
@@ -140,7 +140,7 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
         df.set_value(acc, "list_of_TMDs", list_of_TMDs)
         # set seq for slicing
         full_seq = df.loc[acc, "full_seq"]
-        # topology = dft.loc[acc, "Topology"]
+        # topo = dft.loc[acc, "Topology"]
         # iterate through all the TMDs of that protein, slicing out the sequences
         for i in range(len(list_of_TMDs)):
             TMD = list_of_TMDs[i]
@@ -149,7 +149,7 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
             df.loc[acc, "%s_end" % TMD] = tup[1]
             df.loc[acc, "%s_seq" % TMD] = utils.slice_with_listlike(full_seq, tup)
             df.loc[acc, "%s_seqlen" % TMD] = len(df.loc[acc, "%s_seq" % TMD])
-            # dft.loc[acc, TMD + "_top"] = utils.slice_with_listlike(topology, tup)
+            # dft.loc[acc, TMD + "_top"] = utils.slice_with_listlike(topo, tup)
         # add signal peptides and their corresponding values to list_of_TMDs
         if analyse_sp == True:
             SiPe_indices = df.loc[acc, 'SiPe_indices']
@@ -198,7 +198,7 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
 
 
 
-    cols_to_drop = ['topology', 'M_indices', 'SiPe_indices', 'Membrane_Borders', 'TM_indices']
+    cols_to_drop = ['M_indices', 'SiPe_indices', 'Membrane_Borders', 'TM_indices']
     df = pd.merge(df, list_parsed, left_index=True, right_index=True, suffixes=('', '_list_parsed'))
     df.drop(cols_to_drop, axis=1, inplace=True)
     df['parse_TMSEG'] = True
@@ -211,9 +211,9 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
 
 
 def getting_membrane_indices_from_helix_symbol(Topo_data):
-    m_list = [i for i, topology in enumerate(Topo_data) if topology == "H"]  # find(Topo_data)
+    m_list = [i for i, topo in enumerate(Topo_data) if topo == "H"]  # find(Topo_data)
     return m_list
 
 def getting_SiPe_indices_from_symbol(Topo_data):
-    m_list = [i for i, topology in enumerate(Topo_data) if topology == "S"]  # find(Topo_data)
+    m_list = [i for i, topo in enumerate(Topo_data) if topo == "S"]  # find(Topo_data)
     return m_list
