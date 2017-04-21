@@ -4,6 +4,7 @@ import csv
 import itertools
 import korbinian.utils as utils
 import matplotlib.pyplot as plt
+import matplotlib
 import numpy as np
 import pandas as pd
 import sys
@@ -108,6 +109,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # count the maximum number of TMDs (excluding signal peptides) in the dataset
     max_num_TMDs = df.number_of_TMDs_excl_SP.max()
 
+    # make list_of_TMDs a python list
+    df['list_of_TMDs'] = df['list_of_TMDs'].apply(lambda x: ast.literal_eval(x))
     # logging saved data types
     sys.stdout.write('\nSaving figures as: ')
     if s['save_pdf']:
@@ -2390,6 +2393,78 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                         alpha=0.75)
 
             utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
+    if s['Fig31_lipo_vs_conservation_all_TMDs']:
+        Fig_Nr = 31
+        Fig_name = 'List{:02d}_Fig31_lipo_vs_conservation_all_TMDs'.format(list_number)
+
+        '''
+        data array columns:
+        |   0   |   1  |
+        | Slope | lipo |
+        '''
+        data = np.empty([0, 2])
+        sys.stdout.write('Fig31 collecting data: ')
+        sys.stdout.flush()
+        for n, acc in enumerate(df.index):
+            list_of_TMDs = df.loc[acc, 'list_of_TMDs']
+            if n % 200 == 0:
+                sys.stdout.write('. ')
+                sys.stdout.flush()
+            for TMD in list_of_TMDs:
+                add = np.array([df.loc[acc, '%s_AAIMON_slope' % TMD], df.loc[acc, '%s_lipo' % TMD]])
+                data = (np.vstack((data, add)))
+        data = data[~np.isnan(data).any(axis=1)]
+
+        fig, (cbar_ax, ax) = plt.subplots(2, 1, figsize=(5, 5.5), gridspec_kw={'height_ratios': [0.2, 12]})
+        #fontsize = 16
+        # number of bins
+        bins = [120, 120]
+        # density threshold
+        thresh = 1
+
+        # plot AAIMON_slope data
+        x = data[:, 1]
+        y = data[:, 0] * 1000
+
+        x_border = 1.5
+        y_border = 30
+        xyrange = [[-x_border, x_border], [-y_border, y_border]]
+
+        # histogram the data
+        hh, locx, locy = scipy.histogram2d(x, y, range=xyrange, bins=bins)
+        hh1 = hh.reshape(1, 14400)
+        hh1 = hh1[hh1 > 0]
+        vmax = np.percentile(hh1, 99)
+        if vmax % 2 == True:
+            vmax = vmax - 1
+        # fill the areas with low density by NaNs
+        hh[hh < thresh] = np.nan
+        im = ax.imshow(np.flipud(hh.T), cmap='Oranges', extent=np.array(xyrange).flatten(),
+                       interpolation='none', origin='upper', aspect='auto', vmin=0, vmax=vmax)
+
+        cbar = matplotlib.colorbar.ColorbarBase(cbar_ax, cmap='Oranges', orientation='horizontal')
+        if vmax < 10:
+            cbar.set_ticks(np.linspace(0, 1, vmax + 1))
+            labels = list(range(0, int(vmax), 1))
+        else:
+            cbar.set_ticks(np.linspace(0, 1, vmax / 2 + 1))
+            labels = list(range(0, int(vmax), 2))
+
+        labels.append('>{}'.format(int(vmax)))
+        cbar.set_ticklabels(labels)
+        cbar_ax.xaxis.set_ticks_position('top')
+
+        ax.set_xlabel('lipophilicity (Hessa scale)', fontsize=fontsize)
+        ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
+        ax.tick_params(labelsize=fontsize, pad=3)
+        cbar_ax.tick_params(labelsize=fontsize, pad=0)
+
+        plt.subplots_adjust(hspace=0.03)
+        plt.tight_layout()
+
+    utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
 
     if s['Fig97_Density_AAIMON_vs_perc_ident_all_homol_all_proteins']:
         Fig_Nr = 97
