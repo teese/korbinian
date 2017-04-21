@@ -318,7 +318,7 @@ def run_calc_fastagap_densities(pathdict, s, logging):
     logging.info("~~~~~~~~~~~~         starting calc_fastagap_densities           ~~~~~~~~~~~~")
     df = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     # get list of accessions that could not be downloaded, and can immediately be excluded
-    not_in_homol_db = utils.get_list_not_in_homol_db(pathdict)
+    not_in_homol_db = utils.get_acc_list_from_txt(pathdict["acc_not_in_homol_db_txt"])
     acc_kept = set(df.index) - set(not_in_homol_db)
     # filter to remove proteins not in the homologue database
     df = df.loc[acc_kept, :]

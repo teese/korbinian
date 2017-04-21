@@ -55,8 +55,8 @@ def download_homologues_from_simap(pathdict, s, logging):
 
     if s["attempt_prev_failed_downloads"] == False:
         # get list of accessions that could not be downloaded, and can immediately be excluded
-        acc_list_failed_downloads = utils.get_list_failed_downloads(pathdict)
-        not_in_homol_db = utils.get_list_not_in_homol_db(pathdict)
+        acc_list_failed_downloads = utils.get_acc_list_from_txt(pathdict["failed_downloads_txt"])
+        not_in_homol_db = utils.get_acc_list_from_txt(pathdict["acc_not_in_homol_db_txt"])
         acc_excluded_list = acc_list_failed_downloads + not_in_homol_db
         # the list of desired proteins = total_list - excluded
         acc_not_excluded = list(set(df.index) - set(acc_excluded_list))
@@ -120,7 +120,7 @@ def download_homologues_from_simap(pathdict, s, logging):
             Limit protein length according to settings (typically max length = 3000)
         '''
         if 'Windows' in str(platform.system()):
-            too_large_to_download_list = utils.get_list_too_large_to_download(pathdict)
+            too_large_to_download_list = utils.get_acc_list_from_txt(pathdict["too_large_to_download_txt"])
             if seqlen > s["max_query_sequence_length"]:
                 logging.warning('%s homologue download will be skipped. It cannot be processed into a java command in windows OS,'
                                 'as the sequence is longer than %i characters (%i). Moving to next sequence' % (protein_name, s["max_query_sequence_length"],seqlen))
