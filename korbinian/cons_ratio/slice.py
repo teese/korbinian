@@ -30,7 +30,7 @@ def run_slice_TMDs_from_homologues(pathdict, s, logging):
     # if multiprocessing is used, log only to the console
     p_dict_logging = logging if s["use_multiprocessing"] != True else utils.Log_Only_To_Console()
     # get list of accessions that could not be downloaded, and can immediately be excluded
-    not_in_homol_db = utils.get_list_not_in_homol_db(pathdict)
+    not_in_homol_db = utils.get_acc_list_from_txt(pathdict["acc_not_in_homol_db_txt"])
     # create list of protein dictionaries to process
     list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging, list_excluded_acc=not_in_homol_db)
 

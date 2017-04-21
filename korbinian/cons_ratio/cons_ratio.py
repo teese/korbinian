@@ -35,7 +35,7 @@ def run_calculate_AAIMONs(pathdict, s, logging):
     # set current working directory as the data_dir/homol, where temp files will be saved before moving to zip
     os.chdir(os.path.join(s["data_dir"], "homol"))
     # get list of accessions that could not be downloaded, and can immediately be excluded
-    not_in_homol_db = utils.get_list_not_in_homol_db(pathdict)
+    not_in_homol_db = utils.get_acc_list_from_txt(pathdict["acc_not_in_homol_db_txt"])
 
     ########################################################################################
     #                                                                                      #
@@ -596,7 +596,7 @@ def throw_out_truncated_sequences(pathdict, s, logging):
     # set current working directory as the data_dir/homol, where temp files will be saved before moving to zip
     os.chdir(os.path.join(s["data_dir"], "homol"))
     # get list of accessions that could not be downloaded, and can immediately be excluded
-    not_in_homol_db = utils.get_list_not_in_homol_db(pathdict)
+    not_in_homol_db = utils.get_acc_list_from_txt(pathdict["acc_not_in_homol_db_txt"])
     # create list of protein dictionaries to process
     list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging, list_excluded_acc=not_in_homol_db)
     # number of processes is the number the settings, or the number of proteins, whichever is smallest

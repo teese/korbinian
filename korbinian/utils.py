@@ -1527,36 +1527,31 @@ def convert_summary_csv_to_input_list(s, pathdict, logging, list_excluded_acc=No
     return list_p
 
 
-def get_list_not_in_homol_db(pathdict):
-    not_in_homol_db = []
-    if os.path.isfile(pathdict["acc_not_in_homol_db_txt"]):
-        # Extracts accession numbers out of file
-        with open(pathdict["acc_not_in_homol_db_txt"], "r") as source:
-            for line in source:
-                line = line.strip()
-                not_in_homol_db.append(line)
-    return not_in_homol_db
+def get_acc_list_from_txt(txtfile):
+    """Opens a list of uniprot accessions and converts to a python list.
 
-def get_list_failed_downloads(pathdict):
-    acc_list_failed_downloads = []
-    if os.path.isfile(pathdict["failed_downloads_txt"]):
-        # Extracts accession numbers out of file
-        with open(pathdict["failed_downloads_txt"], "r") as source:
-            for line in source:
-                line = line.strip()
-                acc_list_failed_downloads.append(line)
-    return acc_list_failed_downloads
+    Parameters
+    ----------
+    txtfile : str
+        text file with list of acc, each with a new line
 
-def get_list_too_large_to_download(pathdict):
+    Returns
+    -------
+    acc_list : list
+        list of each uniprot accession.
+        empty lines will be ignored
+    """
     acc_list = []
-    if os.path.isfile(pathdict["too_large_to_download_txt"]):
+    if os.path.isfile(txtfile):
         # Extracts accession numbers out of file
-        with open(pathdict["too_large_to_download_txt"], "r") as source:
+        with open(txtfile, "r") as source:
             for line in source:
                 line = line.strip()
-                acc_list.append(line)
+                if line is not "":
+                    acc_list.append(line)
+    # remove any redundant accessions
+    acc_list = list(set(acc_list))
     return acc_list
-
 
 def send_email_when_finished(s, pathdict):
     """ Sends an email to specified address when job is finished
