@@ -36,6 +36,10 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
     list_indices = list(list_parsed.index)
     list_parsed = list_parsed[columns_to_keep]
 
+# remove after testing!!!!!!!
+    #TMSEG_results_filepath = '/Volumes/Musik/Databases/TMSEG/TMSEG_database.txt'
+# remove after testing!!!!!!!
+
     # read data from file
     input_data = []
     with open(TMSEG_results_filepath) as data_file:
@@ -44,25 +48,21 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
             if line[0] == '>':
                 line = line[1:]
                 line = line.split(' ')
-                comment = ' '.join(line[1:])
                 line = line[0].split('|')
                 uniprot_acc = line[0]
-                uniprot_entry_name = line[1]
                 input_data.append(uniprot_acc)
-                input_data.append(uniprot_entry_name)
-                input_data.append(comment)
             else:
                 input_data.append(line)
 
 
     # initialise pandas dataframe with uniprot accession as index
-    df = pd.DataFrame(index=input_data[0::5])
+    df = pd.DataFrame(index=input_data[0::3])
 
     # add selected columns from input_data list
-    df['uniprot_entry_name'] = input_data[1::5]
-    df['prot_descr'] = input_data[2::5]
-    df['full_seq'] = input_data[3::5]
-    df['topo'] = input_data[4::5]
+    #df['uniprot_entry_name'] = input_data[1::5]
+    #df['prot_descr'] = input_data[2::5]
+    df['full_seq'] = input_data[1::3]
+    df['topo'] = input_data[2::3]
 
     keep = []
     for acc in df.index:
