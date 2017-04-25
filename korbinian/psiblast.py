@@ -7,7 +7,7 @@ import tarfile
 import warnings
 warnings.filterwarnings('ignore')
 
-def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_exec_str, retry_failed=False, retry_successful=False):
+def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_exec_str, db, retry_failed=False, retry_successful=False):
     """Runs standalone PSIBLAST on every query fasta file in a folder.
 
     What you need:
@@ -21,9 +21,15 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
     ----------
     query_dir : str
         Folder containing protein sequences in fasta format.
+    databases_dir : str
+        Databases directory, e.g. "D:\Databases"
     psiblast_exec_str : str
         Path to psiblast executable
         if you are using linux or your Windows environmental variables are working, can simply be "psiblast"
+    db : str
+        Database for PSI-BLAST
+        e.g. "metazoa90"
+        Determines the filepath for the .fasta containing the search database.
     retry_failed : bool
         If True, proteins in the list of failed acc will be re-attempted
     retry_successful : bool
@@ -80,9 +86,7 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
     s["evalue"] = "1e-3"
     s["inclusion_ethresh"] = "1e-3"
     s["num_threads"] = 10
-    #s["db"] = "uniref90.fasta"
-    #s["db"] = "uniref90"
-    s["db"] = "metazoa90"
+    # s["db"] = "metazoa90"
     s["num_descriptions"] = 3000
     s["num_alignments"] = 3000
     command_str = '"{psiblast_exec_str}" -query {query} -db {db} -out_pssm {out_pssm} -out_ascii_pssm {out_ascii_pssm} '\
@@ -99,7 +103,7 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
     #                                                                                      #
     ########################################################################################
     # define the BLAST database. Note that you should specify the fasta file.
-    db = os.path.join(databases_dir, "uniref\{db}\{db}.fasta".format(db=s["db"]))
+    db_path = os.path.join(databases_dir, "uniref\{db}\{db}.fasta".format(db=db))
 
     for query in query_fasta_list:
         acc = os.path.basename(query).split(".")[0]
@@ -107,10 +111,11 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
         # get first two letters of acc, used as a subfolder
         first2 = acc[:2]
         # create a basename, e.g. "D:\Databases\BLAST\PSI\vertebra90\P4\P42532" from which files are created
-        basename = r"D:\Databases\BLAST\PSI\{db}\{first2}\{acc}".format(db=s["db"], first2=first2, acc=acc)
+        basename = r"D:\Databases\BLAST\PSI\{db}\{first2}\{acc}".format(db=db, first2=first2, acc=acc)
         # create path for output files
         out_pssm = basename + ".pssm"
         out_ascii_pssm = basename + "_ascii.pssm"
+        print("out_ascii_pssm", out_ascii_pssm)
         out_BLAST_xml = basename + "_BLAST.xml"
         date_file_path = basename + "_BLAST_date.txt"
         PSIBLAST_tar = basename + "_PSIBLAST.tar.gz"
@@ -134,7 +139,7 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
         ########################################################################################
 
         # create full command string to be run, as if in the console
-        c = command_str.format(psiblast_exec_str=s["psiblast_exec_str"], query=query, db=db, out_pssm=out_pssm,
+        c = command_str.format(psiblast_exec_str=s["psiblast_exec_str"], query=query, db=db_path, out_pssm=out_pssm,
                                out_ascii_pssm=out_ascii_pssm, out_BLAST_xml=out_BLAST_xml, evalue=s["evalue"],
                                inclusion_ethresh=s["inclusion_ethresh"], num_threads=s["num_threads"],
                                num_descriptions=s["num_descriptions"], num_alignments=s["num_alignments"])
@@ -159,7 +164,7 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
             # create date file
             date = strftime("%Y%m%d")
             with open(date_file_path, "w") as f:
-                f.write("Acc\t{}\nDate\t{}\nDatabase\t{}\nGreeting\tHave a nice day!".format(acc, date, s["db"]))
+                f.write("Acc\t{}\nDate\t{}\nDatabase\t{}\nGreeting\tHave a nice day!".format(acc, date, db))
             # move all files into the tarball
             file_list = [out_pssm, out_ascii_pssm, out_BLAST_xml, date_file_path]
             with tarfile.open(PSIBLAST_tar, mode='w:gz') as tar:

@@ -182,18 +182,30 @@ def match_list_uniprot_acc_to_uniref_clusters(redundant_uniprot_acc_tab, uniref_
                 df_acc_to_cluster.loc[acc, "cluster_ID"] = cluster_ID
             # IF THERE ARE MORE THAN 2, TRY TO TAKE THE "REVIEWED" PROTEIN FROM SWISSPROT
             if len(acc_intersection_cluster_and_unassigned) >= 2:
-                # first make a series whether they are "reviewed" or "unreviewed"
-                reviewed_ser = dfu.loc[acc_intersection_cluster_and_unassigned, "Status"]
-                # sort the series so that the "reviewed" proteins are at the top
-                reviewed_ser.sort_values(inplace=True)
-                for acc in reviewed_ser.index:
-                    if counter == 0:
-                        # take the first protein, which should be "reviewed", if available
-                        df_acc_to_cluster.loc[acc, "nonred"] = True
-                    else:
-                        # label all following proteins as redundant, to be excluded from the final list
-                        df_acc_to_cluster.loc[acc, "nonred"] = False
-                    counter += 1
+                if "Status" in dfu.columns:
+                    # first make a series whether they are "reviewed" or "unreviewed"
+                    reviewed_ser = dfu.loc[acc_intersection_cluster_and_unassigned, "Status"]
+                    # sort the series so that the "reviewed" proteins are at the top
+                    reviewed_ser.sort_values(inplace=True)
+                    for acc in reviewed_ser.index:
+                        if counter == 0:
+                            # take the first protein, which should be "reviewed", if available
+                            df_acc_to_cluster.loc[acc, "nonred"] = True
+                        else:
+                            # label all following proteins as redundant, to be excluded from the final list
+                            df_acc_to_cluster.loc[acc, "nonred"] = False
+                        counter += 1
+                else:
+                    # there is no reviewed or unreviewed status in the cluster data
+                    # simply take the first acc as the non-redundant, and mark the others as redundant
+                    for acc in acc_intersection_cluster_and_unassigned:
+                        if counter == 0:
+                            # take the first protein, which should be "reviewed", if available
+                            df_acc_to_cluster.loc[acc, "nonred"] = True
+                        else:
+                            # label all following proteins as redundant, to be excluded from the final list
+                            df_acc_to_cluster.loc[acc, "nonred"] = False
+                        counter += 1
 
     ##################################################################################################################
     #                                                                                                                #
