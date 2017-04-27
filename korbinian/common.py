@@ -245,7 +245,10 @@ def create_pathdict(base_filename_summaries, s):
     pathdict['SCAMPI_top'] = os.path.join(pathdict['SCAMPI_dir'], 'query.top.txt')
     pathdict['SCAMPI_nonTM'] = os.path.join(pathdict['SCAMPI_dir'], 'query.nonTM_list.txt')
     pathdict['TMSEG_dir'] = os.path.join(pathdict['predictions_basename'], "TMSEG")
-    pathdict['TMSEG_top'] = os.path.join(pathdict['TMSEG_dir'], 'topology_fasta.txt')
+    # TMSEG combined topology file (in fasta-like format)
+    pathdict['TMSEG_fastalike'] = os.path.join(pathdict['TMSEG_dir'], 'topology_fasta.txt')
+    # TMSEG upper prediction output, e.g. "# TRANSMEM	4	24	7"
+    pathdict['TMSEG_top_txtoutput'] = os.path.join(pathdict['TMSEG_dir'], 'topology_upper.txt')
     pathdict['TMSEG_nonTM'] = os.path.join(pathdict['TMSEG_dir'], 'nonTM_acc_list.txt')
     pathdict['SignalP_dir'] = os.path.join(pathdict['predictions_basename'], "SignalP")
     pathdict['SignalP_SiPe_acc'] = os.path.join(pathdict['SignalP_dir'], "gff.txt")

@@ -115,7 +115,6 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
         # create path for output files
         out_pssm = basename + ".pssm"
         out_ascii_pssm = basename + "_ascii.pssm"
-        print("out_ascii_pssm", out_ascii_pssm)
         out_BLAST_xml = basename + "_BLAST.xml"
         date_file_path = basename + "_BLAST_date.txt"
         PSIBLAST_tar = basename + "_PSIBLAST.tar.gz"

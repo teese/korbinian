@@ -428,9 +428,9 @@ def calculate_AAIMONs(p):
                 # There is no gapped identity for these homologues, skip to next TMD
                 continue
             # linear regression for non-norm. and norm. AAIMON with fixed 100% identity at AAIMON 1.0
-            AAIMON_slope, x_data, y_data = curve_fitting_fixed(obs_changes, AAIMON)
+            AAIMON_slope, x_data, y_data = fit_data_to_linear_function(obs_changes, AAIMON)
             mean_ser['%s_AAIMON_slope' % TMD] = AAIMON_slope
-            AAIMON_n_slope, x_data_n, y_data_n = curve_fitting_fixed(obs_changes, AAIMON_n)
+            AAIMON_n_slope, x_data_n, y_data_n = fit_data_to_linear_function(obs_changes, AAIMON_n)
             mean_ser['%s_AAIMON_n_slope' % TMD] = AAIMON_n_slope
 
             # # linear regression for non-normalised AAIMON
@@ -664,18 +664,71 @@ def residuals(constants, function, x, y):
     return y - function(constants, x)
 
 def lin_AAIMON_slope_eq(a, x):
+    """Function for linear slope equation
+
+    Parameters
+    ----------
+    a : float
+        Value for the slope
+    x : float
+        Value on the x-axis
+
+    Returns
+    -------
+    y : float
+        Y value for linear slope, based on x, where y-axis intercept is 1.0.
+    """
     y = a * x + 1
     return y
 
 def get_line_data_to_plot(a_constant, x_low=0, x_high=60):
+    """Uses fitted function to create a line to plot
+
+    Parameters
+    ----------
+    a_constant : float
+        Constant A, fitted to data.
+    x_low : float
+        Lowest value of x to plot.
+    x_high : float
+        Highest value of x to plot.
+
+    Returns
+    -------
+    x_data : np.ndarray
+        array of lowest and highest x values
+    y_data : np.ndarray
+        array of lowest and highest y values
+    """
     y_low = lin_AAIMON_slope_eq(a_constant, x_low)
     y_high = lin_AAIMON_slope_eq(a_constant, x_high)
     x_data = np.array([x_low, x_high])
     y_data = np.array([y_low, y_high])
-    AAIMON_at_80 = lin_AAIMON_slope_eq(a_constant, 80)
+    #AAIMON_at_80 = lin_AAIMON_slope_eq(a_constant, 80)
     return x_data, y_data
 
-def curve_fitting_fixed(x_array, y_array, a_constant_guess = 0.1):
+def fit_data_to_linear_function(x_array, y_array, a_constant_guess = 0.01):
+    """Fits an array of x and y values to linear function with fixed y-intercept = 1.0
+
+    Parameters
+    ----------
+    x_array : np.ndarray
+        array of x values
+    y_array : np.ndarray
+        array of y values
+    a_constant_guess : float
+        Initial guess of A, used for leastsq function.
+
+    Returns
+    -------
+    a_constant : float
+        Fitted value of a to data (slope)
+    x_data : np.ndarray
+        array of lowest and highest x values
+    y_data : np.ndarray
+        array of lowest and highest y values
+    """
     a_constant = leastsq(residuals, a_constant_guess, args = (lin_AAIMON_slope_eq, x_array, y_array))[0][0]
     x_data, y_data = get_line_data_to_plot(a_constant)
-    return float(a_constant), x_data, y_data
+    a_constant = float(a_constant)
+    return a_constant, x_data, y_data
