@@ -179,8 +179,10 @@ def gather_AAIMONs(pathdict, logging, s):
             for TMD in list_of_central_TMDs:
                 list_mean_slope_central_TMDs.append(pd.to_numeric(dfg.loc[acc, '%s_AAIMON_slope'%TMD]))
             dfg.loc[acc, 'AAIMON_slope_central_TMDs'] = np.mean(list_mean_slope_central_TMDs)
+        else:
+            dfg.loc[acc, 'AAIMON_slope_central_TMDs'] = np.nan
 
-        # count the number of TMDs for each protein
+            # count the number of TMDs for each protein
         dfg.loc[acc, 'number_of_TMDs'] = len(dfg.loc[acc, 'list_of_TMDs'].split(','))
 
         # add sequence length to dfg
@@ -237,6 +239,10 @@ def gather_AAIMONs(pathdict, logging, s):
         dfg = dfg.loc[list_of_acc_to_keep, :]
         df = df.loc[list_of_acc_to_keep, :]
 
+        # convert from string to python list
+        if isinstance(df['list_of_TMDs'][0], str):
+            df['list_of_TMDs'] = df['list_of_TMDs'].dropna().apply(lambda x: ast.literal_eval(x))
+
         #sys.stdout.write("\nLoading data\n")
         # initiate empty numpy array
         data = np.empty([0, 3])
@@ -253,7 +259,7 @@ def gather_AAIMONs(pathdict, logging, s):
             if not os.path.isfile(homol_cr_ratios_zip):
                 # skip to next protein
                 continue
-            for TMD in ast.literal_eval(df.loc[acc, "list_of_TMDs"]):
+            for TMD in df.loc[acc, "list_of_TMDs"]:
                 # generate column names necessary for current file
                 columns = ['obs_changes', '{}_AAIMON'.format(TMD), '{}_AAIMON_n'.format(TMD)]
                 # Open pickle file with conservation-ratios.
@@ -491,7 +497,7 @@ def gather_pretty_alignments(pathdict, logging, s):
                     # #                                                                                      #
                     # ########################################################################################
                     #
-                    # max_gaps = s["cr_max_n_gaps_in_TMD"]
+                    # max_gaps = s["maxgaps_TMD"]
                     # max_lipo_homol = s["max_lipo_homol"]
                     # min_ident = s["cr_min_identity_of_TMD"]
                     #
