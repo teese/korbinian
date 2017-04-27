@@ -221,6 +221,9 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
         TMH: TRANSMEM 53 69 Helical. {ECO:0000255}.
         ---
         """
+        # if the regions column in the lists tab is "TM01" instead of the usual "TM", take only the first TM
+        take_only_the_first_TM = s["regions"] == "TM01"
+
         # create dataframe for text topology (dftt)
         dftt = pd.DataFrame()
         with open(TMSEG_top_txtoutput_path, "r") as f:
@@ -233,6 +236,11 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
                     # reset the TM_counter
                     TM_counter = 1
                 if line[0:10] == "# TRANSMEM":
+                    if TM_counter > 1:
+                        if take_only_the_first_TM:
+                            # skip to next line, as the first TM is already taken
+                            continue
+
                     # split by tab
                     split = line.split("\t")
                     # the start is split[1] (end is not really necessary here)

@@ -121,7 +121,7 @@ def calculate_AAIMONs(p):
     sys.stdout.write("|{}|".format(acc)), sys.stdout.flush()
     protein_name = p["protein_name"]
     fraction_TM_residues = p["perc_TMD"] / 100
-    max_gaps = s["cr_max_n_gaps_in_TMD"]
+    max_gaps = s["maxgaps_TMD"]
     max_lipo_homol = s["max_lipo_homol"]
     min_ident = s["cr_min_identity_of_TMD"]
     if not os.path.exists(p['homol_df_orig_zip']):

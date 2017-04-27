@@ -116,7 +116,7 @@ def keyword_analysis(pathdict, s, logging):
     else:
         # apply ast.literal_eval to every item in df['uniprot_KW_for_analysis']
         if isinstance(df['uniprot_KW_for_analysis'][0], str):
-            df['uniprot_KW_for_analysis'] = df['uniprot_KW_for_analysis'].apply(lambda x: ast.literal_eval(x))
+            df['uniprot_KW_for_analysis'] = df['uniprot_KW_for_analysis'].dropna().apply(lambda x: ast.literal_eval(x))
 
     # check if dataset is SP or MP
     dataset = 'none'
@@ -128,7 +128,7 @@ def keyword_analysis(pathdict, s, logging):
         dataset = 'Unknown'
 
     # join all keywords together into a large list
-    nested_list_all_KW = list(itertools.chain(*list(df['uniprot_KW_for_analysis'])))
+    nested_list_all_KW = list(itertools.chain(*list(df['uniprot_KW_for_analysis'].dropna())))
     # convert list to pandas series
     all_KW_series = pd.Series(nested_list_all_KW)
     # obtain series of major keywords
@@ -148,7 +148,7 @@ def keyword_analysis(pathdict, s, logging):
     # create bool in column for keyword to remove
     for element in keywords_for_exclusion:
         excl_list = ['{}'.format(element)]
-        df[element] = df['uniprot_KW_for_analysis'].apply(KW_list_contains_any_desired_KW, args=(excl_list,))
+        df[element] = df['uniprot_KW_for_analysis'].dropna().apply(KW_list_contains_any_desired_KW, args=(excl_list,))
 
     if list_KW_counts_major:
         # initialise pandas dataframe with keywords as index

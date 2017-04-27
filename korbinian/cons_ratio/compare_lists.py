@@ -941,7 +941,7 @@ def compare_lists (s):
 
         # calculate the average percentage of residues within the TM region
         fraction_TM_residues = df_dict[prot_list]['perc_TMD'].mean() / 100
-        sys.stdout.write("prot_list : {:02d}, fraction_TM_residues : {:0.03f}".format(prot_list, fraction_TM_residues))
+        sys.stdout.write("\nprot_list : {:02d}, fraction_TM_residues : {:0.03f}".format(prot_list, fraction_TM_residues))
 
         #create a new dataframe to hold the data for percentage identity and the normalisation factors
         df_norm = pd.DataFrame()
@@ -1246,56 +1246,58 @@ def compare_lists (s):
         temp = temp[temp.GPCR == False]
         temp = temp[temp['number_of_TMDs'] >= min_n_TMDs_first_last]
 
-        ###   AAIMON_slope central TMDs   ###
-        # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = (temp['AAIMON_slope_central_TMDs'] * 1000).dropna()
-        # use numpy to create a histogram
-        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
-        freq_counts_normalised = freq_counts / freq_counts.max() + offset
-        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
-        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
-        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
-        # add the final bin, which is physically located just after the last regular bin but represents all higher values
-        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
-                                            alpha=alpha, linewidth=linewidth,
-                                            label=dfv.loc[prot_list, 'list_description'])
+        # purely singlepass datasets will probably not have 'AAIMON_slope_central_TMDs' in the columns
+        if 'AAIMON_slope_central_TMDs' in temp.columns:
+            ###   AAIMON_slope central TMDs   ###
+            # create numpy array of membranous over nonmembranous conservation ratios (identity)
+            hist_data = (temp['AAIMON_slope_central_TMDs'] * 1000).dropna()
+            # use numpy to create a histogram
+            freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+            freq_counts_normalised = freq_counts / freq_counts.max() + offset
+            # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+            col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+            # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+            centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+            # add the final bin, which is physically located just after the last regular bin but represents all higher values
+            bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+            centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+            linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
+                                                alpha=alpha, linewidth=linewidth,
+                                                label=dfv.loc[prot_list, 'list_description'])
 
-        ###   AAIMON_slope TM01   ###
-        # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = (temp['TM01_AAIMON_slope'] * 1000).dropna()
-        # use numpy to create a histogram
-        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
-        freq_counts_normalised = freq_counts / freq_counts.max() + offset
-        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
-        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
-        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
-        # add the final bin, which is physically located just after the last regular bin but represents all higher values
-        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, '-.', color=dfv.loc[prot_list, 'color'],
-                                            alpha=alpha, linewidth=linewidth)
+            ###   AAIMON_slope TM01   ###
+            # create numpy array of membranous over nonmembranous conservation ratios (identity)
+            hist_data = (temp['TM01_AAIMON_slope'] * 1000).dropna()
+            # use numpy to create a histogram
+            freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+            freq_counts_normalised = freq_counts / freq_counts.max() + offset
+            # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+            col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+            # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+            centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+            # add the final bin, which is physically located just after the last regular bin but represents all higher values
+            bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+            centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+            linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, '-.', color=dfv.loc[prot_list, 'color'],
+                                                alpha=alpha, linewidth=linewidth)
 
-        ###   AAIMON_slope last TMD   ###
-        # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = (temp['AAIMON_slope_last_TMD'] * 1000).dropna()
-        # use numpy to create a histogram
-        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
-        freq_counts_normalised = freq_counts / freq_counts.max() + offset
-        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
-        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
-        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
-        # add the final bin, which is physically located just after the last regular bin but represents all higher values
-        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, ':', color=dfv.loc[prot_list, 'color'],
-                                            alpha=alpha,
-                                            linewidth=linewidth)
-        offset = offset - 1
+            ###   AAIMON_slope last TMD   ###
+            # create numpy array of membranous over nonmembranous conservation ratios (identity)
+            hist_data = (temp['AAIMON_slope_last_TMD'] * 1000).dropna()
+            # use numpy to create a histogram
+            freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+            freq_counts_normalised = freq_counts / freq_counts.max() + offset
+            # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+            col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+            # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+            centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+            # add the final bin, which is physically located just after the last regular bin but represents all higher values
+            bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+            centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+            linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, ':', color=dfv.loc[prot_list, 'color'],
+                                                alpha=alpha,
+                                                linewidth=linewidth)
+            offset = offset - 1
 
     ###############################################################
     #                                                             #
