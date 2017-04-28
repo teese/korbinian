@@ -144,7 +144,7 @@ if __name__ == "__main__":
     norm_factor_array_old = vfunc_old(observed_perc_aa_ident_array, rand_TM, rand_nonTM)
 
     # NEW NORM FACTOR
-    vfunc = np.vectorize(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor)
+    vfunc = np.vectorize(korbinian.cons_ratio.norm.calc_aa_prop_norm_factor)
     norm_factor_array = vfunc(observed_perc_aa_ident_array, rand_TM, rand_nonTM, proportion_seq_TM_residues)
 
 
