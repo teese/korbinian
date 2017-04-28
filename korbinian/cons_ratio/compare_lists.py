@@ -950,7 +950,7 @@ def compare_lists (s):
         # get the percentage identity
         df_norm["perc_aa_ident"] = 1 - df_norm["perc_aa_sub"]
         # calculate the norm factors
-        df_norm["norm"] = df_norm["perc_aa_ident"].apply(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor, args=(rand_TM, rand_nonTM, fraction_TM_residues))
+        df_norm["norm"] = df_norm["perc_aa_ident"].apply(korbinian.cons_ratio.norm.calc_aa_prop_norm_factor, args=(rand_TM, rand_nonTM, fraction_TM_residues))
         # get rid of any very high or low values
         df_norm = df_norm.loc[df_norm["norm"] > -10]
         df_norm = df_norm.loc[df_norm["norm"] < 10]

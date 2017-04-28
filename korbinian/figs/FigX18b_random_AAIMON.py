@@ -6,11 +6,13 @@ import pickle
 import korbinian
 import sys
 from multiprocessing import Pool
+plt.style.use('seaborn-whitegrid')
 
 ##########parameters#############
 list_number = 1
-data_dir = r"/Volumes/Musik/Databases"
+#data_dir = r"/Volumes/Musik/Databases"
 data_dir = r"D:\Databases"
+output_dir = r"\\nas.ads.mwn.de\tuwz\q7y\public\Teese\TMD_cons\figs\FigX18_norm_hyperbola\Pairwise_norm"
 repeat_randomisation = False
 
 seq_len = 2000
@@ -26,10 +28,14 @@ real_perc_aa_ident_array = 1 - real_perc_aa_subst_array
 ########################################################################################
 List_rand_TM = os.path.normpath(os.path.join(data_dir, "summaries/{ln:02d}/List{ln:02d}_rand/List{ln:02d}_rand_TM.csv".format(ln=list_number)))
 List_rand_nonTM = os.path.normpath(os.path.join(data_dir, "summaries/{ln:02d}/List{ln:02d}_rand/List{ln:02d}_rand_nonTM.csv".format(ln=list_number)))
-pickle_with_artificial_AAIMONs = os.path.normpath(os.path.join(data_dir, "summaries/{ln:02d}/List{ln:02d}_rand/List{ln:02d}_rand_AAIMONs.pickle".format(ln=list_number)))
-fig_AAIMON_vs_perc_aa_sub_png = os.path.normpath(os.path.join(data_dir, "summaries/{ln:02d}/List{ln:02d}_rand/List{ln:02d}_rand_AAIMON_vs_aa_sub.png".format(ln=list_number)))
-fig_AAIMON_vs_perc_aa_sub_pdf = os.path.normpath(os.path.join(data_dir, "summaries/{ln:02d}/List{ln:02d}_rand/List{ln:02d}_rand_AAIMON_vs_aa_sub.pdf".format(ln=list_number)))
+# pickle_with_artificial_AAIMONs = os.path.normpath(os.path.join(data_dir, "summaries/{ln:02d}/List{ln:02d}_rand/List{ln:02d}_rand_AAIMONs.pickle".format(ln=list_number)))
+# fig_AAIMON_vs_perc_aa_sub_png = os.path.normpath(os.path.join(data_dir, "summaries/{ln:02d}/List{ln:02d}_rand/List{ln:02d}_rand_AAIMON_vs_aa_sub.png".format(ln=list_number)))
+# fig_AAIMON_vs_perc_aa_sub_pdf = os.path.normpath(os.path.join(data_dir, "summaries/{ln:02d}/List{ln:02d}_rand/List{ln:02d}_rand_AAIMON_vs_aa_sub.pdf".format(ln=list_number)))
+pickle_with_artificial_AAIMONs = os.path.normpath(os.path.join(output_dir, "List{ln:02d}_rand_AAIMONs.pickle".format(ln=list_number)))
+fig_AAIMON_vs_perc_aa_sub_png = os.path.normpath(os.path.join(output_dir, "List{ln:02d}_rand_AAIMON_vs_aa_sub.png".format(ln=list_number)))
+fig_AAIMON_vs_perc_aa_sub_pdf = os.path.normpath(os.path.join(output_dir, "List{ln:02d}_rand_AAIMON_vs_aa_sub.pdf".format(ln=list_number)))
 
+print(pickle_with_artificial_AAIMONs)
 
 ########################################################################################
 #                                                                                      #
@@ -75,6 +81,7 @@ if __name__ == "__main__":
     # creating random alignments is slow. Once carried out, save the data and re-use for graphing.
     if not os.path.isfile(pickle_with_artificial_AAIMONs) or repeat_randomisation == True:
 
+        sys.stdout.write("starting randomisation")
         with Pool(processes=10) as p:
             nested_list_AAIMONs_10_replicates = p.map(create_list_random_AAIMON_ratios_mp, input_mp_list)
 
@@ -144,7 +151,7 @@ if __name__ == "__main__":
     norm_factor_array_old = vfunc_old(observed_perc_aa_ident_array, rand_TM, rand_nonTM)
 
     # NEW NORM FACTOR
-    vfunc = np.vectorize(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor)
+    vfunc = np.vectorize(korbinian.cons_ratio.norm.calc_aa_prop_norm_factor)
     norm_factor_array = vfunc(observed_perc_aa_ident_array, rand_TM, rand_nonTM, proportion_seq_TM_residues)
 
 
@@ -176,16 +183,16 @@ if __name__ == "__main__":
     norm_AAIMONs_new = AAIMON_list_10rep / norm_factor_array_10rep_new
 
     # plot the data after normalisation first (not as important as the orig at the beginning)
-    ax.scatter(obs_aa_sub_rate_10rep*100, norm_AAIMONs_new, color=color_norm, s=s, alpha=alpha, marker=marker, linewidths=linewidths, label="after normalisation")
+    ax.scatter(obs_aa_sub_rate_10rep*100, norm_AAIMONs_new, color=color_norm, s=s, alpha=alpha, marker=marker, linewidths=linewidths, label="normalised")
     # plot the original data now, so it is clearly seen
-    ax.scatter(obs_aa_sub_rate_10rep*100, AAIMON_list_10rep, color=color_nonnorm, s=s, alpha=alpha, marker=marker, linewidths=linewidths, label="before normalisation")
+    ax.scatter(obs_aa_sub_rate_10rep*100, AAIMON_list_10rep, color=color_nonnorm, s=s, alpha=alpha, marker=marker, linewidths=linewidths, label="observed")
 
     # plot the AAIMON normalisation factor
     # this is the AAIMON expected for completely random sequences, which differ only in their AA propensity
     # plot only the first replicate (0: 1600)
     norm_curve_x = obs_aa_sub_rate_10rep[:max_num_positions_mutated] * 100
     norm_curve_y = norm_factor_array_10rep_new[:max_num_positions_mutated]
-    ax.plot(norm_curve_x, norm_curve_y, color=color_norm_factor_line, linewidth=2, label="calculated normalisation factor")
+    #ax.plot(norm_curve_x, norm_curve_y, color=color_norm_factor_line, linewidth=2, label="calculated normalisation factor")
 
 
     ########################################################################################
@@ -222,17 +229,29 @@ if __name__ == "__main__":
     #                                                                                      #
     ########################################################################################
     ax.set_ylim(0.9, 1.3)
-    ax.set_ylabel("AAIMON", fontsize=fontsize+2)
-    ax.set_xlabel("% AA substitutions", fontsize=fontsize+2)
+    plt.rcParams["mathtext.default"] = "regular"
+    ax.set_ylabel(r'$\frac{TM}{nonTM}$ conservation ratio', fontsize=fontsize+2)
+    ax.set_xlabel("evolutionary distance (% substitutions)", fontsize=fontsize+2)
     ax.set_xlim(0, 75)
 
     # re-order the legend
-    handles, labels = ax.get_legend_handles_labels()
-    handles = [handles[2], handles[0], handles[1]]
-    labels = [labels[2], labels[0], labels[1]]
-    legend = ax.legend(handles, labels, loc='upper left', frameon=True, scatterpoints=25, fontsize=fontsize)
+    # handles, labels = ax.get_legend_handles_labels()
+    # handles = [handles[2], handles[0], handles[1]]
+    # labels = [labels[2], labels[0], labels[1]]
+    # legend = ax.legend(handles, labels, loc='upper left', frameon=True, scatterpoints=25, fontsize=fontsize)
     #legend.legendHandles[0]._sizes = [20]
     #legend.legendHandles[2]._sizes = [20]
+
+    #ax.legend(loc='upper left', frameon=True, scatterpoints=100, fontsize=fontsize)
+
+    # re-order the legend
+    handles, labels = ax.get_legend_handles_labels()
+    handles = [handles[1], handles[0]]
+    labels = [labels[1], labels[0]]
+    legend = ax.legend(handles, labels, loc='upper left', frameon=True, scatterpoints=100, fontsize=fontsize)
+    # legend.legendHandles[0]._sizes = [20]
+    # legend.legendHandles[1]._sizes = [20]
+
     ax.tick_params(labelsize=fontsize)
     plt.tight_layout()
 

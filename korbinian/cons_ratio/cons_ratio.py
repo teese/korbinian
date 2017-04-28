@@ -232,7 +232,7 @@ def calculate_AAIMONs(p):
     #                Calculation of normalization factor for each homologue                #
     #                                                                                      #
     ########################################################################################
-    dfh['norm_factor'] = dfh['FASTA_gapped_identity'].apply(korbinian.cons_ratio.norm.calc_AAIMON_aa_prop_norm_factor, args=(s["rand_TM"], s["rand_nonTM"], fraction_TM_residues))
+    dfh['norm_factor'] = dfh['FASTA_gapped_identity'].apply(korbinian.cons_ratio.norm.calc_aa_prop_norm_factor, args=(s["rand_TM"], s["rand_nonTM"], fraction_TM_residues))
     mean_ser["norm_factor_max"] = dfh['norm_factor'].max()
     mean_ser["norm_factor_min"] = dfh['norm_factor'].min()
     mean_ser["norm_factor_mean"] = dfh['norm_factor'].mean()
