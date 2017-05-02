@@ -21,8 +21,8 @@ import tarfile
 import threading
 import time
 import zipfile
-
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import numpy as np
 import pandas as pd
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
@@ -1381,8 +1381,6 @@ def create_colour_lists():
     and also lists of unnamed colours (e.g. tableau20)
     (copied from tlabtools 2016.08.08)
     '''
-    import numpy as np
-    import matplotlib.colors as colors
     output_dict = {}
 
     matplotlib_150 = list(colors.cnames.values())
@@ -1453,6 +1451,8 @@ def create_colour_lists():
         TUM_colours_list_with_greys.append(c)
         grey -= 0.1
     output_dict['TUM_colours_list_with_greys'] = TUM_colours_list_with_greys
+
+    output_dict['HTML_list01'] = ['#808080', '#D59460', '#005293', '#A1B11A', '#9ECEEC', '#0076B8', '#454545', "#7b3294", "#c2a5cf", "#008837", "#a6dba0"]
     return output_dict
 
 def savefig_if_necessary(savefig, fig, fig_nr, base_filepath, tight_layout = False, formats = ['png','pdf'], dpi = 400):
@@ -1470,6 +1470,23 @@ def savefig_if_necessary(savefig, fig, fig_nr, base_filepath, tight_layout = Fal
         plt.close('all')
 
 def save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi = 400, close=True, transparent=True):
+    """
+
+    Parameters
+    ----------
+    fig
+    Fig_name
+    base_filepath
+    save_png
+    save_pdf
+    dpi
+    close
+    transparent
+
+    Returns
+    -------
+
+    """
     if not os.path.exists(base_filepath):
         os.makedirs(base_filepath)
     sys.stdout.write('Figure processed: {}\n'.format(Fig_name))

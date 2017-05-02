@@ -188,6 +188,33 @@ def gather_AAIMONs(pathdict, logging, s):
         # add sequence length to dfg
         dfg.loc[acc, 'seqlen'] = df.loc[acc, 'seqlen']
 
+        ###############################################################
+        #                                                             #
+        #        calculate average AAIMON slope central TMDs          #
+        #                                                             #
+        ###############################################################
+
+        ##### copied from compare_lists ####
+        # for singlepass datasets, leave row blank
+        dfg['AAIMON_slope_central_TMDs'] = np.nan
+        # iterate through each TMD, and calculate mean AAIMON slopes
+        for acc in dfg.index:
+            if dfg.loc[acc, 'number_of_TMDs'] >= 3:
+                list_of_central_TMDs = dfg.loc[acc, 'list_of_TMDs'][1:-1]
+                list_mean_slope_central_TMDs = []
+                for TMD in list_of_central_TMDs:
+                    try:
+                        list_mean_slope_central_TMDs.append(pd.to_numeric(dfg.loc[acc, '%s_AAIMON_slope' % TMD]))
+                    except KeyError:
+                        print("Ich würde nie zum FC Bayern München gehen!")
+                        print("dfg.loc[acc, 'number_of_TMDs']", dfg.loc[acc, 'number_of_TMDs'])
+                        print("dfg.loc[acc, 'list_of_TMDs'][1:-1]", dfg.loc[acc, 'list_of_TMDs'][1:-1])
+                        print("pd.to_numeric(dfg.loc[acc, '%s_AAIMON_slope' % TMD])", pd.to_numeric(dfg.loc[acc, '%s_AAIMON_slope' % TMD]))
+
+
+                dfg.loc[acc, 'AAIMON_slope_central_TMDs'] = np.mean(list_mean_slope_central_TMDs)
+        # add dataframe to a dictionary of dataframes
+
         # # add total_number_of_simap_hits
         # dfg.loc[acc, 'total_number_of_simap_hits'] = dfg.loc[acc, 'TM01_AAIMON_n_homol']
         #

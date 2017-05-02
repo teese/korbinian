@@ -1,11 +1,12 @@
-import pandas as pd
-import numpy as np
-import korbinian
-import sys
-import korbinian.utils as utils
-import os
-import csv
 import ast
+import csv
+import korbinian
+import korbinian.utils as utils
+import numpy as np
+import os
+import pandas as pd
+import sys
+import time
 
 def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
     logging.info("~~~~~~~~~~~~                        starting parse_TMSEG_results                    ~~~~~~~~~~~~")
@@ -31,10 +32,15 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
     columns_to_keep = ['organism_domain', 'create_protein_list', 'uniprot_acc', 'uniprot_all_accessions', 'uniprot_entry_name', 'uniprot_features',
                        'uniprot_orgclass', 'uniprot_SiPe', 'singlepass', 'typeI', 'typeII', 'uniprot_KW', 'organism', 'prot_descr', 'membrane',
                        'multipass', 'gene_name', 'comments_subcellular_location_uniprot', 'uniprot_SiPe', 'full_seq']
-    if analyse_sp == True:
+
+    # for datasets without SP found, turn off analyse_sp
+    if analyse_sp == True and 'SP01_start' in df_parsed.columns:
         columns_to_keep = columns_to_keep + ['SP01_start', 'SP01_end', 'SP01_seq']
+    else:
+        analyse_sp == False
 
     list_indices = list(df_parsed.index)
+
     df_parsed = df_parsed[columns_to_keep]
 
     if os.path.isfile(TMSEG_fastalike_path):
@@ -175,37 +181,16 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
                     sys.stdout.write("\n")
                     sys.stdout.flush()
 
-            # SLICE CODE SHIFTED TO MORE GENERAL FUNCTION
-            #df.loc[acc, "number_of_TMDs"] = len(list_of_TMDs)
-            # ''' ~~   SLICE nonTMD sequence  ~~ '''
-            # list_of_TMDs = df.loc[acc, 'list_of_TMDs'].copy()
-            # if 'SP01' in list_of_TMDs:
-            #     list_of_TMDs.remove('SP01')
-            # # sequence from N-term. to first TMD
-            # nonTMD_first = df.loc[acc, 'full_seq'][0: (df.loc[acc, 'TM01_start'] - 1).astype('int64')]
-            # sequence = nonTMD_first
-            # # only for multipass proteins, generate sequences between TMDs
-            # if len(list_of_TMDs) == 0:
-            #     # no TMDs are annotated, skip to next protein
-            #     continue
-            # elif len(list_of_TMDs) > 1:
-            #     for TM_Nr in range(len(list_of_TMDs) - 1):
-            #         # the TMD is the equivalent item in the list
-            #         TMD = list_of_TMDs[TM_Nr]
-            #         # the next TMD, which contains the end index, is the next item in the list
-            #         next_TMD = list_of_TMDs[TM_Nr + 1]
-            #         between_TM_and_TMplus1 = df.loc[acc, 'full_seq'][df.loc[acc, '%s_end' % TMD].astype('int64'): df.loc[acc, '%s_start' % next_TMD].astype('int64') - 1]
-            #         sequence += between_TM_and_TMplus1
-            # last_TMD = list_of_TMDs[-1]
-            # # sequence from last TMD to C-term.
-            # nonTMD_last = df.loc[acc, 'full_seq'][df.loc[acc, '%s_end' % last_TMD].astype('int64'):df.loc[acc, 'seqlen'].astype('int64')]
-            # sequence += nonTMD_last
-            # df.loc[acc, 'nonTMD_seq'] = sequence
-            # df.loc[acc, 'len_nonTMD'] = len(sequence)
+        start = time.clock()
+        # slice out the nonTM segments with a function
+        # note that for some reason, this is very slow after merging the dataframes
+        df = slice_nonTMD_in_prot_list(df)
+        sys.stdout.write("\ntime taken : {:0.03f} s".format(time.clock() - start))
 
         cols_to_drop = ['M_indices', 'SiPe_indices', 'Membrane_Borders', 'TM_indices']
         df = pd.merge(df, df_parsed, left_index=True, right_index=True, suffixes=('', '_list_parsed'))
         df.drop(cols_to_drop, axis=1, inplace=True)
+
     elif os.path.isfile(TMSEG_top_txtoutput_path):
         """ PARSE DATA WITH THE FOLLOWING FORMAT, proteins listed one after each other
 
@@ -269,6 +254,7 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
         # save temp csv with TMSEG output
         TMSEG_txtoutput_parsed_csv = TMSEG_top_txtoutput_path[:-4] + "TMSEG_txtoutput_parsed.csv"
         dftt.to_csv(TMSEG_txtoutput_parsed_csv)
+
         df = pd.merge(dftt, df_parsed, left_index=True, right_index=True, suffixes=('', '_list_parsed'))
 
         # convert from string to python list
@@ -296,13 +282,18 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
                     list_of_TMDs.append('SP01')
                     df.set_value(acc, "list_of_TMDs", list_of_TMDs)
 
+        start = time.clock()
+        # slice out the nonTM segments with a function
+        # note that for some reason, this is very slow after merging the dataframes
+        df = slice_nonTMD_in_prot_list(df)
+        sys.stdout.write("\ntime taken : {:0.03f} s".format(time.clock() - start))
+
+
     else:
         raise FileNotFoundError("None of the TMSEG combined output files were found.")
 
     # define number of TMDs (includes Signal peptides!)
     df["number_of_TMDs"] = df["list_of_TMDs"].dropna().apply(lambda x : len(x))
-    # slice out all the TMD sequences
-    df = slice_nonTMD_in_prot_list(df)
     df['parse_TMSEG'] = True
     df.to_csv(pathdict["list_parsed_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
     logging.info("\n~~~~~~~~~~~~                       parse_TMSEG_results is finished                  ~~~~~~~~~~~~")
@@ -321,13 +312,15 @@ def slice_nonTMD_in_prot_list(df):
     df : pd.Dataframe
         returns the same dataframe, with added sliced sequences
     """
-    for acc in df.index:
+    for n, acc in enumerate(df.index):
         ''' ~~   SLICE nonTMD sequence  ~~ '''
-        list_of_TMDs = df.loc[acc, 'list_of_TMDs'].copy()
-        if 'SP01' in list_of_TMDs:
-            list_of_TMDs.remove('SP01')
+        list_of_TMDs = df.loc[acc, 'list_of_TMDs']#.copy()
+        # if 'SP01' in list_of_TMDs:
+        #     list_of_TMDs.remove('SP01')
         # sequence from N-term. to first TMD
-        nonTMD_first = df.loc[acc, 'full_seq'][0: int(df.loc[acc, 'TM01_start']) - 1]
+        TM01_start = int(df.loc[acc, 'TM01_start'])
+        nonTMD_first = df.loc[acc, 'full_seq'][0: TM01_start - 1]
+        # start the sequence with the first segment
         sequence = nonTMD_first
         # only for multipass proteins, generate sequences between TMDs
         if len(list_of_TMDs) == 0:
@@ -348,10 +341,20 @@ def slice_nonTMD_in_prot_list(df):
                 sequence += between_TM_and_TMplus1
         last_TMD = list_of_TMDs[-1]
         # sequence from last TMD to C-term.
-        nonTMD_last = df.loc[acc, 'full_seq'][int(df.loc[acc, '%s_end' % last_TMD]):int(df.loc[acc, 'seqlen'])]
+        lastTM_end = int(df.loc[acc, '%s_end' % last_TMD])
+        seqlen = int(df.loc[acc, 'seqlen'])
+        nonTMD_last = df.loc[acc, 'full_seq'][lastTM_end:seqlen]
         sequence += nonTMD_last
         df.loc[acc, 'nonTMD_seq'] = sequence
         df.loc[acc, 'len_nonTMD'] = len(sequence)
+
+        if n % 50 == 0 and n != 0:
+            sys.stdout.write(".")
+            sys.stdout.flush()
+            if n % 500 == 0:
+                sys.stdout.write("\n")
+                sys.stdout.flush()
+
     return df
 
 def getting_membrane_indices_from_helix_symbol(Topo_data):

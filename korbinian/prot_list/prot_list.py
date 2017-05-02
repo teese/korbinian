@@ -505,14 +505,16 @@ def prepare_protein_list(s, pathdict, logging):
     #           check for subcellular location (PM, ER, Golgi) in keywords                 #
     #                                                                                      #
     ########################################################################################
+    KW_search_list = ['Cell_membrane', 'Endoplasmic_reticulum', 'Golgi_apparatus']
+
     if 'uniprot_KW' in df.columns:
         # apply ast.literal_eval to every item in df['uniprot_KW']
         if isinstance(df['uniprot_KW'][0], str):
             df['uniprot_KW'] = df['uniprot_KW'].apply(lambda x: ast.literal_eval(x))
-        # check for specific keywords
-        df['Cell_membrane'] = df['uniprot_KW'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=(['Cell membrane'],))
-        df['Endoplasmic_reticulum'] = df['uniprot_KW'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=(['Endoplasmic reticulum'],))
-        df['Golgi_apparatus'] = df['uniprot_KW'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=(['Golgi apparatus'],))
+        for KW in KW_search_list:
+            df[KW] = df['uniprot_KW'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=([KW],))
+        # check for specific keywords with altered names in final file
+        df['GPCR'] = df['uniprot_KW'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=(['G-protein coupled receptor'],))
 
     ########################################################################################
     #                                                                                      #
