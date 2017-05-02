@@ -39,7 +39,7 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
 
     if os.path.isfile(TMSEG_fastalike_path):
         # drop the full sequence, and get from TMSEG
-        df_parsed.drop('full_seq', index=1, inplace=True)
+        df_parsed.drop('full_seq', axis=1, inplace=True)
         # read data from file
         input_data = []
         with open(TMSEG_fastalike_path) as data_file:
@@ -300,7 +300,7 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
         raise FileNotFoundError("None of the TMSEG combined output files were found.")
 
     # define number of TMDs (includes Signal peptides!)
-    df.loc[acc, "number_of_TMDs"] = len(list_of_TMDs)
+    df["number_of_TMDs"] = df["list_of_TMDs"].dropna().apply(lambda x : len(x))
     # slice out all the TMD sequences
     df = slice_nonTMD_in_prot_list(df)
     df['parse_TMSEG'] = True
