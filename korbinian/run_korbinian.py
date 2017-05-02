@@ -42,11 +42,11 @@ if __name__ == "__main__":
     # to run "compare lists", replace the list_number with "compare"
     if s['protein_list_number'] == 'compare':
         # open the tab containing the list-specific settings as a dataframe
-        df_list_settings = pd.read_excel(s["excel_file_with_settings"], sheetname="lists", index_col=0)
+        df_lists_tab = pd.read_excel(s["excel_file_with_settings"], sheetname="lists", index_col=0)
         # add the dataframe "lists" to the existing settings dictionary
         # this adds max_lipo_homol, rand_TM, rand_nonTM, etc to the dictionary
-        s.update(df_list_settings.to_dict())
-        korbinian.cons_ratio.compare_lists.compare_lists(s)
+        #s.update(df_lists.to_dict())
+        korbinian.cons_ratio.compare_lists.compare_lists(s, df_lists_tab)
     else:
         # if list_number is not "compare", run either a single list, or a list of protein lists
         protein_list_number = ast.literal_eval(str(s['protein_list_number']))
