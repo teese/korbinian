@@ -331,13 +331,15 @@ def prepare_protein_list(s, pathdict, logging):
 
     min_TMDs = s["min_TMDs"]
     max_TMDs = s["max_TMDs"]
+    # drop any proteins without a number of TMDs
     df.dropna(subset=["number_of_TMDs"], inplace=True)
+    # get the number of TMDs excluding signal peptides
     for acc in df.index:
         list_of_TMDs = df.loc[acc, "list_of_TMDs"]
+        # remove SP01 from the list, if it is present
         if "SP01" in list_of_TMDs:
-            df.loc[acc, "number_of_TMDs_excl_SP"] = df.loc[acc, "number_of_TMDs"] - 1
-        else:
-            df.loc[acc, "number_of_TMDs_excl_SP"] = df.loc[acc, "number_of_TMDs"]
+            list_of_TMDs.remove("SP01")
+        df.loc[acc, "number_of_TMDs_excl_SP"] = len(list_of_TMDs)
     df = df.loc[df["number_of_TMDs_excl_SP"].apply(lambda x: min_TMDs <= x <= max_TMDs)]
     n_prot_AFTER_n_TMDs_cutoff = df.shape[0]
     if n_prot_AFTER_n_TMDs_cutoff == 0:
@@ -515,6 +517,10 @@ def prepare_protein_list(s, pathdict, logging):
             df[KW] = df['uniprot_KW'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=([KW],))
         # check for specific keywords with altered names in final file
         df['GPCR'] = df['uniprot_KW'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=(['G-protein coupled receptor'],))
+    else:
+        df['GPCR'] = np.nan
+        for KW in KW_search_list:
+            df[KW] = np.nan
 
     ########################################################################################
     #                                                                                      #

@@ -181,11 +181,10 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
                     sys.stdout.write("\n")
                     sys.stdout.flush()
 
-        start = time.clock()
         # slice out the nonTM segments with a function
         # note that for some reason, this is very slow after merging the dataframes
         df = slice_nonTMD_in_prot_list(df)
-        sys.stdout.write("\ntime taken : {:0.03f} s".format(time.clock() - start))
+
 
         cols_to_drop = ['M_indices', 'SiPe_indices', 'Membrane_Borders', 'TM_indices']
         df = pd.merge(df, df_parsed, left_index=True, right_index=True, suffixes=('', '_list_parsed'))
@@ -312,6 +311,9 @@ def slice_nonTMD_in_prot_list(df):
     df : pd.Dataframe
         returns the same dataframe, with added sliced sequences
     """
+    # glance at the watch
+    start = time.clock()
+
     for n, acc in enumerate(df.index):
         ''' ~~   SLICE nonTMD sequence  ~~ '''
         list_of_TMDs = df.loc[acc, 'list_of_TMDs']#.copy()
@@ -321,7 +323,7 @@ def slice_nonTMD_in_prot_list(df):
         TM01_start = int(df.loc[acc, 'TM01_start'])
         nonTMD_first = df.loc[acc, 'full_seq'][0: TM01_start - 1]
         # start the sequence with the first segment
-        sequence = nonTMD_first
+        sequence_list = [nonTMD_first]
         # only for multipass proteins, generate sequences between TMDs
         if len(list_of_TMDs) == 0:
             # no TMDs are annotated, skip to next protein
@@ -338,13 +340,16 @@ def slice_nonTMD_in_prot_list(df):
                 end = int(df.loc[acc, '%s_end' % TMD])
                 # middle sequence between TMDs
                 between_TM_and_TMplus1 = df.loc[acc, 'full_seq'][end: start_next - 1]
-                sequence += between_TM_and_TMplus1
+                sequence_list.append(between_TM_and_TMplus1)
         last_TMD = list_of_TMDs[-1]
         # sequence from last TMD to C-term.
         lastTM_end = int(df.loc[acc, '%s_end' % last_TMD])
         seqlen = int(df.loc[acc, 'seqlen'])
         nonTMD_last = df.loc[acc, 'full_seq'][lastTM_end:seqlen]
-        sequence += nonTMD_last
+        sequence_list.append(nonTMD_last)
+        # join all the sequences together
+        sequence = "".join(sequence_list)
+
         df.loc[acc, 'nonTMD_seq'] = sequence
         df.loc[acc, 'len_nonTMD'] = len(sequence)
 
@@ -354,6 +359,8 @@ def slice_nonTMD_in_prot_list(df):
             if n % 500 == 0:
                 sys.stdout.write("\n")
                 sys.stdout.flush()
+    # glance at the watch again. Ruminate on time passed
+    sys.stdout.write("\ntime taken to slice nonTMD sequences : {:0.03f} s".format(time.clock() - start))
 
     return df
 

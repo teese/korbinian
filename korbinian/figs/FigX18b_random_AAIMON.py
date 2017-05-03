@@ -35,8 +35,6 @@ pickle_with_artificial_AAIMONs = os.path.normpath(os.path.join(output_dir, "List
 fig_AAIMON_vs_perc_aa_sub_png = os.path.normpath(os.path.join(output_dir, "List{ln:02d}_rand_AAIMON_vs_aa_sub.png".format(ln=list_number)))
 fig_AAIMON_vs_perc_aa_sub_pdf = os.path.normpath(os.path.join(output_dir, "List{ln:02d}_rand_AAIMON_vs_aa_sub.pdf".format(ln=list_number)))
 
-print(pickle_with_artificial_AAIMONs)
-
 ########################################################################################
 #                                                                                      #
 #                 Get the AA propensity series for TM and nonTM                        #

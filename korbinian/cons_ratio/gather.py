@@ -49,8 +49,10 @@ def gather_AAIMONs(pathdict, logging, s):
     """
     logging.info("~~~~~~~~~~~~                           starting gather_AAIMONs                      ~~~~~~~~~~~~")
     df = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
-    # make list_of_TMDs in df a python list
-    df.list_of_TMDs = df.list_of_TMDs.apply(lambda x: ast.literal_eval(x))
+    # drop any proteins without a list of TMDs
+    df = df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan']
+    # convert list_of_TMDs from string to python list
+    df['list_of_TMDs'] = df.list_of_TMDs.apply(lambda x: ast.literal_eval(x))
 
     if s['filter_keywords_in_gather']:
         # filter list file by keywords for exclusion analysis, e.g. enzyme only
@@ -99,7 +101,7 @@ def gather_AAIMONs(pathdict, logging, s):
     dfg = pd.DataFrame()
 
     # iterate over the dataframe for proteins with an existing list_of_TMDs. acc = uniprot accession.
-    for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
+    for acc in df.index:
         protein_name = df.loc[acc, 'protein_name']
         #logging.info(protein_name)
         sys.stdout.write("{}, ".format(acc)), sys.stdout.flush()
@@ -113,27 +115,25 @@ def gather_AAIMONs(pathdict, logging, s):
         dfg = pd.concat([dfg,mean_ser], axis=1)
 
     # transpose dataframe dfg
-    dfg = dfg.T
+    dfg = dfg.T.copy()
 
     # for the OMPdb dataset, there is no uniprot_entry_name
     uniprot_entry_name_in_df = "uniprot_entry_name" in df.columns
     if not uniprot_entry_name_in_df:
         dfg['uniprot_entry_name'] = "OMPdb_dataset"
 
+    # drop any proteins in dfg without a list of TMDs
+    dfg = dfg.loc[df['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan']
+
+    # if the list_of_TMDs is a stringlist, convert to a python list
+    #if isinstance(dfg['list_of_TMDs'].dropna().iloc[0], str):
+    dfg['list_of_TMDs'] = dfg['list_of_TMDs'].dropna().apply(lambda x : ast.literal_eval(x))
+
+    # for singlepass datasets, leave row blank by default
+    dfg['AAIMON_slope_central_TMDs'] = np.nan
+
     # calculate mean AAIMON for all TMDs
-    for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
-
-        # dict_AAIMON_mean = {}
-        # for TMD in ast.literal_eval(dfg.loc[acc, 'list_of_TMDs']):
-        #     dict_AAIMON_mean[TMD] = dfg.loc[acc, '%s_AAIMON_mean' % TMD]
-        # dfg.loc[acc, 'AAIMON_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_mean.values()))))
-        #
-        # # calculate mean normalised AAIMON_n for all TMDs
-        # dict_AAIMON_mean_n = {}
-        # for TMD in ast.literal_eval(dfg.loc[acc, 'list_of_TMDs']):
-        #     dict_AAIMON_mean_n[TMD] = dfg.loc[acc, '%s_AAIMON_mean_n' % TMD]
-        # dfg.loc[acc, 'AAIMON_mean_all_TMDs_n'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_mean_n.values()))))
-
+    for acc in dfg.index:
         # CODE COPIED FROM FIGS.PY
         dict_AAIMON_mean = {}
         dict_AAIMON_std = {}
@@ -145,7 +145,7 @@ def gather_AAIMONs(pathdict, logging, s):
         dict_AAIMON_n_slope_mean = {}
         dict_TMD_perc_identity_mean_all_TMDs = {}
         dict_angle_between_slopes_all_TMDs = {}
-        for TMD in ast.literal_eval(dfg.loc[acc, 'list_of_TMDs']):
+        for TMD in dfg.loc[acc, 'list_of_TMDs']:
             dict_AAIMON_mean[TMD] = dfg.loc[acc, '%s_AAIMON_mean' % TMD]
             dict_AAIMON_std[TMD] = dfg.loc[acc, '%s_AAIMON_std' % TMD]
             dict_AAIMON_mean_n[TMD] = dfg.loc[acc, '%s_AAIMON_mean_n' % TMD]
@@ -172,18 +172,9 @@ def gather_AAIMONs(pathdict, logging, s):
         last_TMD = df.loc[acc, 'last_TMD']
         dfg.loc[acc, 'AAIMON_slope_last_TMD'] = dfg.loc[acc, '%s_AAIMON_slope' %last_TMD]
         dfg.loc[acc, 'AAIMON_n_slope_last_TMD'] = dfg.loc[acc, '%s_AAIMON_n_slope' % last_TMD]
-        # add mean AAIMON_slope of central TMDs to dfg
-        if df.loc[acc, 'number_of_TMDs'] >= 3:
-            list_of_central_TMDs = df.loc[acc, 'list_of_TMDs'][1:-1]
-            list_mean_slope_central_TMDs = []
-            for TMD in list_of_central_TMDs:
-                list_mean_slope_central_TMDs.append(pd.to_numeric(dfg.loc[acc, '%s_AAIMON_slope'%TMD]))
-            dfg.loc[acc, 'AAIMON_slope_central_TMDs'] = np.mean(list_mean_slope_central_TMDs)
-        else:
-            dfg.loc[acc, 'AAIMON_slope_central_TMDs'] = np.nan
 
-            # count the number of TMDs for each protein
-        dfg.loc[acc, 'number_of_TMDs'] = len(dfg.loc[acc, 'list_of_TMDs'].split(','))
+        # count the number of TMDs for each protein
+        dfg.loc[acc, 'number_of_TMDs'] = len(dfg.loc[acc, 'list_of_TMDs'])
 
         # add sequence length to dfg
         dfg.loc[acc, 'seqlen'] = df.loc[acc, 'seqlen']
@@ -195,24 +186,16 @@ def gather_AAIMONs(pathdict, logging, s):
         ###############################################################
 
         ##### copied from compare_lists ####
-        # for singlepass datasets, leave row blank
-        dfg['AAIMON_slope_central_TMDs'] = np.nan
-        # iterate through each TMD, and calculate mean AAIMON slopes
-        for acc in dfg.index:
-            if dfg.loc[acc, 'number_of_TMDs'] >= 3:
-                list_of_central_TMDs = dfg.loc[acc, 'list_of_TMDs'][1:-1]
-                list_mean_slope_central_TMDs = []
-                for TMD in list_of_central_TMDs:
-                    try:
-                        list_mean_slope_central_TMDs.append(pd.to_numeric(dfg.loc[acc, '%s_AAIMON_slope' % TMD]))
-                    except KeyError:
-                        print("Ich würde nie zum FC Bayern München gehen!")
-                        print("dfg.loc[acc, 'number_of_TMDs']", dfg.loc[acc, 'number_of_TMDs'])
-                        print("dfg.loc[acc, 'list_of_TMDs'][1:-1]", dfg.loc[acc, 'list_of_TMDs'][1:-1])
-                        print("pd.to_numeric(dfg.loc[acc, '%s_AAIMON_slope' % TMD])", pd.to_numeric(dfg.loc[acc, '%s_AAIMON_slope' % TMD]))
-
-
-                dfg.loc[acc, 'AAIMON_slope_central_TMDs'] = np.mean(list_mean_slope_central_TMDs)
+        # iterate through each TMD, and calculate mean AAIMON slopes for central TMDs
+        if dfg.loc[acc, 'number_of_TMDs'] >= 3:
+            #for n, acc in enumerate(dfg.loc[acc, 'number_of_TMDs']):
+            list_of_central_TMDs = dfg.loc[acc, 'list_of_TMDs'][1:-1]
+            list_mean_slope_central_TMDs = []
+            for TMD in list_of_central_TMDs:
+                list_mean_slope_central_TMDs.append(pd.to_numeric(dfg.loc[acc, '%s_AAIMON_slope' % TMD]))
+            dfg.loc[acc, 'AAIMON_slope_central_TMDs'] = np.mean(list_mean_slope_central_TMDs)
+        else:
+            dfg.loc[acc, 'AAIMON_slope_central_TMDs'] = np.nan
         # add dataframe to a dictionary of dataframes
 
         # # add total_number_of_simap_hits
@@ -257,7 +240,7 @@ def gather_AAIMONs(pathdict, logging, s):
         # filter summary file for min and max number of homologues based on TM01 number of homologues
         #sys.stdout.write('Dropped homologues after filtering: \n')
         list_of_acc_to_keep = []
-        for acc in dfg.loc[dfg['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan'].index:
+        for acc in dfg.index:
             TM01_AAIMON_n_homol = pd.to_numeric(dfg.loc[acc, 'TM01_AAIMON_n_homol'])
             if TM01_AAIMON_n_homol > min_num_homologues:
                 list_of_acc_to_keep.append(acc)
@@ -266,9 +249,9 @@ def gather_AAIMONs(pathdict, logging, s):
         dfg = dfg.loc[list_of_acc_to_keep, :]
         df = df.loc[list_of_acc_to_keep, :]
 
-        # convert from string to python list
-        if isinstance(df['list_of_TMDs'][0], str):
-            df['list_of_TMDs'] = df['list_of_TMDs'].dropna().apply(lambda x: ast.literal_eval(x))
+        # # convert from string to python list
+        # if isinstance(dfg['list_of_TMDs'][0], str):
+        #     dfg['list_of_TMDs'] = dfg['list_of_TMDs'].dropna().apply(lambda x: ast.literal_eval(x))
 
         #sys.stdout.write("\nLoading data\n")
         # initiate empty numpy array
@@ -489,6 +472,9 @@ def gather_pretty_alignments(pathdict, logging, s):
     df = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
     # drop proteins that have no list of TMDs
     df = df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan']
+    # convert from string to python list
+    df['list_of_TMDs'] = df['list_of_TMDs'].apply(lambda x: ast.literal_eval(x))
+
     # iterate over the dataframe for proteins with an existing list_of_TMDs. acc = uniprot accession.
     num_TMDs_in_all_proteins_processed = 0
     for num, acc in enumerate(df.index):
@@ -505,7 +491,7 @@ def gather_pretty_alignments(pathdict, logging, s):
             if os.path.isfile(homol_df_orig_zip):
                 SIMAP_align_pretty_csv_filename = os.path.basename(df.loc[acc, "SIMAP_align_pretty_csv"])
                 dfp = utils.open_df_from_csv_zip(homol_df_orig_zip, SIMAP_align_pretty_csv_filename)
-                for TMD in ast.literal_eval(df.loc[acc, "list_of_TMDs"]):
+                for TMD in df.loc[acc, "list_of_TMDs"]:
                     TM_cr_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
                     # open dataframe  with function from korbinian, extract required columns, convert to np array
                     df_TMD = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, TM_cr_pickle)
