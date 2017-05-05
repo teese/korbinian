@@ -6,6 +6,7 @@ import os
 import tarfile
 import warnings
 warnings.filterwarnings('ignore')
+from time import strftime
 
 def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_exec_str, db, retry_failed=False, retry_successful=False):
     """Runs standalone PSIBLAST on every query fasta file in a folder.
@@ -52,7 +53,8 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
 
     """
     # set location of logfile
-    logfile = os.path.join(query_dir,"PSI-BLAST_logfile.txt")
+    date_string = strftime("%Y%m%d")
+    logfile = os.path.join(query_dir,"{}_PSI-BLAST_logfile.txt".format(date_string))
     logging = korbinian.common.setup_error_logging(logfile)
     # set location of txt file containing the failed sequences
     failed_psiblast_list_txt = os.path.join(query_dir,"failed_PSIBLAST_list.txt")
@@ -91,7 +93,7 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
     s["num_alignments"] = 3000
     command_str = '"{psiblast_exec_str}" -query {query} -db {db} -out_pssm {out_pssm} -out_ascii_pssm {out_ascii_pssm} '\
     '-out {out_BLAST_xml} -evalue {evalue} -inclusion_ethresh {inclusion_ethresh} -num_iterations 3 '\
-    '-use_sw_tback -seg no -num_threads {num_threads} -num_descriptions {num_descriptions} -num_alignments {num_alignments}'
+    '-use_sw_tback -seg no -num_threads {num_threads} -num_descriptions {num_descriptions} -num_alignments {num_alignments} -comp_based_stats 1'
     logging.info("Example of command str, before inserting variables".format(command_str))
 
     ########################################################################################
@@ -145,8 +147,8 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
         logging.info("\n{}\n".format(c))
 
         command = utils.Command(c)
-        timeout_minutes = 120
-        command.run(timeout=timeout_minutes * 60)
+        timeout_hours = 4
+        command.run(timeout = timeout_hours * 60 * 60)
         # wait 1 second. In some cases, the files are not immediately recognised as existing?
         utils.sleep_x_seconds(1, print_stuff=False)
 
@@ -175,8 +177,8 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
             for file in file_list:
                 try:
                     os.remove(file)
-                except FileNotFoundError:
-                    pass
+                except (FileNotFoundError, PermissionError):
+                    logging.warning('{} ERROR. Could not be deleted'.format(file))
         else:
             if acc not in failed_psiblast_list:
                 # add accession number to the list of failed blast sequences

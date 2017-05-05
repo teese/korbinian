@@ -1,4 +1,5 @@
 import argparse
+import korbinian
 import pandas as pd
 import numpy as np
 import random
@@ -404,6 +405,108 @@ def generate_random_seq(seq_len, number_seq, number_mutations, list_all_20_aa, p
 
     return orig_seq, seq_matrix
 
+def calc_unobserved_AA_ident(obs_aa_ident_full_protein, rand_ident_region1, rand_ident_region2, fraction_region1_residues, region):
+    """Calculate the unobserved amino acid identity from a pairwise or multiple sequence alignment.
+
+    The aim here is to calculate "e" as described in the associated research manuscript.
+        e = rx
+            x is first calculated using a previously described function
+            r is taken from the input variables
+            e is returned
+
+    Parameters
+    ----------
+    obs_aa_ident_full_protein : float
+        Observed amino acid identity of the full pairwise alignment
+        "observed" in that it always includes some position that have had a substitution to the same AA (e.g. Leu to Leu), which are unobserved.
+        Typically excluding gaps, which are heavily biased by splice variants, etc, and are excluded from AAIMON calculations.
+        E.g. 0.6, for 60% amino acid identity.
+    rand_TM : float
+        Random identity of the TM region.
+        e.g. 0.124 for 12.4%
+    rand_nonTM : float
+        Random identity of the nonTM region.
+        e.g. 0.059 for 5.9%
+    fraction_TM_residues : float
+        Fraction of TM residues in protein sequence, e.g. 0.1 (10% TM, 90% nonTM)
+        Used to estimate the real underlying AA substitution rate from the observed AA subst. rate.
+    region: int
+        Region of interest, either 1 or 2.
+        Determines which random identity is used for the calculation of e.
+
+    Returns
+    -------
+    e : float
+        Unobserved substitution rate.
+        Amino acid identity due solely to the restricted subset of amino acids.
+
+    Usage
+    -----
+    obs_aa_ident_full_protein = 0.55
+    rand_ident_region1 = 0.124
+    rand_ident_region2 = 0.058
+    fraction_region1_residues = 0.33
+    e = calc_unobserved_AA_ident(obs_aa_ident_full_protein, rand_ident_region1, rand_ident_region2, fraction_region1_residues, region)
+    """
+
+    # calculate the real, underlying substitution rate in the full protein
+    x = korbinian.cons_ratio.norm.calc_real_underlying_subst_rate(obs_aa_ident_full_protein, rand_ident_region1, rand_ident_region2, fraction_region1_residues)
+    # get the random identity of the appropriate region, either region1 or region2 (e.g. TM or nonTM)
+    if region == 1:
+        r = rand_ident_region1
+    else:
+        r = rand_ident_region2
+    # the unobserved substitution rate, e, (a.ka. unobserved AA identity) is simply the random identity
+    # multiplied by the real, underlying substitution rate
+    e = r * x
+
+    return e
+
+def normalise_AA_ident(obs_aa_ident, obs_aa_ident_full_protein, rand_ident_region1, rand_ident_region2, fraction_region1_residues, region):
+    """Normalise the amino acid identity to remove conservation associated with limited amino acid propensities,
+    by subtracting the unobserved amino acid identity.
+
+    Parameters
+    ----------
+    obs_aa_ident
+    obs_aa_ident_full_protein
+    rand_ident_region1
+    rand_ident_region2
+    fraction_region1_residues
+    region
+
+    Returns
+    -------
+    a : float
+        Normalised amino acid identity.
+        Original amino acid identity minus the predicted identity attributable to the
+        limited subset of amino acids.
+
+    Usage
+    -----
+    import numpy as np
+    from korbinian.MSA_normalisation import subtract_unobserved_AA_ident
+    list_of_aa_ident_TM = np.array([0.48, 0.56, 0.67, 0.35])
+    list_of_aa_ident_nonTM = np.array([0.44, 0.53, 0.62, 0.36])
+    obs_aa_ident_full_protein = 0.30
+    rand_ident_region1 = 0.09
+    rand_ident_region2 = 0.058
+    fraction_region1_residues = 0.33
+    norm_list_of_aa_ident_TM = subtract_unobserved_AA_ident(list_of_aa_ident_TM, obs_aa_ident_full_protein, rand_ident_region1,
+                                                            rand_ident_region2, fraction_region1_residues, region=1)
+    norm_list_of_aa_ident_nonTM = subtract_unobserved_AA_ident(list_of_aa_ident_nonTM, obs_aa_ident_full_protein, rand_ident_region1,
+                                                               rand_ident_region2, fraction_region1_residues, region=2)
+
+
+    """
+
+    # get the real underlying substitution rate (x) and therefore the unobserved substitution rate, e
+    e = calc_unobserved_AA_ident(obs_aa_ident_full_protein, rand_ident_region1, rand_ident_region2, fraction_region1_residues, region)
+    # simply subtract the AA identity attributable to the limited subset of AA
+    a = obs_aa_ident - e
+
+    return a
+
 
 ############################################################################################
 #                                                                                          #
@@ -412,8 +515,8 @@ def generate_random_seq(seq_len, number_seq, number_mutations, list_all_20_aa, p
 #                                                                                          #
 ############################################################################################
 
-def calc_MSA_ident_n_factor(observed_perc_ident_full_seq, rand_perc_ident_TM, rand_perc_ident_nonTM, proportion_seq_TM_residues=0.3):
-    """Calculation of the MSA identity normalisation factor
+def DEPRECATED_calc_MSA_ident_n_factor(observed_perc_ident_full_seq, rand_perc_ident_TM, rand_perc_ident_nonTM, proportion_seq_TM_residues=0.3):
+    """DEPRECATED. Use Calculation of the MSA identity normalisation factor
 
     For this formula, we assume most proteins are multi-pass, and that approximately 30% of the
     residues are TM residues. Therefore a rand_30TM_70nonTM can be calculated, that roughly
@@ -624,7 +727,7 @@ parser = argparse.ArgumentParser()
 # add command-line options
 parser.add_argument("-f", "--function",
                     required=True,
-                    help=r"Function to be run. Choices are calc_aa_prop, calc_rand_aa_ident, or calc_n_factor")
+                    help=r"Function to be run. Choices are calc_aa_prop, calc_rand_aa_ident, or calc_unobserved_AA_ident")
 parser.add_argument("-i", "--input",
                     default=None,
                     help=r'Full path of input file.'
@@ -646,19 +749,23 @@ parser.add_argument("-c", "--column_name",
 # parser.add_argument("-d", "--ident_in_matrix",
 #                     default=0.7,
 #                     help='Amino acid identity in mutation matrix for calc_rand_aa_ident.')
-# parser.add_argument("-x", "--full_length_identity",
-#                     default=None,
-#                     help='Average amino acid identity of full sequences in alignment for calc_MSA_n_factor.')
-parser.add_argument("-a", "--rand_aa_ident_A",
+parser.add_argument("-x", "--full_length_identity",
                     default=None,
-                    help='Random aa identity for region A (e.g. transmembrane) for use in calc_MSA_n_factor.')
-parser.add_argument("-b", "--rand_aa_ident_B",
+                    help='Average amino acid identity of full sequences in alignment for calc_MSA_n_factor.')
+parser.add_argument("-a", "--rand_aa_ident_1",
                     default=None,
-                    help='Random aa identity for region B (e.g. non-transmembrane) for use in calc_MSA_n_factor.')
-parser.add_argument("-af", "--fraction_of_A_in_full_protein",
+                    help='Random aa identity for region 1 (e.g. transmembrane).')
+parser.add_argument("-b", "--rand_aa_ident_2",
+                    default=None,
+                    help='Random aa identity for region 2 (e.g. non-transmembrane).')
+parser.add_argument("-af", "--fraction_of_region1_in_full_protein",
                     default=0.3,
-                    help="""Average fraction of sequence that is from region A (e.g. fract of residues that are
+                    help="""Average fraction of sequence that is from region 1 (e.g. fract of residues that are
                     transmembrane residues) for use in calc_MSA_n_factor.""")
+parser.add_argument("-r", "--region",
+                    default=1,
+                    help="""Either 1 or 2. Region of position of interest in sequence.""")
+
 
 # if MSA_normalisation.py is run as the main python script, obtain the options from the command line.
 if __name__ == '__main__':
@@ -689,39 +796,42 @@ if __name__ == '__main__':
             # use the supplied inputs from the command line to run calc_random_aa_ident
             calc_random_aa_ident(aa_prop_csv_in=args.input, rand_seq_ident_csv_out=args.output)
             #sys.stdout.write("\nFinished. Output file : {}".format(args.output))
-    elif args.function == "calc_n_factor":
+    elif args.function == "calc_unobserved_AA_ident":
         # write a message if any of the necessary arguments are missing
-        if None in [args.full_length_identity, args.rand_aa_ident_A, args.rand_aa_ident_B]:
+        if None in [args.full_length_identity, args.rand_aa_ident_1, args.rand_aa_ident_2]:
             sys.stdout.write("Input argument missing. Please run as follows:\npython MSA_normalisation.py "
-                             "-f calc_n_factor -x full_length_identity -a rand_aa_ident_A -b rand_aa_ident_B "
-                             "-o OPTIONAL_OUTPUT_FILE -af OPTIONAL_fraction_of_A_in_full_protein")
+                             "-f calc_n_factor -x full_length_identity -a rand_aa_ident_1 -b rand_aa_ident_2 "
+                             "-o OPTIONAL_OUTPUT_FILE -af OPTIONAL_fraction_of_region1_in_full_protein")
         else:
-            # use the supplied inputs from the command line to run calc_MSA_ident_n_factor
+            # use the supplied inputs from the command line to run calc_unobserved_AA_ident
             full_length_identity = float(args.full_length_identity)
-            rand_aa_ident_A = float(args.rand_aa_ident_A)
-            rand_aa_ident_B = float(args.rand_aa_ident_B)
-            fraction_of_A_in_full_protein = float(args.fraction_of_A_in_full_protein)
-            n_factor = calc_MSA_ident_n_factor(observed_perc_ident_full_seq=full_length_identity,
-                                               rand_perc_ident_TM=rand_aa_ident_A,
-                                               rand_perc_ident_nonTM=rand_aa_ident_B,
-                                               proportion_seq_TM_residues=fraction_of_A_in_full_protein)
+            rand_aa_ident_1 = float(args.rand_aa_ident_1)
+            rand_aa_ident_2 = float(args.rand_aa_ident_2)
+            fraction_of_region1_in_full_protein = float(args.fraction_of_region1_in_full_protein)
+            region = float(args.region)
+            unobserved_AA_ident = calc_unobserved_AA_ident(obs_aa_ident_full_protein=full_length_identity,
+                                               rand_ident_region1=rand_aa_ident_1,
+                                               rand_ident_region2=rand_aa_ident_2,
+                                               fraction_region1_residues=fraction_of_region1_in_full_protein,
+                                               region=region)
+
 
             # if the user has supplied the path to an output file, add the output aa_prop_norm_factor_output and the inputs to a csv and save
             if args.output is not None:
                 output_ser = pd.Series()
-                output_ser["aa_prop_norm_factor_output"] = n_factor
+                output_ser["unobserved_AA_ident"] = unobserved_AA_ident
                 output_ser["full_length_identity_input"] = full_length_identity
-                output_ser["rand_aa_ident_A_input"] = rand_aa_ident_A
-                output_ser["rand_aa_ident_B_input"] = rand_aa_ident_B
-                output_ser["fraction_of_A_in_full_protein"] = fraction_of_A_in_full_protein
+                output_ser["region"] = region
+                output_ser["rand_aa_ident_region1_input"] = rand_aa_ident_1
+                output_ser["rand_aa_ident_region2_input"] = rand_aa_ident_2
+                output_ser["fraction_of_region1_in_full_protein"] = fraction_of_region1_in_full_protein
                 output_ser.to_csv(args.output, sep="\t")
                 #sys.stdout.write("\nFinished. Output file : {}".format(args.output))
             else:
                 # there is no output file, print the result on the screen
-                sys.stdout.write("norm_factor =\t{:0.4f}".format(n_factor))
-                sys.stdout.write("(normalisation factor to be applied to the scores of MSA_region_A, "
-                      "so that the aa propensity would match the scores of MSA_region_B, "
-                      "if the amino acid propensity was the only difference in the sequences)")
+                sys.stdout.write("\nUnobserved amino acid identity =\t{:0.4f}\n".format(unobserved_AA_ident))
+                sys.stdout.write("\nTo remove the AA identity associated with the limited subset of amino acids,\n"
+                                 "subtract the unobserved amino acid identity from the original observed AA identity.\n")
     else:
         raise ValueError('Function to be run "{}" is not recognised. '
                         'Accepted values are calc_aa_prop, calc_rand_aa_ident, or calc_n_factor'.format(args.f))
