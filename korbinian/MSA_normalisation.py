@@ -140,14 +140,14 @@ def calc_random_aa_ident_from_ser(aa_prop_ser):
     """
     all_aa = "ACDEFGHIKLMNPQRSTVWY"
     # check that the index has 20 aa
-    if not list(aa_prop_ser.index) == list(all_aa):
+    if not sorted(list(aa_prop_ser.index)) == sorted(list(all_aa)):
         raise ValueError("Index must be comprised of 20 amino acids, in capitals, single-letter notation.")
     # multiply the probabilities by themselves
     # if 25% of the residues are leucines, and the probability of them staying leucines is 25%
     # that means that 0.25 * 0.25 is the random identity of leucine
     # calculate this for all AA and simply sum!
     # this gives the random identity overall!
-    aa_prop_ser = aa_prop_ser * aa_prop_ser
+    aa_prop_ser = aa_prop_ser**2
     calc_rand_ident = aa_prop_ser.sum()
     return calc_rand_ident
 

@@ -3,8 +3,6 @@ from scipy.optimize import leastsq
 import ast
 import itertools
 import korbinian
-# import korbinian.cons_ratio.calc
-# import korbinian.cons_ratio.norm
 import korbinian.utils as utils
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,7 +11,6 @@ import pandas as pd
 import pickle
 import sys
 import zipfile
-import math
 
 
 def run_calculate_AAIMONs(pathdict, s, logging):
@@ -287,6 +284,9 @@ def calculate_AAIMONs(p):
         fig, axarr = None, None
 
         list_of_AAIMON_all_TMD = {}
+
+        print()
+        utils.aaa(dfh)
 
         for TMD_Nr, TMD in enumerate(list_of_TMDs):
             # find the TMD number (starting from 1)
@@ -575,6 +575,7 @@ def calculate_AAIMONs(p):
         mean_ser.to_csv(mean_ser_filename)
         zipout.write(mean_ser_filename, arcname=mean_ser_filename)
         os.remove(mean_ser_filename)
+
     return acc, True, "0"
 
 # DEPRECATED FUNCTION

@@ -7,6 +7,7 @@ import korbinian
 import pandas as pd
 import statsmodels.stats.api as sms
 import pickle
+import re
 import sys
 import zipfile
 from multiprocessing import Pool
@@ -281,7 +282,8 @@ def gather_AAIMONs(pathdict, logging, s):
                 if columns[2] not in df_TMD.columns:
                     # file is old, and should be deleted
                     #os.remove(homol_cr_ratios_zip)
-                    logging.info("{} file is presumed out of date, and WILL IN THE FUTURE been deleted".format(homol_cr_ratios_zip))
+                    logging.info("{} file is presumed out of date, and has been deleted".format(homol_cr_ratios_zip))
+                    os.remove(homol_cr_ratios_zip)
                     # skip to next protein
                     break
                 df_TMD = df_TMD[columns].as_matrix()
@@ -489,8 +491,21 @@ def gather_pretty_alignments(pathdict, logging, s):
         if os.path.isfile(homol_cr_ratios_zip):
             homol_df_orig_zip = df.loc[acc, "homol_df_orig_zip"]
             if os.path.isfile(homol_df_orig_zip):
+
+                # open parsed data
+                #homol_parsed_zip = df.loc[acc, "homol_parsed"]
+                parsed_pickle = "{}_df_orig.pickle".format(protein_name)
+                dfh = utils.open_df_from_pickle_zip(homol_df_orig_zip, parsed_pickle)
+
+                # open collected pretty alignments
                 SIMAP_align_pretty_csv_filename = os.path.basename(df.loc[acc, "SIMAP_align_pretty_csv"])
                 dfp = utils.open_df_from_csv_zip(homol_df_orig_zip, SIMAP_align_pretty_csv_filename)
+
+                # open dataframe with the nonTMD calculations
+                nonTMD_cr_pickle = "{}_nonTMD_cr_df.pickle".format(protein_name)
+                df_nonTMD = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, nonTMD_cr_pickle)
+
+
                 for TMD in df.loc[acc, "list_of_TMDs"]:
                     TM_cr_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
                     # open dataframe  with function from korbinian, extract required columns, convert to np array
@@ -499,9 +514,6 @@ def gather_pretty_alignments(pathdict, logging, s):
                     if df_TMD.empty:
                         # skip to next TMD
                         continue
-                    # open dataframe with the nonTMD calculations
-                    nonTMD_cr_pickle = "{}_nonTMD_cr_df.pickle".format(protein_name)
-                    df_nonTMD = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, nonTMD_cr_pickle)
 
                     # ########################################################################################
                     # #                                                                                      #
@@ -560,16 +572,30 @@ def gather_pretty_alignments(pathdict, logging, s):
                         d["outlier"] = outlier_name
                         d["hit"] = outlier_index
                         TMD_cols = ['obs_changes', "norm_factor", "{}_AAIMON", '{}_perc_ident', '{}_start_in_SW_alignment', '{}_SW_query_seq', '{}_SW_markup_seq',
-                                   '{}_SW_match_seq', '{}_ratio_len_TMD_to_len_nonTMD', '{}_SW_align_len', "{}_SW_match_lipo"] # 'FASTA_gapped_identity',
+                                   '{}_SW_match_seq', '{}_ratio_len_TMD_to_len_nonTMD', '{}_SW_align_len', "{}_SW_match_lipo",
+                                    '{}_SW_query_num_gaps', '{}_SW_match_num_gaps','{}_SW_align_len_excl_gaps'] # 'FASTA_gapped_identity',
                         TMD_col_names = ['obs_changes', "norm_factor", "AAIMON", 'TM_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
-                                     'ratio_len_TMD_to_len_nonTMD', 'SW_align_len', "SW_match_lipo"] # 'FASTA_gapped_identity',
+                                     'ratio_len_TMD_to_len_nonTMD', 'SW_align_len', "SW_match_lipo",
+                                     'SW_query_num_gaps', 'SW_match_num_gaps', 'SW_align_len_excl_gaps'] # 'FASTA_gapped_identity',
 
-                        nonTMD_cols = ['perc_nonTMD_coverage', 'nonTMD_perc_ident']
-                        nonTMD_col_names = ['perc_nonTMD_coverage', 'nonTMD_perc_ident']
+                        ########################################################################################
+                        #                                                                                      #
+                        #         nonTMD and dfh stuff is very inefficient! cycles through for each TM         #
+                        #         also cycles through each outlier!!
+                        #                                                                                      #
+                        ########################################################################################
+
+                        # list of columns from which to obtain data
+                        nonTMD_cols = ['perc_nonTMD_coverage', 'nonTMD_perc_ident', 'nonTMD_SW_align_len_excl_gaps']
+                        nonTMD_col_names = nonTMD_cols
+
+                        dfh_cols = ['SW_identity', 'SW_coverage_ratio', 'FASTA_identity', 'match_align_seq', 'query_align_seq', 'align_markup_seq']
+                        dfh_col_names = dfh_cols
 
                         TMD_tuple = (TMD_cols, TMD_col_names, df_TMD)
                         nonTMD_tuple = (nonTMD_cols, nonTMD_col_names, df_nonTMD)
-                        tuples_to_process = (TMD_tuple, nonTMD_tuple)
+                        dfh_tuple = (dfh_cols, dfh_col_names, dfh)
+                        tuples_to_process = (TMD_tuple, nonTMD_tuple, dfh_tuple)
 
                         # iterate through the TMD and nonTMD dataframes, extracting the relevant information
                         for tup in tuples_to_process:
@@ -593,12 +619,21 @@ def gather_pretty_alignments(pathdict, logging, s):
                         # leave the individual columns in the dataframe, as they could be useful for other analyses (e.g. aa abundance tests)
                         d["TM_align"] = "{}\r\r\n\r\r{}\r\r\n\r\r{}".format(d['SW_query_seq'], d['SW_markup_seq'], d['SW_match_seq'])
 
+                        # calculate an alternative observed_changes
+                        d["fl_aln_len"] = len(d['match_align_seq'])
+                        d["fl_gaps_qm"] = d['match_align_seq'].count("-") + d['query_align_seq'].count("-")
+                        d["fl_ident"] = len(re.findall("\|", d['align_markup_seq']))
+                        d["fl_obs_changes"] = d["fl_ident"] / (d["fl_aln_len"] - d["fl_gaps_qm"])
+
                         if num_TMDs_in_all_proteins_processed == 0:
                             # sort
                             csv_header = ["protein_name", "TMD", "outlier", "TM_align","SW_match_lipo", "align_pretty", 'obs_changes', "AAIMON", "norm_factor", 'perc_nonTMD_coverage', "hit", 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
-                                     'ratio_len_TMD_to_len_nonTMD', 'SW_align_len'] # 'FASTA_gapped_identity',
+                                     'ratio_len_TMD_to_len_nonTMD', 'SW_align_len', 'SW_query_num_gaps', 'SW_match_num_gaps', 'SW_align_len_excl_gaps','nonTMD_SW_align_len_excl_gaps',
+                                          'SW_identity', 'SW_coverage_ratio', 'FASTA_identity', 'match_align_seq', 'query_align_seq', 'align_markup_seq',
+                                          "fl_aln_len", "fl_gaps_qm", "fl_ident", "fl_obs_changes"] # 'FASTA_gapped_identity',
                             # make sure that the csv header is up-to-date, and isn't missing items from dict
-                            assert len(csv_header) is len(d)
+                            if len(csv_header) != len(d):
+                                raise ValueError("Columns in CSV header and dictionary don't match.\nSuggest double-checking added columns.")
                             # save the csv header to the csv file
                             writer = csv.writer(csvfile, delimiter=',', quotechar='"', lineterminator='\n', quoting=csv.QUOTE_NONNUMERIC, doublequote=True)
                             writer.writerow(csv_header)
