@@ -77,7 +77,7 @@ def calc_AAIMON(TMD, df_cr, len_query_TMD):
     # note that the nonTMD percentage identity is calculated the same way
     df_cr['%s_perc_ident' % TMD] = df_cr['%s_SW_num_ident_res' % TMD] / df_cr['%s_SW_align_len_excl_gaps' % TMD]
     # calculate percentage similar residues
-    df_cr['%s_perc_sim' % TMD] = df_cr['%s_SW_num_sim_res' % TMD] / df_cr['%s_SW_align_len' % TMD]
+    df_cr['%s_perc_sim' % TMD] = df_cr['%s_SW_num_sim_res' % TMD] / df_cr['%s_SW_align_len_excl_gaps' % TMD]
     # add together to obtain the percentage similar + identical residues
     df_cr['%s_perc_sim_plus_ident' % TMD] = df_cr['%s_perc_ident' % TMD] + df_cr['%s_perc_sim' % TMD]
 
@@ -254,9 +254,10 @@ def calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser, len_nonTMD_orig_q):
     ########################################################################################
     # calculate the length of the nonTMD sequences, which may include gaps
     df_nonTMD['nonTMD_SW_align_len'] = df_nonTMD['nonTMD_seq_query'].str.len()
-    mean_ser['nonTMD_SW_align_len_mean'] = float('%0.2f' % df_nonTMD['nonTMD_SW_align_len'].dropna().mean())
+    mean_ser['nonTMD_SW_align_len_mean'] = float('%0.2f' % df_nonTMD['nonTMD_SW_align_len'].mean()) # dropna(). removed
     # to avoid divide by 0 errors, any homologues with no nonTMD region should be excluded
-    df_nonTMD['nonTMD_SW_align_len'] = df_nonTMD['nonTMD_SW_align_len'].replace(0, np.nan)
+    # DEPRECATED, seems to be redundant due to the code below (df_nonTMD['nonTMD_SW_align_len_excl_gaps'] = df_nonTMD['nonTMD_SW_align_len_excl_gaps'].replace(0,np.nan))
+    #df_nonTMD['nonTMD_SW_align_len'] = df_nonTMD['nonTMD_SW_align_len'].replace(0, np.nan)
 
     ##############################################################################################################
     #                                                                                                            #
@@ -265,13 +266,14 @@ def calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser, len_nonTMD_orig_q):
     #                                                                                                            #
     ##############################################################################################################
     df_nonTMD['nonTMD_SW_align_len_excl_gaps'] = df_nonTMD['nonTMD_SW_align_len'] - df_nonTMD['nonTMD_q_num_gaps'] - df_nonTMD['nonTMD_m_num_gaps']
-    mean_ser['nonTMD_SW_align_len_excl_gaps_mean'] = float('%0.2f' % df_nonTMD['nonTMD_SW_align_len_excl_gaps'].dropna().mean())
     # to avoid divide by 0 errors, any homologues with only gaps in the nonTMD region should be excluded
     df_nonTMD['nonTMD_SW_align_len_excl_gaps'] = df_nonTMD['nonTMD_SW_align_len_excl_gaps'].replace(0,np.nan)
+    # add mean to output series
+    mean_ser['nonTMD_SW_align_len_excl_gaps_mean'] = float('%0.2f' % df_nonTMD['nonTMD_SW_align_len_excl_gaps'].mean()) # dropna(). removed
     # len_nonTMD_orig_q = 100  # to be replaced with a real number!
     df_nonTMD['len_nonTMD_orig_q_minus_nonTMD_SW_align_len_excl_gaps'] = len_nonTMD_orig_q - df_nonTMD['nonTMD_SW_align_len_excl_gaps']
     df_nonTMD['perc_nonTMD_coverage'] = df_nonTMD['nonTMD_SW_align_len_excl_gaps'] / len_nonTMD_orig_q
-    mean_ser['len_nonTMD_orig_q_minus_nonTMD_SW_align_len_excl_gaps_mean'] = float('%0.2f' % df_nonTMD['len_nonTMD_orig_q_minus_nonTMD_SW_align_len_excl_gaps'].dropna().mean())
+    mean_ser['len_nonTMD_orig_q_minus_nonTMD_SW_align_len_excl_gaps_mean'] = float('%0.2f' % df_nonTMD['len_nonTMD_orig_q_minus_nonTMD_SW_align_len_excl_gaps'].mean()) # dropna(). removed
 
     ########################################################################################
     #                                                                                      #
@@ -283,15 +285,14 @@ def calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser, len_nonTMD_orig_q):
     df_nonTMD['nonTMD_perc_ident'] = df_nonTMD['nonTMD_num_ident_res'] / df_nonTMD['nonTMD_SW_align_len_excl_gaps']
 
     # drop any rows where there is no nonTMD_perc_ident
-    df_nonTMD.nonTMD_perc_ident.notnull()
     df_nonTMD.dropna(subset=["nonTMD_perc_ident"], inplace=True)
 
     df_nonTMD['nonTMD_perc_sim'] = df_nonTMD['nonTMD_num_sim_res'] / df_nonTMD['nonTMD_SW_align_len_excl_gaps']
     df_nonTMD['nonTMD_perc_sim_plus_ident'] = df_nonTMD['nonTMD_perc_ident'] +  df_nonTMD['nonTMD_perc_sim']
     # add to output dictionary with mean values for all homologues
-    mean_ser['nonTMD_perc_ident_mean'] = float('%0.5f' % df_nonTMD['nonTMD_perc_ident'].dropna().mean())
-    mean_ser['nonTMD_perc_sim_mean'] = float('%0.3f' % df_nonTMD['nonTMD_perc_sim'].dropna().mean())
-    mean_ser['nonTMD_perc_sim_plus_ident_mean'] = float('%0.3f' % df_nonTMD['nonTMD_perc_sim_plus_ident'].dropna().mean())
+    mean_ser['nonTMD_perc_ident_mean'] = float('%0.5f' % df_nonTMD['nonTMD_perc_ident'].mean())
+    mean_ser['nonTMD_perc_sim_mean'] = float('%0.3f' % df_nonTMD['nonTMD_perc_sim'].mean())
+    mean_ser['nonTMD_perc_sim_plus_ident_mean'] = float('%0.3f' % df_nonTMD['nonTMD_perc_sim_plus_ident'].mean())
 
     ########################################################################################
     #                                                                                      #
@@ -299,7 +300,7 @@ def calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser, len_nonTMD_orig_q):
     #                                                                                      #
     ########################################################################################
     df_nonTMD['perc_gaps_nonTMD_SW_align'] = (df_nonTMD['nonTMD_q_num_gaps'] - df_nonTMD['nonTMD_m_num_gaps']) / df_nonTMD['nonTMD_SW_align_len']
-    mean_ser['perc_gaps_nonTMD_SW_align_mean'] = float('%0.2f' % df_nonTMD['perc_gaps_nonTMD_SW_align'].dropna().mean())
+    mean_ser['perc_gaps_nonTMD_SW_align_mean'] = float('%0.2f' % df_nonTMD['perc_gaps_nonTMD_SW_align'].mean())
 
     """ LEGACY CODE TO BE DELETED LATER """
     # calculate the length of the nonTMD sequence excluding gaps

@@ -1,4 +1,4 @@
-from time import strftime
+
 import glob
 import korbinian
 import korbinian.utils as utils
@@ -6,9 +6,9 @@ import os
 import tarfile
 import warnings
 warnings.filterwarnings('ignore')
-from time import strftime
+import time
 
-def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_exec_str, db, retry_failed=False, retry_successful=False):
+def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_exec_str, db, timeout_h, retry_failed=False, retry_successful=False, retry_timeout=False):
     """Runs standalone PSIBLAST on every query fasta file in a folder.
 
     What you need:
@@ -31,6 +31,10 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
         Database for PSI-BLAST
         e.g. "metazoa90"
         Determines the filepath for the .fasta containing the search database.
+    timeout_h : int
+        Hours allotted before timeout in PSIBLAST command.
+        Since some proteins are extremely slow, suggest making a quick run through the list first (2 hr),
+        and if time permits, a slow run later for the last few (6h).
     retry_failed : bool
         If True, proteins in the list of failed acc will be re-attempted
     retry_successful : bool
@@ -53,11 +57,12 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
 
     """
     # set location of logfile
-    date_string = strftime("%Y%m%d")
+    date_string = time.strftime("%Y%m%d")
     logfile = os.path.join(query_dir,"{}_PSI-BLAST_logfile.txt".format(date_string))
     logging = korbinian.common.setup_error_logging(logfile)
     # set location of txt file containing the failed sequences
     failed_psiblast_list_txt = os.path.join(query_dir,"failed_PSIBLAST_list.txt")
+    timeout_psiblast_list_txt = os.path.join(query_dir,"timeout_PSIBLAST_list.txt")
     ########################################################################################
     #                                                                                      #
     #       Create a list of all FASTA files in a particular folder for analysis           #
@@ -75,8 +80,12 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
         failed_psiblast_list = utils.get_acc_list_from_txt(failed_psiblast_list_txt)
     else:
         failed_psiblast_list = []
+    if os.path.isfile(timeout_psiblast_list_txt):
+        timeout_psiblast_list = utils.get_acc_list_from_txt(timeout_psiblast_list_txt)
+    else:
+        timeout_psiblast_list = []
     logging.info("failed_psiblast_list[0:5] : {}".format(failed_psiblast_list[0:5]))
-
+    logging.info("timeout_psiblast_list[0:5] : {}".format(timeout_psiblast_list[0:5]))
     ########################################################################################
     #                                                                                      #
     #                create a dictionary, s, with various parameters                       #
@@ -85,8 +94,8 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
     ########################################################################################
     s = {}
     s["psiblast_exec_str"] = psiblast_exec_str
-    s["evalue"] = "1e-3"
-    s["inclusion_ethresh"] = "1e-3"
+    s["evalue"] = "1e-5"
+    s["inclusion_ethresh"] = "1e-5"
     s["num_threads"] = 10
     # s["db"] = "metazoa90"
     s["num_descriptions"] = 3000
@@ -109,7 +118,6 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
 
     for query in query_fasta_list:
         acc = os.path.basename(query).split(".")[0]
-        logging.info("\n{}".format(acc))
         # get first two letters of acc, used as a subfolder
         first2 = acc[:2]
         # create a basename, e.g. "D:\Databases\BLAST\PSI\vertebra90\P4\P42532" from which files are created
@@ -130,15 +138,22 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
             message = "{} acc is in failed_psiblast_list, file skipped".format(acc)
             logging.info(message)
             continue
+        if acc in timeout_psiblast_list and retry_timeout == False:
+            message = "{} acc is in timeout_psiblast_list, file skipped".format(acc)
+            logging.info(message)
+            continue
+        # print accession
+        logging.info(acc)
         # create folders if necessary
         utils.make_sure_path_exists(out_ascii_pssm, isfile=True)
+        # start a timer
+        start = time.clock()
 
         ########################################################################################
         #                                                                                      #
         #                        run the PSI-BLAST command-line argument                       #
         #                                                                                      #
         ########################################################################################
-
         # create full command string to be run, as if in the console
         c = command_str.format(psiblast_exec_str=s["psiblast_exec_str"], query=query, db=db_path, out_pssm=out_pssm,
                                out_ascii_pssm=out_ascii_pssm, out_BLAST_xml=out_BLAST_xml, evalue=s["evalue"],
@@ -147,10 +162,10 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
         logging.info("\n{}\n".format(c))
 
         command = utils.Command(c)
-        timeout_hours = 4
-        command.run(timeout = timeout_hours * 60 * 60)
-        # wait 1 second. In some cases, the files are not immediately recognised as existing?
-        utils.sleep_x_seconds(1, print_stuff=False)
+        # Run the command. Set the timeout in seconds
+        command.run(timeout = int(timeout_h * 60 * 60))
+        # wait 5 seconds. In some cases, the files are not immediately recognised as existing?
+        utils.sleep_x_seconds(5, print_stuff=False)
 
         ########################################################################################
         #                                                                                      #
@@ -160,27 +175,41 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
         # check which output files exist (e.g. [True, True, False])
         output_file_exists_list = [os.path.exists(out_pssm), os.path.exists(out_ascii_pssm), os.path.exists(out_BLAST_xml)]
         logging.info("pssm, ascii_pssm, xml exists : {}".format(output_file_exists_list))
+
+        # create boolean to catch timeout errors
+        there_is_an_error_in_file_deletion = False
+
         # if all output files exist, create a date file and move all to a tarball
         if False not in output_file_exists_list:
-            # create date file
-            date = strftime("%Y%m%d")
+            duration = time.clock() - start
             with open(date_file_path, "w") as f:
-                f.write("Acc\t{}\nDate\t{}\nDatabase\t{}\nGreeting\tHave a nice day!".format(acc, date, db))
+                f.write("Acc\t{}\nDate\t{}\nDatabase\t{}\nGreeting\tHave a nice day!".format(acc, date_string, db))
             # move all files into the tarball
             file_list = [out_pssm, out_ascii_pssm, out_BLAST_xml, date_file_path]
             with tarfile.open(PSIBLAST_tar, mode='w:gz') as tar:
                 # add the files to the compressed tarfile
-                logging.info('{} files will be moved into the tarball, original files deleted'.format(acc))
+                logging.info('{} files will be moved into the tarball, original files deleted, PSIBLAST duration = {:0.3f} min'.format(acc, duration/60))
                 for file in file_list:
                     tar.add(file, arcname=os.path.basename(file))
+            # wait 5 seconds. In some cases, the files are not immediately recognised as existing?
+            utils.sleep_x_seconds(5, print_stuff=False)
             # delete the original files
             for file in file_list:
                 try:
                     os.remove(file)
                 except (FileNotFoundError, PermissionError):
                     logging.warning('{} ERROR. Could not be deleted'.format(file))
+                    there_is_an_error_in_file_deletion = True
+
         else:
             if acc not in failed_psiblast_list:
                 # add accession number to the list of failed blast sequences
                 with open(failed_psiblast_list_txt, "a") as source:
+                    source.write("\n{}".format(acc))
+
+        if there_is_an_error_in_file_deletion:
+            if acc not in timeout_psiblast_list:
+                # PSIBLAST probably timed out, files are incomplete
+                # add accession number to the list of timed-out sequences
+                with open(timeout_psiblast_list_txt, "a") as source:
                     source.write("\n{}".format(acc))
