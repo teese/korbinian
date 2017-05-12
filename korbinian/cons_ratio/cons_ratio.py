@@ -284,9 +284,7 @@ def calculate_AAIMONs(p):
         fig, axarr = None, None
 
         list_of_AAIMON_all_TMD = {}
-
-        print()
-        utils.aaa(dfh)
+        list_homol_excluded_in_TMD_filter = []
 
         for TMD_Nr, TMD in enumerate(list_of_TMDs):
             # find the TMD number (starting from 1)
@@ -408,7 +406,8 @@ def calculate_AAIMONs(p):
             # filter by the above query
             df_cr.query(cr_TMD_query_str, inplace=True)
             n_homol_after_TMD_filter = df_cr.shape[0]
-            mean_ser["n_homol_excluded_after_TMD_filter"] = "-- {}/{} --".format(n_homol_before_TMD_filter - n_homol_after_TMD_filter, n_homol_before_TMD_filter)
+            excluded_string = " {}/{} ".format(n_homol_before_TMD_filter - n_homol_after_TMD_filter, n_homol_before_TMD_filter)
+            list_homol_excluded_in_TMD_filter.append(excluded_string)
             #sys.stdout.write("\nn_homol_excluded_after_TMD_filter", mean_ser["n_homol_excluded_after_TMD_filter"]), sys.stdout.flush()
 
             ########################################################################################
@@ -543,6 +542,9 @@ def calculate_AAIMONs(p):
             #                                                                                      #
             ########################################################################################
             list_of_AAIMON_all_TMD['%s_AAIMON' % TMD] = df_cr['%s_AAIMON' % TMD].dropna()
+
+        # add all the excluded list
+        mean_ser["n_homol_excluded_after_TMD_filter"] = "-- {} --".format("".join(list_homol_excluded_in_TMD_filter))
 
         ########################################################################################
         #                                                                                      #

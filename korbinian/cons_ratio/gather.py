@@ -625,12 +625,16 @@ def gather_pretty_alignments(pathdict, logging, s):
                         d["fl_ident"] = len(re.findall("\|", d['align_markup_seq']))
                         d["fl_obs_changes"] = d["fl_ident"] / (d["fl_aln_len"] - d["fl_gaps_qm"])
 
+                        # remove the large sequences from the dictionary
+                        for key in ['match_align_seq', 'query_align_seq', 'align_markup_seq']:
+                            del d[key]
+
                         if num_TMDs_in_all_proteins_processed == 0:
                             # sort
                             csv_header = ["protein_name", "TMD", "outlier", "TM_align","SW_match_lipo", "align_pretty", 'obs_changes', "AAIMON", "norm_factor", 'perc_nonTMD_coverage', "hit", 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
                                      'ratio_len_TMD_to_len_nonTMD', 'SW_align_len', 'SW_query_num_gaps', 'SW_match_num_gaps', 'SW_align_len_excl_gaps','nonTMD_SW_align_len_excl_gaps',
-                                          'SW_identity', 'SW_coverage_ratio', 'FASTA_identity', 'match_align_seq', 'query_align_seq', 'align_markup_seq',
-                                          "fl_aln_len", "fl_gaps_qm", "fl_ident", "fl_obs_changes"] # 'FASTA_gapped_identity',
+                                          'SW_identity', 'SW_coverage_ratio', 'FASTA_identity',
+                                          "fl_aln_len", "fl_gaps_qm", "fl_ident", "fl_obs_changes"] # 'FASTA_gapped_identity','match_align_seq', 'query_align_seq', 'align_markup_seq',
                             # make sure that the csv header is up-to-date, and isn't missing items from dict
                             if len(csv_header) != len(d):
                                 raise ValueError("Columns in CSV header and dictionary don't match.\nSuggest double-checking added columns.")
