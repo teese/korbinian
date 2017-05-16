@@ -11,7 +11,8 @@ import pandas as pd
 import pickle
 import sys
 import zipfile
-
+# import debugging tools
+from korbinian.utils import pr, pc, pn, aaa
 
 def run_calculate_AAIMONs(pathdict, s, logging):
     """Runs calculate_AAIMONs for each protein, using multiprocessing Pool.
@@ -255,8 +256,14 @@ def calculate_AAIMONs(p):
         n_homol_before_nonTMD_query = df_nonTMD.shape[0]
         df_nonTMD.query(nonTMD_query_str, inplace=True)
         n_homol_after_nonTMD_query = df_nonTMD.shape[0]
-        mean_ser["n_homol_excluded_after_nonTMD_query"] = "-- {}/{} --".format(n_homol_before_nonTMD_query - n_homol_after_nonTMD_query, n_homol_before_nonTMD_query)
+        mean_ser["n_homol_excluded_after_nonTMD_query"] = "__ {}/{} __".format(n_homol_before_nonTMD_query - n_homol_after_nonTMD_query, n_homol_before_nonTMD_query)
+
+        # Save the percentage nonTMD for all homologues
+        # note that this might not match the final homologues with available AAIMON ratios
+        mean_ser['perc_nonTMD_coverage_mean'] = df_nonTMD.perc_nonTMD_coverage.mean()
+
         #sys.stdout.write("\nn_homol_excluded_after_nonTMD_query {}".format(mean_ser["n_homol_excluded_after_nonTMD_query"]))
+
 
         ########################################################################################
         #                                                                                      #
@@ -283,7 +290,7 @@ def calculate_AAIMONs(p):
         # make the IDE happy
         fig, axarr = None, None
 
-        list_of_AAIMON_all_TMD = {}
+        AAIMON_all_TMD_dict = {}
         list_homol_excluded_in_TMD_filter = []
 
         for TMD_Nr, TMD in enumerate(list_of_TMDs):
@@ -406,8 +413,14 @@ def calculate_AAIMONs(p):
             # filter by the above query
             df_cr.query(cr_TMD_query_str, inplace=True)
             n_homol_after_TMD_filter = df_cr.shape[0]
-            excluded_string = " {}/{} ".format(n_homol_before_TMD_filter - n_homol_after_TMD_filter, n_homol_before_TMD_filter)
-            list_homol_excluded_in_TMD_filter.append(excluded_string)
+
+            # FOR SOME REASON -- 280/280 -- in the nonTMD query (e.g. no homologues with min % ident) gives -- 280/280 280/280 280/280 280/280 -- for all the TMDs.
+            # If the first filter removes all homologues, then there ARE NO homologues to remove for the remaining filters
+            if n_homol_after_nonTMD_query != 0:
+                excluded_string = " {}/{} ".format(n_homol_before_TMD_filter - n_homol_after_TMD_filter, n_homol_before_TMD_filter)
+                list_homol_excluded_in_TMD_filter.append(excluded_string)
+            else:
+                list_homol_excluded_in_TMD_filter = "__ 0/0 __"
             #sys.stdout.write("\nn_homol_excluded_after_TMD_filter", mean_ser["n_homol_excluded_after_TMD_filter"]), sys.stdout.flush()
 
             ########################################################################################
@@ -538,23 +551,38 @@ def calculate_AAIMONs(p):
             mean_ser['%s_angle_between_slopes' %TMD] = angle
             ########################################################################################
             #                                                                                      #
-            #       Add this TMD to list_of_AAIMON_all_TMD, to aid figure creation??               #
+            #       Add this TMD to AAIMON_all_TMD_dict, to aid figure creation??               #
             #                                                                                      #
             ########################################################################################
-            list_of_AAIMON_all_TMD['%s_AAIMON' % TMD] = df_cr['%s_AAIMON' % TMD].dropna()
+            AAIMON_all_TMD_dict['%s_AAIMON' % TMD] = df_cr['%s_AAIMON' % TMD].dropna()
+
 
         # add all the excluded list
-        mean_ser["n_homol_excluded_after_TMD_filter"] = "-- {} --".format("".join(list_homol_excluded_in_TMD_filter))
+        mean_ser["n_homol_excluded_after_TMD_filter"] = "__ {} __".format("".join(list_homol_excluded_in_TMD_filter))
 
         ########################################################################################
         #                                                                                      #
         #               AAIMON normalization and save fig for each protein                     #
+        #  	df_AAIMON_all_TMD:
+        #       index = hit_num
+        #       columns : TM01_AAIMON 	TM02_AAIMON 	TM03_AAIMON
         #                                                                                      #
         ########################################################################################
-        df_AAIMON_all_TMD = pd.DataFrame(list_of_AAIMON_all_TMD)
-        df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol'] = df_AAIMON_all_TMD.mean(axis=1)
-        df_AAIMON_all_TMD['gapped_ident'] = dfh['FASTA_gapped_identity'].loc[df_AAIMON_all_TMD.index]
-        df_AAIMON_all_TMD['norm_factor'] = dfh['norm_factor'].loc[df_AAIMON_all_TMD.index]
+        df_AAIMON_all_TMD = pd.DataFrame(AAIMON_all_TMD_dict)
+        # get the original column names (M01_AAIMON, TM02_AAIMON, etc)
+        AAIMON_cols = ["{}_AAIMON".format(TMD) for TMD in list_of_TMDs]
+        # Get the number of TMDs whose AAIMON ratio was calculable
+        # For truncated alignments, C and N-term TMDs may be missing
+        # steps : 0) select just AAIMON data 1) convert nan to "", 2) count numbers with np.isreal,
+        #         3) sum TRUE FALSE TRUE etc to get the number of TMDs with calculable AAIMON for that homologue
+        df_AAIMON_all_TMD["n_TMDs_in_match"] = df_AAIMON_all_TMD.loc[:, AAIMON_cols].fillna("").applymap(np.isreal).sum(axis=1)
+        # create a bool if all TMDs have calculable AAIMON ratios
+        df_AAIMON_all_TMD["all_TMDs_have_AAIMON"] = df_AAIMON_all_TMD["n_TMDs_in_match"] == p["number_of_TMDs_excl_SP"]
+
+        df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol'] = df_AAIMON_all_TMD.loc[:, AAIMON_cols].mean(axis=1)
+        df_AAIMON_all_TMD['gapped_ident'] = dfh.loc[df_AAIMON_all_TMD.index, 'FASTA_gapped_identity']
+        df_AAIMON_all_TMD['norm_factor'] = dfh.loc[df_AAIMON_all_TMD.index, 'norm_factor']
+        df_AAIMON_all_TMD['perc_nonTMD_coverage'] = df_nonTMD.loc[df_AAIMON_all_TMD.index, 'perc_nonTMD_coverage']
         df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol_n'] = df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol'] / df_AAIMON_all_TMD['norm_factor']
 
         # # taken out by MO - figure replaced with plots for every single TMD

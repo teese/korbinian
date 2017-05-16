@@ -7,6 +7,8 @@ import tarfile
 import warnings
 warnings.filterwarnings('ignore')
 import time
+# import debugging tools
+from korbinian.utils import pr, pc, pn, aaa
 
 def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_exec_str, db, timeout_h, retry_failed=False, retry_successful=False, retry_timeout=False):
     """Runs standalone PSIBLAST on every query fasta file in a folder.
@@ -143,7 +145,7 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
             logging.info(message)
             continue
         # print accession
-        logging.info(acc)
+        logging.info("\n{}".format(acc))
         # create folders if necessary
         utils.make_sure_path_exists(out_ascii_pssm, isfile=True)
         # start a timer
@@ -159,7 +161,7 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
                                out_ascii_pssm=out_ascii_pssm, out_BLAST_xml=out_BLAST_xml, evalue=s["evalue"],
                                inclusion_ethresh=s["inclusion_ethresh"], num_threads=s["num_threads"],
                                num_descriptions=s["num_descriptions"], num_alignments=s["num_alignments"])
-        logging.info("\n{}\n".format(c))
+        logging.info("{}".format(c))
 
         command = utils.Command(c)
         # Run the command. Set the timeout in seconds
@@ -188,9 +190,19 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
             file_list = [out_pssm, out_ascii_pssm, out_BLAST_xml, date_file_path]
             with tarfile.open(PSIBLAST_tar, mode='w:gz') as tar:
                 # add the files to the compressed tarfile
-                logging.info('{} files will be moved into the tarball, original files deleted, PSIBLAST duration = {:0.3f} min'.format(acc, duration/60))
+                logging.info('{} files will be moved into the tarball, original files deleted.\nPSIBLAST duration = {:0.3f} min'.format(acc, duration/60))
                 for file in file_list:
-                    tar.add(file, arcname=os.path.basename(file))
+                    try:
+                        tar.add(file, arcname=os.path.basename(file))
+                    except FileNotFoundError:
+                        # wait 10 seconds. In some cases, the files are not immediately recognised as existing? Very rare.
+                        utils.sleep_x_seconds(10, print_stuff=False)
+                        # here is where I should import goto, and goto the line above :)
+                        try:
+                            tar.add(file, arcname=os.path.basename(file))
+                        except FileNotFoundError:
+                            # For whatever reason the file's still not there. Give up.
+                            logging.warning('{}, file could not be added to tarball. Filepath = {}. '.format(acc, file))
             # wait 5 seconds. In some cases, the files are not immediately recognised as existing?
             utils.sleep_x_seconds(5, print_stuff=False)
             # delete the original files

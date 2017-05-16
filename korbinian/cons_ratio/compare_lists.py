@@ -10,7 +10,8 @@ import korbinian.utils as utils
 import korbinian
 import scipy
 import seaborn as sns
-from korbinian.cons_ratio.keywords import KW_list_contains_any_desired_KW
+# import debugging tools
+from korbinian.utils import pr, pc, pn, aaa
 
 
 def compare_lists (s, df_lists_tab):
@@ -1134,11 +1135,11 @@ def compare_lists (s, df_lists_tab):
     #offset = len(protein_lists_mp) - 1
     offset = len(protein_lists) - 1
 
-
     for prot_list in protein_lists:
         # create a filtered dataframe (e.g. without GPCRs)
         df_filt = df_dict[prot_list]
-        df_filt = df_filt[df_filt.GPCR == False]
+        if "GPCR" in df_filt.columns:
+            df_filt = df_filt[df_filt.GPCR == False]
         # if it is multipass, remove proteins with 1-4 TMDs
         if df_lists_tab.loc[prot_list, "max_TMDs"] > 2:
             df_filt = df_filt[df_filt['number_of_TMDs'] >= min_n_TMDs_first_last]
@@ -1268,7 +1269,8 @@ def compare_lists (s, df_lists_tab):
     for prot_list in protein_lists:
         # create a filtered dataframe (e.g. without GPCRs)
         df_filt = df_dict[prot_list]
-        df_filt = df_filt[df_filt.GPCR == False]
+        if "GPCR" in df_filt.columns:
+            df_filt = df_filt[df_filt.GPCR == False]
         # if it is multipass, remove proteins with 1-4 TMDs
         if df_lists_tab.loc[prot_list, "max_TMDs"] > 2:
             df_filt = df_filt[df_filt['number_of_TMDs'] >= min_n_TMDs_first_last]
@@ -1617,5 +1619,3 @@ def compare_lists (s, df_lists_tab):
 
     #dfv.to_csv(os.path.join(base_filepath, 'Lists_%s_variables.csv'%str_protein_lists))
     sys.stdout.write("\n~~~~~~~~~~~~         compare_lists finished           ~~~~~~~~~~~~\n")
-
-    utils.aaa(dfv)

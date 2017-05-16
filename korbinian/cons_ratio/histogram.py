@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import math
+# import debugging tools
+from korbinian.utils import pr, pc, pn, aaa
 
 def save_hist_AAIMON_single_protein (fig_nr, fig, axarr, df_cr, s, TMD, binarray, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix):
     """Save histogram showing the AAIMON ratio for homologues of a single TMD, for a single protein.

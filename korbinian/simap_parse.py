@@ -11,6 +11,8 @@ import sys
 import zipfile
 import xml
 from multiprocessing import Pool
+# import debugging tools
+from korbinian.utils import pr, pc, pn, aaa
 
 def run_parse_simap_to_csv(pathdict, s, logging):
     """For a dataframe containing a list of proteins, for each protein parses the SIMAP XML file to a csv file.

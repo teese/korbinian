@@ -10,6 +10,8 @@ import os
 import pandas as pd
 import re
 import sys
+# import debugging tools
+from korbinian.utils import pr, pc, pn, aaa
 
 def create_protein_list(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_sp, logging, list_parsed_csv, slice=True):
     """ Parses a flatfile of UniProt records to csv.
@@ -381,8 +383,8 @@ def create_dict_of_data_from_uniprot_record(record):
     -------
 
     """
-    global uniprot_TMD_start, uniprot_TMD_end, uniprot_TMD_description, uniprot_TMD_sequence
-    global TRANSMEM_missing_from_uniprot_features, output_dict, accession, uniprot_TMD_sequence, record_entry_name, record_gene_name, record_description, uniprot_TMD_start, uniprot_TMD_end, uniprot_TMD_description, record_sequence_length, comments_subcellular_location, record_keywords, record_features_all
+    # global uniprot_TMD_start, uniprot_TMD_end, uniprot_TMD_description, uniprot_TMD_sequence
+    # global TRANSMEM_missing_from_uniprot_features, output_dict, accession, uniprot_TMD_sequence, record_entry_name, record_gene_name, record_description, uniprot_TMD_start, uniprot_TMD_end, uniprot_TMD_description, record_sequence_length, comments_subcellular_location, record_keywords, record_features_all
 
     #convert the comments in uniprot to a dictionary.
     #the comments in uniprot are unordered and non-hierarchical and need to be processed with string manipulation

@@ -5,6 +5,8 @@ import korbinian.utils as utils
 import sys
 import zipfile
 from multiprocessing import Pool
+# import debugging tools
+from korbinian.utils import pr, pc, pn, aaa
 
 def run_create_fasta(pathdict, s, logging):
     logging.info('~~~~~~~~~~~~         starting filter_and_save_fasta           ~~~~~~~~~~~~')
