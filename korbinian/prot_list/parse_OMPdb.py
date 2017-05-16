@@ -4,6 +4,8 @@ import korbinian.utils as utils
 import pandas as pd
 import numpy as np
 import sys
+# import debugging tools
+from korbinian.utils import pr, pc, pn, aaa
 
 def extract_omp_IDs_from_nr_fasta(ListXX_OMPdb_nr_fasta, ListXX_OMPdb_nr_acc, logging):
     """Takes the OMP non-redundant list of fasta sequences, and extracts the protein IDs (fasta names).
@@ -382,7 +384,7 @@ def getting_membrane_indices(Topo_data):
     return m_list
 
 # Function which filters out start and end-points
-def check_for_border(m_indices, m_borders):
+def check_for_border(m_index_list, m_borders):
     """ Checks for the borders of membrane regions, from M indices.
 
     Parameters
@@ -398,8 +400,12 @@ def check_for_border(m_indices, m_borders):
     m_borders : list
         Updated list of borders
     """
-    for n in range(0, len(m_indices) - 1):
-        if m_indices[n] + 1 != m_indices[n + 1]:
-            m_borders.append(m_indices[n])
-            m_borders.append(m_indices[n + 1])
+    # iterate through the m_index_list (e.g. [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33] for a singlepass protein)
+    for n in range(0, len(m_index_list) - 1):
+        # if the two indeces next to each other are not consecutive numbers
+        if m_index_list[n] + 1 != m_index_list[n + 1]:
+            # add the first one to the list
+            m_borders.append(m_index_list[n])
+            # add the second one to the list
+            m_borders.append(m_index_list[n + 1])
     return m_borders

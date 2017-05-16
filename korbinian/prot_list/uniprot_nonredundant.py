@@ -1,9 +1,9 @@
 import os
 import pandas as pd
 import korbinian
-import numpy as np
 from Bio import SeqIO
-import korbinian.utils as utils
+# import debugging tools
+from korbinian.utils import pr, pc, pn, aaa
 
 def create_nonred_uniprot_flatfile_via_uniref(s, uniprot_dir_sel, selected_uniprot_records_flatfile, logging):
     """ Creates a non-redundant UniProt flatfile from redundant redundant UniProt tab files, redundant flatfiles and UniRef cluster tab file.

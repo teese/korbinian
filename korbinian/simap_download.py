@@ -8,6 +8,8 @@ import korbinian
 import korbinian.utils as utils
 import pandas as pd
 import sys
+# import debugging tools
+from korbinian.utils import pr, pc, pn, aaa
 
 def download_homologues_from_simap(pathdict, s, logging):
     """From the list of proteins in csv format, begins downloading homologues from the SIMAP database.

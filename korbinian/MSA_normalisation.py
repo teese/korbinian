@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 import random
 import sys
+# import debugging tools
+from korbinian.utils import pr, pc, pn, aaa
 
 def calc_aa_propensity_from_csv_col(seq_list_csv_in, aa_prop_csv_out, col_name, sep=","):
     """Calculation of amino acid propensity for TM and non-TM region in dataset.

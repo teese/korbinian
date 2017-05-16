@@ -1,6 +1,8 @@
 import korbinian
 import numpy as np
 import pandas as pd
+# import debugging tools
+from korbinian.utils import pr, pc, pn, aaa
 
 def calc_AAIMON(TMD, df_cr, len_query_TMD):
     """Calculates the amino acid identity, membranous over nonmembranous (AAIMON) ratio for each homologue, and the average for all homologues of that protein.

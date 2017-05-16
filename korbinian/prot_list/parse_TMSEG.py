@@ -7,6 +7,8 @@ import os
 import pandas as pd
 import sys
 import time
+# import debugging tools
+from korbinian.utils import pr, pc, pn, aaa
 
 def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
     logging.info("~~~~~~~~~~~~                        starting parse_TMSEG_results                    ~~~~~~~~~~~~")
@@ -99,33 +101,49 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
         df['M_indices'] = df.topo.apply(getting_membrane_indices_from_helix_symbol)
         df['SiPe_indices'] = df.topo.apply(getting_SiPe_indices_from_symbol)
 
-
-
         # Creating new list (nested list)
         nested_list_of_membrane_borders = []
 
+        ########################################################################################
+        #                                                                                      #
+        #              Extract the membrane indices in UniProt Indexing style                  #
+        #                                                                                      #
+        ########################################################################################
         # Filling nest with lists of start and end-points
-        for n in df.M_indices:
+        for m_index_list in df.M_indices:
             m_borders = []
-            m_borders.append(n[0])
-            m_borders = korbinian.prot_list.parse_OMPdb.check_for_border(n, m_borders)
-            m_borders.append(n[-1])
+            # add the first membrane index (e.g. 13)
+            m_borders.append(m_index_list[0])
+            m_borders = korbinian.prot_list.parse_OMPdb.check_for_border(m_index_list, m_borders)
+            # add the last membrane index (e.g. 33)
+            m_borders.append(m_index_list[-1])
             nested_list_of_membrane_borders.append(m_borders)
 
-        array_membrane_borders = np.array(nested_list_of_membrane_borders)
-        array_membrane_borders_corrected = []
-        for subarray in array_membrane_borders:
-            subarray = np.array(subarray)
-            subarray[1::2] = subarray[1::2] + 1
-            array_membrane_borders_corrected.append(list(subarray))
-
-        nested_list_of_membrane_borders_python_indexstyle = array_membrane_borders_corrected
+        # DEPRECATED
+        #FOR CONSISTENCY, LEAVE INDEXING STYLE AS UNIPROT
+        # ########################################################################################
+        # #                                                                                      #
+        # #            Convert to python indexing style (NECESSARY?? NOT COMPAT WITH UNIPROT!)   #
+        # #                                                                                      #
+        # ########################################################################################
+        # array_membrane_borders = np.array(nested_list_of_membrane_borders)
+        # nested_list_m_borders_python_indexstyle = []
+        # for subarray in array_membrane_borders:
+        #     # convert to array
+        #     subarray = np.array(subarray)
+        #     # add 1 to the second index number, to allow slicing
+        #     subarray[1::2] = subarray[1::2] + 1
+        #     # add to list with corrected values, python index style
+        #     nested_list_m_borders_python_indexstyle.append(list(subarray))
 
         # Creating new column, which contains start and end-points
-        df["Membrane_Borders"] = nested_list_of_membrane_borders_python_indexstyle
+        #df["Membrane_Borders"] = nested_list_m_borders_python_indexstyle
+
+        df["Membrane_Borders"] = nested_list_of_membrane_borders
 
         # Creating new column, which contains the number of TMDS
         #df["number_of_TMDs"] = df.Membrane_Borders.apply(lambda x: len(x) / 2)
+
         df["TM_indices"] = df["Membrane_Borders"].apply(lambda x: tuple(zip(x[::2], x[1::2])))
         # create a list of [TM01, TM02, TM03, etc.
         long_list_of_TMDs = []
@@ -151,12 +169,15 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
             full_seq = df.loc[acc, "full_seq"]
             # topo = dft.loc[acc, "Topology"]
             # iterate through all the TMDs of that protein, slicing out the sequences
-            for i in range(len(list_of_TMDs)):
+            for i, TMD in enumerate(list_of_TMDs):
                 TMD = list_of_TMDs[i]
-                tup = nested_tup_TMs[i]
-                df.loc[acc, "%s_start" % TMD] = tup[0]
-                df.loc[acc, "%s_end" % TMD] = tup[1]
-                df.loc[acc, "%s_seq" % TMD] = utils.slice_with_listlike(full_seq, tup)
+                start, end = nested_tup_TMs[i]
+                # with UniProt indexing, need to slice with -1, not like python index style
+                df.loc[acc, "%s_start" % TMD] = start
+                df.loc[acc, "%s_end" % TMD] = end
+                # for python indexing of the TMD rather than uniprot, the start should be minus 1
+                python_indexing_tuple = (start - 1, end)
+                df.loc[acc, "%s_seq" % TMD] = utils.slice_with_listlike(full_seq, python_indexing_tuple)
                 df.loc[acc, "%s_seqlen" % TMD] = len(df.loc[acc, "%s_seq" % TMD])
                 # dft.loc[acc, TMD + "_top"] = utils.slice_with_listlike(topo, tup)
             # add signal peptides and their corresponding values to list_of_TMDs
@@ -185,10 +206,11 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
         # note that for some reason, this is very slow after merging the dataframes
         df = slice_nonTMD_in_prot_list(df)
 
-
-        cols_to_drop = ['M_indices', 'SiPe_indices', 'Membrane_Borders', 'TM_indices']
         df = pd.merge(df, df_parsed, left_index=True, right_index=True, suffixes=('', '_list_parsed'))
-        df.drop(cols_to_drop, axis=1, inplace=True)
+
+        # actually, I'd prefer to keep these for troubleshooting purposes
+        # cols_to_drop = ['M_indices', 'SiPe_indices', 'Membrane_Borders', 'TM_indices']
+        # df.drop(cols_to_drop, axis=1, inplace=True)
 
     elif os.path.isfile(TMSEG_top_txtoutput_path):
         """ PARSE DATA WITH THE FOLLOWING FORMAT, proteins listed one after each other
@@ -275,6 +297,7 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
                 tuple_slice_indices = (df.loc[acc, "%s_start" % TMD], df.loc[acc, "%s_end" % TMD])
                 df.loc[acc, "%s_seq" % TMD] = utils.slice_with_listlike(full_seq, tuple_slice_indices)
                 df.loc[acc, "%s_seqlen" % TMD] = len(df.loc[acc, "%s_seq" % TMD])
+
             # add signal peptides and their corresponding values to list_of_TMDs
             if analyse_sp == True:
                 if type(df_parsed.loc[acc, 'SP01_seq']) == str:
@@ -321,6 +344,8 @@ def slice_nonTMD_in_prot_list(df):
         #     list_of_TMDs.remove('SP01')
         # sequence from N-term. to first TMD
         TM01_start = int(df.loc[acc, 'TM01_start'])
+
+        # NOTE THAT THIS USED TO BE nonTMD_first = df.loc[acc, 'full_seq'][0: TM01_start -1], but indexing missed the last nonTM residue.
         nonTMD_first = df.loc[acc, 'full_seq'][0: TM01_start - 1]
         # start the sequence with the first segment
         sequence_list = [nonTMD_first]
@@ -328,6 +353,7 @@ def slice_nonTMD_in_prot_list(df):
         if len(list_of_TMDs) == 0:
             # no TMDs are annotated, skip to next protein
             continue
+        # for multipass proteins
         elif len(list_of_TMDs) > 1:
             for TM_Nr in range(len(list_of_TMDs) - 1):
                 # the TMD is the equivalent item in the list
@@ -337,9 +363,10 @@ def slice_nonTMD_in_prot_list(df):
                 # define start of next TMD
                 start_next = int(df.loc[acc, '%s_start' % next_TMD])
                 # end of current TMD
-                end = int(df.loc[acc, '%s_end' % TMD])
+                end_current = int(df.loc[acc, '%s_end' % TMD])
                 # middle sequence between TMDs
-                between_TM_and_TMplus1 = df.loc[acc, 'full_seq'][end: start_next - 1]
+                # note the "start_next - 1", used to convert uniprot indices to python indices
+                between_TM_and_TMplus1 = df.loc[acc, 'full_seq'][end_current: start_next - 1]
                 sequence_list.append(between_TM_and_TMplus1)
         last_TMD = list_of_TMDs[-1]
         # sequence from last TMD to C-term.
@@ -349,7 +376,6 @@ def slice_nonTMD_in_prot_list(df):
         sequence_list.append(nonTMD_last)
         # join all the sequences together
         sequence = "".join(sequence_list)
-
         df.loc[acc, 'nonTMD_seq'] = sequence
         df.loc[acc, 'len_nonTMD'] = len(sequence)
 
@@ -365,7 +391,9 @@ def slice_nonTMD_in_prot_list(df):
     return df
 
 def getting_membrane_indices_from_helix_symbol(Topo_data):
-    m_list = [i for i, topo in enumerate(Topo_data) if topo == "H"]  # find(Topo_data)
+    # get list of membrane indices
+    # note that this is UNIPROT indexing, not python indexing
+    m_list = [i+1 for i, topo in enumerate(Topo_data) if topo == "H"]  # find(Topo_data)
     return m_list
 
 def getting_SiPe_indices_from_symbol(Topo_data):

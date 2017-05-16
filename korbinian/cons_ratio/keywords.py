@@ -8,6 +8,8 @@ from scipy.stats import ttest_ind
 import korbinian.utils as utils
 import matplotlib.pyplot as plt
 import os
+# import debugging tools
+from korbinian.utils import pr, pc, pn, aaa
 
 def keyword_analysis(pathdict, s, logging):
     """
@@ -39,10 +41,11 @@ def keyword_analysis(pathdict, s, logging):
     df = pd.merge(dfc, dfu, left_index=True, right_index=True, suffixes=('_dfc', ''))
 
     # drop proteins with less then x homologues
-    min_homol = s['min_homol']
-    sys.stdout.write('number of proteins before min. number of homologues cutoff: {}\n'. format(df.shape[0]))
-    df = df[df.TM01_AAIMON_n_homol >= min_homol]
-    sys.stdout.write('number of proteins after min. number of homologues cutoff: {}\n'.format(df.shape[0])), sys.stdout.flush()
+    n_before = df.shape[0]
+    df = df[df.TM01_AAIMON_n_homol >= s['min_homol']]
+    n_after = df.shape[0]
+    n_dropped = n_before - n_after
+    logging.info('{} proteins dropped due to insufficient homologues\nOrig = {}, Final = {}, cutoff = {}\n'.format(n_dropped, n_before, n_after, s['min_homol']))
 
     # create folder in list summary directory to hold keyword data
     if not os.path.exists(pathdict["keywords"]):
@@ -118,6 +121,13 @@ def keyword_analysis(pathdict, s, logging):
         if isinstance(df['uniprot_KW_for_analysis'][0], str):
             df['uniprot_KW_for_analysis'] = df['uniprot_KW_for_analysis'].dropna().apply(lambda x: ast.literal_eval(x))
 
+    n_before = df.shape[0]
+    df.dropna(subset=['uniprot_KW_for_analysis'], inplace=True)
+    n_after = df.shape[0]
+    n_dropped = n_before - n_after
+    if n_dropped > 0:
+        logging.info("\n{} proteins dropped due to empty uniprot_KW_for_analysis".format(n_dropped))
+
     # check if dataset is SP or MP
     dataset = 'none'
     if df.number_of_TMDs_excl_SP.max() == 1:
@@ -138,7 +148,7 @@ def keyword_analysis(pathdict, s, logging):
     KW_counts_major = KW_counts[KW_counts > cutoff_major_keywords]
     # extract series indices and make them a python list
     list_KW_counts_major = sorted(list(KW_counts_major.index))
-    sys.stdout.write ('valid keywords for analysis (n = {a}):\n{b}\n\n'.format(a = len(list_KW_counts_major), b = list_KW_counts_major))
+    logging.info ('valid keywords for analysis (n = {a}):\n{b}\n'.format(a = len(list_KW_counts_major), b = list_KW_counts_major))
 
     # define list of keywords that get excluded from analysis related to other keywords, if keyword is analysed, it gets included
     # move to settings file !?!?
@@ -188,7 +198,7 @@ def keyword_analysis(pathdict, s, logging):
             if len(df_keyword) < cutoff_major_keywords:
                 dfk = dfk.drop(keyword)
                 dfp = dfp.drop(keyword)
-                sys.stdout.write('\n\nkeyword "{}" does not match the requirements after excluding {}\n'.format(keyword, list_to_exclude))
+                logging.info('\n\nkeyword "{}" does not match the requirements after excluding {}\n'.format(keyword, list_to_exclude))
                 continue
 
             ###############################################################
@@ -233,9 +243,9 @@ def keyword_analysis(pathdict, s, logging):
             dfk.loc[keyword, 't-value_AAIMON_slope'] = t_AAIMON_slope
             dfk.loc[keyword, 'p-value_AAIMON_slope'] = p_AAIMON_slope
 
-            sys.stdout.write('\n\nmean AAIMON_slope containing keyword  "{a}" : {k:.3f} ± {l:.3f}, n = {d:.0f}\n'
+            logging.info('\nmean AAIMON_slope containing keyword  "{a}" : {k:.3f} ± {l:.3f}, n = {d:.0f}\n'
                              'mean AAIMON_slope   without  keyword  "{a}" : {m:.3f} ± {n:.3f}, n = {g:.0f}\n'
-                             'difference_AAIMON_slope = {o:.3f}, t-value_AAIMON_slope = {p:.3f}, p-value_AAIMON_slope = {q:.3f}\n'
+                             'difference_AAIMON_slope = {o:.3f}, t-value_AAIMON_slope = {p:.3f}, p-value_AAIMON_slope = {q:.3f}'
                              .format(a=keyword,
                                      d=dfk.loc[keyword, 'number_of_proteins_keyword'],
                                      g=dfk.loc[keyword, 'number_of_proteins_no_keyword'],
@@ -574,7 +584,8 @@ def keyword_analysis(pathdict, s, logging):
 
         # sort dataframes by p-value of AAIMON slopes
         dfk = dfk.sort_values('p-value_AAIMON_slope')
-        dfp = dfp.sort_values('p-value')
+        if not dfp.empty:
+            dfp.sort_values('p-value', inplace=True)
 
         annotate = ['*excluding {}'.format(', '.join(list_to_exclude))]
         # for n, element in enumerate(list_to_exclude):

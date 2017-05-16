@@ -5,7 +5,8 @@ import os
 import numpy as np
 import random
 import sys
-
+# import debugging tools
+from korbinian.utils import pr, pc, pn, aaa
 
 def calc_real_underlying_subst_rate(obs_aa_ident_full_protein, rand_ident_region1, rand_ident_region2, fraction_region1_residues=0.3):
     """Calculation of the real, underlying substitution rate in a protein with two regions of differing random identity.

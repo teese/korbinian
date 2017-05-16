@@ -10,6 +10,7 @@ import ast
 import csv
 import ctypes
 import errno
+import inspect
 import logging
 import os
 import pickle
@@ -861,7 +862,9 @@ class HardDriveSpaceException(Exception):
     def __init__(self, value):
         self.parameter = value
     def __str__(self):
-        return repr(self.parameter)
+        # name changed to allow p-r( to be unique to the print function
+        canonical_string_representation = repr
+        return canonical_string_representation(self.parameter)
 
 def get_free_space(folder, format="MB"):
     """ 
@@ -1666,3 +1669,71 @@ def get_publication_colors():
     color_list = color_list + ['#A1B11A', '#9ECEEC', '#0076B8', '#454545']
     return color_list
 
+def varname(p):
+    """Returns the variable name, e.g. "df" from the globals().
+
+    This is somewhat of a hack, and may not be future proof. But debuggers are slow, and python objects don't hold their own names.
+    see Stackoverflow page : http://stackoverflow.com/questions/592746/how-can-you-print-a-variable-name-in-python
+
+    Parameters
+    ----------
+    p : python object
+
+    Returns
+    -------
+    variable_name : str
+        Variable name for the object entered.
+    """
+    for line in inspect.getframeinfo(inspect.currentframe().f_back)[3]:
+        m = re.search(r'\bvarname\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)', line)
+        if m:
+            return m.group(1)
+
+def pc(p):
+    """Prints the variable name, followed by the value, separated by a comma.
+
+    Use only when debugging.
+
+    This is somewhat of a hack, and may not be future proof. But debuggers are slow, and python objects don't hold their own names.
+    see Stackoverflow page : http://stackoverflow.com/questions/592746/how-can-you-print-a-variable-name-in-python
+
+    Parameters
+    ----------
+    p : python object
+    """
+    variable_name = None
+    for line in inspect.getframeinfo(inspect.currentframe().f_back)[3]:
+        m = re.search(r'\bpc\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)', line)
+        if m:
+            variable_name = m.group(1)
+            break
+    sep = ", "
+    sys.stdout.write("{}{}{}\n".format(variable_name, sep, p))
+
+def pn(p):
+    """Prints the variable name, followed by the value, separated by a newline.
+
+    Use only when debugging.
+
+    This is somewhat of a hack, and may not be future proof. But debuggers are slow, and python objects don't hold their own names.
+    see Stackoverflow page : http://stackoverflow.com/questions/592746/how-can-you-print-a-variable-name-in-python
+
+    Parameters
+    ----------
+    p : python object
+    """
+    variable_name = None
+    for line in inspect.getframeinfo(inspect.currentframe().f_back)[3]:
+        m = re.search(r'\bpn\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)', line)
+        if m:
+            variable_name = m.group(1)
+            break
+    sep = "\n"
+    sys.stdout.write("{}{}{}\n".format(variable_name, sep, p))
+
+def pr(p, end="\n"):
+    """Shortened version of the print function
+
+    Part of the debugging set(pr, pc, pn)
+    """
+    print(p, end=end)

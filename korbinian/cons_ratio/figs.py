@@ -12,6 +12,8 @@ import zipfile
 import os
 import pickle
 import scipy
+# import debugging tools
+from korbinian.utils import pr, pc, pn, aaa
 
 def save_figures_describing_proteins_in_list(pathdict, s, logging):
     logging.info("~~~~~~~~~~~~         starting run_save_figures_describing_proteins_in_list          ~~~~~~~~~~~~")

@@ -5,6 +5,8 @@ import korbinian
 import sys
 import korbinian.utils as utils
 import os
+# import debugging tools
+from korbinian.utils import pr, pc, pn, aaa
 
 def read_scampi_data(pathdict, s, logging, df):
     """ Reads the output of the topology predictor SCAMPI (http://scampi.bioinfo.se).

@@ -8,6 +8,8 @@ import pandas as pd
 from korbinian import utils as utils
 from multiprocessing import Pool
 import sys
+# import debugging tools
+from korbinian.utils import pr, pc, pn, aaa
 
 def run_slice_TMDs_from_homologues(pathdict, s, logging):
     """For a list of proteins, slice TMD sequences from homologues and count gaps.

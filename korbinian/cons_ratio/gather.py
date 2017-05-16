@@ -10,7 +10,8 @@ import pickle
 import re
 import sys
 import zipfile
-from multiprocessing import Pool
+# import debugging tools
+from korbinian.utils import pr, pc, pn, aaa
 
 def gather_AAIMONs(pathdict, logging, s):
     """ Gathers the AAIMON ratios and slopes for each protein, created by the run_calculate_AAIMONs scripts.
@@ -586,7 +587,7 @@ def gather_pretty_alignments(pathdict, logging, s):
                         ########################################################################################
 
                         # list of columns from which to obtain data
-                        nonTMD_cols = ['perc_nonTMD_coverage', 'nonTMD_perc_ident', 'nonTMD_SW_align_len_excl_gaps']
+                        nonTMD_cols = ['perc_nonTMD_coverage', 'nonTMD_perc_ident', 'nonTMD_SW_align_len_excl_gaps', "nonTMD_seq_query"]
                         nonTMD_col_names = nonTMD_cols
 
                         dfh_cols = ['SW_identity', 'SW_coverage_ratio', 'FASTA_identity', 'match_align_seq', 'query_align_seq', 'align_markup_seq']
@@ -631,10 +632,13 @@ def gather_pretty_alignments(pathdict, logging, s):
 
                         if num_TMDs_in_all_proteins_processed == 0:
                             # sort
-                            csv_header = ["protein_name", "TMD", "outlier", "TM_align","SW_match_lipo", "align_pretty", 'obs_changes', "AAIMON", "norm_factor", 'perc_nonTMD_coverage', "hit", 'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
-                                     'ratio_len_TMD_to_len_nonTMD', 'SW_align_len', 'SW_query_num_gaps', 'SW_match_num_gaps', 'SW_align_len_excl_gaps','nonTMD_SW_align_len_excl_gaps',
+                            csv_header = ["protein_name", "TMD", "outlier", "TM_align","SW_match_lipo", "align_pretty", 'obs_changes', "AAIMON", "norm_factor", 'perc_nonTMD_coverage', "hit",
+                                          'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
+                                          'ratio_len_TMD_to_len_nonTMD', 'SW_align_len', 'SW_query_num_gaps', 'SW_match_num_gaps', 'SW_align_len_excl_gaps','nonTMD_SW_align_len_excl_gaps',
                                           'SW_identity', 'SW_coverage_ratio', 'FASTA_identity',
-                                          "fl_aln_len", "fl_gaps_qm", "fl_ident", "fl_obs_changes"] # 'FASTA_gapped_identity','match_align_seq', 'query_align_seq', 'align_markup_seq',
+                                          "fl_aln_len", "fl_gaps_qm", "fl_ident", "fl_obs_changes",
+                                          "nonTMD_seq_query"] # 'FASTA_gapped_identity','match_align_seq', 'query_align_seq', 'align_markup_seq',
+
                             # make sure that the csv header is up-to-date, and isn't missing items from dict
                             if len(csv_header) != len(d):
                                 raise ValueError("Columns in CSV header and dictionary don't match.\nSuggest double-checking added columns.")
