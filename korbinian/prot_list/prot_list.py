@@ -335,13 +335,20 @@ def prepare_protein_list(s, pathdict, logging):
     max_TMDs = s["max_TMDs"]
     # drop any proteins without a number of TMDs
     df.dropna(subset=["number_of_TMDs"], inplace=True)
+
+    # create empty column to avoid problems inserting a list into a cell
+    df["list_of_TMDs_excl_SP"] = ""
+
     # get the number of TMDs excluding signal peptides
     for acc in df.index:
-        list_of_TMDs = df.loc[acc, "list_of_TMDs"]
+        list_of_TMDs = df.loc[acc, "list_of_TMDs"].copy()
         # remove SP01 from the list, if it is present
         if "SP01" in list_of_TMDs:
             list_of_TMDs.remove("SP01")
         df.loc[acc, "number_of_TMDs_excl_SP"] = len(list_of_TMDs)
+        # also create a list of TMDs excluding the signal peptide (may already exist, depending on source of proteins)
+        df.set_value(acc, "list_of_TMDs_excl_SP", list_of_TMDs)
+
     df = df.loc[df["number_of_TMDs_excl_SP"].apply(lambda x: min_TMDs <= x <= max_TMDs)]
     n_prot_AFTER_n_TMDs_cutoff = df.shape[0]
     if n_prot_AFTER_n_TMDs_cutoff == 0:

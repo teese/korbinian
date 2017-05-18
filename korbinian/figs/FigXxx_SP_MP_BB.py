@@ -59,7 +59,7 @@ df_BB = pd.read_csv(BB_input_csv, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_c
 #    df_BB.loc[acc, 'AAIMON_mean_all_TMDs'] = np.mean(list(dict_AAIMON_mean_BB.values()))
 #    sys.stdout.write(dict_AAIMON_mean_BB)
 
-TM01_greater_5_homol = df_BB['TM01_AAIMON_n_homol'].loc[df_BB['TM01_AAIMON_n_homol'] > 5]
+TM01_greater_5_homol = df_BB['AAIMON_n_homol'].loc[df_BB['AAIMON_n_homol'] > 5]
 mean_AAIMON_filt_BB = df_BB['AAIMON_mean_all_TMDs'].loc[TM01_greater_5_homol.index]
 sys.stdout.write("mean_AAIMON_filt_mean_BB", mean_AAIMON_filt_BB.mean())
 
@@ -128,10 +128,10 @@ data_to_plot.append(list_BB)
 
 homol_cutoff = 4500
 df_MP_less_4500 = pd.DataFrame()
-df_MP_less_4500['TM01_AAIMON_n_homol'] = df_MP['TM01_AAIMON_n_homol'].loc[df_MP['TM01_AAIMON_n_homol'] < homol_cutoff]
+df_MP_less_4500['AAIMON_n_homol'] = df_MP['AAIMON_n_homol'].loc[df_MP['AAIMON_n_homol'] < homol_cutoff]
 sys.stdout.write('number_of_MP_proteins_excluded = ', len(df_MP.index) - len(df_MP_less_4500.index))
 
-TM01_greater_50_homol = df_MP_less_4500['TM01_AAIMON_n_homol'].loc[df_MP['TM01_AAIMON_n_homol'] > 50]
+TM01_greater_50_homol = df_MP_less_4500['AAIMON_n_homol'].loc[df_MP['AAIMON_n_homol'] > 50]
 mean_AAIMON_filt_MP = df_MP['AAIMON_mean_all_TMDs'].loc[TM01_greater_50_homol.index]
 sys.stdout.write("mean_AAIMON_filt_mean_MP", mean_AAIMON_filt_MP.mean())
 
@@ -156,10 +156,10 @@ data_to_plot.append(list_MP)
 #    df_SP.loc[acc, 'AAIMON_mean_all_TMDs'] = np.mean(list(dict_AAIMON_mean_SP.values()))
 homol_cutoff = 4500
 df_SP_less_4500 = pd.DataFrame()
-df_SP_less_4500['TM01_AAIMON_n_homol'] = df_SP['TM01_AAIMON_n_homol'].loc[df_SP['TM01_AAIMON_n_homol'] < homol_cutoff]
+df_SP_less_4500['AAIMON_n_homol'] = df_SP['AAIMON_n_homol'].loc[df_SP['AAIMON_n_homol'] < homol_cutoff]
 sys.stdout.write('number_of_SP_proteins_excluded = ', len(df_SP.index) - len(df_SP_less_4500.index))
 
-TM01_greater_50_homol = df_SP_less_4500['TM01_AAIMON_n_homol'].loc[df_SP['TM01_AAIMON_n_homol'] > 50]
+TM01_greater_50_homol = df_SP_less_4500['AAIMON_n_homol'].loc[df_SP['AAIMON_n_homol'] > 50]
 mean_AAIMON_filt_SP = df_SP['AAIMON_mean_all_TMDs'].loc[TM01_greater_50_homol.index]
 #sys.stdout.write(mean_AAIMON_filt_SP)
 sys.stdout.write("mean_AAIMON_filt_mean_SP", mean_AAIMON_filt_SP.mean())

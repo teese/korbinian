@@ -105,7 +105,7 @@ def compare_lists (s, df_lists_tab):
         # count proteins before and after dropping proteins with less than x homologues (x from settings file "lists"), drop proteins
         proteins_before_dropping = len(df_merged)
         df_merged = df_merged[np.isfinite(df_merged['AAIMON_mean_all_TMDs'])]
-        df_merged = df_merged[df_merged.TM01_AAIMON_n_homol >= df_lists_tab.loc[prot_list, 'min_homol']]
+        df_merged = df_merged[df_merged.AAIMON_n_homol >= df_lists_tab.loc[prot_list, 'min_homol']]
         proteins_after_dropping = len(df_merged)
         sys.stdout.write('List{:02} - {}: number of dropped proteins {}\n'.format(prot_list, df_lists_tab.loc[prot_list,'list_description'], proteins_before_dropping - proteins_after_dropping))
         # make list of TMDs a python list
@@ -577,14 +577,14 @@ def compare_lists (s, df_lists_tab):
     fig, (ax, ax1) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [6, 1]})
 
     for n, prot_list in enumerate(protein_lists):
-        n_of_homologues = sum(df_dict[prot_list]['TM01_AAIMON_n_homol'])
+        n_of_homologues = sum(df_dict[prot_list]['AAIMON_n_homol'])
         sys.stdout.write('number of homologues {}: {}\n'.format(df_lists_tab.loc[prot_list, 'list_description'], n_of_homologues))
         ax1.bar(n + 1, n_of_homologues / 100000, width=0.75, align='center', color=dfv.loc[prot_list, 'color'], edgecolor='')
 
         ###   non-normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
         # hist_data = np.array(df_dict[prot_list]['nonTMD_SW_align_len_excl_gaps_mean'])
-        hist_data = np.array(df_dict[prot_list]['TM01_AAIMON_n_homol'])
+        hist_data = np.array(df_dict[prot_list]['AAIMON_n_homol'])
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
