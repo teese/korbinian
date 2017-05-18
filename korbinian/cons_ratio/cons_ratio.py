@@ -124,7 +124,6 @@ def calculate_AAIMONs(p):
     max_lipo_homol_settings_file = s["max_lipo_homol"]
     lipo_buffer = s["lipo_buffer"]
 
-    min_ident = s["cr_min_identity_of_TMD"]
     if not os.path.exists(p['homol_df_orig_zip']):
         message = "{} Protein skipped. File does not exist".format(p['homol_df_orig_zip'])
         logging.info(message)
@@ -173,12 +172,12 @@ def calculate_AAIMONs(p):
     #           Filter based on homol hit properties (% identity of full protein, etc)     #
     #                                                                                      #
     ########################################################################################
-    cr_homol_query_str = 'FASTA_gapped_identity > {min_ident} & ' \
+    cr_homol_query_str ='FASTA_gapped_identity > {min_ident} & ' \
                         'FASTA_gapped_identity < {max_ident} & ' \
                         'hit_contains_SW_node == True & ' \
                         'disallowed_words_not_in_descr == True &' \
-                        'X_in_match_seq == False'.format(min_ident=s["cr_min_identity_of_full_protein"],
-                                                         max_ident=s["cr_max_identity_of_full_protein"])
+                        'X_in_match_seq == False'.format(min_ident=s["min_ident"],
+                                                         max_ident=s["max_ident"])
 
     # filter based on the query string
     dfh.query(cr_homol_query_str, inplace=True)
@@ -252,9 +251,9 @@ def calculate_AAIMONs(p):
         # filter to remove short nonTMD regions
         # note this filtering is AFTER the full dataframe has been saved to file, preventing loss of data
         nonTMD_query_str = "nonTMD_perc_ident != 0 & " \
-                           "perc_nonTMD_coverage > {min_perc_nonTMD_coverage} & "\
+                           "perc_nonTMD_coverage > {min_perc_nonTMD} & "\
                            "nonTMD_len >= {min_nonTMD_len}".format(min_nonTMD_len=s["cr_min_len_nonTMD"],
-                                                                   min_perc_nonTMD_coverage=s["min_perc_nonTMD_coverage"])
+                                                                   min_perc_nonTMD=s["min_perc_nonTMD"])
 
         n_homol_before_nonTMD_query = df_nonTMD.shape[0]
         df_nonTMD.query(nonTMD_query_str, inplace=True)
@@ -412,12 +411,10 @@ def calculate_AAIMONs(p):
 
             """This is used as a filter in filter_and_save_fasta, therefore is conducted earlier in the slicing function. """
             ## count the number of gaps in the query and match sequences
-            cr_TMD_query_str = '{TMD}_perc_ident >= {min_ident} & ' \
-                               '{TMD}_SW_query_num_gaps <= {max_gaps} & ' \
+            cr_TMD_query_str = '{TMD}_SW_query_num_gaps <= {max_gaps} & ' \
                                '{TMD}_SW_match_num_gaps <= {max_gaps} & ' \
                                '{TMD}_SW_match_lipo <= {max_lipo_homol}'.format(TMD=TMD, max_gaps=max_gaps,
-                                                                                max_lipo_homol=max_lipo_homol,
-                                                                                min_ident=min_ident)
+                                                                                max_lipo_homol=max_lipo_homol)
             n_homol_before_TMD_filter = df_cr.shape[0]
             # filter by the above query
             df_cr.query(cr_TMD_query_str, inplace=True)
@@ -687,7 +684,7 @@ def truncation_filter(p):
     uniprot_acc = p['uniprot_acc']
     homol_cr_ratios_zip = p['homol_cr_ratios_zip']
     list_of_TMDs = ast.literal_eval(p['list_of_TMDs'])
-    min_perc_nonTMD_coverage = s['min_perc_nonTMD_coverage']
+    min_perc_nonTMD = s['min_perc_nonTMD']
 
     if not os.path.exists(homol_cr_ratios_zip):
         message = "{} Protein skipped. File does not exist".format(homol_cr_ratios_zip)
@@ -704,7 +701,7 @@ def truncation_filter(p):
             df_cr = pickle.load(zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED).open(in_file, "r"))
             sys.stdout.write('{}, {}: ' .format(uniprot_acc, TMD))
             # filtering step
-            df_cr = utils.filter_for_truncated_sequences(min_perc_nonTMD_coverage, df_cr)
+            df_cr = utils.filter_for_truncated_sequences(min_perc_nonTMD, df_cr)
             # save filtered dataframe to pickle
             out_file = "{}_{}_cr_df.pickle".format(protein_name, TMD)
             with zipfile.ZipFile(in_zipfile, mode="a", compression=zipfile.ZIP_DEFLATED) as zipout:

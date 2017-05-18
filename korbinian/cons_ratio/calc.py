@@ -127,7 +127,7 @@ def calc_AAIMON(TMD, df_cr, len_query_TMD):
 #     min_ident : int
 #         Minimum % identity of the TMD region. A very low % identity usually indicates a splice variant or
 #         sequence error. To avoid biasing the AAIMON ratio, this should be set significantly lower than the
-#         cr_min_identity_of_full_protein (typically 40% lower).
+#         min_ident (typically 40% lower).
 #
 #     Returns
 #     -------

@@ -1642,13 +1642,13 @@ def send_email_when_finished(s, pathdict):
     server.quit()
     sys.stdout.write('\nEmail sent to {}\n'.format(toaddr))
 
-def filter_for_truncated_sequences(min_perc_nonTMD_coverage, df_cr):
-    if min_perc_nonTMD_coverage != 1:
+def filter_for_truncated_sequences(min_perc_nonTMD, df_cr):
+    if min_perc_nonTMD != 1:
         list_of_hits_to_keep = []
         list_of_hits_to_drop = []
         number_of_hits = len(df_cr.index)
         for hit in df_cr.index:
-            if df_cr.loc[hit, 'perc_nonTMD_coverage'] >= min_perc_nonTMD_coverage:
+            if df_cr.loc[hit, 'perc_nonTMD_coverage'] >= min_perc_nonTMD:
                 list_of_hits_to_keep.append(hit)
             else:
                 list_of_hits_to_drop.append(hit)
@@ -1656,7 +1656,7 @@ def filter_for_truncated_sequences(min_perc_nonTMD_coverage, df_cr):
         df_cr = df_cr.loc[list_of_hits_to_keep, :]
         sys.stdout.write('Truncated alignments; homologues dropped: -- {}/{} --\n'.format(len(list_of_hits_to_drop), number_of_hits))
     else:
-        sys.stdout.write('min_perc_nonTMD_coverage = 1 ; no filtering for truncated sequences \n')
+        sys.stdout.write('min_perc_nonTMD = 1 ; no filtering for truncated sequences \n')
     return df_cr
 
 def calc_alpha_from_datapoints(data):
@@ -1744,3 +1744,6 @@ def pr(p, end="\n"):
     Part of the debugging set(pr, pc, pn)
     """
     print(p, end=end)
+
+
+flatten = lambda x: [item for sublist in x for item in sublist]
