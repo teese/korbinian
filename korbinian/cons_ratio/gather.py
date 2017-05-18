@@ -633,7 +633,7 @@ def gather_pretty_alignments(pathdict, logging, s):
                         d["fl_aln_len"] = len(d['match_align_seq'])
                         d["fl_gaps_qm"] = d['match_align_seq'].count("-") + d['query_align_seq'].count("-")
                         d["fl_ident"] = len(re.findall("\|", d['align_markup_seq']))
-                        d["fl_obs_changes"] = d["fl_ident"] / (d["fl_aln_len"] - d["fl_gaps_qm"])
+                        d["fl_obs_changes"] = 1 - d["fl_ident"] / (d["fl_aln_len"] - d["fl_gaps_qm"])
 
                         # remove the large sequences from the dictionary
                         for key in ['match_align_seq', 'query_align_seq', 'align_markup_seq']:
