@@ -59,7 +59,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # this is only important for the beta-barrel dataset, which has a lot of these proteins!
     min_n_homol = s["min_homol"]
     n_prot_before_n_homol_cutoff = df.shape[0]
-    df = df.loc[df['TM01_AAIMON_n_homol'] >= min_n_homol]
+    df = df.loc[df['AAIMON_n_homol'] >= min_n_homol]
     n_prot_after_n_homol_cutoff = df.shape[0]
     n_removed = n_prot_before_n_homol_cutoff - n_prot_after_n_homol_cutoff
     # if any proteins have been removed, then print the exact number.
@@ -648,13 +648,13 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # fig, ax = plt.subplots()
         #
         # # plot AAIMON
-        # x = np.array(df['TM01_AAIMON_n_homol']) # total_number_of_simap_hits can be replaced with TM01_AAIMON_n_homol
+        # x = np.array(df['AAIMON_n_homol']) # total_number_of_simap_hits can be replaced with AAIMON_n_homol
         # y = np.array(df['AAIMON_mean_all_TMDs'])
         # scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#0489B1", alpha=alpha_dpd,
         #                                                                    s=datapointsize)
         #
         # # plot AAIMON normalised
-        # x = np.array(df['TM01_AAIMON_n_homol']) # total_number_of_simap_hits can be replaced with TM01_AAIMON_n_homol
+        # x = np.array(df['AAIMON_n_homol']) # total_number_of_simap_hits can be replaced with AAIMON_n_homol
         # y = np.array(df['AAIMON_mean_all_TMDs_n'])
         # scattercontainer_AAIMON_AASMON_std = ax.scatter(x=x, y=y, color="#EE762C", alpha=alpha_dpd,
         #                                                                    s=datapointsize)
@@ -686,7 +686,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         fig, ax = plt.subplots()
 
         # data that is binned
-        column_for_bins = 'TM01_AAIMON_n_homol'
+        column_for_bins = 'AAIMON_n_homol'
         # data that is plotted in bin
         column_for_data = 'AAIMON_mean_all_TMDs'
         # specify variable for binning function
@@ -1948,7 +1948,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         Fig_Nr = 24
         title = 'AAIMON vs. AAIMON_slope'
         Fig_name = 'List{:02d}_Fig24_Scatterplot_AAIMON_n_vs._AAIMON_n_slope'.format(list_number)
-        print('Fig24: Future warning! Figure name will be replaced to match the drawn non-normalised data!!')
+        sys.stdout.write('Fig24: Future warning! Figure name will be replaced to match the drawn non-normalised data!!')
         fig, ax = plt.subplots()
 
         x = df['AAIMON_mean_all_TMDs']

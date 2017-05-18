@@ -56,6 +56,11 @@ def gather_AAIMONs(pathdict, logging, s):
     # convert list_of_TMDs from string to python list
     df['list_of_TMDs'] = df.list_of_TMDs.apply(lambda x: ast.literal_eval(x))
 
+    ###############################################################
+    #                                                             #
+    #                        Filter keywords                      #
+    #                                                             #
+    ###############################################################
     if s['filter_keywords_in_gather']:
         # filter list file by keywords for exclusion analysis, e.g. enzyme only
         list_number = s['list_number']
@@ -100,9 +105,14 @@ def gather_AAIMONs(pathdict, logging, s):
 
         df.to_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
-    dfg = pd.DataFrame()
+    #############################################################################
+    #                                                                           #
+    #       Collate all the "_cr_mean.csv" files into a single dataframe        #
+    #                                                                           #
+    #############################################################################
 
-    # iterate over the dataframe for proteins with an existing list_of_TMDs. acc = uniprot accession.
+    dfg = pd.DataFrame()
+    # iterate over the dataframe for proteins with an existing list_of_TMDs
     for acc in df.index:
         protein_name = df.loc[acc, 'protein_name']
         #logging.info(protein_name)
@@ -116,7 +126,7 @@ def gather_AAIMONs(pathdict, logging, s):
         mean_ser = utils.open_df_from_csv_zip(df.loc[acc, 'homol_cr_ratios_zip'], filename=mean_ser_filename, delete_corrupt=True)
         dfg = pd.concat([dfg,mean_ser], axis=1)
 
-    # transpose dataframe dfg
+    # transpose dataframe (flip index and columns)
     dfg = dfg.T.copy()
 
     # for the OMPdb dataset, there is no uniprot_entry_name
@@ -128,7 +138,6 @@ def gather_AAIMONs(pathdict, logging, s):
     dfg = dfg.loc[df['list_of_TMDs'].notnull()].loc[dfg['list_of_TMDs'] != 'nan']
 
     # if the list_of_TMDs is a stringlist, convert to a python list
-    #if isinstance(dfg['list_of_TMDs'].dropna().iloc[0], str):
     dfg['list_of_TMDs'] = dfg['list_of_TMDs'].dropna().apply(lambda x : ast.literal_eval(x))
 
     # for singlepass datasets, leave row blank by default
@@ -201,7 +210,7 @@ def gather_AAIMONs(pathdict, logging, s):
         # add dataframe to a dictionary of dataframes
 
         # # add total_number_of_simap_hits
-        # dfg.loc[acc, 'total_number_of_simap_hits'] = dfg.loc[acc, 'TM01_AAIMON_n_homol']
+        # dfg.loc[acc, 'total_number_of_simap_hits'] = dfg.loc[acc, 'AAIMON_n_homol']
         #
         # # add 'uniprot_entry_name'
         # if uniprot_entry_name_in_df:
@@ -243,8 +252,8 @@ def gather_AAIMONs(pathdict, logging, s):
         #sys.stdout.write('Dropped homologues after filtering: \n')
         list_of_acc_to_keep = []
         for acc in dfg.index:
-            TM01_AAIMON_n_homol = pd.to_numeric(dfg.loc[acc, 'TM01_AAIMON_n_homol'])
-            if TM01_AAIMON_n_homol > min_num_homologues:
+            AAIMON_n_homol = pd.to_numeric(dfg.loc[acc, 'AAIMON_n_homol'])
+            if AAIMON_n_homol > min_num_homologues:
                 list_of_acc_to_keep.append(acc)
 
         # keep only proteins that have the desired number of homologues
@@ -587,7 +596,7 @@ def gather_pretty_alignments(pathdict, logging, s):
                         ########################################################################################
 
                         # list of columns from which to obtain data
-                        nonTMD_cols = ['perc_nonTMD_coverage', 'nonTMD_perc_ident', 'nonTMD_SW_align_len_excl_gaps', "nonTMD_seq_query"]
+                        nonTMD_cols = ['perc_nonTMD_coverage', 'nonTMD_perc_ident', 'nonTMD_SW_align_len_excl_gaps']#, "nonTMD_seq_query"
                         nonTMD_col_names = nonTMD_cols
 
                         dfh_cols = ['SW_identity', 'SW_coverage_ratio', 'FASTA_identity', 'match_align_seq', 'query_align_seq', 'align_markup_seq']
@@ -636,8 +645,7 @@ def gather_pretty_alignments(pathdict, logging, s):
                                           'TM_perc_ident', 'nonTMD_perc_ident', 'TM_start_in_SW_alignment', 'SW_query_seq', 'SW_markup_seq', 'SW_match_seq',
                                           'ratio_len_TMD_to_len_nonTMD', 'SW_align_len', 'SW_query_num_gaps', 'SW_match_num_gaps', 'SW_align_len_excl_gaps','nonTMD_SW_align_len_excl_gaps',
                                           'SW_identity', 'SW_coverage_ratio', 'FASTA_identity',
-                                          "fl_aln_len", "fl_gaps_qm", "fl_ident", "fl_obs_changes",
-                                          "nonTMD_seq_query"] # 'FASTA_gapped_identity','match_align_seq', 'query_align_seq', 'align_markup_seq',
+                                          "fl_aln_len", "fl_gaps_qm", "fl_ident", "fl_obs_changes"] # 'FASTA_gapped_identity','match_align_seq', 'query_align_seq', 'align_markup_seq', "nonTMD_seq_query"
 
                             # make sure that the csv header is up-to-date, and isn't missing items from dict
                             if len(csv_header) != len(d):

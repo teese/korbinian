@@ -10,7 +10,7 @@ import time
 # import debugging tools
 from korbinian.utils import pr, pc, pn, aaa
 
-def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
+def parse_TMSEG_results(pathdict, s, logging):
     logging.info("~~~~~~~~~~~~                        starting parse_TMSEG_results                    ~~~~~~~~~~~~")
 
     list_number = s['list_number']
@@ -21,8 +21,9 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
     n_aa_before_tmd = s["n_aa_before_tmd"]
     n_aa_after_tmd = s["n_aa_after_tmd"]
     list_parsed_csv = pathdict["list_parsed_csv"]
-    analyse_signal_peptides = True if "SiPe" in s["regions"] else False
-    output = korbinian.prot_list.uniprot_parse.create_protein_list(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_signal_peptides, logging, list_parsed_csv, slice=False)
+    # check if the lists tab says to analyse the signal peptides
+    analyse_sp = True if "SiPe" in s["regions"] else False
+    output = korbinian.prot_list.uniprot_parse.create_protein_list(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_sp, logging, list_parsed_csv, slice=False)
     logging.info(output)
 
     TMSEG_fastalike_path = pathdict['TMSEG_fastalike']
@@ -35,20 +36,22 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
                        'uniprot_orgclass', 'uniprot_SiPe', 'singlepass', 'typeI', 'typeII', 'uniprot_KW', 'organism', 'prot_descr', 'membrane',
                        'multipass', 'gene_name', 'comments_subcellular_location_uniprot', 'uniprot_SiPe', 'full_seq']
 
-    # for datasets without SP found, turn off analyse_sp
-    if analyse_sp == True and 'SP01_start' in df_parsed.columns:
-        columns_to_keep = columns_to_keep + ['SP01_start', 'SP01_end', 'SP01_seq']
-    else:
-        analyse_sp == False
+    # # for datasets without SP found, turn off analyse_sp
+    # if analyse_sp == True and 'SP01_start' in df_parsed.columns:
+    #     columns_to_keep = ['SP01_start', 'SP01_end', 'SP01_seq']
+    # else:
+    #     analyse_sp == False
 
     list_indices = list(df_parsed.index)
 
-    df_parsed = df_parsed[columns_to_keep]
+
 
     if os.path.isfile(TMSEG_fastalike_path):
-        # drop the full sequence, and get from TMSEG
-        df_parsed.drop('full_seq', axis=1, inplace=True)
+        # DEPRECATED drop the full sequence, and get from TMSEG
+        #df_parsed.drop('full_seq', axis=1, inplace=True)
+
         # read data from file
+        # list will have acc, seq, topology, acc, seq, topology etc
         input_data = []
         with open(TMSEG_fastalike_path) as data_file:
             for line in data_file:
@@ -62,9 +65,16 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
                 else:
                     input_data.append(line)
 
-
         # initialise pandas dataframe with uniprot accession as index
         df = pd.DataFrame(index=input_data[0::3])
+
+        # add the signal peptide definitions from UniProt, to be used for slicing the nonTMD etc later
+        if analyse_sp:
+            for col in ['SP01_start', 'SP01_end', 'SP01_seq']:
+                df[col] = df_parsed[col]
+
+        # drop unnecessary columns from df_parsed, to be merged later
+        df_parsed = df_parsed[columns_to_keep]
 
         # add selected columns from input_data list
         #df['uniprot_entry_name'] = input_data[1::5]
@@ -180,11 +190,13 @@ def parse_TMSEG_results(analyse_sp, pathdict, s, logging):
                 df.loc[acc, "%s_seq" % TMD] = utils.slice_with_listlike(full_seq, python_indexing_tuple)
                 df.loc[acc, "%s_seqlen" % TMD] = len(df.loc[acc, "%s_seq" % TMD])
                 # dft.loc[acc, TMD + "_top"] = utils.slice_with_listlike(topo, tup)
-            # add signal peptides and their corresponding values to list_of_TMDs
-            if analyse_sp == True:
-                if type(df_parsed.loc[acc, 'SP01_seq']) == str:
-                    list_of_TMDs.append('SP01')
-                    df.set_value(acc, "list_of_TMDs", list_of_TMDs)
+
+            #DEPRECATED, ONLY REINSTATE IF YOU REALLY WANT TMSEG TM DEFINITIONS TO STAY
+            # # add signal peptides and their corresponding values to list_of_TMDs
+            # if analyse_sp == True:
+            #     if type(df_parsed.loc[acc, 'SP01_seq']) == str:
+            #         list_of_TMDs.append('SP01')
+            #         df.set_value(acc, "list_of_TMDs", list_of_TMDs)
 
                 # # code necessary for TMSEG signal peptides - depreciated by MO 20.04.2017
                 # SiPe_indices = df.loc[acc, 'SiPe_indices']
@@ -339,27 +351,39 @@ def slice_nonTMD_in_prot_list(df):
 
     for n, acc in enumerate(df.index):
         ''' ~~   SLICE nonTMD sequence  ~~ '''
-        list_of_TMDs = df.loc[acc, 'list_of_TMDs']#.copy()
-        # if 'SP01' in list_of_TMDs:
-        #     list_of_TMDs.remove('SP01')
+        # list of TMDs excluding signal peptides
+        list_of_TMDs_excl_SP = df.loc[acc, 'list_of_TMDs']
+        # set value to avoid errors adding a list to a cell
+        df.set_value(acc, 'list_of_TMDs_excl_SP', list_of_TMDs_excl_SP)
+
+        seqstart = 0
+        # if any protein in list conatains a SP
+        if 'SP01_end' in df.columns:
+            # if THIS PARTICULAR PROTEIN contains a signal peptide sequence
+            if isinstance(df.loc[acc, 'SP01_seq'], str):
+                # change sequence start for nonTM to the end of the signal peptide
+                seqstart = int(df.loc[acc, 'SP01_end'])
+                # add the SP01 to the list of TMDs
+                df.set_value(acc, 'list_of_TMDs', ["SP01"] + list_of_TMDs_excl_SP)
+
         # sequence from N-term. to first TMD
         TM01_start = int(df.loc[acc, 'TM01_start'])
 
         # NOTE THAT THIS USED TO BE nonTMD_first = df.loc[acc, 'full_seq'][0: TM01_start -1], but indexing missed the last nonTM residue.
-        nonTMD_first = df.loc[acc, 'full_seq'][0: TM01_start - 1]
+        nonTMD_first = df.loc[acc, 'full_seq'][seqstart: TM01_start - 1]
         # start the sequence with the first segment
         sequence_list = [nonTMD_first]
         # only for multipass proteins, generate sequences between TMDs
-        if len(list_of_TMDs) == 0:
+        if len(list_of_TMDs_excl_SP) == 0:
             # no TMDs are annotated, skip to next protein
             continue
         # for multipass proteins
-        elif len(list_of_TMDs) > 1:
-            for TM_Nr in range(len(list_of_TMDs) - 1):
+        elif len(list_of_TMDs_excl_SP) > 1:
+            for TM_Nr in range(len(list_of_TMDs_excl_SP) - 1):
                 # the TMD is the equivalent item in the list
-                TMD = list_of_TMDs[TM_Nr]
+                TMD = list_of_TMDs_excl_SP[TM_Nr]
                 # the next TMD, which contains the end index, is the next item in the list
-                next_TMD = list_of_TMDs[TM_Nr + 1]
+                next_TMD = list_of_TMDs_excl_SP[TM_Nr + 1]
                 # define start of next TMD
                 start_next = int(df.loc[acc, '%s_start' % next_TMD])
                 # end of current TMD
@@ -368,7 +392,7 @@ def slice_nonTMD_in_prot_list(df):
                 # note the "start_next - 1", used to convert uniprot indices to python indices
                 between_TM_and_TMplus1 = df.loc[acc, 'full_seq'][end_current: start_next - 1]
                 sequence_list.append(between_TM_and_TMplus1)
-        last_TMD = list_of_TMDs[-1]
+        last_TMD = list_of_TMDs_excl_SP[-1]
         # sequence from last TMD to C-term.
         lastTM_end = int(df.loc[acc, '%s_end' % last_TMD])
         seqlen = int(df.loc[acc, 'seqlen'])

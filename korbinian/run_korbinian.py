@@ -139,10 +139,9 @@ def run_statements(s):
 
 
     if s["create_protein_list"]:
-        analyse_signal_peptides = True if "SiPe" in s["regions"] else False
         if "TMSEG" in s['TM_def']:
             if os.path.isfile(pathdict['TMSEG_fastalike']) or os.path.isfile(pathdict['TMSEG_top_txtoutput']):
-                korbinian.prot_list.parse_TMSEG.parse_TMSEG_results(analyse_signal_peptides, pathdict, s, logging)
+                korbinian.prot_list.parse_TMSEG.parse_TMSEG_results(pathdict, s, logging)
             else:
                 logging.info("\WARNING : 'TM_def' for this list in the settings file suggests TMSEG should be used for TM definitions, but the TMSEG output is not found! "
                              "TM definitions will default to UniProt.")

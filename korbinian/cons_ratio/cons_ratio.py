@@ -120,7 +120,10 @@ def calculate_AAIMONs(p):
     protein_name = p["protein_name"]
     fraction_TM_residues = p["perc_TMD"] / 100
     max_gaps = s["maxgaps_TMD"]
-    max_lipo_homol = s["max_lipo_homol"]
+    # get the lipophilicity cutoffs for the homologue TMDs
+    max_lipo_homol_settings_file = s["max_lipo_homol"]
+    lipo_buffer = s["lipo_buffer"]
+
     min_ident = s["cr_min_identity_of_TMD"]
     if not os.path.exists(p['homol_df_orig_zip']):
         message = "{} Protein skipped. File does not exist".format(p['homol_df_orig_zip'])
@@ -294,8 +297,6 @@ def calculate_AAIMONs(p):
         list_homol_excluded_in_TMD_filter = []
 
         for TMD_Nr, TMD in enumerate(list_of_TMDs):
-            # find the TMD number (starting from 1)
-            TMD_Nr = list_of_TMDs.index(TMD) + 1
             # open the dataframe containing the sequences, gap counts, etc for that TMD only
             df_cr = utils.open_df_from_pickle_zip(p['fa_cr_sliced_TMDs_zip'], filename="{}_{}_sliced_df.pickle".format(protein_name, TMD), delete_corrupt=True)
 
@@ -401,6 +402,14 @@ def calculate_AAIMONs(p):
             #             FILTERING TMD SEQS based on lipophilicity, etc                           #
             #                                                                                      #
             ########################################################################################
+
+            # Set the lipophilicity cutoff as either the absolute value in the settings file,
+            # or the lipophilicity of the original TM plus a buffer. Whichever is highest.
+            orig_lipo = p["{}_lipo".format(TMD)]
+            orig_TM_lipo_plus_buffer = orig_lipo + lipo_buffer
+            # take whichever value is highest
+            max_lipo_homol = np.array([max_lipo_homol_settings_file, orig_TM_lipo_plus_buffer]).max()
+
             """This is used as a filter in filter_and_save_fasta, therefore is conducted earlier in the slicing function. """
             ## count the number of gaps in the query and match sequences
             cr_TMD_query_str = '{TMD}_perc_ident >= {min_ident} & ' \
@@ -425,37 +434,120 @@ def calculate_AAIMONs(p):
 
             ########################################################################################
             #                                                                                      #
+            #           Add the AAIMON values for this TMD to AAIMON_all_TMD_dict.                 #
+            #  This will be used as a filter to select homologues that have good data for all TMDs #
+            #                                                                                      #
+            ########################################################################################
+            AAIMON_all_TMD_dict['%s_AAIMON' % TMD] = df_cr['%s_AAIMON' % TMD].dropna()
+
+            TM_cr_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
+            with open(TM_cr_pickle, "wb") as f:
+                pickle.dump(df_cr, f, protocol=pickle.HIGHEST_PROTOCOL)
+            zipout.write(TM_cr_pickle, arcname=TM_cr_pickle)
+
+        # add all the excluded list
+        mean_ser["n_homol_excluded_after_TMD_filter"] = "__ {} __".format("".join(list_homol_excluded_in_TMD_filter))
+
+        ########################################################################################
+        #                                                                                      #
+        #               AAIMON normalization and save fig for each protein                     #
+        #  	df_AAIMON_all_TMD:                                                                 #
+        #       index = hit_num                                                                #
+        #       columns : TM01_AAIMON 	TM02_AAIMON 	TM03_AAIMON                            #
+        #                                                                                      #
+        ########################################################################################
+        df_AAIMON_all_TMD = pd.DataFrame(AAIMON_all_TMD_dict)
+        if df_AAIMON_all_TMD.empty:
+            # if this returns an empty dataframe, it means that no homologues with calculable AAIMONs were available
+            # skip to the next protein
+            zipout.close()
+            os.remove(homol_cr_ratios_zip)
+            message = "{} skipped, no homologues with calculable AAIMONs were available. homol_cr_ratios_zip will be deleted".format(acc)
+            logging.info(message)
+            return acc, False, message
+        # get the original column names (M01_AAIMON, TM02_AAIMON, etc)
+        AAIMON_cols = ["{}_AAIMON".format(TMD) for TMD in list_of_TMDs]
+        # Get the number of TMDs whose AAIMON ratio was calculable
+        # For truncated alignments, C and N-term TMDs may be missing
+        # steps : 0) select just AAIMON data 1) convert nan to "", 2) count numbers with np.isreal,
+        #         3) sum TRUE FALSE TRUE etc to get the number of TMDs with calculable AAIMON for that homologue
+        df_AAIMON_all_TMD["n_TMDs_with_measurable_AAIMON"] = df_AAIMON_all_TMD.loc[:, AAIMON_cols].fillna("").applymap(np.isreal).sum(axis=1)
+        # create a bool if all TMDs have calculable AAIMON ratios
+        df_AAIMON_all_TMD["all_TMDs_have_AAIMON"] = df_AAIMON_all_TMD["n_TMDs_with_measurable_AAIMON"] == p["number_of_TMDs_excl_SP"]
+
+        df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol'] = df_AAIMON_all_TMD.loc[:, AAIMON_cols].mean(axis=1)
+        df_AAIMON_all_TMD['gapped_ident'] = dfh.loc[df_AAIMON_all_TMD.index, 'FASTA_gapped_identity']
+        df_AAIMON_all_TMD['norm_factor'] = dfh.loc[df_AAIMON_all_TMD.index, 'norm_factor']
+        df_AAIMON_all_TMD['perc_nonTMD_coverage'] = df_nonTMD.loc[df_AAIMON_all_TMD.index, 'perc_nonTMD_coverage']
+        df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol_n'] = df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol'] / df_AAIMON_all_TMD['norm_factor']
+
+        # # taken out by MO - figure replaced with plots for every single TMD
+        # korbinian.cons_ratio.norm.save_graph_for_normalized_AAIMON(acc,  df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol'],
+        #                                                              df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol_n'],
+        #                                                              df_AAIMON_all_TMD['gapped_ident'], zipout, protein_name)
+
+        # save the dataframe containing normalisation factor and normalised AAIMON to zipout
+        df_AAIMON_all_TMD.to_csv(protein_name + '_AAIMON_all_TMD.csv')
+        zipout.write(protein_name + '_AAIMON_all_TMD.csv', arcname=protein_name + '_AAIMON_all_TMD.csv')
+        os.remove(protein_name + '_AAIMON_all_TMD.csv')
+
+        value_counts_hit_contains_SW_node = dfh['hit_contains_SW_node'].value_counts()
+        if True in value_counts_hit_contains_SW_node:
+            mean_ser['num_hits_with_SW_align_node'] = value_counts_hit_contains_SW_node[True]
+        else:
+            logging.warning("{} num_hits_with_SW_align_node = 0".format(protein_name))
+            mean_ser['num_hits_with_SW_align_node'] = 0
+
+        ########################################################################################
+        #                                                                                      #
+        #             Save mean values only for homologues with data for all TMDs?             #
+        #                                                                                      #
+        ########################################################################################
+        # first get a list of all the homologues that have AAIMON ratios for all TMDs
+        bool_ser = df_AAIMON_all_TMD.n_TMDs_with_measurable_AAIMON == p["number_of_TMDs"]
+        filt_index = bool_ser[bool_ser].index.tolist()
+        # add the number of homologues with AAIMON for all TMDs
+        mean_ser['AAIMON_n_homol'] = len(filt_index)
+
+        # since the data is saved in separate files, iterate through them again
+
+        for TMD in list_of_TMDs:
+            # find the TMD number (starting from 1)
+            TMD_Nr = list_of_TMDs.index(TMD) + 1
+            TM_cr_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
+
+            with open(TM_cr_pickle, 'rb') as f:
+                df_cr = pickle.load(f)
+            # the TM_cr_pickle file has already been added to the zip, and can be deleted now
+            os.remove(TM_cr_pickle)
+            # check that it's definitely a dataframe
+            assert isinstance(df_cr, (pd.DataFrame))
+            # keep only the homologues that had measurable AAIMON ratios for all proteins
+            df_cr = df_cr.loc[filt_index, :]
+
+            ########################################################################################
+            #                                                                                      #
             #                       Calculate AAIMON_slope, AAIMON_n_slope                         #
             #                                                                                      #
             ########################################################################################
+            # OLD DROPNA SHOULD BE OBSOLETE, AS ONLY HOMOLOGUES WITH AAIMON FOR ALL TMDs ARE KEPT
             # drop every row (hit) in df_cr that contains NaN in column TMxy_AAIMON - important for line fit that can't handle NAN
             #df_cr = df_cr[np.isfinite(df_cr['%s_AAIMON'%TMD])]
-            df_cr.dropna(subset=['%s_AAIMON'%TMD], inplace=True)
+            #df_cr.dropna(subset=['%s_AAIMON'%TMD], inplace=True)
 
             obs_changes = df_cr['obs_changes']
             AAIMON = df_cr['%s_AAIMON'%TMD]            # y-axis
             AAIMON_n = df_cr['%s_AAIMON_n'%TMD]        # y-axis
 
             if len(obs_changes) == 0 or len(AAIMON) == 0:
-                # There is no gapped identity for these homologues, skip to next TMD
+                # There is no gapped identity or AAIMON data for these homologues, skip to next TMD
+                logging.info("No observed changes or AAIMON data for this TMD")
                 continue
             # linear regression for non-norm. and norm. AAIMON with fixed 100% identity at AAIMON 1.0
             AAIMON_slope, x_data, y_data = fit_data_to_linear_function(obs_changes, AAIMON)
             mean_ser['%s_AAIMON_slope' % TMD] = AAIMON_slope
             AAIMON_n_slope, x_data_n, y_data_n = fit_data_to_linear_function(obs_changes, AAIMON_n)
             mean_ser['%s_AAIMON_n_slope' % TMD] = AAIMON_n_slope
-
-            # # linear regression for non-normalised AAIMON
-            # linear_regression_AAIMON = np.polyfit(FASTA_gapped_identity, AAIMON, 1)
-            # fit_fn_AAIMON = np.poly1d(linear_regression_AAIMON)
-            # fitted_data_AAIMON = fit_fn_AAIMON(FASTA_gapped_identity)
-            # mean_ser['%s_AAIMON_slope' %TMD] = linear_regression_AAIMON[0]
-            #
-            # # linear regression for normalised AAIMON
-            # linear_regression_AAIMON_n = np.polyfit(FASTA_gapped_identity, AAIMON_n, 1)
-            # fit_fn_AAIMON_n = np.poly1d(linear_regression_AAIMON_n)
-            # fitted_data_AAIMON_n = fit_fn_AAIMON_n(FASTA_gapped_identity)
-            # mean_ser['%s_AAIMON_n_slope' %TMD] = linear_regression_AAIMON_n[0]
 
             if '{TMD}_SW_match_lipo'.format(TMD=TMD) not in df_cr.columns:
                 message = "{} {}_SW_match_lipo not found in columns. Slice file is out of date and will be deleted.".format(acc, TMD)
@@ -464,21 +556,63 @@ def calculate_AAIMONs(p):
 
             ###########################################################################
             #                                                                         #
-            #       important if you want to filter for truncated alignments          #
+            #            DEPRECATED: to filter for truncated alignments               #
             #                             DO NOT DELETE!!!                            #
             #                                                                         #
             ###########################################################################
             """
             # save the unfiltered dataframe for that TMD
-            TM_cr_outfile_pickle = "{}_{}_cr_df_RAW.pickle".format(protein_name, TMD)
-            with open(TM_cr_outfile_pickle, "wb") as f:
+            TM_cr_pickle = "{}_{}_cr_df_RAW.pickle".format(protein_name, TMD)
+            with open(TM_cr_pickle, "wb") as f:
                 pickle.dump(df_cr, f, protocol=pickle.HIGHEST_PROTOCOL)
-            zipout.write(TM_cr_outfile_pickle, arcname=TM_cr_outfile_pickle)
-            os.remove(TM_cr_outfile_pickle)
+            zipout.write(TM_cr_pickle, arcname=TM_cr_pickle)
+            os.remove(TM_cr_pickle)
             """
 
-            # OLD FUNCTION TO filter by TMD-specific values (e.g. max_gaps_in_TMD and then calculate all the mean values for AAIMON, etc)
-            # mean_ser = korbinian.cons_ratio.calc.filt_and_save_AAIMON_mean(TMD, df_cr, mean_ser, max_gaps, max_lipo_homol, min_ident)
+            # DEPRECATED
+            # number of homologues with valid AAIMON ratios for that TMD.
+            # since ALL TMDs have to be in each homologue before AAIMON is calculated, this number is often the same for all TMDs
+            # this will be different for each TMD when some are excluded due to low lipophilicity, for example
+            #mean_ser['{}_AAIMON_n_homol'.format(TMD)] = df_cr.shape[0]
+            #sys.stdout.write("_AAIMON_n_homol", mean_ser['{}_AAIMON_n_homol']), sys.stdout.flush()
+
+            logging.info('%s AAIMON_slope %s: %0.5f' % (acc, TMD, mean_ser['%s_AAIMON_slope' % TMD]))
+            # OTHER VALUES TO LOG, IF DESIRED
+            #logging.info('%s AAIMON_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_mean' % TMD]))
+            #logging.info('%s AAIMON_n_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_mean_n' % TMD]))
+            #logging.info('%s AAIMON_n_slope %s: %0.5f' % (acc, TMD, mean_ser['%s_AAIMON_n_slope' % TMD]))
+            # logging.info('%s AASMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AASMON_ratio_mean'%TMD]))
+
+            # use the dictionary to obtain the figure number, plot number in figure, plot indices, etc
+            newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[TMD_Nr]
+            # if the TMD is the last one, the figure should be saved
+            if TMD_Nr == len(list_of_TMDs):
+                savefig = True
+            # if a new figure should be created (either because the orig is full, or the last TMD is analysed)
+            if newfig:
+                # create a new figure for histograms
+                fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig)  # sharex=True
+                # create a new figure for scatter plot
+                fig2, axarr2 = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig)  # sharex=True
+
+            #" NOT STABLE! NEED TO CHANGE save_hist_AAIMON_single_protein SO THAT IT RUNS WITHIN THE FOR LOOP ABOVE, AND TAKES A SINGLE TMD AS INPUT, RATHER THAN LIST OF TMDS" / 4
+            AAIMON_hist_path_prefix = p['AAIMON_hist_path_prefix']
+            norm_scatter_path_prefix = p['norm_scatter_path_prefix']
+            ########################################################################################
+            #                                                                                      #
+            #       Save histograms for each TMD of that protein, with relative conservation       #
+            #                                                                                      #
+            ########################################################################################
+            # NECESSARY???
+            # if axarr is None:
+            #     # avoid bug where the axarr is still not created, as newfig was not True for first figure?
+            #     continue
+
+            # create histograms for this protein
+            korbinian.cons_ratio.histogram.save_hist_AAIMON_single_protein(fig_nr, fig, axarr, df_cr, s, TMD, binarray, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix)
+            # create scatterplots for this protein
+            angle = korbinian.cons_ratio.histogram.save_scatter_AAIMON_norm_and_AAIMON_slope_single_protein(fig_nr, fig2, axarr2, df_cr, x_data, y_data, y_data_n, AAIMON_slope, AAIMON_n_slope, TMD, zipout, row_nr, col_nr, fontsize, savefig, norm_scatter_path_prefix)
+            mean_ser['%s_angle_between_slopes' %TMD] = angle
 
             ########################################################################################
             ########################################################################################
@@ -503,104 +637,6 @@ def calculate_AAIMONs(p):
             # gaps per residue
             mean_ser['%s_SW_q_gaps_per_q_residue_mean' % TMD] = df_cr['%s_SW_q_gaps_per_q_residue' % TMD].dropna().mean()
 
-            # number of homologues with valid AAIMON ratios for that TMD.
-            # since ALL TMDs have to be in each homologue before AAIMON is calculated, this number is often the same for all TMDs
-            # this will be different for each TMD when some are excluded due to low lipophilicity, for example
-            mean_ser['{}_AAIMON_n_homol'.format(TMD)] = df_cr.shape[0]
-            #sys.stdout.write("_AAIMON_n_homol", mean_ser['{}_AAIMON_n_homol']), sys.stdout.flush()
-
-            TM_cr_outfile_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
-            with open(TM_cr_outfile_pickle, "wb") as f:
-                pickle.dump(df_cr, f, protocol=pickle.HIGHEST_PROTOCOL)
-            zipout.write(TM_cr_outfile_pickle, arcname=TM_cr_outfile_pickle)
-            os.remove(TM_cr_outfile_pickle)
-
-            #logging.info('%s AAIMON_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_mean' % TMD]))
-            #logging.info('%s AAIMON_n_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_mean_n' % TMD]))
-            logging.info('%s AAIMON_slope %s: %0.5f' % (acc, TMD, mean_ser['%s_AAIMON_slope' % TMD]))
-            #logging.info('%s AAIMON_n_slope %s: %0.5f' % (acc, TMD, mean_ser['%s_AAIMON_n_slope' % TMD]))
-            # logging.info('%s AASMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AASMON_ratio_mean'%TMD]))
-
-            # use the dictionary to obtain the figure number, plot number in figure, plot indices, etc
-            newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[TMD_Nr]
-            # if the TMD is the last one, the figure should be saved
-            if TMD_Nr == len(list_of_TMDs):
-                savefig = True
-            # if a new figure should be created (either because the orig is full, or the last TMD is analysed)
-            if newfig:
-                # create a new figure for histograms
-                fig, axarr = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig)  # sharex=True
-                # create a new figure for scatter plot
-                fig2, axarr2 = plt.subplots(nrows=nrows_in_each_fig, ncols=ncols_in_each_fig)  # sharex=True
-
-            #" NOT STABLE! NEED TO CHANGE save_hist_AAIMON_single_protein SO THAT IT RUNS WITHIN THE FOR LOOP ABOVE, AND TAKES A SINGLE TMD AS INPUT, RATHER THAN LIST OF TMDS" / 4
-            AAIMON_hist_path_prefix = p['AAIMON_hist_path_prefix']
-            norm_scatter_path_prefix = p['norm_scatter_path_prefix']
-            ########################################################################################
-            #                                                                                      #
-            #       Save histograms for each TMD of that protein, with relative conservation       #
-            #                                                                                      #
-            ########################################################################################
-            if axarr is None:
-                # avoid bug where the axarr is still not created, as newfig was not True for first figure?
-                continue
-            # create histograms for this protein
-            korbinian.cons_ratio.histogram.save_hist_AAIMON_single_protein(fig_nr, fig, axarr, df_cr, s, TMD, binarray, zipout, row_nr, col_nr, fontsize, savefig, AAIMON_hist_path_prefix)
-            # create scatterplots for this protein
-            angle = korbinian.cons_ratio.histogram.save_scatter_AAIMON_norm_and_AAIMON_slope_single_protein(fig_nr, fig2, axarr2, df_cr, x_data, y_data, y_data_n, AAIMON_slope, AAIMON_n_slope, TMD, zipout, row_nr, col_nr, fontsize, savefig, norm_scatter_path_prefix)
-            mean_ser['%s_angle_between_slopes' %TMD] = angle
-            ########################################################################################
-            #                                                                                      #
-            #       Add this TMD to AAIMON_all_TMD_dict, to aid figure creation??               #
-            #                                                                                      #
-            ########################################################################################
-            AAIMON_all_TMD_dict['%s_AAIMON' % TMD] = df_cr['%s_AAIMON' % TMD].dropna()
-
-
-        # add all the excluded list
-        mean_ser["n_homol_excluded_after_TMD_filter"] = "__ {} __".format("".join(list_homol_excluded_in_TMD_filter))
-
-        ########################################################################################
-        #                                                                                      #
-        #               AAIMON normalization and save fig for each protein                     #
-        #  	df_AAIMON_all_TMD:
-        #       index = hit_num
-        #       columns : TM01_AAIMON 	TM02_AAIMON 	TM03_AAIMON
-        #                                                                                      #
-        ########################################################################################
-        df_AAIMON_all_TMD = pd.DataFrame(AAIMON_all_TMD_dict)
-        # get the original column names (M01_AAIMON, TM02_AAIMON, etc)
-        AAIMON_cols = ["{}_AAIMON".format(TMD) for TMD in list_of_TMDs]
-        # Get the number of TMDs whose AAIMON ratio was calculable
-        # For truncated alignments, C and N-term TMDs may be missing
-        # steps : 0) select just AAIMON data 1) convert nan to "", 2) count numbers with np.isreal,
-        #         3) sum TRUE FALSE TRUE etc to get the number of TMDs with calculable AAIMON for that homologue
-        df_AAIMON_all_TMD["n_TMDs_in_match"] = df_AAIMON_all_TMD.loc[:, AAIMON_cols].fillna("").applymap(np.isreal).sum(axis=1)
-        # create a bool if all TMDs have calculable AAIMON ratios
-        df_AAIMON_all_TMD["all_TMDs_have_AAIMON"] = df_AAIMON_all_TMD["n_TMDs_in_match"] == p["number_of_TMDs_excl_SP"]
-
-        df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol'] = df_AAIMON_all_TMD.loc[:, AAIMON_cols].mean(axis=1)
-        df_AAIMON_all_TMD['gapped_ident'] = dfh.loc[df_AAIMON_all_TMD.index, 'FASTA_gapped_identity']
-        df_AAIMON_all_TMD['norm_factor'] = dfh.loc[df_AAIMON_all_TMD.index, 'norm_factor']
-        df_AAIMON_all_TMD['perc_nonTMD_coverage'] = df_nonTMD.loc[df_AAIMON_all_TMD.index, 'perc_nonTMD_coverage']
-        df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol_n'] = df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol'] / df_AAIMON_all_TMD['norm_factor']
-
-        # # taken out by MO - figure replaced with plots for every single TMD
-        # korbinian.cons_ratio.norm.save_graph_for_normalized_AAIMON(acc,  df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol'],
-        #                                                              df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol_n'],
-        #                                                              df_AAIMON_all_TMD['gapped_ident'], zipout, protein_name)
-
-        # save the dataframe containing normalisation factor and normalised AAIMON to zipout
-        df_AAIMON_all_TMD.to_csv(protein_name + '_AAIMON_all_TMD.csv')
-        zipout.write(protein_name + '_AAIMON_all_TMD.csv', arcname=protein_name + '_AAIMON_all_TMD.csv')
-        os.remove(protein_name + '_AAIMON_all_TMD.csv')
-
-        value_counts_hit_contains_SW_node = dfh['hit_contains_SW_node'].value_counts()
-        if True in value_counts_hit_contains_SW_node:
-            mean_ser['num_hits_with_SW_align_node'] = value_counts_hit_contains_SW_node[True]
-        else:
-            logging.warning("{} num_hits_with_SW_align_node = 0".format(protein_name))
-            mean_ser['num_hits_with_SW_align_node'] = 0
         # save the pandas series with the means to a csv in the cr_ratios zip file
         mean_ser.to_csv(mean_ser_filename)
         zipout.write(mean_ser_filename, arcname=mean_ser_filename)

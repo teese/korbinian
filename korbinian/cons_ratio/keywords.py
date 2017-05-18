@@ -42,7 +42,7 @@ def keyword_analysis(pathdict, s, logging):
 
     # drop proteins with less then x homologues
     n_before = df.shape[0]
-    df = df[df.TM01_AAIMON_n_homol >= s['min_homol']]
+    df = df[df.AAIMON_n_homol >= s['min_homol']]
     n_after = df.shape[0]
     n_dropped = n_before - n_after
     logging.info('{} proteins dropped due to insufficient homologues\nOrig = {}, Final = {}, cutoff = {}\n'.format(n_dropped, n_before, n_after, s['min_homol']))

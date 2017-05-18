@@ -1322,10 +1322,15 @@ def open_df_from_pickle_zip(in_zipfile, filename=None, delete_corrupt=False):
     -------
     df_loaded : pd.DataFrame
         Output pandas Dataframe.
+        If the zip was corrupted or file could not be found, an empty dataframe will be returned.
 
     Note
     -------
     Much faster than reading from excel.
+    To check that the file was successfully opened:
+        df = open_df_from_pickle_zip(in_zipfile, filename)
+        if df.empty:
+            raise ValueError("corrupt zip or file not found")
     """
     # create bool deciding whether zip file will be deleted
     deletezip = False
@@ -1352,11 +1357,11 @@ def open_df_from_pickle_zip(in_zipfile, filename=None, delete_corrupt=False):
                 if filename is not None:
                     # if a filename is available, check if the file is in the zip
                     if  filename in filenamelist:
-                        pickle_file_handle = openzip.open(filename)
-                        # read as pandas dataframe
-                        df_loaded = pickle.load(pickle_file_handle)
-                        # make sure that the pickled object was REALLY a pandas object, and not some other python datatype that was pickled.
-                        assert isinstance(df_loaded, (pd.Series, pd.DataFrame))
+                        with openzip.open(filename) as pickle_file_handle:
+                            # read as pandas dataframe
+                            df_loaded = pickle.load(pickle_file_handle)
+                            # make sure that the pickled object was REALLY a pandas object, and not some other python datatype that was pickled.
+                            assert isinstance(df_loaded, (pd.Series, pd.DataFrame))
                     else:
                         # the desired file is not in the zip. Either delete the zip, or return an empty dataframe.
                         if delete_corrupt == True:
@@ -1708,7 +1713,8 @@ def pc(p):
             variable_name = m.group(1)
             break
     sep = ", "
-    sys.stdout.write("{}{}{}\n".format(variable_name, sep, p))
+    sys.stdout.write("\n{}{}{}\n".format(variable_name, sep, p))
+    sys.stdout.flush()
 
 def pn(p):
     """Prints the variable name, followed by the value, separated by a newline.
@@ -1729,7 +1735,8 @@ def pn(p):
             variable_name = m.group(1)
             break
     sep = "\n"
-    sys.stdout.write("{}{}{}\n".format(variable_name, sep, p))
+    sys.stdout.write("\n{}{}{}\n".format(variable_name, sep, p))
+    sys.stdout.flush()
 
 def pr(p, end="\n"):
     """Shortened version of the print function
