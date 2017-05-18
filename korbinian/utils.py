@@ -1497,7 +1497,6 @@ def save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi = 400, clo
     """
     if not os.path.exists(base_filepath):
         os.makedirs(base_filepath)
-    sys.stdout.write('Figure processed: {}\n'.format(Fig_name))
     if save_png:
         fig.savefig(os.path.join(base_filepath, '{a}.png'.format(a=Fig_name)), format='png', dpi=dpi)
     if save_pdf:
@@ -1508,6 +1507,7 @@ def save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi = 400, clo
     # close any open figures
     if close == True:
         plt.close('all')
+    sys.stdout.write('Figure processed: {}\n'.format(Fig_name)), sys.stdout.flush()
 
 class Log_Only_To_Console(object):
     def __init__(self):

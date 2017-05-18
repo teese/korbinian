@@ -630,7 +630,7 @@ def get_list_enzyme_KW_and_list_ignored_KW():
                       'Glycogen metabolism', 'Fucose metabolism']
 
     list_ignored_KW = ['Transmembrane', 'Complete proteome', 'Reference proteome', 'Membrane',
-                       'Transmembrane helix', 'Cell membrane', 'Repeat', 'Alternative splicing', 'Sodium', 'Potassium', 'Direct protein sequencing',
+                       'Transmembrane helix', 'Repeat', 'Alternative splicing', 'Sodium', 'Potassium', 'Direct protein sequencing',
                        'Transducer', 'Polymorphism', 'Glycoprotein', 'Calcium transport', 'Ion transport', 'Transport', 'Protein transport',
                        'Voltage-gated channel', 'ATP-binding', 'Calcium', 'Zinc', 'Synapse', 'Signal', 'Disulfide bond', '3D-structure', 'Host-virus interaction', 'Palmitate',
                        'Olfaction']

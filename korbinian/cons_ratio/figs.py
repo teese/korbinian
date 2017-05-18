@@ -2524,7 +2524,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         cbar_ax.set_xticklabels(labels)
         cbar_ax.tick_params(pad=0, labelsize=fontsize)
         ax.tick_params(pad=1, labelsize=fontsize)
-        ax.legend(frameon=True, loc='upper left', fontsize=fontsize - 2)
+        ax.legend(frameon=True, loc='upper left', fontsize=fontsize)
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 

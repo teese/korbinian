@@ -22,6 +22,7 @@ import numpy as np
 import os
 import pandas as pd
 import sys
+from shutil import copyfile
 
 # read the command line arguments
 parser = argparse.ArgumentParser()
@@ -89,8 +90,9 @@ def run_statements(s):
     # for example the basic pathdict["list_csv"] for list 5 is "D:\Databases\summaries\05\List05_summary.csv"
     pathdict = korbinian.common.create_pathdict(base_filename_summaries, s)
 
-    utils.make_sure_path_exists(pathdict["settings_copy_csv"], isfile=True)
-    pd.Series(s).to_csv(pathdict["settings_copy_csv"])
+    utils.make_sure_path_exists(pathdict["settings_copy_xlsx"], isfile=True)
+    # copy the settings file used for the analysis
+    copyfile(s["excel_file_with_settings"], pathdict["settings_copy_xlsx"])
 
     ########################################################################################
     #                                                                                      #

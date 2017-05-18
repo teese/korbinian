@@ -204,7 +204,7 @@ def create_pathdict(base_filename_summaries, s):
     list_number = s["list_number"]
     pathdict = {}
     # define path to csv that holds a backup of s (settings dictionary)
-    pathdict["settings_copy_csv"] = '%s_settings_copy.csv' % base_filename_summaries
+    pathdict["settings_copy_xlsx"] = '%s_settings_copy.xlsx' % base_filename_summaries
     # add base_filename_summaries itself to the path dictionary
     pathdict["base_filename_summaries"] = base_filename_summaries
     # cadd path to csv after parsing from UniProt or OMPdb
