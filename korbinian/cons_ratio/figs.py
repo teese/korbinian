@@ -225,11 +225,15 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         x = data[:, 0]  # FASTA_gapped_identity
         y = data[:, 1]  # AAIMON for each TMD
 
+        # for xlim, use the min and max evolutionary distance settings
+        min_evol_distance = int((1 - s["max_ident"])*100)
+        max_evol_distance = int((1 - s["min_ident"])*100)
+
         # histogram definition
         # data range
-        xyrange = [[0, 60], [0, 3]]
+        xyrange = [[0, max_evol_distance], [0, 3]]
         # number of bins
-        bins = [120, 120]
+        bins = [max_evol_distance*2, 120]
         # density threshold
         thresh = 1
 
@@ -262,6 +266,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         cbar_ax.tick_params(pad=0, labelsize=fontsize)
         ax.tick_params(pad=1, labelsize=fontsize)
         ax.legend(frameon=True, loc='upper left', fontsize=fontsize)
+
+        # set the xlim based on the chosen settings for evolutionary distance of those homologues
+        ax.set_xlim(min_evol_distance, max_evol_distance)
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 

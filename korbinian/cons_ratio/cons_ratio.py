@@ -334,6 +334,7 @@ def calculate_AAIMONs(p):
             len_query_TMD = p["%s_end"%TMD] - p["%s_start"%TMD]
             #df_cr = korbinian.cons_ratio.calc.calc_AAIMON(TMD, df_cr, len_query_TMD)
 
+
             ########################################################################################
             #                                                                                      #
             #              count number of identical (and/or similar) residues in                  #
@@ -442,8 +443,17 @@ def calculate_AAIMONs(p):
                 pickle.dump(df_cr, f, protocol=pickle.HIGHEST_PROTOCOL)
             zipout.write(TM_cr_pickle, arcname=TM_cr_pickle)
 
-        # add all the excluded list
+        # make a readable list of the number of homologues excluded for each TMD, based on filtering for gaps and lipophilicity, etc
         mean_ser["n_homol_excluded_after_TMD_filter"] = "__ {} __".format("".join(list_homol_excluded_in_TMD_filter))
+
+        # save how many hits have a Smith Waterman alignment node in the XML
+        # shows the status of the XML files, which can be corrupt, and also number of homologues
+        value_counts_hit_contains_SW_node = dfh['hit_contains_SW_node'].value_counts()
+        if True in value_counts_hit_contains_SW_node:
+            mean_ser['num_hits_with_SW_align_node'] = value_counts_hit_contains_SW_node[True]
+        else:
+            logging.warning("{} num_hits_with_SW_align_node = 0".format(protein_name))
+            mean_ser['num_hits_with_SW_align_node'] = 0
 
         ########################################################################################
         #                                                                                      #
@@ -483,28 +493,23 @@ def calculate_AAIMONs(p):
         #                                                              df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol_n'],
         #                                                              df_AAIMON_all_TMD['gapped_ident'], zipout, protein_name)
 
+        ########################################################################################
+        #                                                                                      #
+        #                Create an index of homologues with data for all TMDs                  #
+        #           (Important filter to prevent truncation and ensure balance)                #
+        #                                                                                      #
+        ########################################################################################
+        # first get a list of all the homologues that have AAIMON ratios for all TMDs
+        df_AAIMON_all_TMD["AAIMON_avail_all_TMDs"] = df_AAIMON_all_TMD.n_TMDs_with_measurable_AAIMON == p["number_of_TMDs"]
+        filt_index = df_AAIMON_all_TMD["AAIMON_avail_all_TMDs"][df_AAIMON_all_TMD["AAIMON_avail_all_TMDs"]].index.tolist()
+
+        # add the number of homologues with AAIMON for all TMDs
+        mean_ser['AAIMON_n_homol'] = len(filt_index)
+
         # save the dataframe containing normalisation factor and normalised AAIMON to zipout
         df_AAIMON_all_TMD.to_csv(protein_name + '_AAIMON_all_TMD.csv')
         zipout.write(protein_name + '_AAIMON_all_TMD.csv', arcname=protein_name + '_AAIMON_all_TMD.csv')
         os.remove(protein_name + '_AAIMON_all_TMD.csv')
-
-        value_counts_hit_contains_SW_node = dfh['hit_contains_SW_node'].value_counts()
-        if True in value_counts_hit_contains_SW_node:
-            mean_ser['num_hits_with_SW_align_node'] = value_counts_hit_contains_SW_node[True]
-        else:
-            logging.warning("{} num_hits_with_SW_align_node = 0".format(protein_name))
-            mean_ser['num_hits_with_SW_align_node'] = 0
-
-        ########################################################################################
-        #                                                                                      #
-        #             Save mean values only for homologues with data for all TMDs?             #
-        #                                                                                      #
-        ########################################################################################
-        # first get a list of all the homologues that have AAIMON ratios for all TMDs
-        bool_ser = df_AAIMON_all_TMD.n_TMDs_with_measurable_AAIMON == p["number_of_TMDs"]
-        filt_index = bool_ser[bool_ser].index.tolist()
-        # add the number of homologues with AAIMON for all TMDs
-        mean_ser['AAIMON_n_homol'] = len(filt_index)
 
         # since the data is saved in separate files, iterate through them again
 
