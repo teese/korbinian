@@ -349,6 +349,10 @@ def slice_nonTMD_in_prot_list(df):
     # glance at the watch
     start = time.clock()
 
+    # set to be an empty string, which avoids the error related to inserting a python list into a cell
+    # "ValueError: Must have equal len keys and value when setting with an iterable"
+    df['list_of_TMDs_excl_SP'] = ""
+
     for n, acc in enumerate(df.index):
         ''' ~~   SLICE nonTMD sequence  ~~ '''
         # list of TMDs excluding signal peptides

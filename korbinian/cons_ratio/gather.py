@@ -277,6 +277,21 @@ def gather_AAIMONs(pathdict, logging, s):
                     sys.stdout.write('\n'), sys.stdout.flush()
             protein_name = df.loc[acc, "protein_name"]
             homol_cr_ratios_zip = df.loc[acc, "homol_cr_ratios_zip"]
+
+            # Here we filter to take only datapoints where all TMDs were in the alignment
+            AAIMON_all_TMD = protein_name + '_AAIMON_all_TMD.csv'
+            df_AAIMON_all_TMD = utils.open_df_from_csv_zip(homol_cr_ratios_zip, filename=AAIMON_all_TMD, delete_corrupt=False)
+
+            ########################################################################################
+            #                                                                                      #
+            #       CODE COPIED FROM cons_ratio.py. Delete the following two lines after           #
+            #         re-running all calculated cons ratios                                         #
+            #                                                                                      #
+            ########################################################################################
+            # first get a list of all the homologues that have AAIMON ratios for all TMDs
+            df_AAIMON_all_TMD["AAIMON_avail_all_TMDs"] = df_AAIMON_all_TMD.n_TMDs_with_measurable_AAIMON == df.loc[acc, "number_of_TMDs"]
+            filt_index = df_AAIMON_all_TMD["AAIMON_avail_all_TMDs"][df_AAIMON_all_TMD["AAIMON_avail_all_TMDs"]].index.tolist()
+
             if not os.path.isfile(homol_cr_ratios_zip):
                 # skip to next protein
                 continue
@@ -296,6 +311,9 @@ def gather_AAIMONs(pathdict, logging, s):
                     os.remove(homol_cr_ratios_zip)
                     # skip to next protein
                     break
+                # use the filt_index above that shows homologues with AAIMON available for all TMDs
+                df_TMD = df_TMD.loc[filt_index, :]
+                # convert to numpy array
                 df_TMD = df_TMD[columns].as_matrix()
                 # join output data file with currently opened dataframe
                 data = np.concatenate((data, df_TMD))

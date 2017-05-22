@@ -1741,9 +1741,14 @@ def pn(p):
 def pr(p, end="\n"):
     """Shortened version of the print function
 
-    Part of the debugging set(pr, pc, pn)
-    """
-    print(p, end=end)
+    Part of the debugging set of functions (pr, pc, pn)
 
+    Note: Uses sys.stdout.write rather than print, so that debugging print functions
+    in the code can be found and removed quickly through find-and-replace.
+
+
+    """
+    sys.stdout.write("{}".format(p))
+    sys.stdout.flush()
 
 flatten = lambda x: [item for sublist in x for item in sublist]
