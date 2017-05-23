@@ -68,6 +68,8 @@ def compare_lists (s, df_lists_tab):
     color_list = utils.create_colour_lists()['HTML_list01']
 
     protein_lists = ast.literal_eval(s['protein_lists'])
+    # number of protein lists
+    n_prot_lists = len(protein_lists)
     # initialise dataframe that hols all variables for every protein list
     dfv = pd.DataFrame(index=protein_lists)
     # get current date and time for folder name, join elements in protein_lists to string
@@ -107,7 +109,8 @@ def compare_lists (s, df_lists_tab):
         df_merged = df_merged[np.isfinite(df_merged['AAIMON_mean_all_TMDs'])]
         df_merged = df_merged[df_merged.AAIMON_n_homol >= df_lists_tab.loc[prot_list, 'min_homol']]
         proteins_after_dropping = len(df_merged)
-        sys.stdout.write('List{:02} - {}: number of dropped proteins {}\n'.format(prot_list, df_lists_tab.loc[prot_list,'list_description'], proteins_before_dropping - proteins_after_dropping))
+        sys.stdout.write('List{:02} - {}: {} proteins ({}/{} dropped)\n'.format(prot_list, df_lists_tab.loc[prot_list,'list_description'], proteins_after_dropping,
+                                                                                proteins_before_dropping - proteins_after_dropping, proteins_before_dropping))
         # make list of TMDs a python list
         df_merged.list_of_TMDs = df_merged.list_of_TMDs.apply(lambda x: ast.literal_eval(x))
 
@@ -153,6 +156,16 @@ def compare_lists (s, df_lists_tab):
     alpha = 1
     fontsize = 12
     linewidth = 2
+    anno_fontsize = fontsize - 3
+    xyc = "axes fraction"
+    # y-axis subfigure height (ysh)
+    # note that to have a position of 80% of each subplot, the formula for y is
+    # y = 0.8*ysh+ysh*offset
+    # this gives the values between 0 and 1 used for the "axes fraction" xycoords of matplotlib
+    ysh = 1 / n_prot_lists
+
+    # for plots with first-central-last, set the minimum number of TMDs in the protein
+    min_n_TMDs_first_last = 5
 
 
     #--------------------------------------------------------------------------------------------------------------------------------#
@@ -164,9 +177,11 @@ def compare_lists (s, df_lists_tab):
     offset = len(protein_lists) - 1
 
     for prot_list in protein_lists:
+        color = dfv.loc[prot_list, 'color']
         ###   non-normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
         hist_data = np.array(df_dict[prot_list]['AAIMON_mean_all_TMDs'])
+        AAIMON_mean = hist_data.mean()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -177,13 +192,14 @@ def compare_lists (s, df_lists_tab):
         # add the final bin, which is physically located just after the last regular bin but represents all higher values
         bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
         centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=color,
                                             alpha=alpha, linewidth=linewidth,
                                             label=df_lists_tab.loc[prot_list, 'list_description'])
 
         ###   normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
         hist_data = np.array(df_dict[prot_list]['AAIMON_mean_all_TMDs_n'])
+        AAIMON_mean_n = hist_data.mean()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -194,9 +210,19 @@ def compare_lists (s, df_lists_tab):
         # add the final bin, which is physically located just after the last regular bin but represents all higher values
         bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
         centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, ':', color=dfv.loc[prot_list, 'color'],
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, ':', color=color,
                                             alpha=alpha,
                                             linewidth=linewidth)
+
+        ###############################################################
+        #                                                             #
+        #        annotate the mean values on the plots                #
+        #                                                             #
+        ###############################################################
+        ax.annotate("mean:", [0.005, 0.9*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+        ax.annotate("original{: >7.02f}".format(AAIMON_mean), [0.01, 0.8*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+        ax.annotate("normalised{: >5.02f}".format(AAIMON_mean_n), [0.01, 0.7*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+
         offset = offset - 1
 
     ###############################################################
@@ -209,8 +235,8 @@ def compare_lists (s, df_lists_tab):
     # move the x-axis label closer to the x-axis
     ax.xaxis.set_label_coords(0.5, -0.085)
     # x and y axes min and max
-    xlim_min = 0
-    xlim_max = 2
+    xlim_min = 0.4
+    xlim_max = 1.9
     ax.set_xlim(xlim_min, xlim_max)
     ylim_min = -0.01
     ylim_max = len(protein_lists) + 0.01
@@ -224,7 +250,7 @@ def compare_lists (s, df_lists_tab):
     # create legend
     ax.xaxis.set_label_coords(0.5, -0.07)
     ax.yaxis.set_label_coords(-0.005, 0.5)
-    plt .xticks(np.arange(xlim_min, xlim_max + 0.1, 0.2))
+    plt.xticks(np.arange(xlim_min, xlim_max + 0.1, 0.2))
 
     if create_legend:
         ### create legend with additional 2 elements corresponding to AAIMON and AAIMON_n ###
@@ -258,9 +284,11 @@ def compare_lists (s, df_lists_tab):
     offset = len(protein_lists) - 1
 
     for prot_list in protein_lists:
+        color = dfv.loc[prot_list, 'color']
         ###   non-normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
         hist_data = np.array(df_dict[prot_list]['AAIMON_slope_mean_all_TMDs']*1000)
+        AAIMON_slope_mean = hist_data.mean()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -271,13 +299,14 @@ def compare_lists (s, df_lists_tab):
         # add the final bin, which is physically located just after the last regular bin but represents all higher values
         bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
         centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=color,
                                             alpha=alpha, linewidth=linewidth,
                                             label=df_lists_tab.loc[prot_list, 'list_description'])
 
         ###   normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
         hist_data = np.array(df_dict[prot_list]['AAIMON_n_slope_mean_all_TMDs']*1000)
+        AAIMON_slope_mean_n = hist_data.mean()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -288,9 +317,18 @@ def compare_lists (s, df_lists_tab):
         # add the final bin, which is physically located just after the last regular bin but represents all higher values
         bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
         centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, ':', color=dfv.loc[prot_list, 'color'],
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, ':', color=color,
                                             alpha=alpha,
                                             linewidth=linewidth)
+
+        ###############################################################
+        #                                                             #
+        #        annotate the mean values on the plots                #
+        #                                                             #
+        ###############################################################
+        ax.annotate("mean:", [0.01, 0.9*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+        ax.annotate("original {: >8.02f}".format(AAIMON_slope_mean), [0.02, 0.8*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+        ax.annotate("normalised {: >6.02f}".format(AAIMON_slope_mean_n), [0.02, 0.7*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
         offset = offset - 1
 
     ###############################################################
@@ -358,10 +396,12 @@ def compare_lists (s, df_lists_tab):
     offset = len(protein_lists) - 1
 
     for prot_list in protein_lists:
+        color = dfv.loc[prot_list, 'color']
         ###   non-normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
         # hist_data = np.array(df_dict[prot_list]['nonTMD_SW_align_len_excl_gaps_mean'])
         hist_data = np.array(df_dict[prot_list]['seqlen'])
+        mean_seqlen = hist_data.mean()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -372,9 +412,16 @@ def compare_lists (s, df_lists_tab):
         # add the final bin, which is physically located just after the last regular bin but represents all higher values
         # bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
         centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + 500)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=color,
                                             alpha=alpha, linewidth=linewidth,
                                             label=df_lists_tab.loc[prot_list, 'list_description'])
+
+        ###############################################################
+        #                                                             #
+        #        annotate the mean values on the plots                #
+        #                                                             #
+        ###############################################################
+        ax.annotate("mean: {: >2.0f}".format(mean_seqlen), [0.86, 0.3*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
 
         offset = offset - 1
 
@@ -415,9 +462,13 @@ def compare_lists (s, df_lists_tab):
         handles, labels = ax.get_legend_handles_labels()
         display = (list(range(0, len(protein_lists) + 1, 1)))
         # Create legend
+        # ax.legend([handle for i, handle in enumerate(handles) if i in display],
+        #           [label for i, label in enumerate(labels) if i in display],
+        #           fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+
         ax.legend([handle for i, handle in enumerate(handles) if i in display],
                   [label for i, label in enumerate(labels) if i in display],
-                  fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+                  fontsize=fontsize - 3, frameon=True, loc='upper right')
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
@@ -431,10 +482,12 @@ def compare_lists (s, df_lists_tab):
     offset = len(protein_lists) - 1
 
     for prot_list in protein_lists:
+        color = dfv.loc[prot_list, 'color']
         ###   non-normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
         # hist_data = np.array(df_dict[prot_list]['nonTMD_SW_align_len_excl_gaps_mean'])
         hist_data = np.array(df_dict[prot_list]['number_of_TMDs'])
+        number_of_TMDs_mean = hist_data.mean()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -445,9 +498,17 @@ def compare_lists (s, df_lists_tab):
         # add the final bin, which is physically located just after the last regular bin but represents all higher values
         # bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
         centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + 3)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=color,
                                             alpha=alpha, linewidth=linewidth,
                                             label=df_lists_tab.loc[prot_list, 'list_description'])
+
+        ###############################################################
+        #                                                             #
+        #        annotate the mean values on the plots                #
+        #                                                             #
+        ###############################################################
+        ax.annotate("mean:{: >4.01f}".format(number_of_TMDs_mean), [0.81, 0.3*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+
         offset = offset - 1
 
     ###############################################################
@@ -487,7 +548,7 @@ def compare_lists (s, df_lists_tab):
         # Create legend
         ax.legend([handle for i, handle in enumerate(handles) if i in display],
                   [label for i, label in enumerate(labels) if i in display],
-                  fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+                  fontsize=fontsize - 3, frameon=True, loc='upper right')#bbox_to_anchor=(1.07, 1.12)
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
@@ -500,10 +561,12 @@ def compare_lists (s, df_lists_tab):
     offset = len(protein_lists) - 1
 
     for prot_list in protein_lists:
+        color = dfv.loc[prot_list, 'color']
         ###   non-normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
         # hist_data = np.array(df_dict[prot_list]['nonTMD_SW_align_len_excl_gaps_mean'])
         hist_data = np.array(df_dict[prot_list]['obs_changes_mean'])
+        evol_dist_mean = hist_data.mean()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -514,9 +577,16 @@ def compare_lists (s, df_lists_tab):
         # add the final bin, which is physically located just after the last regular bin but represents all higher values
         bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
         centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=color,
                                             alpha=alpha, linewidth=linewidth,
                                             label=df_lists_tab.loc[prot_list, 'list_description'])
+
+        ###############################################################
+        #                                                             #
+        #        annotate the mean values on the plots                #
+        #                                                             #
+        ###############################################################
+        ax.annotate("mean: {: >7.02f}".format(evol_dist_mean), [0.82, 0.3*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
 
         offset = offset - 1
 
@@ -558,7 +628,17 @@ def compare_lists (s, df_lists_tab):
         # Create legend
         ax.legend([handle for i, handle in enumerate(handles) if i in display],
                   [label for i, label in enumerate(labels) if i in display],
-                  fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+                  fontsize=fontsize - 3, frameon=True, loc='upper right')#bbox_to_anchor=(1.07, 1.12)
+
+
+
+        # # Create custom artists
+        # AAIMON = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
+        # AAIMON_norm = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
+        # # Create legend from custom artist/label lists
+        # ax.legend([AAIMON, AAIMON_norm],
+        #           ['non-normalised', 'normalised'],
+        #           fontsize=fontsize - 3, frameon=True)#, bbox_to_anchor=(1.07, 1.12))
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
@@ -577,14 +657,16 @@ def compare_lists (s, df_lists_tab):
     fig, (ax, ax1) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [6, 1]})
 
     for n, prot_list in enumerate(protein_lists):
+        color = dfv.loc[prot_list, 'color']
         n_of_homologues = sum(df_dict[prot_list]['AAIMON_n_homol'])
-        sys.stdout.write('number of homologues {}: {}\n'.format(df_lists_tab.loc[prot_list, 'list_description'], n_of_homologues))
+        sys.stdout.write('number of homologues {}: {:.0f}\n'.format(df_lists_tab.loc[prot_list, 'list_description'], n_of_homologues))
         ax1.bar(n + 1, n_of_homologues / 100000, width=0.75, align='center', color=dfv.loc[prot_list, 'color'], edgecolor='')
 
         ###   non-normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
         # hist_data = np.array(df_dict[prot_list]['nonTMD_SW_align_len_excl_gaps_mean'])
         hist_data = np.array(df_dict[prot_list]['AAIMON_n_homol'])
+        AAIMON_n_homol_mean = hist_data.mean()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -596,9 +678,16 @@ def compare_lists (s, df_lists_tab):
         bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
         centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
         centre_of_bar_in_x_axis[-80:] = np.linspace(10, 800, 80) + 1000
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=color,
                                             alpha=alpha, linewidth=linewidth,
                                             label=df_lists_tab.loc[prot_list, 'list_description'])
+
+        ###############################################################
+        #                                                             #
+        #        annotate the mean values on the plots                #
+        #                                                             #
+        ###############################################################
+        ax.annotate("mean: {: >7.02f}".format(AAIMON_n_homol_mean), [0.8, 0.3*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
 
         offset = offset - 1
 
@@ -608,7 +697,7 @@ def compare_lists (s, df_lists_tab):
     #                                                             #
     ###############################################################
 
-    ax.set_xlabel('number of homologues $*10^3$ (unequal bins)', fontsize=fontsize)
+    ax.set_xlabel('number of homologues $*10^3$ (note: unequal bins)', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
     ax.xaxis.set_label_coords(0.5, -0.085)
     # x and y axes min and max
@@ -663,26 +752,13 @@ def compare_lists (s, df_lists_tab):
     offset = len(protein_lists) - 1
 
     for prot_list in protein_lists:
-        ###   lipo mean all TMDs excl. TM01   ###
-        # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = np.array(df_dict[prot_list]['lipo_mean_excl_TM01'].dropna())
-        # use numpy to create a histogram
-        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
-        freq_counts_normalised = freq_counts / freq_counts.max() + offset
-        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
-        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
-        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
-        # add the final bin, which is physically located just after the last regular bin but represents all higher values
-        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
-                                            alpha=alpha, linewidth=linewidth,
-                                            label=df_lists_tab.loc[prot_list, 'list_description'])
+        color = dfv.loc[prot_list, 'color']
+        is_multipass = True if df_lists_tab.loc[prot_list, "max_TMDs"] > 2 else False
 
         ###   TM01 lipo   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
         hist_data = np.array(df_dict[prot_list]['TM01_lipo'])
+        lipo_TM01_mean = hist_data.mean()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -693,9 +769,29 @@ def compare_lists (s, df_lists_tab):
         # add the final bin, which is physically located just after the last regular bin but represents all higher values
         bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
         centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, ':', color=dfv.loc[prot_list, 'color'],
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, ':', color=color,
                                             alpha=alpha,
                                             linewidth=linewidth)
+
+        if is_multipass:
+            ###   lipo mean all TMDs excl. TM01   ###
+            # create numpy array of membranous over nonmembranous conservation ratios (identity)
+            hist_data = np.array(df_dict[prot_list]['lipo_mean_excl_TM01'].dropna())
+            lipo_excl_TM01_mean = hist_data.mean()
+            # use numpy to create a histogram
+            freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+            freq_counts_normalised = freq_counts / freq_counts.max() + offset
+            # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+            col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+            # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+            centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+            # add the final bin, which is physically located just after the last regular bin but represents all higher values
+            bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+            centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+            linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=color,
+                                                alpha=alpha, linewidth=linewidth,
+                                                label=df_lists_tab.loc[prot_list, 'list_description'])
+
 
         # ###   last TM lipo   ###
         # # create numpy array of membranous over nonmembranous conservation ratios (identity)
@@ -710,9 +806,19 @@ def compare_lists (s, df_lists_tab):
         # # add the final bin, which is physically located just after the last regular bin but represents all higher values
         # bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
         # centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        # linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, '-.', color=dfv.loc[prot_list, 'color'],
+        # linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, '--', color=dfv.loc[prot_list, 'color'],
         #                                     alpha=alpha,
         #                                     linewidth=linewidth)
+
+        ###############################################################
+        #                                                             #
+        #        annotate the mean values on the plots                #
+        #                                                             #
+        ###############################################################
+        ax.annotate("mean:", [0.01, 0.9*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+        ax.annotate("TM01 {: >14.02f}".format(lipo_TM01_mean), [0.02, 0.8*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+        if is_multipass:
+            ax.annotate("excluding TM01 {: >3.02f}".format(lipo_excl_TM01_mean), [0.02, 0.7*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
 
         offset = offset - 1
 
@@ -783,9 +889,11 @@ def compare_lists (s, df_lists_tab):
     offset = len(protein_lists) - 1
 
     for prot_list in protein_lists:
+        color = dfv.loc[prot_list, 'color']
         ###   non-normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
         hist_data = np.array(df_dict[prot_list]['perc_TMD'])
+        perc_TMD_mean = hist_data.mean()/100
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -799,6 +907,13 @@ def compare_lists (s, df_lists_tab):
         linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
                                             alpha=alpha, linewidth=linewidth,
                                             label=df_lists_tab.loc[prot_list, 'list_description'])
+
+        ###############################################################
+        #                                                             #
+        #        annotate the mean values on the plots                #
+        #                                                             #
+        ###############################################################
+        ax.annotate("mean: {: >2.0%}".format(perc_TMD_mean), [0.84, 0.3*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
 
         offset = offset - 1
 
@@ -836,7 +951,8 @@ def compare_lists (s, df_lists_tab):
         # Create legend from custom artist/label lists
         ax.legend([handle for i, handle in enumerate(handles) if i in display],
                   [label for i, label in enumerate(labels) if i in display],
-                  fontsize=fontsize-3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+                  fontsize=fontsize-3, frameon=True, loc = 'upper right')# bbox_to_anchor=(1.07, 1.12))
+
 
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
 
@@ -863,6 +979,7 @@ def compare_lists (s, df_lists_tab):
     #         df_dict[prot_list].loc[acc, 'TMD_len_mean'] = np.mean(list_TMD_lenghts)
 
     for prot_list in protein_lists:
+        color = dfv.loc[prot_list, 'color']
         # collect length data for all TMDs individually
         data = df_dict[prot_list]
         list_len_TMDs = []
@@ -870,6 +987,7 @@ def compare_lists (s, df_lists_tab):
             TMD = 'TM%02d' % n
             list_len_TMDs.extend(data['%s_seqlen' % TMD].dropna())
         hist_data = np.array(list_len_TMDs)
+        len_TMDs_mean = hist_data.mean()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -880,9 +998,16 @@ def compare_lists (s, df_lists_tab):
         # add the final bin, which is physically located just after the last regular bin but represents all higher values
         bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
         centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=color,
                                             alpha=alpha, linewidth=linewidth,
                                             label=df_lists_tab.loc[prot_list, 'list_description'])
+
+        ###############################################################
+        #                                                             #
+        #        annotate the mean values on the plots                #
+        #                                                             #
+        ###############################################################
+        ax.annotate("mean: {: >7.02f}".format(len_TMDs_mean), [0.8, 0.3*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
 
         offset = offset - 1
 
@@ -924,7 +1049,7 @@ def compare_lists (s, df_lists_tab):
         # Create legend
         ax.legend([handle for i, handle in enumerate(handles) if i in display],
                   [label for i, label in enumerate(labels) if i in display],
-                  fontsize=fontsize - 3, frameon=True, bbox_to_anchor=(1.07, 1.12))
+                  fontsize=fontsize - 3, frameon=True, loc="upper right")#bbox_to_anchor=(1.07, 1.12)
 
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
 
@@ -953,7 +1078,7 @@ def compare_lists (s, df_lists_tab):
 
         # calculate the average percentage of residues within the TM region
         fraction_TM_residues = df_dict[prot_list]['perc_TMD'].mean() / 100
-        sys.stdout.write("\nprot_list : {:02d}, fraction_TM_residues : {:0.03f}".format(prot_list, fraction_TM_residues))
+        #sys.stdout.write("\nprot_list : {:02d}, fraction_TM_residues : {:0.03f}".format(prot_list, fraction_TM_residues))
 
         #create a new dataframe to hold the data for percentage identity and the normalisation factors
         df_norm = pd.DataFrame()
@@ -1062,7 +1187,6 @@ def compare_lists (s, df_lists_tab):
     ax.set_xticklabels(x_labels)
     ax.legend()
     ax.set_ylabel("random identity")
-    ax.set_xlabel("list number")
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
 
     #--------------------------------------------------------------------------------------------------------------------------------#
@@ -1123,8 +1247,16 @@ def compare_lists (s, df_lists_tab):
     min_ = -0.5
     max_ = 0.8
     binlist = np.linspace(min_, max_, n_bins_lipo + 1)
-    min_n_TMDs_first_last = 5
+
     fig, ax = plt.subplots()
+
+    # move limits up, so they can be used for the annotations
+    # x and y axes min and max
+    xlim_min = min_
+    xlim_max = max_
+    ax.set_xlim(xlim_min, xlim_max)
+    ylim_min = -0.01
+    ylim_max = len(protein_lists) + 0.01
 
     # protein_lists_mp = []
     # for prot_list in protein_lists:
@@ -1150,9 +1282,16 @@ def compare_lists (s, df_lists_tab):
         if list_description in ["multipass"]:
             list_description = list_description + " (excl. GPCRs)"
 
+        # CREATE a boolean for singlepass and multipass
+        is_multipass = True if df_lists_tab.loc[prot_list, "max_TMDs"] > 2 else False
+
+        color = dfv.loc[prot_list, 'color']
+
         ###   lipo TM01   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
         hist_data = np.array(df_filt['TM01_lipo'].dropna())
+        # get the mean value for annotations
+        mean_lipo_TM01 = hist_data.mean()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -1163,7 +1302,7 @@ def compare_lists (s, df_lists_tab):
         # add the final bin, which is physically located just after the last regular bin but represents all higher values
         bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
         centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, '-.', color=dfv.loc[prot_list, 'color'],
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, '--', color=color,
                                             alpha=alpha, linewidth=linewidth, label=list_description)
 
         if df_lists_tab.loc[prot_list, "max_TMDs"] > 2:
@@ -1171,6 +1310,8 @@ def compare_lists (s, df_lists_tab):
             ###   central TMDs   ###
             # create numpy array of membranous over nonmembranous conservation ratios (identity)
             hist_data = np.array(df_filt['lipo_mean_central_TMDs'].dropna())
+            # get the mean value for annotations
+            mean_lipo_central = hist_data.mean()
             # use numpy to create a histogram
             freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
             freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -1181,12 +1322,14 @@ def compare_lists (s, df_lists_tab):
             # add the final bin, which is physically located just after the last regular bin but represents all higher values
             bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
             centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-            linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
+            linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=color,
                                                 alpha=alpha, linewidth=linewidth)
 
             ###   last TM lipo   ###
             # create numpy array of membranous over nonmembranous conservation ratios (identity)
             hist_data = np.array(df_filt['lipo_last_TMD'].dropna())
+            # get the mean value for annotations
+            mean_lipo_last = hist_data.mean()
             # use numpy to create a histogram
             freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
             freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -1197,9 +1340,20 @@ def compare_lists (s, df_lists_tab):
             # add the final bin, which is physically located just after the last regular bin but represents all higher values
             bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
             centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-            linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, ':', color=dfv.loc[prot_list, 'color'],
+            linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, ':', color=color,
                                                 alpha=alpha,
                                                 linewidth=linewidth)
+
+        ###############################################################
+        #                                                             #
+        #        annotate the mean values on the plots                #
+        #                                                             #
+        ###############################################################
+        ax.annotate("mean:", [0.005, 0.9*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+        ax.annotate("first{: >7.02f}".format(mean_lipo_TM01), [0.01, 0.8*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+        if is_multipass:
+            ax.annotate("central{: >5.02f}".format(mean_lipo_central), [0.01, 0.7*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+            ax.annotate("last{: >8.02f}".format(mean_lipo_last), [0.01, 0.6*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
 
         offset = offset - 1
 
@@ -1212,12 +1366,6 @@ def compare_lists (s, df_lists_tab):
     ax.set_xlabel('lipophilicity (Hessa scale)', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
     ax.xaxis.set_label_coords(0.5, -0.085)
-    # x and y axes min and max
-    xlim_min = min_
-    xlim_max = max_
-    ax.set_xlim(xlim_min, xlim_max)
-    ylim_min = -0.01
-    ylim_max = len(protein_lists) + 0.01
     ax.set_ylim(ylim_min, ylim_max)
     # set y-axis grid lines without tick labels
     ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
@@ -1245,7 +1393,7 @@ def compare_lists (s, df_lists_tab):
         last_TM = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
         # Create legend from custom artist/label lists
         ax.legend([handle for i, handle in enumerate(handles) if i in display] + [TM01, central_TMs, last_TM],
-                  [label for i, label in enumerate(labels) if i in display] + ['first TM', 'central TMDs', 'last TM'],
+                  [label for i, label in enumerate(labels) if i in display] + ['first TM', 'central TMs', 'last TM'],
                   fontsize=fontsize - 3, frameon=True, loc='upper right')  # bbox_to_anchor=(1.07, 1.12))
     else:
         # Create custom artists
@@ -1253,7 +1401,7 @@ def compare_lists (s, df_lists_tab):
         central_TMs = plt.Line2D((0, 1), (0, 0), color='k', linestyle='-', linewidth=linewidth)
         last_TM = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
         # Create legend from custom artist/label lists
-        ax.legend([TM01, central_TMs, last_TM], ['first TM', 'central TMDs', 'last TM'],
+        ax.legend([TM01, central_TMs, last_TM], ['first TM', 'central TMs', 'last TM'],
                   fontsize=fontsize - 3, frameon=True, loc='upper right')  # bbox_to_anchor=(1.07, 1.12))
 
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
@@ -1265,6 +1413,15 @@ def compare_lists (s, df_lists_tab):
     binlist = np.linspace(-40, 40, n_bins_cons + 1)
     fig, ax = plt.subplots()
     offset = len(protein_lists) - 1
+
+    # set up the axis min and max here, as it is necessary for annotations
+    # x and y axes min and max
+    xlim_min = -30
+    xlim_max = 30
+    ax.set_xlim(xlim_min, xlim_max)
+    ylim_min = -0.01
+    ylim_max = len(protein_lists) + 0.01
+    ax.set_ylim(ylim_min, ylim_max)
 
     for prot_list in protein_lists:
         # create a filtered dataframe (e.g. without GPCRs)
@@ -1281,12 +1438,17 @@ def compare_lists (s, df_lists_tab):
         if list_description in ["multipass"]:
             list_description = list_description + " (excl. GPCRs)"
 
+        is_multipass = True if df_lists_tab.loc[prot_list, "max_TMDs"] > 2 else False
+
+        color = dfv.loc[prot_list, 'color']
 
         # purely singlepass datasets will probably not have 'AAIMON_slope_central_TMDs' in the columns
-        if 'AAIMON_slope_central_TMDs' in df_filt.columns:
-            ###   AAIMON_slope central TMDs   ###
+        if is_multipass:
+            ###   AAIMON_slope central TMs   ###
             # create numpy array of membranous over nonmembranous conservation ratios (identity)
             hist_data = (df_filt['AAIMON_slope_central_TMDs'] * 1000).dropna()
+            # get mean of central TMs
+            mean_AAIMON_slope_central_TMDs = hist_data.mean()
             # use numpy to create a histogram
             freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
             freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -1297,29 +1459,16 @@ def compare_lists (s, df_lists_tab):
             # add the final bin, which is physically located just after the last regular bin but represents all higher values
             bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
             centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-            linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
+            linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=color,
                                                 alpha=alpha, linewidth=linewidth,
                                                 label=df_lists_tab.loc[prot_list, 'list_description'])
 
-            ###   AAIMON_slope TM01   ###
-            # create numpy array of membranous over nonmembranous conservation ratios (identity)
-            hist_data = (df_filt['TM01_AAIMON_slope'] * 1000).dropna()
-            # use numpy to create a histogram
-            freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
-            freq_counts_normalised = freq_counts / freq_counts.max() + offset
-            # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
-            col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
-            # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-            centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
-            # add the final bin, which is physically located just after the last regular bin but represents all higher values
-            bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-            centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-            linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, '-.', color=dfv.loc[prot_list, 'color'],
-                                                alpha=alpha, linewidth=linewidth)
 
             ###   AAIMON_slope last TMD   ###
             # create numpy array of membranous over nonmembranous conservation ratios (identity)
             hist_data = (df_filt['AAIMON_slope_last_TMD'] * 1000).dropna()
+            # get mean of last TMD
+            mean_AAIMON_slope_last_TMD = hist_data.mean()
             # use numpy to create a histogram
             freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
             freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -1330,10 +1479,39 @@ def compare_lists (s, df_lists_tab):
             # add the final bin, which is physically located just after the last regular bin but represents all higher values
             bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
             centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-            linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, ':', color=dfv.loc[prot_list, 'color'],
+            linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, ':', color=color,
                                                 alpha=alpha,
                                                 linewidth=linewidth)
-            offset = offset - 1
+        ###   AAIMON_slope TM01   ###
+        # create numpy array of membranous over nonmembranous conservation ratios (identity)
+        hist_data = (df_filt['TM01_AAIMON_slope'] * 1000).dropna()
+        # get mean of first TMD
+        mean_AAIMON_slope_TM01 = hist_data.mean()
+        # use numpy to create a histogram
+        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+        freq_counts_normalised = freq_counts / freq_counts.max() + offset
+        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+        # add the final bin, which is physically located just after the last regular bin but represents all higher values
+        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, '--', color=color,
+                                            alpha=alpha, linewidth=linewidth)
+
+        ###############################################################
+        #                                                             #
+        #        annotate the mean values on the plots                #
+        #                                                             #
+        ###############################################################
+        ax.annotate("mean:", [0.01, 0.9*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+        ax.annotate("first {: >6.02f}".format(mean_AAIMON_slope_TM01), [0.02, 0.8*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+        if is_multipass:
+            ax.annotate("central {: >4.02f}".format(mean_AAIMON_slope_central_TMDs), [0.02, 0.7*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+            ax.annotate("last {: >7.02f}".format(mean_AAIMON_slope_last_TMD), [0.02, 0.6*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+
+        offset = offset - 1
 
     ###############################################################
     #                                                             #
@@ -1344,13 +1522,6 @@ def compare_lists (s, df_lists_tab):
     ax.set_xlabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize, labelpad=20)
     # move the x-axis label closer to the x-axis
     ax.xaxis.set_label_coords(0.5, -0.085)
-    # x and y axes min and max
-    xlim_min = -30
-    xlim_max = 30
-    ax.set_xlim(xlim_min, xlim_max)
-    ylim_min = -0.01
-    ylim_max = len(protein_lists) + 0.01
-    ax.set_ylim(ylim_min, ylim_max)
     # set y-axis grid lines without tick labels
     ax.get_yaxis().set_ticks(list(np.arange(0, ylim_max, 1)))
     ax.yaxis.set_ticklabels([])
@@ -1377,7 +1548,7 @@ def compare_lists (s, df_lists_tab):
         last_TM = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
         # Create legend from custom artist/label lists
         ax.legend([handle for i, handle in enumerate(handles) if i in display] + [TM01, central_TM, last_TM],
-                  [label for i, label in enumerate(labels) if i in display] + ['first TM', 'central TMDs', 'last TM'],
+                  [label for i, label in enumerate(labels) if i in display] + ['first TM', 'central TMs', 'last TM'],
                   fontsize=fontsize - 3, frameon=True, loc='upper right')  # , bbox_to_anchor=(1.07, 1.12))
     else:
         # Create custom artists
@@ -1386,7 +1557,7 @@ def compare_lists (s, df_lists_tab):
         last_TM = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
         # Create legend from custom artist/label lists
         ax.legend([TM01, central_TM, last_TM],
-                  ['first TM', 'central TMDs', 'last TM'],
+                  ['first TM', 'central TMs', 'last TM'],
                   fontsize=fontsize - 3, frameon=True, loc='upper right')  # , bbox_to_anchor=(1.07, 1.12))
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
@@ -1396,7 +1567,7 @@ def compare_lists (s, df_lists_tab):
     Fig_name = 'Fig16_perc_AA_identity_TMD_vs_nonTMD'
 
     fig, axes = plt.subplots(ncols=len(df_dict), nrows=1, sharex=True, sharey=True, figsize=(len(df_dict) * 2.5, 5))
-    vmax = 10
+    vmax = 15
     for n, (ax, prot_list) in enumerate(zip(axes.flat, protein_lists)):
 
         ax.plot([0, 100], [0, 100], color='#CCCCCC', linewidth=1)
@@ -1440,7 +1611,7 @@ def compare_lists (s, df_lists_tab):
         ax.annotate('TMD more conserved', xy=(7, 1), rotation=0, fontsize=8, ha='left', va='bottom')
 
         if n == 0:
-            ax.set_ylabel('% AA identity nonTMD')
+            ax.set_ylabel('mean % identity\nof nonTMD region', fontsize=10)
 
     # get colorbar from latest imshow element (color scale should be the same for all subplots)
     fig.subplots_adjust(right=0.8)
@@ -1451,7 +1622,7 @@ def compare_lists (s, df_lists_tab):
     cbar_ax.set_yticklabels(labels)
 
     plt.subplots_adjust(wspace=0.15, hspace=0.05)
-    fig.text(0.465, 0.27, '% AA identity TMD', ha='center', fontsize=10)
+    fig.text(0.465, 0.27, 'mean % identity of TMD region amongst homologues', ha='center', fontsize=10)
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
@@ -1603,7 +1774,7 @@ def compare_lists (s, df_lists_tab):
             list_description = df_lists_tab.loc[prot_list, 'list_description']
             ind_for_list = ind + width * m
             ax.bar(ind_for_list, df[list_description], width=width, color=dfv.loc[prot_list, 'color'], label=df_lists_tab.loc[prot_list, 'list_description'], edgecolor='k')
-        xtick_locations = ind + width / 2  # - n/2*width
+        xtick_locations = ind + width# / 2  # - n/2*width
         ax.set_xticks(xtick_locations)
         label = [element.replace('_', '\n') for element in df.index]
         ax.set_xticklabels(label, rotation=0)

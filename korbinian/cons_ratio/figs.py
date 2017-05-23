@@ -225,7 +225,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         x = data[:, 0]  # FASTA_gapped_identity
         y = data[:, 1]  # AAIMON for each TMD
 
-        # for xlim, use the min and max evolutionary distance settings
+        # for xlim, use the min and max evolutionary distance settings for the full dataset
+        # note that this is also used for subsequent figures
         min_evol_distance = int((1 - s["max_ident"])*100)
         max_evol_distance = int((1 - s["min_ident"])*100)
 
@@ -285,35 +286,79 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         data = np.empty([0, 2])
         sys.stdout.write('Fig03 collecting data: ')
         sys.stdout.flush()
-        for n, acc in enumerate(df.index):
-            list_of_TMDs = df.loc[acc, 'list_of_TMDs']
-            if n % 200 == 0:
-                sys.stdout.write('. ')
-                sys.stdout.flush()
-            for TMD in list_of_TMDs:
-                add = np.array([df.loc[acc, '%s_AAIMON_slope' % TMD], df.loc[acc, '%s_lipo' % TMD]])
-                data = (np.vstack((data, add)))
-        sys.stdout.write('\n')
-        data = data[~np.isnan(data).any(axis=1)]
+
+        # for n, acc in enumerate(df.index[0:20]):
+        #     list_of_TMDs = df.loc[acc, 'list_of_TMDs']
+        #     if n % 200 == 0:
+        #         sys.stdout.write('. ')
+        #         sys.stdout.flush()
+        #     for TMD in list_of_TMDs:
+        #         add = np.array([df.loc[acc, '%s_AAIMON_slope' % TMD], df.loc[acc, '%s_lipo' % TMD]])
+        #         data = (np.vstack((data, add)))
+        # sys.stdout.write('\n')
+        # data = data[~np.isnan(data).any(axis=1)]
+        #
+
+
+        # aaa(df)
+        #
+        # for n, acc in enumerate(df.index[0:20]):
+        #     list_of_TMDs = df.loc[acc, 'list_of_TMDs']
+        #     if n % 200 == 0:
+        #         sys.stdout.write('. ')
+        #         sys.stdout.flush()
+        #     for TMD in list_of_TMDs:
+        #         add = np.array([df.loc[acc, '%s_AAIMON_slope' % TMD], df.loc[acc, '%s_lipo' % TMD]])
+        #         data = (np.vstack((data, add)))
+        # sys.stdout.write('\n')
+        # data = data[~np.isnan(data).any(axis=1)]
+        #
+        # print(data.shape)
+
+        # get the maximum mnumber of TMDs in the full dataset (e.g. 32)
+        max_n_TMDs = int(df.number_of_TMDs_excl_SP.max())
+        # create a large list of columns, e.g. ['TM01_AAIMON_slope',  'TM02_AAIMON_slope',  'TM03_AAIMON_slope', ...
+        col_list_AAIMON_slope = ['TM{:02d}_AAIMON_slope'.format(TM_nr) for TM_nr in range(1, max_n_TMDs + 1)]
+        col_list_lipo = ['TM{:02d}_lipo'.format(TM_nr) for TM_nr in range(1, max_n_TMDs + 1)]
+        # add the signal peptide if necessary
+        if "SP01_start" in df.columns:
+            col_list_AAIMON_slope = ["SP01_AAIMON_slope"] + col_list_AAIMON_slope
+            col_list_lipo = ["SP01_lipo"] + col_list_lipo
+        # select all AAIMON slopes or lipo data
+        df_slopes = df.loc[:, col_list_AAIMON_slope]
+        df_lipos = df.loc[:, col_list_lipo]
+        # check that .stack drops nans, and that there were exactly equal number of nans in the lipo and slope datasets
+        if df_slopes.stack().shape != df_lipos.stack().shape:
+            raise ValueError("There must be a nan in the lipo or AAIMON slopes. Check code, revert to orig if necessary.")
+
+        # convert slopes and lipos to a 1D numpy array
+        slopes = df_slopes.stack().values*1000
+        lipos = df_lipos.stack().values
+        # # join to a single numpy array
+        # data = np.array([slopes, lipos]).T
 
         fig, (cbar_ax, ax) = plt.subplots(2, 1, figsize=(5, 5.5), gridspec_kw={'height_ratios': [0.2, 12]})
         #fontsize = 16
         # number of bins
-        bins = [120, 120]
+        n_bins_x = int(max_evol_distance*2)
+        n_bins_y = 120
+        bins = [n_bins_x, n_bins_y]
         # density threshold
         thresh = 1
 
-        # plot AAIMON_slope data
-        x = data[:, 1]
-        y = data[:, 0] * 1000
+        # # plot AAIMON_slope data
+        # x = data[:, 1]
+        # y = data[:, 0] * 1000
+        #
+
 
         x_border = 1.5
         y_border = 30
         xyrange = [[-x_border, x_border], [-y_border, y_border]]
 
         # histogram the data
-        hh, locx, locy = scipy.histogram2d(x, y, range=xyrange, bins=bins)
-        hh1 = hh.reshape(1, 14400)
+        hh, locx, locy = scipy.histogram2d(lipos, slopes, range=xyrange, bins=bins)
+        hh1 = hh.reshape(1, n_bins_x * n_bins_y)
         hh1 = hh1[hh1 > 0]
         vmax = np.percentile(hh1, 99)
         if vmax % 2 == True:
@@ -351,7 +396,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         title = 'Boxplot of all TMDs'
         Fig_name = 'List{:02d}_Fig04_Boxplot_AAIMON_each_TMD'.format(list_number)
         fig, ax = plt.subplots()
-        num_bins = 30
         # "#0489B1"
         alpha = 0.25
         col_width_value = 0.95
@@ -432,7 +476,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # exclude TMD numbers with less than x applicable proteins from boxplot max detection
         boxplot_cutoff_number_of_TMDs = 20
         TMD_counts_major = TMD_counts[TMD_counts >= boxplot_cutoff_number_of_TMDs]
-        max_num_TMDs = TMD_counts_major.index.max()
+        max_num_TMDs = int(TMD_counts_major.index.max())
 
         if pd.notnull(max_num_TMDs):
             # title = str(keyword) + '_Boxplot'
@@ -442,7 +486,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
             legend = []
             data_to_plot = []
-            for i in range(1, max_num_TMDs.astype('int') + 1):
+            for i in range(1, max_num_TMDs + 1):
                 TM = 'TM%02d' % i
                 hist_data_AAIMON_each_TM = df['TM%02d_lipo' % i].dropna()
                 if len(hist_data_AAIMON_each_TM) > 0:
@@ -451,7 +495,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
             # add values of every TMD number that is larger than the boxplot_cutoff_number_of_TMDs to final bin
             data_for_final_bin = []
-            for i in range(max_num_TMDs.astype('int') + 1, df.number_of_TMDs_excl_SP.max().astype('int') + 1):
+            for i in range(max_num_TMDs + 1, df.number_of_TMDs_excl_SP.max().astype('int') + 1):
                 # TM_final = 'TM%02d' % i
                 hist_data_AAIMON_each_TM_final_bin = df['TM%02d_lipo' % i].dropna()
                 # if len(hist_data_AAIMON_each_TM) > 0:
@@ -532,7 +576,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         legend = []
         data_to_plot = []
         # iterate through df and get all AAIMONs with specified number of TMD
-        for i in range(1, max_num_TMDs.astype(np.int64) + 1):
+        for i in range(1, max_num_TMDs + 1):
             hist_data = []
             for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
                 if df.loc[acc, 'number_of_TMDs'] == i:
@@ -587,7 +631,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
 
-
     if s['Fig07_Density_AAIMON_or_slope_vs_evol_distance']:
         Fig_Nr = 7
         title = 'compare AAIMON with AAIMON_slope'
@@ -598,9 +641,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         # histogram definition
         # data range
-        xyrange = [[0, 60], [0.2, 1.8]]
+        xyrange = [[0, max_evol_distance], [0.2, 1.8]]
         # number of bins
-        bins = [120, 120]
+        bins = [max_evol_distance*2, 120]
         # density threshold
         thresh = 1
 
@@ -615,7 +658,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                         interpolation='none', origin='upper', aspect='auto', vmin=0, vmax=vmax)
 
         # plot AAIMON_slope data with changed xyrange
-        xyrange = [[0, 60], [-20, 20]]
+        xyrange = [[0, max_evol_distance], [-20, 20]]
         # plot AAIMON_slope data
         x = df.obs_changes_mean
         y = df.AAIMON_slope_mean_all_TMDs * 1000
@@ -635,7 +678,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax2.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
         ax1.set(adjustable='box-forced')
         ax2.set(adjustable='box-forced')
-        plt.xlabel('evolutionary distance (% substitutions)', fontsize=fontsize)
+        plt.xlabel('average evolutionary distance of homologues (% substitutions)', fontsize=fontsize)
 
         # add colorbar
         cbar_ax = fig.add_axes([0.12, 0.89, 0.78, 0.01])
@@ -1204,8 +1247,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 title = 'Only GPCRs, boxplot for each TMD'
                 Fig_name = 'List{:02d}_Fig15_Boxplot_AAIMON_by_number_of_TMDs_GPCRs_only'.format(list_number)
                 fig, ax = plt.subplots()
-
-                num_bins = 30
                 # "#0489B1"
                 alpha = 0.25
                 col_width_value = 0.95
@@ -1216,7 +1257,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 number_of_TMDs_excl_SP = df_GPCR.number_of_TMDs_excl_SP.max()
                 legend = []
                 data_to_plot = []
-                for i in range(1, max_num_TMDs.astype(np.int64) + 1):
+                for i in range(1, max_num_TMDs + 1):
                     TM = 'TM%02d' % i
                     hist_data_AAIMON_each_TM = df_GPCR['TM%02d_AAIMON_mean' % i].dropna()
                     if len(hist_data_AAIMON_each_TM) > 0:
@@ -1325,13 +1366,14 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             ax.annotate(s='y = {a:.5f}x + {b:.5f}'.format(a=linear_regression[0], b=linear_regression[1]),
                         xy=(0.85, 0.95), fontsize=fontsize - 2, xytext=None, xycoords='axes fraction',alpha=0.75)
 
-        ax.scatter(x, y, s=datapointsize, alpha=alpha_dpd, color='r')
-
+        ax.scatter(x, y, s=datapointsize, alpha=alpha_dpd, color=color_list_TUM_blue)
+        symmetrical = [s["min_ident"]*100, s["max_ident"]*100]
+        ax.plot(symmetrical, symmetrical, color=color_list_TUM_blue[0], alpha=0.5, linestyle="-")
         ax.set_xlabel('TMD_perc_identity_all_TMDs', fontsize=fontsize)
         ax.set_ylabel('nonTMD_perc_ident_mean', rotation='vertical', fontsize=fontsize)
         ax.tick_params(labelsize=fontsize)
-        ax.set_xlim(40, 100)
-        ax.set_ylim(40, 100)
+        ax.set_xlim(max_evol_distance, 100)
+        ax.set_ylim(s["min_ident"]*100, 100)
 
         ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
                     xycoords='axes fraction', alpha=0.75)
