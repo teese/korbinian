@@ -1752,3 +1752,51 @@ def pr(p, end="\n"):
     sys.stdout.flush()
 
 flatten = lambda x: [item for sublist in x for item in sublist]
+
+
+def read_signalp_output(filepath):
+    """read signalp output file
+
+    Note: SignalP uses a non-standard tab-formatted output file. Copy everything INCLUDING THE FIRST LINE that shows the SignalP version.
+
+    # SignalP-4.1 gram- predictions
+    # name                     Cmax  pos  Ymax  pos  Smax  pos  Smean   D     ?  Dmaxcut    Networks-used
+    O83335                     0.280  25  0.284  25  0.467   2  0.351   0.309 Y  0.300      SignalP-TM
+    A0A0J3ZJ69                 0.494  43  0.473  43  0.544  38  0.253   0.392 Y  0.300      SignalP-TM
+    and so on
+
+    This is better than the gff.txt, which only contains the proteins deemed to be signal peptides, and not the full list of proteins including those without signals.
+
+    Parameters
+    ----------
+    filepath : str
+        Full path to .txt or .csv file with signalp output
+
+
+    Returns
+    -------
+    dfsp : pd.DataFrame
+        Pandas dataframe with signalp output data.
+    """
+    cols = ['Cmax', 'pos', 'Ymax', 'pos', 'Smax', 'pos', 'Smean', 'D', 'Q', 'Dmaxcut', 'Networks-used']
+    dfsp = pd.read_csv(filepath, skiprows=2, sep=r"\s*", header=None, index_col = 0, engine="python")
+    dfsp.columns = cols
+    return dfsp
+
+def read_signalp_gff(filepath):
+    """Returns the signalP gff file as a pandas dataframe
+
+    Parameters
+    ----------
+    filepath : str
+        Full path to file.
+
+    Returns
+    -------
+    df_gff : pd.DataFrame
+        Dataframe with gff data. Note that this only contains the proteins expected to be signal peptides.
+    """
+    df_gff = pd.read_csv(filepath, skiprows=3, sep="\t", index_col=0, header=None)
+    cols = ["version", "signal", "start", "end", "score", ".", "..", "is_signal"]
+    df_gff.columns = cols
+    return df_gff

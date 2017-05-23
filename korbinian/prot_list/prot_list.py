@@ -56,10 +56,26 @@ def prepare_protein_list(s, pathdict, logging):
     else:
         modification_date = None
 
+
+    ########################################################################################
+    #                                                                                      #
+    #         TMSEG alpha-helical exclusion of non-trusted signal peptides                 #
+    #                                                                                      #
+    ########################################################################################
     # load SignalP file containing all proteins that have signal peptides
     SignalP_SiPe_path = pathdict['SignalP_SiPe_acc']
-    n_prot_AFTER_dropping_non_trusted_SiPe = 'SignalP output file not found!'
-    if os.path.isfile(SignalP_SiPe_path):
+    # create variable to hold the date of the SignalP analysis
+    modification_date_SignalP = None
+
+    if "betabarrel" not in df.columns:
+        df["betabarrel"] = False
+
+    if os.path.isfile(SignalP_SiPe_path) and True not in df.betabarrel.tolist():
+        ########################################################################################
+        #                                                                                      #
+        #         TMSEG alpha-helical exclusion of non-trusted signal peptides                 #
+        #                                                                                      #
+        ########################################################################################
         modification_date_SignalP = time.ctime(os.path.getmtime(SignalP_SiPe_path))
         SignalP_acc_containing_SiPe = korbinian.cons_ratio.SCAMPI.get_SignalP_SiPe_acc(SignalP_SiPe_path)
         # create column containing bool if signal peptide is predicted by SignalP
@@ -69,18 +85,38 @@ def prepare_protein_list(s, pathdict, logging):
             else:
                 df.loc[acc, 'SignalP_SiPe'] = False
         # drop all proteins where Uniprot did not get signal peptide
-        drop = []
+        TM01_potential_SiPe_acc_list = []
         for acc in df.index:
             # if UniProt DOESN'T think there is a signal peptide, but SignalP does
             # there is a chance that the "TM01" is really a signal peptide
             if df.loc[acc, 'uniprot_SiPe'] == False and df.loc[acc, 'SignalP_SiPe'] == True:
                 # but it's only a danger if the TM01 is in the first 40 residues
                 if df.loc[acc, 'TM01_start'] < 40:
-                    drop.append(acc)
-        df = df.drop(drop, axis=0)
+                    TM01_potential_SiPe_acc_list.append(acc)
+        df = df.drop(TM01_potential_SiPe_acc_list, axis=0)
+        n_prot_AFTER_dropping_non_trusted_SiPe = df.shape[0]
+
+    elif True in df.betabarrel.tolist():
+        # for old parsed data, add OMPdb_SiPe (can be removed after re-running all parsing)
+        if "OMPdb_SiPe" not in df.columns:
+            df["OMPdb_SiPe"] = df.SP01_start.notnull()
+        ########################################################################################
+        #                                                                                      #
+        #                betabarrel exclusion of non-trusted signal peptides                   #
+        #                                                                                      #
+        ########################################################################################
+        # first select those where no signal peptide was found
+        df_removed = df.loc[df["OMPdb_SiPe"] == False]
+        # from these, select those where the TM01_start is in the first 40 residues
+        df_removed = df_removed.loc[df_removed["TM01_start"] < 40]
+        # make a list of those removed
+        TM01_potential_SiPe_acc_list = list(df_removed.index)
+        # drop and note change in length of the dataframe[to be replaced later with a bool column]
+        df = df.drop(TM01_potential_SiPe_acc_list, axis=0)
         n_prot_AFTER_dropping_non_trusted_SiPe = df.shape[0]
     else:
-        modification_date_SignalP = None
+        n_prot_AFTER_dropping_non_trusted_SiPe = 'SignalP output file not found!'
+        TM01_potential_SiPe_acc_list = []
 
     # drop all TMSEG nonTM proteins
     n_prot_AFTER_dropping_TMSEG_nonTM_proteins = 'TMSEG output file not found!'
@@ -551,6 +587,8 @@ def prepare_protein_list(s, pathdict, logging):
         logging.info("modification_date of scampi file: {}".format(modification_date))
 
     logging.info('n_prot_AFTER_non_trusted_Signal_Peptides: {}'.format(n_prot_AFTER_dropping_non_trusted_SiPe))
+    if len(TM01_potential_SiPe_acc_list) > 0:
+        logging.info('TM01_potential_SiPe_acc_list: {}'.format(TM01_potential_SiPe_acc_list))
     if modification_date_SignalP is not None:
         logging.info("modification_date of SignalP file: {}".format(modification_date_SignalP))
 
