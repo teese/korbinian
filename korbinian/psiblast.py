@@ -98,7 +98,7 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
     s["psiblast_exec_str"] = psiblast_exec_str
     s["evalue"] = "1e-5"
     s["inclusion_ethresh"] = "1e-5"
-    s["num_threads"] = 10
+    s["num_threads"] = 5
     # s["db"] = "metazoa90"
     s["num_descriptions"] = 3000
     s["num_alignments"] = 3000
