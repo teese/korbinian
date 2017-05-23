@@ -1394,7 +1394,7 @@ def compare_lists (s, df_lists_tab):
         # Create legend from custom artist/label lists
         ax.legend([handle for i, handle in enumerate(handles) if i in display] + [TM01, central_TMs, last_TM],
                   [label for i, label in enumerate(labels) if i in display] + ['first TM', 'central TMs', 'last TM'],
-                  fontsize=fontsize - 3, frameon=True, loc='upper right')  # bbox_to_anchor=(1.07, 1.12))
+                  fontsize=fontsize - 3, frameon=True, loc='upper right', handlelength=4)  # bbox_to_anchor=(1.07, 1.12))
     else:
         # Create custom artists
         TM01 = plt.Line2D((0, 1), (0, 0), color='k', linewidth=linewidth)
@@ -1402,7 +1402,7 @@ def compare_lists (s, df_lists_tab):
         last_TM = plt.Line2D((0, 1), (0, 0), color='k', linestyle=':', linewidth=linewidth)
         # Create legend from custom artist/label lists
         ax.legend([TM01, central_TMs, last_TM], ['first TM', 'central TMs', 'last TM'],
-                  fontsize=fontsize - 3, frameon=True, loc='upper right')  # bbox_to_anchor=(1.07, 1.12))
+                  fontsize=fontsize - 3, frameon=True, loc='upper right', handlelength=4)  # bbox_to_anchor=(1.07, 1.12))
 
     utils.save_figure(fig, Fig_name, base_filepath=base_filepath, save_png=save_png, save_pdf=save_pdf)
 
@@ -1442,6 +1442,25 @@ def compare_lists (s, df_lists_tab):
 
         color = dfv.loc[prot_list, 'color']
 
+        ###   AAIMON_slope TM01   ###
+        # create numpy array of membranous over nonmembranous conservation ratios (identity)
+        hist_data = (df_filt['TM01_AAIMON_slope'] * 1000).dropna()
+        # get mean of first TMD
+        mean_AAIMON_slope_TM01 = hist_data.mean()
+        # use numpy to create a histogram
+        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+        freq_counts_normalised = freq_counts / freq_counts.max() + offset
+        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+        # add the final bin, which is physically located just after the last regular bin but represents all higher values
+        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, '--', color=color,
+                                            alpha=alpha, linewidth=linewidth,
+                                            label=df_lists_tab.loc[prot_list, 'list_description'])
+
         # purely singlepass datasets will probably not have 'AAIMON_slope_central_TMDs' in the columns
         if is_multipass:
             ###   AAIMON_slope central TMs   ###
@@ -1460,8 +1479,7 @@ def compare_lists (s, df_lists_tab):
             bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
             centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
             linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=color,
-                                                alpha=alpha, linewidth=linewidth,
-                                                label=df_lists_tab.loc[prot_list, 'list_description'])
+                                                alpha=alpha, linewidth=linewidth)
 
 
             ###   AAIMON_slope last TMD   ###
@@ -1482,23 +1500,7 @@ def compare_lists (s, df_lists_tab):
             linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, ':', color=color,
                                                 alpha=alpha,
                                                 linewidth=linewidth)
-        ###   AAIMON_slope TM01   ###
-        # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = (df_filt['TM01_AAIMON_slope'] * 1000).dropna()
-        # get mean of first TMD
-        mean_AAIMON_slope_TM01 = hist_data.mean()
-        # use numpy to create a histogram
-        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
-        freq_counts_normalised = freq_counts / freq_counts.max() + offset
-        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
-        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
-        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
-        # add the final bin, which is physically located just after the last regular bin but represents all higher values
-        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, '--', color=color,
-                                            alpha=alpha, linewidth=linewidth)
+
 
         ###############################################################
         #                                                             #
@@ -1549,7 +1551,7 @@ def compare_lists (s, df_lists_tab):
         # Create legend from custom artist/label lists
         ax.legend([handle for i, handle in enumerate(handles) if i in display] + [TM01, central_TM, last_TM],
                   [label for i, label in enumerate(labels) if i in display] + ['first TM', 'central TMs', 'last TM'],
-                  fontsize=fontsize - 3, frameon=True, loc='upper right')  # , bbox_to_anchor=(1.07, 1.12))
+                  fontsize=fontsize - 3, frameon=True, loc='upper right', handlelength=4)  # , bbox_to_anchor=(1.07, 1.12))
     else:
         # Create custom artists
         TM01 = plt.Line2D((0, 1), (0, 0), color='k', linestyle='-.', linewidth=linewidth)
@@ -1558,7 +1560,7 @@ def compare_lists (s, df_lists_tab):
         # Create legend from custom artist/label lists
         ax.legend([TM01, central_TM, last_TM],
                   ['first TM', 'central TMs', 'last TM'],
-                  fontsize=fontsize - 3, frameon=True, loc='upper right')  # , bbox_to_anchor=(1.07, 1.12))
+                  fontsize=fontsize - 3, frameon=True, loc='upper right', handlelength=4)  # , bbox_to_anchor=(1.07, 1.12))
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
     # --------------------------------------------------------------------------------------------------------------------------------#

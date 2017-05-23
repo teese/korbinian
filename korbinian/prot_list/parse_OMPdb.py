@@ -60,9 +60,10 @@ def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_
 
     # Creating dictionary keywords
     keywords = {"Uniprot": [], "Family": [], "Gene_Name": [], "Organism": [], "NCBI_TaxID": [], "Coverage(%)": [],
-                "Sequence": [], "len_Sequence": [], "Topology_Reli": [], "Topology": [], "Description": [], "Pfam_ID": []}
+                "Sequence": [], "len_Sequence": [], "Topology_Reli": [], "Topology": [], "Description": [], "Pfam_ID": [], "OMPdb_SiPe": []}
 
-    # check if signal peptides should be extracted
+    # check if signal peptides should be added to the list_of_TMDs and analysed
+    # signal peptides will still be detected, via "True" in OMPdb_SiPe. This is useful for excluding potential TM01 mis-labelled as SP.
     analyse_SiPe = False
     if 'SiPe' in s['regions']:
         analyse_SiPe = True
@@ -117,17 +118,19 @@ def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_
             if "DB_REF" in line and take_ID == True:
                 # add database cross references to special dict
                 db_cross_ref.update({line[9][:-1]: line[10].split('|')})
-            if "SIGNAL_PEPTIDE" in line and take_ID == True and analyse_SiPe == True:
-                if ' '.join(line[1:]) != 'No information available':
-                    keywords["SP01_start"].append(line[1][0])
-                    keywords["SP01_end"].append(line[1][2:-1])
-                    keywords["SP01_seq"].append(line[2][:-1])
-                    keywords["SiPe_source"].append(' '.join(line[-2:]))
-                else:
-                    keywords["SP01_start"].append(np.nan)
-                    keywords["SP01_end"].append(np.nan)
-                    keywords["SP01_seq"].append(np.nan)
-                    keywords["SiPe_source"].append(np.nan)
+            if "SIGNAL_PEPTIDE" in line and take_ID == True:
+                keywords["OMPdb_SiPe"].append(True)
+                if analyse_SiPe == True:
+                    if ' '.join(line[1:]) != 'No information available':
+                        keywords["SP01_start"].append(line[1][0])
+                        keywords["SP01_end"].append(line[1][2:-1])
+                        keywords["SP01_seq"].append(line[2][:-1])
+                        keywords["SiPe_source"].append(' '.join(line[-2:]))
+                    else:
+                        keywords["SP01_start"].append(np.nan)
+                        keywords["SP01_end"].append(np.nan)
+                        keywords["SP01_seq"].append(np.nan)
+                        keywords["SiPe_source"].append(np.nan)
             if "COVERAGE(%)" in line and take_ID == True:
                 keywords["Coverage(%)"].append(line[-1])
             if "SEQUENCE" in line and take_ID == True:
@@ -258,8 +261,6 @@ def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_csv, list_parsed_
     df_KW = df_KW[df_KW["Topology_Reli"] > OMPdb_topology_reliability_cutoff]
 
     num_proteins_AFTER_dropping_those_with_topology_reliability_below_cutoff = df_KW.shape[0]
-
-
 
     df_KW["TM_indices"] = df_KW["Membrane_Borders"].apply(lambda x: tuple(zip(x[::2], x[1::2])))
 
