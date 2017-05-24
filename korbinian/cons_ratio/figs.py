@@ -313,7 +313,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # sys.stdout.write('\n')
         # data = data[~np.isnan(data).any(axis=1)]
         #
-        # print(data.shape)
 
         # get the maximum mnumber of TMDs in the full dataset (e.g. 32)
         max_n_TMDs = int(df.number_of_TMDs_excl_SP.max())
@@ -327,6 +326,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # select all AAIMON slopes or lipo data
         df_slopes = df.loc[:, col_list_AAIMON_slope]
         df_lipos = df.loc[:, col_list_lipo]
+        aaa(df_slopes)
         # check that .stack drops nans, and that there were exactly equal number of nans in the lipo and slope datasets
         if df_slopes.stack().shape != df_lipos.stack().shape:
             raise ValueError("There must be a nan in the lipo or AAIMON slopes. Check code, revert to orig if necessary.")
@@ -1372,7 +1372,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.set_xlabel('TMD_perc_identity_all_TMDs', fontsize=fontsize)
         ax.set_ylabel('nonTMD_perc_ident_mean', rotation='vertical', fontsize=fontsize)
         ax.tick_params(labelsize=fontsize)
-        ax.set_xlim(max_evol_distance, 100)
+        ax.set_xlim(100-max_evol_distance, 100)
         ax.set_ylim(s["min_ident"]*100, 100)
 
         ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
