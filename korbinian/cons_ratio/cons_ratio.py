@@ -525,23 +525,19 @@ def calculate_AAIMONs(p):
             # check that it's definitely a dataframe
             assert isinstance(df_cr, (pd.DataFrame))
 
-            # keep only the homologues that had measurable AAIMON ratios for all proteins
-            df_cr = df_cr.loc[filt_index, :]
+            # # keep only the homologues that had measurable AAIMON ratios for all proteins
+            # df_cr = df_cr.loc[filt_index, :]
 
-            # #DEPRECATED. SEEMS TO BE SOLVED BY RE-SLICING
-            # # There is a bug that caused a keyerror for an unknown protein which had only one valid homologue : KeyError: 'None of [[2044.0]] are in the [index]' (D4H7V8, J1FM30, J7QHH8?)
-            # # for now, eliminate any proteins with less than 2 homologues
-            # if mean_ser['AAIMON_n_homol'] >= 2:
-            #     # keep only the homologues that had measurable AAIMON ratios for all proteins
-            #     df_cr = df_cr.loc[filt_index, :]
-            # else:
-            #     try:
-            #         df_cr = df_cr.loc[filt_index, :]
-            #     except KeyError:
-            #         #df_cr = pd.DataFrame(columns=df_cr.columns)
-            #         message = "{} has only {} valid homologues({}), and gives a KeyError when filtering, suggesting they are not in the current" \
-            #                   " homologue list.".format(acc, mean_ser['AAIMON_n_homol'], filt_index)
-            #         return acc, False, message
+            #DEPRECATED. SEEMS TO BE SOLVED BY RE-SLICING (NOPE!)
+            # There is a bug that caused a keyerror for an unknown protein which had only one valid homologue : KeyError: 'None of [[2044.0]] are in the [index]' (D4H7V8, J1FM30, J7QHH8?)
+            # re-slicing did not fix this (M2BWP2?, S9SJA4, E6W3I6, A9L0Y0)
+            try:
+                df_cr = df_cr.loc[filt_index, :]
+            except KeyError:
+                #df_cr = pd.DataFrame(columns=df_cr.columns)
+                message = "{} has {} valid homologues({}), and gives a KeyError when filtering, suggesting they are not in the current" \
+                          " homologue list.".format(acc, mean_ser['AAIMON_n_homol'], filt_index)
+                return acc, False, message
 
             ########################################################################################
             #                                                                                      #

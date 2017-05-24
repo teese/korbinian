@@ -301,7 +301,7 @@ def calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser, len_nonTMD_orig_q):
     #               calculate the percentage gaps of the nonTMD region                     #
     #                                                                                      #
     ########################################################################################
-    df_nonTMD['perc_gaps_nonTMD_SW_align'] = (df_nonTMD['nonTMD_q_num_gaps'] - df_nonTMD['nonTMD_m_num_gaps']) / df_nonTMD['nonTMD_SW_align_len']
+    df_nonTMD['perc_gaps_nonTMD_SW_align'] = (df_nonTMD['nonTMD_q_num_gaps'] + df_nonTMD['nonTMD_m_num_gaps']) / df_nonTMD['nonTMD_SW_align_len']
     mean_ser['perc_gaps_nonTMD_SW_align_mean'] = float('%0.2f' % df_nonTMD['perc_gaps_nonTMD_SW_align'].mean())
 
     """ LEGACY CODE TO BE DELETED LATER """
