@@ -562,10 +562,13 @@ def prepare_protein_list(s, pathdict, logging):
             df[KW] = df['uniprot_KW'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=([KW],))
         # check for specific keywords with altered names in final file
         df['GPCR'] = df['uniprot_KW'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=(['G-protein coupled receptor'],))
+        df['olfactory_receptor'] = df['prot_descr'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=(['Olfactory receptor'],))
+
     else:
-        df['GPCR'] = np.nan
+        df['GPCR'] = False
+        df['olfactory_receptor'] = False
         for KW in KW_search_list:
-            df[KW] = np.nan
+            df[KW] = False
 
     ########################################################################################
     #                                                                                      #

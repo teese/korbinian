@@ -45,7 +45,7 @@ def keyword_analysis(pathdict, s, logging):
     df = df[df.AAIMON_n_homol >= s['min_homol']]
     n_after = df.shape[0]
     n_dropped = n_before - n_after
-    logging.info('{} proteins dropped due to insufficient homologues\nOrig = {}, Final = {}, cutoff = {}\n'.format(n_dropped, n_before, n_after, s['min_homol']))
+    logging.info('{} proteins dropped due to insufficient homologues\nOrig = {}, Final = {}, cutoff = {} homologues\n'.format(n_dropped, n_before, n_after, s['min_homol']))
 
     # create folder in list summary directory to hold keyword data
     if not os.path.exists(pathdict["keywords"]):
