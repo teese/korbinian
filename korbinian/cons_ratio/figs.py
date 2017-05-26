@@ -65,7 +65,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
     # create number of datapoint dependent alpha_dpd
     alpha_dpd = utils.calc_alpha_from_datapoints(df['AAIMON_mean_all_TMDs'])
-    sys.stdout.write('\nopacity of datapoints: {a:.2f}\n'.format(a=alpha_dpd))
+    #sys.stdout.write('\nopacity of datapoints: {a:.2f}\n'.format(a=alpha_dpd))
+
     # filter to remove proteins that have less than ~5 homologues
     # this is only important for the beta-barrel dataset, which has a lot of these proteins!
     min_n_homol = s["min_homol"]
@@ -83,9 +84,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     #df_uniprot = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
 
     prot_family_df_dict = {}
-    list_prot_families = None
     if 'uniprot_KW' in df.columns:
-
         # create a new column showing whether the protein is a GPCR
         if "GPCR" not in df.columns:
             # convert the keywords from a stringlist to a python list
@@ -103,7 +102,16 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         list_prot_families = ["df_GPCR", "df_nonGPCR", "df_olfactory_receptorGPCR", "df_non_olfactory_receptorGPCR"]
     else:
         sys.stdout.write('No uniprot keywords available! cannot create figures 19-21 \n')
+        list_prot_families = []
 
+    # print mean aaimon slope for the full dataset
+    mean_AAIMON_slope = df['AAIMON_mean_all_TMDs'].mean()
+    logging.info("\n{p} mean AAIMON slope = {m:0.02f} * 10^-3".format(p="full dataset", m=mean_AAIMON_slope))
+
+    # print mean values for protein families
+    for prot_family in list_prot_families:
+        mean_AAIMON_slope = prot_family_df_dict[prot_family]['AAIMON_mean_all_TMDs'].mean()
+        logging.info("{p} mean AAIMON slope = {m:0.02f} * 10^-3".format(p=prot_family[3:], m=mean_AAIMON_slope))
 
     # # save dataframe
     # df.to_csv(pathdict["base_filename_summaries"] + '_df_figs.csv', sep=",", quoting=csv.QUOTE_NONNUMERIC)
@@ -298,8 +306,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         | Slope | lipo |
         '''
         data = np.empty([0, 2])
-        sys.stdout.write('Fig03 collecting data: ')
-        sys.stdout.flush()
 
         # for n, acc in enumerate(df.index[0:20]):
         #     list_of_TMDs = df.loc[acc, 'list_of_TMDs']
@@ -313,9 +319,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # data = data[~np.isnan(data).any(axis=1)]
         #
 
-
-        # aaa(df)
-        #
         # for n, acc in enumerate(df.index[0:20]):
         #     list_of_TMDs = df.loc[acc, 'list_of_TMDs']
         #     if n % 200 == 0:
@@ -408,6 +411,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         col_list_AAIMON_slope = ['TM{:02d}_AAIMON_slope'.format(TM_nr) for TM_nr in range(1, max_n_TMDs + 1)]
         col_list_lipo = ['TM{:02d}_lipo'.format(TM_nr) for TM_nr in range(1, max_n_TMDs + 1)]
 
+        #plot the original dataset
+        Fig03_Density_lipo_vs_TM_conservation(df, "", "", col_list_AAIMON_slope, col_list_lipo, max_evol_distance, base_filepath, save_png, save_pdf, dpi, fontsize)
+
         for i, prot_family in enumerate(list_prot_families):
             # a, b, c, etc
             letter = letters[i]
@@ -415,8 +421,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             suffix = "_{}".format(prot_family[3:])
             # get appropriate dataframe subset for analysis (above)
             df_Fig03 = prot_family_df_dict[prot_family]
-            # plot
-            Fig03_Density_lipo_vs_TM_conservation(df_Fig03, letter, suffix, col_list_AAIMON_slope, col_list_lipo, max_evol_distance, base_filepath, save_png, save_pdf, dpi, fontsize)
+            if not df_Fig03.empty:
+                # plot
+                Fig03_Density_lipo_vs_TM_conservation(df_Fig03, letter, suffix, col_list_AAIMON_slope, col_list_lipo, max_evol_distance, base_filepath, save_png, save_pdf, dpi, fontsize)
 
         # for human multipass, test GPCR TM01 and TM07 only
         if list_number in [2,5]:
@@ -427,7 +434,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 letter = letters[i]
                 suffix = "_{}".format(prot_family[3:]) + "_TM01_and_TM07_only"
                 df_Fig03 = prot_family_df_dict[prot_family]
-                Fig03_Density_lipo_vs_TM_conservation(df_Fig03, letter, suffix, col_list_AAIMON_slope, col_list_lipo, max_evol_distance, base_filepath, save_png, save_pdf, dpi, fontsize)
+                if not df_Fig03.empty:
+                    Fig03_Density_lipo_vs_TM_conservation(df_Fig03, letter, suffix, col_list_AAIMON_slope, col_list_lipo, max_evol_distance, base_filepath, save_png, save_pdf, dpi, fontsize)
 
     if s['Fig04_Boxplot_AAIMON_each_TMD']:
         Fig_Nr = 4

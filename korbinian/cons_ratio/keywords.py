@@ -29,16 +29,25 @@ def keyword_analysis(pathdict, s, logging):
     """
     logging.info("~~~~~~~~~~~~                      starting keyword_analysis                         ~~~~~~~~~~~~")
     # load summary file
-    dfu = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
-    if dfu.shape[0] < s["min_n_proteins_in_list"]:
-        return "~~~~~~~~~~~~           keyword_analysis skipped, only {} proteins in list            ~~~~~~~~~~~~".format(dfu.shape[0])
-    # skip the keyword analysis if there are no keywords
-    if 'uniprot_KW' not in dfu.columns:
-        return "Keyword analysis not conducted. No keywords found in protein summary file."
+    df_list = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
+    if df_list.shape[0] < s["min_n_proteins_in_list"]:
+        return "~~~~~~~~~~~~           keyword_analysis skipped, only {} proteins in list            ~~~~~~~~~~~~".format(df_list.shape[0])
+
     # load cr_summary file
-    dfc = pd.read_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
+    df_cr_summary = pd.read_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
     # merge cr_summary and summary file, if columns are equal in both files, suffix _dfc will be added in cr_summary column names for backwards compatibility
-    df = pd.merge(dfc, dfu, left_index=True, right_index=True, suffixes=('_dfc', ''))
+    df = pd.merge(df_cr_summary, df_list, left_index=True, right_index=True, suffixes=('_dfc', ''))
+
+    # skip the keyword analysis if there are no keywords
+    # if it's a betabarrel dataset, take the Pfam IDs as keywords
+    is_betabarrel_dataset = False
+    if 'uniprot_KW' not in df.columns:
+        if "betabarrel" in df.columns and "Pfam_ID" in df.columns:
+            if True in df.betabarrel.tolist():
+                is_betabarrel_dataset = True
+                df["uniprot_KW"] = df["Pfam_ID"]
+        else:
+            return "Keyword analysis not conducted. No keywords found in protein summary file."
 
     # drop proteins with less then x homologues
     n_before = df.shape[0]
@@ -78,43 +87,49 @@ def keyword_analysis(pathdict, s, logging):
             list_of_acc_without_nan.append(acc)
     df = df.loc[list_of_acc_without_nan, :]
 
-
     # to avoid reprocessing of all keywords, a new column with removed ignored and replaced enzyme keywords is created and saved
     # if this column is already present in any dataframe, re-creation is skipped
     if not 'uniprot_KW_for_analysis' in df.columns:
         df['uniprot_KW_for_analysis'] = df['uniprot_KW']
+
         # apply ast.literal_eval to every item in df['uniprot_KW_for_analysis']
         if isinstance(df['uniprot_KW_for_analysis'][0], str):
-            df['uniprot_KW_for_analysis'] = df['uniprot_KW_for_analysis'].apply(lambda x: ast.literal_eval(x))
+            df['uniprot_KW_for_analysis'] = df['uniprot_KW_for_analysis'].dropna().apply(lambda x: ast.literal_eval(x))
 
-        # check if protein is an Enzyme or GPCR
-        df['enzyme'] = df['uniprot_KW_for_analysis'].apply(KW_list_contains_any_desired_KW, args=(list_enzyme_KW,))
-        # check if protein is a GPCR
-        list_GPCR_KW = ['G-protein coupled receptor']
-        df['GPCR'] = df['uniprot_KW_for_analysis'].apply(KW_list_contains_any_desired_KW, args=(list_GPCR_KW,))
+        if not True in df.betabarrel.tolist():
+            # check if protein is an Enzyme or GPCR
+            df['enzyme'] = df['uniprot_KW_for_analysis'].dropna().apply(KW_list_contains_any_desired_KW, args=(list_enzyme_KW,))
 
-        # remove ignored keywords; replace Enzyme keywords with single keyword 'Enzyme
-        sys.stdout.write('removing ignored keywords; replacing enzyme associated keywords with "Enzyme"\n')
-        #n = 0
-        for n, acc in enumerate(df.index):
-            n += 1
-            if n % 20 == 0:
-                sys.stdout.write('.'), sys.stdout.flush()
-                if n % 600 == 0:
-                    sys.stdout.write('\n'), sys.stdout.flush()
-            # remove ignored keywords from dataframe 'uniprot_KW_for_analysis'
-            for element in list_ignored_KW:
-                if element in df.loc[acc, 'uniprot_KW_for_analysis']:
-                    df.loc[acc, 'uniprot_KW_for_analysis'].remove(element)
-            # replace keywords associated with enzymes with keyword 'Enzyme'
-            for element in list_enzyme_KW:
-                if element in df.loc[acc, 'uniprot_KW_for_analysis']:
-                    df.loc[acc, 'uniprot_KW_for_analysis'].remove(element)
-            if df.loc[acc, 'enzyme']:
-                df.loc[acc, 'uniprot_KW_for_analysis'].append('Enzyme')
+            # DEPRECATED. SHOULD BE IN PROT_LIST
+            # # check if protein is a GPCR
+            # list_GPCR_KW = ['G-protein coupled receptor']
+            # df['GPCR'] = df['uniprot_KW_for_analysis'].apply(KW_list_contains_any_desired_KW, args=(list_GPCR_KW,))
 
-        dfu['uniprot_KW_for_analysis'] = df['uniprot_KW_for_analysis']
-        dfu.to_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+            # remove ignored keywords; replace Enzyme keywords with single keyword 'Enzyme
+            sys.stdout.write('removing ignored keywords; replacing enzyme associated keywords with "Enzyme"\n')
+            #n = 0
+
+            for n, acc in enumerate(df['uniprot_KW_for_analysis'].dropna().index):
+                n += 1
+                if n % 20 == 0:
+                    sys.stdout.write('.'), sys.stdout.flush()
+                    if n % 600 == 0:
+                        sys.stdout.write('\n'), sys.stdout.flush()
+                # remove ignored keywords from dataframe 'uniprot_KW_for_analysis'
+                for element in list_ignored_KW:
+                    if element in df.loc[acc, 'uniprot_KW_for_analysis']:
+                        df.loc[acc, 'uniprot_KW_for_analysis'].remove(element)
+                # replace keywords associated with enzymes with keyword 'Enzyme'
+                for element in list_enzyme_KW:
+                    if element in df.loc[acc, 'uniprot_KW_for_analysis']:
+                        df.loc[acc, 'uniprot_KW_for_analysis'].remove(element)
+                if df.loc[acc, 'enzyme']:
+                    df.loc[acc, 'uniprot_KW_for_analysis'].append('Enzyme')
+            else:
+                df['enzyme'] = False
+
+        df_list['uniprot_KW_for_analysis'] = df['uniprot_KW_for_analysis']
+        df_list.to_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     else:
         # apply ast.literal_eval to every item in df['uniprot_KW_for_analysis']
@@ -587,6 +602,32 @@ def keyword_analysis(pathdict, s, logging):
         if not dfp.empty:
             dfp.sort_values('p-value', inplace=True)
 
+        # for betabarrel dataset, the keywords are PFAM acc. Find relevant accession names
+        if is_betabarrel_dataset:
+            # open pfam mapping csv. See PFAM "FTP" site. Downlead and save at database_folder\PFAM\pdb_pfam_mapping.txt
+            pfam_mapping_csv = os.path.join(s["data_dir"], "PFAM\pdb_pfam_mapping.txt")
+            df_pfam = pd.read_csv(pfam_mapping_csv, sep="\t")
+            # delete the .15, .17, etc at end of PFAM accessions
+            df_pfam["pfam_acc_base"] = df_pfam.PFAM_ACC.apply(lambda x: x.split(".")[0])
+            # set as index
+            df_pfam.set_index("pfam_acc_base", inplace=True)
+            for acc in dfk.index:
+                if acc in df_pfam.index:
+                    # get either a series of redundant records, or a single PFAM description
+                    PFAM_desc_ser_or_str = df_pfam.loc[acc, "PFAM_desc"]
+                    # if it's a series, grab the first one
+                    if isinstance(PFAM_desc_ser_or_str, pd.Series):
+                        PFAM_desc = PFAM_desc_ser_or_str.iloc[0]
+                    else:
+                        # assume it's a string, grab the single description
+                        PFAM_desc = PFAM_desc_ser_or_str
+                else:
+                    PFAM_desc = "PFAM not found"
+                # add as a new column to the dataframe
+                dfk.loc[acc, "PFAM_desc"] = PFAM_desc
+                # for dfp, assume the star is already in the index
+                dfp.loc[acc + "*", "PFAM_desc"] = PFAM_desc
+
         annotate = ['*excluding {}'.format(', '.join(list_to_exclude))]
         # for n, element in enumerate(list_to_exclude):
         #     annotate.append('{}excluding {}'.format(symbols[n], element))
@@ -633,6 +674,10 @@ def get_list_enzyme_KW_and_list_ignored_KW():
                        'Transmembrane helix', 'Repeat', 'Alternative splicing', 'Sodium', 'Potassium', 'Direct protein sequencing',
                        'Transducer', 'Polymorphism', 'Glycoprotein', 'Calcium transport', 'Ion transport', 'Transport', 'Protein transport',
                        'Voltage-gated channel', 'ATP-binding', 'Calcium', 'Zinc', 'Synapse', 'Signal', 'Disulfide bond', '3D-structure', 'Host-virus interaction', 'Palmitate']
+
+    list_ignored_PFAM_acc = ["PF13505", "PF13568"] # Outer membrane protein beta-barrel domain,  Outer membrane protein beta-barrel domain : This domain is found in a wide range of outer membrane proteins. This domain assumes a membrane bound beta-barrel fold.
+
+    list_ignored_KW += list_ignored_PFAM_acc
 
     return list_enzyme_KW, list_ignored_KW
 
