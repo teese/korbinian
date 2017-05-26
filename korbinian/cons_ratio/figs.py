@@ -2,6 +2,7 @@ from scipy.stats import ttest_ind
 import ast
 import csv
 import itertools
+import korbinian
 import korbinian.utils as utils
 import matplotlib.pyplot as plt
 import matplotlib
@@ -30,7 +31,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     list_number = s["list_number"]
     # set resolution for plots in png format
     dpi = 300
-
     plt.style.use('seaborn-whitegrid')
 
     # set default font size for plot
@@ -38,19 +38,30 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     datapointsize = 8
     #alpha = 0.1
     color_list_TUM_blue = ['#0F3750', '#0076B8', '#9ECEEC']
+    # letters for saving variations of a figure
+    letters = list("abcdefghijk")
+    # for xlim, use the min and max evolutionary distance settings for the full dataset
+    # this is used for subsequent figures
+    min_evol_distance = int((1 - s["max_ident"]) * 100)
+    max_evol_distance = int((1 - s["min_ident"]) * 100)
 
     '''Prepare data for the following plots'''
 
     # load cr_summary file
-    dfc = pd.read_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
-    if dfc.shape[0] < s["min_n_proteins_in_list"]:
-        return "~~~~~~~~~~~~            run_save_figures skipped, only {} proteins in list           ~~~~~~~~~~~~".format(dfc.shape[0])
+    df_cr_summary = pd.read_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
+    if df_cr_summary.shape[0] < s["min_n_proteins_in_list"]:
+        return "~~~~~~~~~~~~            run_save_figures skipped, only {} proteins in list           ~~~~~~~~~~~~".format(df_cr_summary.shape[0])
 
     sys.stdout.write('Preparing data for plotting'), sys.stdout.flush()
     # load summary file
-    dfu = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
+    df_list = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
+
+    if 'uniprot_KW' in df_list.columns:
+        if not "uniprot_KW_for_analysis" in df_list.columns:
+            raise ValueError("Please run keyword analysis.")
+
     # merge cr_summary and summary file, if columns are equal in both files, suffix _dfc will be added in cr_summary column names for backwards compatibility
-    df = pd.merge(dfc, dfu, left_index=True, right_index=True, suffixes=('_dfc', ''))
+    df = pd.merge(df_cr_summary, df_list, left_index=True, right_index=True, suffixes=('_dfc', ''))
 
     # create number of datapoint dependent alpha_dpd
     alpha_dpd = utils.calc_alpha_from_datapoints(df['AAIMON_mean_all_TMDs'])
@@ -66,26 +77,33 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if n_removed >= 1:
         sys.stdout.write("-- {}/{} -- proteins were removed, as they contained less than {} valid homologues. "
               "Final number of proteins = {}".format(n_removed, n_prot_before_n_homol_cutoff, min_n_homol, n_prot_after_n_homol_cutoff))
+        sys.stdout.flush()
 
     # open list_csv file
     #df_uniprot = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
 
+    prot_family_df_dict = {}
+    list_prot_families = None
     if 'uniprot_KW' in df.columns:
-        # convert the keywords from a stringlist to a python list
-        if isinstance(df['uniprot_KW'][0], str):
-            df['uniprot_KW'] = df['uniprot_KW'].apply(lambda x: ast.literal_eval(x))
+
         # create a new column showing whether the protein is a GPCR
-        df['G-protein_coupled_receptor'] = df['uniprot_KW'].apply(lambda x: 'G-protein coupled receptor' in x)
-        df_GPCR = df.loc[df['G-protein_coupled_receptor'] == True]
+        if "GPCR" not in df.columns:
+            # convert the keywords from a stringlist to a python list
+            if isinstance(df['uniprot_KW'][0], str):
+                df['uniprot_KW'] = df['uniprot_KW'].apply(lambda x: ast.literal_eval(x))
+            df['GPCR'] = df['uniprot_KW'].apply(lambda x: 'G-protein coupled receptor' in x)
+            df['olfactory_receptor'] = df['prot_descr'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=(['Olfactory receptor'],))
 
-        # bool to check if dataframe contains GPCRs
-        if df['G-protein_coupled_receptor'].any():
-            GPCR_in_df = True
-        else:
-            GPCR_in_df = False
-
+        df_GPCR = df.loc[df['GPCR'] == True]
+        # add the dataframe segments to a dictionary for easy access?
+        prot_family_df_dict["df_GPCR"] = df_GPCR
+        prot_family_df_dict["df_nonGPCR"] = df.loc[df['GPCR'] == False]
+        prot_family_df_dict["df_olfactory_receptorGPCR"] = df_GPCR.loc[df_GPCR['olfactory_receptor'] == True]
+        prot_family_df_dict["df_non_olfactory_receptorGPCR"] = df_GPCR.loc[df_GPCR['olfactory_receptor'] == False]
+        list_prot_families = ["df_GPCR", "df_nonGPCR", "df_olfactory_receptorGPCR", "df_non_olfactory_receptorGPCR"]
     else:
         sys.stdout.write('No uniprot keywords available! cannot create figures 19-21 \n')
+
 
     # # save dataframe
     # df.to_csv(pathdict["base_filename_summaries"] + '_df_figs.csv', sep=",", quoting=csv.QUOTE_NONNUMERIC)
@@ -102,12 +120,14 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     colour_lists = utils.create_colour_lists()
     tableau20 = colour_lists['tableau20']
 
-    # create dataframe mean_AAIMON_each_TM
-    df_mean_AAIMON_each_TM = pd.DataFrame()
-    # add AAIMON each TMD to dataframe
-    for acc in df.index:
-        for TMD in ast.literal_eval(df.loc[acc, 'list_of_TMDs']):
-            df_mean_AAIMON_each_TM.loc[acc, '{a}_AAIMON_mean'.format(a=TMD)] = df.loc[acc, '{b}_AAIMON_mean'.format(b=TMD)]
+    # DEPRECATED?
+    # # create dataframe mean_AAIMON_each_TM
+    # df_mean_AAIMON_each_TM = pd.DataFrame()
+    # # add AAIMON each TMD to dataframe
+    # for acc in df.index:
+    #     for TMD in ast.literal_eval(df.loc[acc, 'list_of_TMDs']):
+    #         df_mean_AAIMON_each_TM.loc[acc, '{a}_AAIMON_mean'.format(a=TMD)] = df.loc[acc, '{b}_AAIMON_mean'.format(b=TMD)]
+
     # count the maximum number of TMDs (excluding signal peptides) in the dataset
     max_num_TMDs = df.number_of_TMDs_excl_SP.max()
 
@@ -225,11 +245,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         x = data[:, 0]  # FASTA_gapped_identity
         y = data[:, 1]  # AAIMON for each TMD
 
-        # for xlim, use the min and max evolutionary distance settings for the full dataset
-        # note that this is also used for subsequent figures
-        min_evol_distance = int((1 - s["max_ident"])*100)
-        max_evol_distance = int((1 - s["min_ident"])*100)
-
         # histogram definition
         # data range
         xyrange = [[0, max_evol_distance], [0, 3]]
@@ -274,10 +289,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
 
-    if s['Fig03_Density_lipo_vs_TM_conservation']:
-        Fig_Nr = 3
-        Fig_name = 'List{:02d}_Fig03_Density_lipo_vs_TM_conservation'.format(list_number)
-
+    def Fig03_Density_lipo_vs_TM_conservation(df, letter, suffix, col_list_AAIMON_slope, col_list_lipo, max_evol_distance, base_filepath, save_png, save_pdf, dpi, fontsize):
+        Fig_name = 'List{:02d}_Fig03{}_Density_lipo_vs_TM_conservation{}'.format(list_number, letter, suffix)
+        title = suffix[1:]
         '''
         data array columns:
         |   0   |   1  |
@@ -314,11 +328,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # data = data[~np.isnan(data).any(axis=1)]
         #
 
-        # get the maximum mnumber of TMDs in the full dataset (e.g. 32)
-        max_n_TMDs = int(df.number_of_TMDs_excl_SP.max())
-        # create a large list of columns, e.g. ['TM01_AAIMON_slope',  'TM02_AAIMON_slope',  'TM03_AAIMON_slope', ...
-        col_list_AAIMON_slope = ['TM{:02d}_AAIMON_slope'.format(TM_nr) for TM_nr in range(1, max_n_TMDs + 1)]
-        col_list_lipo = ['TM{:02d}_lipo'.format(TM_nr) for TM_nr in range(1, max_n_TMDs + 1)]
         # add the signal peptide if necessary
         if "SP01_start" in df.columns:
             col_list_AAIMON_slope = ["SP01_AAIMON_slope"] + col_list_AAIMON_slope
@@ -326,7 +335,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # select all AAIMON slopes or lipo data
         df_slopes = df.loc[:, col_list_AAIMON_slope]
         df_lipos = df.loc[:, col_list_lipo]
-        aaa(df_slopes)
         # check that .stack drops nans, and that there were exactly equal number of nans in the lipo and slope datasets
         if df_slopes.stack().shape != df_lipos.stack().shape:
             raise ValueError("There must be a nan in the lipo or AAIMON slopes. Check code, revert to orig if necessary.")
@@ -380,6 +388,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         cbar.set_ticklabels(labels)
         cbar_ax.xaxis.set_ticks_position('top')
 
+        ax.set_title(title, fontsize=fontsize)
         ax.set_xlabel('lipophilicity (Hessa scale)', fontsize=fontsize)
         ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
         ax.tick_params(labelsize=fontsize, pad=3)
@@ -390,6 +399,35 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
+    if s['Fig03_Density_lipo_vs_TM_conservation']:
+        Fig_Nr = 3
+
+        # get the maximum mnumber of TMDs in the full dataset (e.g. 32)
+        max_n_TMDs = int(df.number_of_TMDs_excl_SP.max())
+        # create a large list of columns, e.g. ['TM01_AAIMON_slope',  'TM02_AAIMON_slope',  'TM03_AAIMON_slope', ...
+        col_list_AAIMON_slope = ['TM{:02d}_AAIMON_slope'.format(TM_nr) for TM_nr in range(1, max_n_TMDs + 1)]
+        col_list_lipo = ['TM{:02d}_lipo'.format(TM_nr) for TM_nr in range(1, max_n_TMDs + 1)]
+
+        for i, prot_family in enumerate(list_prot_families):
+            # a, b, c, etc
+            letter = letters[i]
+            # _GPCR, _nonGPCR, etc
+            suffix = "_{}".format(prot_family[3:])
+            # get appropriate dataframe subset for analysis (above)
+            df_Fig03 = prot_family_df_dict[prot_family]
+            # plot
+            Fig03_Density_lipo_vs_TM_conservation(df_Fig03, letter, suffix, col_list_AAIMON_slope, col_list_lipo, max_evol_distance, base_filepath, save_png, save_pdf, dpi, fontsize)
+
+        # for human multipass, test GPCR TM01 and TM07 only
+        if list_number in [2,5]:
+            # redefine as only the first and 7th TM (first and lost GPCR TM)
+            col_list_AAIMON_slope = ['TM01_AAIMON_slope', 'TM07_AAIMON_slope']
+            col_list_lipo = ['TM01_lipo', 'TM07_lipo']
+            for i, prot_family in enumerate(list_prot_families):
+                letter = letters[i]
+                suffix = "_{}".format(prot_family[3:]) + "_TM01_and_TM07_only"
+                df_Fig03 = prot_family_df_dict[prot_family]
+                Fig03_Density_lipo_vs_TM_conservation(df_Fig03, letter, suffix, col_list_AAIMON_slope, col_list_lipo, max_evol_distance, base_filepath, save_png, save_pdf, dpi, fontsize)
 
     if s['Fig04_Boxplot_AAIMON_each_TMD']:
         Fig_Nr = 4
@@ -1150,7 +1188,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if 'uniprot_KW' in df.columns:
 
         if s['Fig14_Hist_AAIMON_GPCRs_vs_nonGPCRs']:
-            if GPCR_in_df:
+            if True in df.GPCR:
                 Fig_Nr = 14
                 title = 'only GPCR in uniprot KW, NORM'
                 Fig_name = 'List{:02d}_Fig14_Hist_AAIMON_GPCRs_vs_nonGPCRs'.format(list_number)
@@ -1192,7 +1230,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 '''
                 NON-GPCRS
                 '''
-                df_nonGPCR = df.loc[df['G-protein_coupled_receptor'] == False]
+                df_nonGPCR = df.loc[df['GPCR'] == False]
 
                 # create numpy array of membranous over nonmembranous conservation ratios (identity)
                 hist_data_AAIMON_mean = np.array(df_nonGPCR['AAIMON_mean_all_TMDs'].dropna())
@@ -1242,7 +1280,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 sys.stdout.write('Dataset does not contain GPCRs; cannot create figure 19 \n')
 
         if s['Fig15_Boxplot_AAIMON_by_number_of_TMDs_GPCRs_only']:
-            if GPCR_in_df:
+            if True in df.GPCR:
                 Fig_Nr = 15
                 title = 'Only GPCRs, boxplot for each TMD'
                 Fig_name = 'List{:02d}_Fig15_Boxplot_AAIMON_by_number_of_TMDs_GPCRs_only'.format(list_number)
@@ -1395,6 +1433,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             # create cutoff, mean + 1 std
             cutoff = df.AAIMON_n_homol.mean() + df.AAIMON_n_homol.std()
             cutoff_int = int(np.round(cutoff))
+
 
             # convert stringlists to python lists
             if isinstance(df.uniprot_KW_for_analysis.dropna().iloc[0], str):

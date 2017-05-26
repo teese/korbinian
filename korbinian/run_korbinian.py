@@ -230,6 +230,9 @@ def run_statements(s):
     #                 conservation ratio (AAIMON ratio) figures                            #
     #                                                                                      #
     ########################################################################################
+    if s["run_keyword_analysis"]:
+        output = korbinian.cons_ratio.keywords.keyword_analysis(pathdict, s, logging)
+        logging.info(output)
 
     '''+++++++++++++++ Summary figures describing the conservation ratios of proteins in the list ++++++++++++++++++'''
     if s["save_figures_describing_proteins_in_list"]:
@@ -239,11 +242,6 @@ def run_statements(s):
     '''+++++++++++++++ Summary figures describing the conservation ratios of proteins in the list ++++++++++++++++++'''
     # if s["compare_lists"]:
     #     korbinian.cons_ratio.compare_lists_old.compare_rel_con_lists(pathdict, s, logging)
-
-
-    if s["run_keyword_analysis"]:
-        output = korbinian.cons_ratio.keywords.keyword_analysis(pathdict, s, logging)
-        logging.info(output)
 
     if "gather_pretty_alignments" in s.keys():
         if s["gather_pretty_alignments"]:

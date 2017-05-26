@@ -1800,3 +1800,4 @@ def read_signalp_gff(filepath):
     cols = ["version", "signal", "start", "end", "score", ".", "..", "is_signal"]
     df_gff.columns = cols
     return df_gff
+
