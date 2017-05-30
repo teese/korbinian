@@ -80,7 +80,7 @@ def gather_AAIMONs(pathdict, logging, s):
         if isinstance(df['KW'][0], str):
             df['KW'] = df['KW'].apply(lambda x: ast.literal_eval(x))
         # get list of enzyme keywords
-        list_enzyme_KW, list_ignored_KW = korbinian.cons_ratio.keywords.get_list_enzyme_KW_and_list_ignored_KW()
+        list_enzyme_KW, list_ignored_KW, PFAM_dict = korbinian.cons_ratio.keywords.get_list_enzyme_KW_and_list_ignored_KW()
         # create column per allowed keyword that holds a bool if keyword is present in that protein
         for KW in allowed_KW:
             if KW == 'Enzyme':

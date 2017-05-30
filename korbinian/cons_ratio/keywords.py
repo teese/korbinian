@@ -78,7 +78,7 @@ def keyword_analysis(pathdict, s, logging):
 
 
     # define list of ignored and enzyme keywords
-    list_enzyme_KW, list_ignored_KW = get_list_enzyme_KW_and_list_ignored_KW()
+    list_enzyme_KW, list_ignored_KW, PFAM_dict = get_list_enzyme_KW_and_list_ignored_KW()
 
     # remove proteins containing nan in AAIMON_slope_mean_all_TMDs
     list_of_acc_without_nan = []
@@ -622,7 +622,10 @@ def keyword_analysis(pathdict, s, logging):
                         # assume it's a string, grab the single description
                         PFAM_desc = PFAM_desc_ser_or_str
                 else:
-                    PFAM_desc = "PFAM not found"
+                    if acc in PFAM_dict:
+                        PFAM_desc = PFAM_dict[acc]
+                    else:
+                        PFAM_desc = "PFAM not found"
                 # add as a new column to the dataframe
                 dfk.loc[acc, "PFAM_desc"] = PFAM_desc
                 # for dfp, assume the star is already in the index
@@ -673,13 +676,18 @@ def get_list_enzyme_KW_and_list_ignored_KW():
     list_ignored_KW = ['Transmembrane', 'Complete proteome', 'Reference proteome', 'Membrane',
                        'Transmembrane helix', 'Repeat', 'Alternative splicing', 'Sodium', 'Potassium', 'Direct protein sequencing',
                        'Transducer', 'Polymorphism', 'Glycoprotein', 'Calcium transport', 'Ion transport', 'Transport', 'Protein transport',
-                       'Voltage-gated channel', 'ATP-binding', 'Calcium', 'Zinc', 'Synapse', 'Signal', 'Disulfide bond', '3D-structure', 'Host-virus interaction', 'Palmitate']
+                       'Voltage-gated channel', 'ATP-binding', 'Calcium', 'Zinc', 'Synapse', 'Signal', 'Disulfide bond', '3D-structure',
+                       'Host-virus interaction', 'Palmitate', 'Potassium transport', 'Endoplasmic reticulum', 'G-protein coupled receptor',
+                       'Plasma membrane', 'Golgi apparatus','Sensory transduction']
 
-    list_ignored_PFAM_acc = ["PF13505", "PF13568"] # Outer membrane protein beta-barrel domain,  Outer membrane protein beta-barrel domain : This domain is found in a wide range of outer membrane proteins. This domain assumes a membrane bound beta-barrel fold.
+    list_ignored_PFAM_acc = ["PF13505", "PF13568", "DUF3078", "PF04338"] # Outer membrane protein beta-barrel domain,  Outer membrane protein beta-barrel domain : This domain is found in a wide range of outer membrane proteins. This domain assumes a membrane bound beta-barrel fold.
 
     list_ignored_KW += list_ignored_PFAM_acc
 
-    return list_enzyme_KW, list_ignored_KW
+    PFAM_dict = {"PF06629": "MltA-interacting protein MipA"}
+
+
+    return list_enzyme_KW, list_ignored_KW, PFAM_dict
 
 
 def KW_list_contains_any_desired_KW(KW_list_to_search,list_desired_KW):

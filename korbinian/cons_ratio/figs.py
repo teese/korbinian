@@ -1491,6 +1491,75 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             fig.tight_layout()
             utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
+    if s['Fig19_barchart_keywords_signif_TM_cons']:
+        Fig_Nr = 18
+        title = 'keywords with significant difference in AAIMON slope'
+        Fig_name = 'List{:02d}_Fig19_barchart_keywords_signif_TM_cons'.format(list_number)
+        fig, ax = plt.subplots()
 
+        list_enzyme_KW, list_ignored_KW, PFAM_dict = korbinian.cons_ratio.keywords.get_list_enzyme_KW_and_list_ignored_KW()
+
+
+        # open up the keywords csv
+        kw_csv = os.path.join(pathdict["keywords"], 'List%02d_keywords.csv' % s["list_number"])
+        if os.path.isfile(kw_csv):
+            dfKW = pd.read_csv(kw_csv, index_col=0)
+            # drop any annotations where the difference was not significant from the rest of the dataset
+            dfKW = dfKW.loc[dfKW["p-value_AAIMON_slope"] < 0.05]
+            # drop any ignored keywords
+            index_excl_ignored_KW = set(dfKW.index) - set(list_ignored_KW)
+            # replace the specific betabarrel PFAM ID
+
+            dropped_KW = set(dfKW.index).intersection(set(list_ignored_KW))
+            logging.info("dropped KW from list_ignored_KW : {}".format(dropped_KW))
+            dfKW = dfKW.reindex(index_excl_ignored_KW)
+
+            # DEPRECATED -
+            #dfKW.index = pd.Series(dfKW.index).replace(PFAM_dict)
+
+            # re-sort by p-value
+            dfKW.sort_values("p-value_AAIMON_slope", inplace=True, ascending=True)
+            # get the mean value for the whole dataset
+            AAIMON_slope_whole_dataset_mean = dfKW.AAIMON_slope_whole_dataset_mean.iloc[0]
+
+            # if it is a betabarrel dataset, replace the PFAM ids with the description
+            if True in df.betabarrel.tolist():
+                dfKW["orig_index"] = dfKW.index
+                dfKW.index = dfKW.index.astype(str) + "\n(" + dfKW["PFAM_desc"] + ")"
+
+            # create a new dataframe with the mean values, including the "All proteins" of the full dataset
+            orig_index = dfKW.index.tolist()
+
+            new_index = ["All proteins"] + orig_index
+            df_barchart = pd.DataFrame(index=new_index)
+            # add the means
+            df_barchart["AAIMON_slope_mean"] = dfKW.AAIMON_slope_keyword_mean
+            df_barchart.loc["All proteins", "AAIMON_slope_mean"] = AAIMON_slope_whole_dataset_mean
+            # calculate the SEM from the std
+            df_barchart["AAIMON_slope_keyword_SEM"] = dfKW.AAIMON_slope_keyword_std / np.sqrt(dfKW.number_of_proteins_keyword)
+            # get the SEM using the original dataframe derived from df_cr
+            sqrt_n = np.sqrt(df.AAIMON_slope_mean_all_TMDs.dropna().shape[0])
+            df_barchart.loc["All proteins", "AAIMON_slope_keyword_SEM"] = scipy.stats.sem(df.AAIMON_slope_mean_all_TMDs)
+
+            # get a color list (HTML works best). Make it a long list, to accept list numbers frmo 1-1000
+            color_list = utils.create_colour_lists()['HTML_list01'] * 1000
+            color_first_bar_all_proteins = "0.35"
+
+            ind = np.arange(df_barchart.shape[0]) + 0.1
+            width = 0.4
+            # add first color to be different ["first"] + ["chosen"]*10
+            colours = [color_first_bar_all_proteins] + [color_list[list_number - 1]] * df_barchart.shape[0]
+            ax.bar(ind, df_barchart["AAIMON_slope_mean"] * 1000, color=colours)
+            ax.errorbar(ind + width, df_barchart["AAIMON_slope_mean"] * 1000, yerr=df_barchart["AAIMON_slope_keyword_SEM"] * 1000, fmt="none",  ecolor="k", ls="none", capthick=1, elinewidth=1, capsize=4)
+            ax.set_xticks(ind + width)
+            ax.set_xticklabels(df_barchart.index, rotation=90)
+            ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', rotation='vertical', fontsize=fontsize + 3)
+            if df_barchart.shape[0] < 10:
+                ax.set_xlim(0, 10)
+            # add annotations
+            ax.annotate(s="TM less\nconserved", xy=(-0.08, 0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+            ax.annotate(s="TM more\nconserved", xy=(-0.08, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+            fig.tight_layout()
+            utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     return "~~~~~~~~~~~~        run_save_figures_describing_proteins_in_list is finished        ~~~~~~~~~~~~"
