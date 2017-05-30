@@ -10,6 +10,7 @@ import korbinian.utils as utils
 import korbinian
 import scipy
 import seaborn as sns
+import scipy.stats as stats
 # import debugging tools
 from korbinian.utils import pr, pc, pn, aaa
 
@@ -1804,6 +1805,49 @@ def compare_lists (s, df_lists_tab):
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
     else:
         sys.stdout.write('no uniprot keywords found, {} cannot be processed!'. format(Fig_name))
+
+
+    # ---------------------------------------------------------------------------------------------------------------------------------#
+    Fig_Nr = 21
+    title = 'barchart comparing mean slopes'
+    Fig_name = 'Fig21_barchart_comparing_mean_slopes'
+
+    fig, ax = plt.subplots(figsize=(3, 4.5))
+
+    for n, prot_list in enumerate(protein_lists):
+        # make sure that the first column cluster centers around 1
+        n += 1
+        # define data
+        df = df_dict[prot_list]
+
+        # calculate mean, SEM and plot data for non-normalised slopes
+        data_slope = df.AAIMON_slope_mean_all_TMDs.dropna() * 1000
+        mean_slope = np.mean(data_slope)
+        std_slope = stats.sem(data_slope)
+        ax.bar(n - 0.2, mean_slope, color=color_list[prot_list - 1], width=0.4, yerr=std_slope)
+
+        # calculate mean, SEM and plot data for normalised slopes
+        data_slope_n = df.AAIMON_n_slope_mean_all_TMDs.dropna() * 1000
+        mean_slope_n = np.mean(data_slope_n)
+        std_slope_n = stats.sem(data_slope_n)
+        ax.bar(n + 0.2, mean_slope_n, color=color_list[prot_list - 1], width=0.4, yerr=std_slope_n, alpha=0.4)
+
+    # set x-axis limits
+    ax.set_xlim(0.5, len(protein_lists) + 0.5)
+    # set custom x-axis ticks and labels
+    ax.set_xticks(range(1, len(protein_lists) + 1))
+    ax.set_xticklabels(dfv.list_description)
+    # set y-axis label
+    ax.set_ylabel(r'mean m$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
+    # set y-limits - can be changed to fit purposes
+    ax.set_ylim(-1, 7)
+
+    ax.tick_params(labelsize=fontsize, pad=2)
+    ax.legend(['non-normalised', 'normalised'], frameon=True, fontsize=fontsize - 3)#, loc='upper center')
+    ax.yaxis.set_label_coords(-0.07, 0.5)
+    plt.tight_layout()
+
+    utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
 
     #dfv.to_csv(os.path.join(base_filepath, 'Lists_%s_variables.csv'%str_protein_lists))
