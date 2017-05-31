@@ -362,7 +362,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # y = data[:, 0] * 1000
         #
 
-
         x_border = 1.5
         y_border = 30
         xyrange = [[-x_border, x_border], [-y_border, y_border]]
@@ -391,12 +390,26 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         cbar.set_ticklabels(labels)
         cbar_ax.xaxis.set_ticks_position('top')
 
+        # linear regression for data
+        slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(lipos, slopes)
+        fit_fn = np.poly1d(np.array([slope, intercept]))
+        fitted_data_x = fit_fn(lipos)
+        # plot regression line
+        ax.plot(lipos, fitted_data_x, color='k', linewidth=1)
+        # annotate regression line formula and R2 value
+        ax.annotate(s='$y = {s:.03f}x + {i:.03f}$\n$R^2 = {r_sq:.05f}$'.format(s=slope, i=intercept, r_sq=r_value ** 2),
+                    xy=(-1.45, 29), fontsize=fontsize - 2, verticalalignment='top')
+
         ax.set_title(title, fontsize=fontsize)
         ax.set_xlabel('lipophilicity (Hessa scale)', fontsize=fontsize)
         ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
+        # set fontsize for axis labels and specify their separation from axis ticks
         ax.tick_params(labelsize=fontsize, pad=3)
         cbar_ax.tick_params(labelsize=fontsize, pad=0)
-
+        # set x and y axis limits to avoid weird limits caused by linear regression
+        ax.set_ylim(-y_border, y_border)
+        ax.set_xlim(-x_border, x_border)
+        # specify space between plot and colorbar
         plt.subplots_adjust(hspace=0.03)
         plt.tight_layout()
 
