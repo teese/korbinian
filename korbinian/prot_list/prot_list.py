@@ -453,7 +453,9 @@ def prepare_protein_list(s, pathdict, logging):
         TMD_seq_joined = ''
         lipo_list = []
         TMD_seqlen_list = []
-        for TMD in list_of_TMDs:
+        list_of_TMDs_excl_SP = df.loc[acc, "list_of_TMDs_excl_SP"]
+
+        for TMD in list_of_TMDs_excl_SP:
             if "{}_seq".format(TMD) not in df.columns:
                 list_acc_missing_TM_indices.append(acc)
                 # skip this TMD. Add protein to list to be dropped.
@@ -483,10 +485,11 @@ def prepare_protein_list(s, pathdict, logging):
         # calc the mean seqlen of all TMDs
         df.loc[acc, 'len_TMD_mean'] = np.array(TMD_seqlen_list).mean()
         # get last TMD
-        if 'SP01' in list_of_TMDs:
-            last_TMD = list_of_TMDs[-2]
-        else:
-            last_TMD = list_of_TMDs[-1]
+        last_TMD = list_of_TMDs[-1]
+        # if 'SP01' in list_of_TMDs:
+        #     last_TMD = list_of_TMDs[-2]
+        # else:
+        #     last_TMD = list_of_TMDs[-1]
         df.loc[acc, 'last_TMD'] = last_TMD
         # get lipo of last TMD
         df.loc[acc, 'lipo_last_TMD'] = df.loc[acc, '%s_lipo' % last_TMD]

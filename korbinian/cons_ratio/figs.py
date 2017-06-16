@@ -1540,19 +1540,19 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 dfKW["orig_index"] = dfKW.index
                 dfKW.index = dfKW.index.astype(str) + "\n(" + dfKW["PFAM_desc"] + ")"
 
-            # create a new dataframe with the mean values, including the "All proteins" of the full dataset
+            # create a new dataframe with the mean values, including the "All {}".format(s["list_description"]) of the full dataset
             orig_index = dfKW.index.tolist()
 
-            new_index = ["All proteins"] + orig_index
+            new_index = ["All {}".format(s["list_description"])] + orig_index
             df_barchart = pd.DataFrame(index=new_index)
             # add the means
             df_barchart["AAIMON_slope_mean"] = dfKW.AAIMON_slope_keyword_mean
-            df_barchart.loc["All proteins", "AAIMON_slope_mean"] = AAIMON_slope_whole_dataset_mean
+            df_barchart.loc["All {}".format(s["list_description"]), "AAIMON_slope_mean"] = AAIMON_slope_whole_dataset_mean
             # calculate the SEM from the std
             df_barchart["AAIMON_slope_keyword_SEM"] = dfKW.AAIMON_slope_keyword_std / np.sqrt(dfKW.number_of_proteins_keyword)
             # get the SEM using the original dataframe derived from df_cr
             sqrt_n = np.sqrt(df.AAIMON_slope_mean_all_TMDs.dropna().shape[0])
-            df_barchart.loc["All proteins", "AAIMON_slope_keyword_SEM"] = scipy.stats.sem(df.AAIMON_slope_mean_all_TMDs)
+            df_barchart.loc["All {}".format(s["list_description"]), "AAIMON_slope_keyword_SEM"] = scipy.stats.sem(df.AAIMON_slope_mean_all_TMDs)
 
             # get a color list (HTML works best). Make it a long list, to accept list numbers frmo 1-1000
             color_list = utils.create_colour_lists()['HTML_list01'] * 1000
@@ -1565,7 +1565,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             ax.bar(ind, df_barchart["AAIMON_slope_mean"] * 1000, color=colours)
             ax.errorbar(ind + width, df_barchart["AAIMON_slope_mean"] * 1000, yerr=df_barchart["AAIMON_slope_keyword_SEM"] * 1000, fmt="none",  ecolor="k", ls="none", capthick=1, elinewidth=1, capsize=4)
             ax.set_xticks(ind + width)
-            ax.set_xticklabels(df_barchart.index, rotation=90)
+            # take only first 20 characters for the x-axis label
+            ax.set_xticklabels(pd.Series(df_barchart.index).str[0:20], rotation=90)
             ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', rotation='vertical', fontsize=fontsize + 3)
             if df_barchart.shape[0] < 10:
                 ax.set_xlim(0, 10)

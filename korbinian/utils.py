@@ -1183,13 +1183,18 @@ def calc_lipophilicity(seq, method = "mean"):
     analysed_seq = ProteinAnalysis(seq)
     # biopython count_amino_acids returns a dictionary.
     aa_counts_dict = analysed_seq.count_amino_acids()
+    # get the number of AA residues used to calculated the hydrophobicity
+    # this is not simply the sequence length, as the sequence could include gaps or non-natural AA
+    aa_counts_excluding_gaps = np.array(list(aa_counts_dict.values()))
+    number_of_residues = aa_counts_excluding_gaps.sum()
     # convert dictionary to array, sorted by aa
     aa_counts_arr = np.array([value for (key, value) in sorted(aa_counts_dict.items())])
     multiplied = aa_counts_arr * hessa_scale
+    sum_of_multiplied = multiplied.sum()
     if method == "mean":
-        return multiplied.mean()
+        return sum_of_multiplied / number_of_residues
     if method == "sum":
-        return multiplied.sum()
+        return sum_of_multiplied
 
 def make_sure_path_exists(path, isfile=False):
     """ If path to directory or folder doesn't exist, creates the necessary folders.
