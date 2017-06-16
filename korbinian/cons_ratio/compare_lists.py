@@ -1354,7 +1354,7 @@ def compare_lists (s, df_lists_tab):
     # indices (position of bar) are at 0.1, 1.1, 2.1
     ind = np.arange(len(x)) + 0.1
     # create bar for the rand_TM
-    ax.bar(ind, TM_perc_LIVFA_for_each_dataset_ser*100, width, color=color_list[:len(x)], alpha=1, label="TM")#color=color_list[2]
+    ax.bar(ind, TM_perc_LIVFA_for_each_dataset_ser*100, width, color=color_list[:len(x)], alpha=0.9, label="TM")#color=color_list[2]
     # create bar for the rand_nonTM
     ax.bar(ind + width, nonTM_perc_LIVFA_for_each_dataset_ser*100, width, color=color_list[:len(x)], alpha=0.5, label="nonTM")
     # put labels in between bars
@@ -1452,7 +1452,7 @@ def compare_lists (s, df_lists_tab):
         Fig_Nr = 14
         title = 'hist_lipo_first_vs_central_vs_last_TM_excl_GPCRs'
         min_ = -0.5
-        max_ = 0.8
+        max_ = 1.5
         binlist = np.linspace(min_, max_, n_bins_lipo + 1)
 
         fig, ax = plt.subplots()
@@ -2032,10 +2032,10 @@ def compare_lists (s, df_lists_tab):
         sem_slope = stats.sem(data_slope)
         width = 0.4
         if n == 1:
-            label = "normalised"
+            label = "original"
         else:
             label = None
-        ax.bar(n - 0.2, mean_slope, color=color_list[prot_list - 1], width=width, align="center", label=label, alpha=0.9)#, yerr=std_slope
+        ax.bar(n - 0.2, mean_slope, color=color_list[n], width=width, align="center", label=label, alpha=0.9)#, yerr=std_slope
         ax.errorbar(n - 0.2, mean_slope, yerr=sem_slope, fmt="none", ecolor="k", ls="none", capthick=1, elinewidth=1, capsize=4, label=None)
 
         # calculate mean, SEM and plot data for normalised slopes
@@ -2044,10 +2044,10 @@ def compare_lists (s, df_lists_tab):
         sem_slope_n = stats.sem(data_slope_n)
         #ax.bar(n + 0.2, mean_slope_n, color=color_list[prot_list - 1], width=0.4, yerr=sem_slope_n, alpha=0.4)
         if n == 1:
-            label = "non-normalised"
+            label = "normalised"
         else:
             label = None
-        ax.bar(n + 0.2, mean_slope_n, color=color_list[prot_list - 1], width=width, align="center", label=label, alpha=0.4)  # , yerr=std_slope
+        ax.bar(n + 0.2, mean_slope_n, color=color_list[n], width=width, align="center", label=label, alpha=0.4)  # , yerr=std_slope
         ax.errorbar(n + 0.2, mean_slope_n, yerr=sem_slope_n, fmt="none", ecolor="k", ls="none", capthick=1, elinewidth=1, capsize=4, label=None)
 
 
@@ -2055,13 +2055,13 @@ def compare_lists (s, df_lists_tab):
     ax.set_xlim(0.5, len(protein_lists) + 0.5)
     # set custom x-axis ticks and labels
     ax.set_xticks(range(1, len(protein_lists) + 1))
-    ax.set_xticklabels(dfv.list_description, rotation=90)
+    ax.set_xticklabels(dfv.list_description, fontsize=fontsize)
     # set y-axis label
     ax.set_ylabel(r'mean m$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
     # set y-limits - can be changed to fit purposes
     ax.set_ylim(-1, 7)
 
-    ax.tick_params(labelsize=fontsize, pad=2)
+    ax.tick_params(labelsize=fontsize-3, pad=2)
     #ax.legend(['non-normalised', 'normalised'], frameon=True, fontsize=fontsize - 3)#, loc='upper center')
     ax.legend(frameon=True, fontsize=fontsize - 3)
     ax.yaxis.set_label_coords(-0.07, 0.5)
