@@ -37,7 +37,11 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     fontsize = 8
     datapointsize = 8
     #alpha = 0.1
-    color_list_TUM_blue = ['#0F3750', '#0076B8', '#9ECEEC']
+
+    cdict = utils.create_colour_lists()
+    #TUMblues = ['#0F3750', '#0076B8', '#9ECEEC']
+    TUMblues = [cdict['TUM_colours']["TUM2"],cdict['TUM_colours']["TUMBlue"],cdict['TUM_colours']["TUM1"]]
+
     # letters for saving variations of a figure
     letters = list("abcdefghijk")
     # for xlim, use the min and max evolutionary distance settings for the full dataset
@@ -847,7 +851,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # add the final bin, which is physically located just after the last regular bin but represents all higher values
         bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
         centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=color_list_TUM_blue[0],
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=TUMblues[0],
                                             alpha=1,
                                             linewidth=1)
 
@@ -863,7 +867,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # add the final bin, which is physically located just after the last regular bin but represents all higher values
         bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
         centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=color_list_TUM_blue[1],
+        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=TUMblues[1],
                                             alpha=1, linewidth=1)
 
         # # create numpy array of membranous over nonmembranous conservation ratios (identity)
@@ -878,7 +882,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # # add the final bin, which is physically located just after the last regular bin but represents all higher values
         # bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
         # centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        # linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=color_list_TUM_blue[2],
+        # linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=TUMblues[2],
         #                                     alpha=1,
         #                                     linewidth=1)
 
@@ -1425,9 +1429,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             ax.annotate(s='y = {a:.5f}x + {b:.5f}'.format(a=linear_regression[0], b=linear_regression[1]),
                         xy=(0.85, 0.95), fontsize=fontsize - 2, xytext=None, xycoords='axes fraction',alpha=0.75)
 
-        ax.scatter(x, y, s=datapointsize, alpha=alpha_dpd, color=color_list_TUM_blue)
+        ax.scatter(x, y, s=datapointsize, alpha=alpha_dpd, color=TUMblues)
         symmetrical = [s["min_ident"]*100, s["max_ident"]*100]
-        ax.plot(symmetrical, symmetrical, color=color_list_TUM_blue[0], alpha=0.5, linestyle="-")
+        ax.plot(symmetrical, symmetrical, color=TUMblues[0], alpha=0.5, linestyle="-")
         ax.set_xlabel('TMD_perc_identity_all_TMDs', fontsize=fontsize)
         ax.set_ylabel('nonTMD_perc_ident_mean', rotation='vertical', fontsize=fontsize)
         ax.tick_params(labelsize=fontsize)
@@ -1505,7 +1509,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig19_barchart_keywords_signif_TM_cons']:
-        Fig_Nr = 18
+        Fig_Nr = 19
         title = 'keywords with significant difference in AAIMON slope'
         Fig_name = 'List{:02d}_Fig19_barchart_keywords_signif_TM_cons'.format(list_number)
         fig, ax = plt.subplots()
@@ -1575,5 +1579,382 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             ax.annotate(s="TM more\nconserved", xy=(-0.08, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
             fig.tight_layout()
             utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
+    if s['Fig20_BB_linechart_lipo_patterns_orig_dataset']:
+
+        if True in df.betabarrel.tolist():
+
+            Fig_Nr = "20a"
+            title = 'keywords with significant difference in AAIMON slope'
+            Fig_name = 'List{:02d}_Fig20a_BB_linechart_lipo_last_TM'.format(list_number)
+            fig, ax = plt.subplots()
+
+            final_TM_aligned_fasta = os.path.join(base_filepath, "BB_terminal_TM_aligned.fas")
+            final_TM_aligned_fasta_finalF = os.path.join(base_filepath, "BB_terminal_TM_aligned_subset_final_AA_is_F.fas")
+
+            def get_pos_dep_lipo(seq_ser):
+                seq_ser = seq_ser.dropna()
+                n_prot = seq_ser.shape[0]
+                arr = np.array(seq_ser.apply(lambda x: list(x)).tolist())
+                n_residue_list = []
+                mean_lipo_list = []
+                for i in range(arr.shape[1]):
+                    rowlist = arr[:, i]
+                    joined = "".join(rowlist)
+                    n_gaps = joined.count("-")
+                    n_residues = n_prot - n_gaps
+                    n_residue_list.append(n_residues)
+                    # get lipophilicity
+                    mean_lipo = korbinian.utils.calc_lipophilicity(joined)
+                    mean_lipo_list.append(mean_lipo)
+                return n_residue_list, mean_lipo_list
+
+            def get_altern_pattern_lipo_and_save_fasta(dfp, TM, base_filepath):
+                TM_seqs = dfp["{}_seq".format(TM)].dropna()
+                len_longest_TM_strand = dfp["{}_seq".format(TM)].str.len().max()
+                for acc in dfp["{}_seq".format(TM)].dropna().index:
+                    seq = dfp.loc[acc, "{}_seq".format(TM)]
+                    f0_seq = seq[::2]
+                    f1_seq = seq[1::2]
+                    if korbinian.utils.calc_lipophilicity(f0_seq) < korbinian.utils.calc_lipophilicity(f1_seq):
+                        frame = 0
+                        dfp.loc[acc, "{}_lipo_frame".format(TM)] = 0
+                    else:
+                        dfp.loc[acc, "{}_lipo_frame".format(TM)] = 1
+                        frame = 1
+                    endpadding = len_longest_TM_strand - frame + 1
+                    frontgap = "-" * frame
+                    dfp.loc[acc, "{}_padded".format(TM)] = ("{}{:-<%d}" % endpadding).format(frontgap, seq)
+
+                n_residue_list, mean_lipo_list = get_pos_dep_lipo(dfp["{}_padded".format(TM)])
+
+                aligned_fasta = os.path.join(base_filepath, "BB_{}_aligned.fas".format(TM))
+
+                with open(aligned_fasta, "w") as f:
+                    for acc in dfp["{}_padded".format(TM)].dropna().index:
+                        f.write(">{}\n{}\n".format(acc,  dfp["{}_padded".format(TM)][acc]))
+
+                return n_residue_list, mean_lipo_list
+
+            TM03_n_residue_list, TM03_mean_lipo_list = get_altern_pattern_lipo_and_save_fasta(df, "TM03", base_filepath)
+            TM04_n_residue_list, TM04_mean_lipo_list = get_altern_pattern_lipo_and_save_fasta(df, "TM04", base_filepath)
+
+            # get length of longest last TMD
+            longest_TM_strand = df["last_TMD_seq"].str.len().max()
+            # pad with - to create alignment
+            df["last_TMD_seq_padded"] = df.last_TMD_seq.dropna().apply(lambda x: ("{:->%d}" % longest_TM_strand).format(x))
+            df["last_TMD_seq_padded"].head()
+
+            last_TMD_seq_padded_ser = df["last_TMD_seq_padded"].dropna()
+            with open(final_TM_aligned_fasta, "w") as f:
+                for acc in last_TMD_seq_padded_ser.index:
+                    f.write(">{}\n{}\n".format(acc, last_TMD_seq_padded_ser[acc]))
+
+            final_F_ser = last_TMD_seq_padded_ser.loc[last_TMD_seq_padded_ser.str[-1] == "F"]
+
+            # final_TM_aligned_fasta_finalF
+            with open(final_TM_aligned_fasta_finalF, "w") as f:
+                for acc in final_F_ser.index:
+                    f.write(">{}\n{}\n".format(acc, final_F_ser[acc]))
+
+            n_residue_list, mean_lipo_list = get_pos_dep_lipo(last_TMD_seq_padded_ser)
+
+            color_list = utils.create_colour_lists()['HTML_list01']
+            cdict = utils.create_colour_lists()
+            c1 = cdict["TUM_colours"]["TUM1"]
+            c2 = cdict["TUM_colours"]["TUM2"]
+
+            fig, ax = plt.subplots()
+            ax2 = ax.twinx()
+
+            range_0_13 = np.arange(1, len(n_residue_list) + 1)
+            x = range_0_13 - len(n_residue_list)
+            ax.plot(x, mean_lipo_list, color=c2)
+            ax.grid(b=False)
+            ax.set_ylabel("mean hydrophobicity, Hessa scale", color=c2)
+
+            ax2.plot(x, n_residue_list, color=c1, linestyle="--")
+            ax2.grid(b=False)
+            ax2.set_ylabel("number of residues at position", color=c1)
+
+            ax2.spines["left"].set_color(c2)
+            ax2.spines["right"].set_color(c1)
+            ax.yaxis.label.set_color(c2)
+            ax2.yaxis.label.set_color(c1)
+            ax.tick_params(axis="y", colors=c2)
+            ax2.tick_params(axis="y", colors=c1)
+
+            ax.set_xlabel("residue position (aligned to terminal position, 0)")
+            ax.set_title("C-terminal strand hydrophobicity pattern")
+
+            fig.tight_layout()
+            utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
+            Fig_Nr = "20b"
+            title = 'linechart hydrophobicity central TM'
+
+            for TM in ["TM03", "TM04"]:
+                n_residue_list, mean_lipo_list = get_altern_pattern_lipo_and_save_fasta(df, TM, base_filepath)
+
+                Fig_name = 'List{:02d}_Fig20c_BB_linechart_lipo_{}'.format(list_number, TM)
+                fig, ax = plt.subplots()
+                ax2 = ax.twinx()
+
+                range_0_13 = np.arange(1, len(n_residue_list) + 1)
+                x = range_0_13
+                ax.plot(x, mean_lipo_list, color=c2)
+                ax.grid(b=False)
+                ax.set_ylabel("mean hydrophobicity, Hessa scale", color=c2)
+
+                ax2.plot(x, n_residue_list, color=c1, linestyle="--")
+
+                ax2.grid(b=False)
+                ax2.set_ylabel("number of residues at position", color=c1)
+
+                ax2.spines["left"].set_color(c2)
+                ax2.spines["right"].set_color(c1)
+                ax.yaxis.label.set_color(c2)
+                ax2.yaxis.label.set_color(c1)
+                ax.tick_params(axis="y", colors=c2)
+                ax2.tick_params(axis="y", colors=c1)
+
+                ax.set_xlabel("residue position (aligned to initial position, 1)")
+                ax.set_title("hydrophobicity pattern")
+                #fig_res_numbers = r"D:\Schweris\Projects\TMD_Conservation\20170612 beta signal analysis\weblogo\residue_numbers_and_hydrophobicity_TM03.png"
+                fig.tight_layout()
+                utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
+
+            Fig_Nr = "20c"
+            title = 'AA propensity at terminal position'
+            Fig_name = 'List{:02d}_Fig20c_BB_barchart_AA_prop_terminal_pos'.format(list_number)
+            fig, ax = plt.subplots()
+
+            n_prot = df["last_TMD_seq"].dropna().shape[0]
+            vc_last = df["last_TMD_seq"].str[-1].value_counts() / n_prot * 100
+            vc_minus_2 = df["last_TMD_seq"].str[-3].value_counts() / n_prot * 100
+            vc_minus_4 = df["last_TMD_seq"].str[-5].value_counts() / n_prot * 100
+            vc_minus_6 = df["last_TMD_seq"].str[-7].value_counts() / n_prot * 100
+
+            dfa = pd.DataFrame()
+            dfa["terminal"] = vc_last
+            dfa["pos -2"] = vc_minus_2
+            dfa["pos -4"] = vc_minus_4
+            dfa["pos -6"] = vc_minus_6
+            dfa.plot(kind="bar", color=color_list[1:])
+            plt.title("amino acid propensity at terminal position")
+            plt.ylabel("frequency (%)")
+            plt.tight_layout()
+            if save_png:
+                plt.savefig(os.path.join(base_filepath, Fig_name + ".png"),dpi=dpi)
+            if save_pdf:
+                plt.savefig(os.path.join(base_filepath, "pdf", Fig_name + ".pdf"))
+
+
+    if s["Fig21_linechart_lipo_f_c_l_vs_number_of_TMDs"]:
+        Fig_Nr = 21
+        title = 'linechart_lipo_f_c_l_vs_number_of_TMDs'
+        Fig_name = 'List{:02d}_Fig21a_linechart_lipo_f_c_l_vs_number_of_TMDs'.format(list_number)
+
+        min_n_prot = 15
+
+        if max_num_TMDs >= 2:
+
+            fig, ax = plt.subplots()
+
+            if True in df.betabarrel.tolist():
+                min_n_TMDs = 8
+                max_num_TMDs_fig21 = 31
+            else:
+                min_n_TMDs = 1
+                max_num_TMDs_fig21 = int(max_num_TMDs)
+
+            # exclude GPCRs from multipass datasets
+            # NOTE: source of data is the original list csv,
+            # including proteins with insufficient homologues for conservation analyses
+            if "GPCR" in df.columns:
+                df_filt = df_list.loc[df_list.GPCR == False]
+            else:
+                df_filt = df
+
+            DF_FILT_SHAPE = df_filt.shape
+            pc(DF_FILT_SHAPE)
+
+            # for list 2, add the singlepass data to the analysis for this plot
+            if list_number == 2:
+                list1_csv = pathdict["list_csv"].replace("02", "01")
+                list1_cr_csv = pathdict["list_cr_summary_csv"].replace("02", "01")
+                df_list1 = pd.read_csv(list1_csv, index_col=0)
+                df_cr1 = pd.read_csv(list1_cr_csv, index_col=0)
+                #df_list1_merged = pd.concat([df_list1, df_cr1])
+                df_list1_merged = pd.merge(df_list1, df_cr1, left_index=True, right_index=True, suffixes=('_dfc', ''))
+
+                df_list1_merged = df_list1_merged.loc[df_list1_merged['AAIMON_n_homol'] >= min_n_homol]
+                #aaa(df_list1_merged)
+                #df_filt = pd.concat([df, df_list1_merged])
+                df_filt = pd.merge(df_filt, df_list1_merged, how="outer")
+                logging.info("{} proteins added from List01 for Figure 21, linechart_lipo_f_c_l_vs_number_of_TMDs".format(df_list1_merged.shape[0]))
+
+
+            DF_FILT_SHAPE = df_filt.shape
+            pc(DF_FILT_SHAPE)
+
+
+
+            dfn = pd.DataFrame()
+            for i in range(min_n_TMDs, max_num_TMDs_fig21):
+                # create a filtered selection with just that number of TMDs
+                dff = df_filt.loc[df_filt.number_of_TMDs == i]
+                dfn.loc[i, "TM01_lipo_mean"] = dff["TM01_lipo"].mean()
+                dfn.loc[i, "TM01_lipo_sem"] = scipy.stats.sem(dff["TM01_lipo"])
+                # lipo_mean_central_TMDs
+                dfn.loc[i, "central_lipo_mean"] = dff["lipo_mean_central_TMDs"].mean()
+                dfn.loc[i, "central_lipo_sem"] = scipy.stats.sem(dff["lipo_mean_central_TMDs"])
+                # last TM
+                dfn.loc[i, "last_lipo_mean"] = dff["lipo_last_TMD"].mean()
+                dfn.loc[i, "last_lipo_sem"] = scipy.stats.sem(dff["lipo_last_TMD"])
+                # number of proteins
+                dfn.loc[i, "n_prot"] = dff["lipo_last_TMD"].dropna().shape[0]
+
+            fig, ax = plt.subplots()
+            ax2 = ax.twinx()
+            fontsize = 8
+            c0 = "0.5"
+            c1 = cdict["TUM_colours"]["TUM1"]
+            c2 = cdict["TUM_colours"]["TUM2"]
+
+            dfn = dfn.loc[dfn.n_prot >= min_n_prot]
+
+            # plot central
+            ax.plot(dfn.index, dfn.central_lipo_mean, color=c0, label="central TMs")
+            ax.errorbar(x=dfn.index, y=dfn.central_lipo_mean, yerr=np.array(dfn.central_lipo_sem),
+                        color=c0, capthick=1, elinewidth=1.5, capsize=3, label=None)
+            # plot first
+            ax.plot(dfn.index, dfn.TM01_lipo_mean, color=c1, label="TM01", linestyle="--")
+            ax.errorbar(x=dfn.index, y=dfn.TM01_lipo_mean, yerr=np.array(dfn.TM01_lipo_sem),
+                        color=c1, capthick=1, elinewidth=1.5, capsize=3, linestyle="--", label=None)
+
+            # plot last
+            ax.plot(dfn.index, dfn.last_lipo_mean, color=c2, label="last TM", linestyle=":", )
+            ax.errorbar(x=dfn.index, y=dfn.last_lipo_mean, yerr=np.array(dfn.last_lipo_sem),
+                        color=c2, capthick=1, elinewidth=1.5, capsize=3, linestyle=":", label=None)
+
+            # plot number of proteins
+            ax2.plot(dfn.index, dfn.n_prot, color=cdict['TUM_oranges']["TUM0"], label="number of proteins")
+            ax2.grid(b=False)
+            ax2.set_ylabel("number of proteins", color=cdict['TUM_oranges']["TUM0"])
+            #ax2.legend(loc="upper right")
+            ax2.set_ylim(0, dfn.n_prot.max()*5)
+            ax2.spines["right"].set_color(cdict['TUM_oranges']["TUM0"])
+            ax2.yaxis.label.set_color(cdict['TUM_oranges']["TUM0"])
+            ax2.tick_params(axis="y", colors=cdict['TUM_oranges']["TUM0"])
+
+            ax.set_xlabel("number of TM regions")
+            ax.set_ylabel("mean lipophilicity\n(Hessa scale)")
+            #ax.set_ylim(0.45, 0.75)
+            ax.set_xlim(dfn.index.min() - 1, dfn.index.max() + 1 + 1)
+
+            # add annotations
+            ax.annotate(s="TM more\nlipophilic", xy=(-0.15, 0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+            ax.annotate(s="TM less\nlipophilic", xy=(-0.15, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+
+            ax.legend(frameon=True, loc="upper left")
+
+            #fig.tight_layout()
+            utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
+
+            Fig_name = 'List{:02d}_Fig21b_linechart_AAIMON_slope_f_c_l_vs_number_of_TMDs'.format(list_number)
+            fig, ax = plt.subplots()
+
+            # exclude GPCRs from multipass datasets
+            # NOTE: source of data is the merged cr_summary and list csv, filtered by sufficient homologues
+            if "GPCR" in df.columns:
+                df_filt = df.loc[df.GPCR == False]
+            else:
+                df_filt = df
+
+            DF_FILT_SHAPE = df_filt.shape
+            pc(DF_FILT_SHAPE)
+
+            # for list 2, add the singlepass data to the analysis for this plot
+            if list_number == 2:
+                # limit columns to avoid errors from python lists during merging
+                df_list1_merged = df_list1_merged.loc[:, ["number_of_TMDs", "TM01_AAIMON_slope", "AAIMON_slope_central_TMDs", "AAIMON_slope_last_TMD"]]
+                df_list1_merged_shape = df_list1_merged.shape
+                pc(df_list1_merged_shape)
+                df_filt = pd.merge(df_filt, df_list1_merged, how="outer")
+                #logging.info("{} proteins added from List01 for Figure 21, linechart_lipo_f_c_l_vs_number_of_TMDs".format(df_list1_merged.shape[0]))
+
+            DF_FILT_SHAPE = df_filt.shape
+            pc(DF_FILT_SHAPE)
+
+            aaa(df_filt)
+
+            dfn = pd.DataFrame()
+            for i in range(min_n_TMDs, max_num_TMDs_fig21):
+                # create a filtered selection with just that number of TMDs
+                dff = df_filt.loc[df_filt.number_of_TMDs == i]
+                dfn.loc[i, "TM01_AAIMON_slope_mean"] = dff["TM01_AAIMON_slope"].mean()
+                dfn.loc[i, "TM01_AAIMON_slope_sem"] = scipy.stats.sem(dff["TM01_AAIMON_slope"])
+                # lipo_mean_central_TMDs
+                dfn.loc[i, "central_AAIMON_slope_mean"] = dff["AAIMON_slope_central_TMDs"].mean()
+                dfn.loc[i, "central_AAIMON_slope_sem"] = scipy.stats.sem(dff["AAIMON_slope_central_TMDs"])
+                # last TM
+                dfn.loc[i, "last_AAIMON_slope_mean"] = dff["AAIMON_slope_last_TMD"].mean()
+                dfn.loc[i, "last_AAIMON_slope_sem"] = scipy.stats.sem(dff["AAIMON_slope_last_TMD"])
+                # number of proteins
+                dfn.loc[i, "n_prot"] = dff["AAIMON_slope_last_TMD"].dropna().shape[0]
+
+            dfn = dfn.loc[dfn.n_prot >= min_n_prot]
+
+            fig, ax = plt.subplots()
+            ax2 = ax.twinx()
+            fontsize = 8
+            c0 = "0.5"
+            c1 = cdict["TUM_colours"]["TUM1"]
+            c2 = cdict["TUM_colours"]["TUM2"]
+            # plot central
+            ax.plot(dfn.index, dfn.central_AAIMON_slope_mean, color=c0, label="central TMs")
+            ax.errorbar(x=dfn.index, y=dfn.central_AAIMON_slope_mean, yerr=np.array(dfn.central_AAIMON_slope_sem),
+                        color=c0, capthick=1, elinewidth=1.5, capsize=3, label=None)
+            # plot first
+            ax.plot(dfn.index, dfn.TM01_AAIMON_slope_mean, color=c1, label="TM01", linestyle="--")
+            ax.errorbar(x=dfn.index, y=dfn.TM01_AAIMON_slope_mean, yerr=np.array(dfn.TM01_AAIMON_slope_sem),
+                        color=c1, capthick=1, elinewidth=1.5, capsize=3, linestyle="--", label=None)
+
+            # plot last
+            ax.plot(dfn.index, dfn.last_AAIMON_slope_mean, color=c2, label="last TM", linestyle=":", )
+            ax.errorbar(x=dfn.index, y=dfn.last_AAIMON_slope_mean, yerr=np.array(dfn.last_AAIMON_slope_sem),
+                        color=c2, capthick=1, elinewidth=1.5, capsize=3, linestyle=":", label=None)
+
+            # plot number of proteins
+            ax2.plot(dfn.index, dfn.n_prot, color=cdict['TUM_oranges']["TUM0"], label="number of proteins")
+            ax2.grid(b=False)
+            ax2.set_ylabel("number of proteins", color=cdict['TUM_oranges']["TUM0"])
+            #ax2.legend(loc="upper right")
+            ax2.set_ylim(0, dfn.n_prot.max()*5)
+            ax2.spines["right"].set_color(cdict['TUM_oranges']["TUM0"])
+            ax2.yaxis.label.set_color(cdict['TUM_oranges']["TUM0"])
+            ax2.tick_params(axis="y", colors=cdict['TUM_oranges']["TUM0"])
+
+            ax.set_xlabel("number of TM regions")
+            #ax.set_ylabel("m$_{\rm TM/nonTM} *10^{\rm -3}$")
+            ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', rotation='vertical', fontsize=fontsize + 3)
+            #ax.set_ylim(0.45, 0.75)
+            ax.set_xlim(dfn.index.min() - 1, dfn.index.max() + 1 + 1)
+
+
+
+
+            # add annotations
+            ax.annotate(s="TM less\nconserved", xy=(-0.15, 0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+            ax.annotate(s="TM more\nconserved", xy=(-0.15, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+
+            ax.legend(frameon=True, loc="upper left")
+
+            #fig.tight_layout()
+            utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
 
     return "~~~~~~~~~~~~        run_save_figures_describing_proteins_in_list is finished        ~~~~~~~~~~~~"
