@@ -1187,6 +1187,9 @@ def calc_lipophilicity(seq, method = "mean"):
     # this is not simply the sequence length, as the sequence could include gaps or non-natural AA
     aa_counts_excluding_gaps = np.array(list(aa_counts_dict.values()))
     number_of_residues = aa_counts_excluding_gaps.sum()
+    # if there are no residues, don't attempt to calculate a mean. Return np.nan.
+    if number_of_residues == 0:
+        return np.nan
     # convert dictionary to array, sorted by aa
     aa_counts_arr = np.array([value for (key, value) in sorted(aa_counts_dict.items())])
     multiplied = aa_counts_arr * hessa_scale

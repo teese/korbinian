@@ -81,7 +81,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # if any proteins have been removed, then print the exact number.
     if n_removed >= 1:
         sys.stdout.write("-- {}/{} -- proteins were removed, as they contained less than {} valid homologues. "
-              "Final number of proteins = {}".format(n_removed, n_prot_before_n_homol_cutoff, min_n_homol, n_prot_after_n_homol_cutoff))
+              "\nFinal number of proteins = {}\n".format(n_removed, n_prot_before_n_homol_cutoff, min_n_homol, n_prot_after_n_homol_cutoff))
         sys.stdout.flush()
 
     # open list_csv file
@@ -1593,14 +1593,35 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             final_TM_aligned_fasta_finalF = os.path.join(base_filepath, "BB_terminal_TM_aligned_subset_final_AA_is_F.fas")
 
             def get_pos_dep_lipo(seq_ser):
+                """Get the position-dependent lipophilicity
+
+                Parameters
+                ----------
+                seq_ser : pd.Series
+                    Series of amino acid sequences
+
+                Returns
+                -------
+                n_residue_list : list
+                    number of residues at that position
+                mean_lipo_list : list
+                    mean lipophilicity at that position
+                """
+                # drop empty
                 seq_ser = seq_ser.dropna()
+                # get number of proteins
                 n_prot = seq_ser.shape[0]
+                # convert the series of sequences to a 2-D numpy array
                 arr = np.array(seq_ser.apply(lambda x: list(x)).tolist())
                 n_residue_list = []
                 mean_lipo_list = []
+                # iterate through the rows of the array, corresponding to positions
                 for i in range(arr.shape[1]):
+                    # get amino acids as a list
                     rowlist = arr[:, i]
+                    # join to make a string
                     joined = "".join(rowlist)
+                    # count gaps, and calculate number of residues without gaps
                     n_gaps = joined.count("-")
                     n_residues = n_prot - n_gaps
                     n_residue_list.append(n_residues)
@@ -1635,9 +1656,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                         f.write(">{}\n{}\n".format(acc,  dfp["{}_padded".format(TM)][acc]))
 
                 return n_residue_list, mean_lipo_list
-
-            TM03_n_residue_list, TM03_mean_lipo_list = get_altern_pattern_lipo_and_save_fasta(df, "TM03", base_filepath)
-            TM04_n_residue_list, TM04_mean_lipo_list = get_altern_pattern_lipo_and_save_fasta(df, "TM04", base_filepath)
 
             # get length of longest last TMD
             longest_TM_strand = df["last_TMD_seq"].str.len().max()
@@ -1690,13 +1708,20 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             fig.tight_layout()
             utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
+
+
+            ###############################################################
+            #                                                             #
+            #            linechart hydrophobicity central TM              #
+            #                                                             #
+            ###############################################################
             Fig_Nr = "20b"
             title = 'linechart hydrophobicity central TM'
 
             for TM in ["TM03", "TM04"]:
                 n_residue_list, mean_lipo_list = get_altern_pattern_lipo_and_save_fasta(df, TM, base_filepath)
 
-                Fig_name = 'List{:02d}_Fig20c_BB_linechart_lipo_{}'.format(list_number, TM)
+                Fig_name = 'List{:02d}_Fig20b_BB_linechart_lipo_{}'.format(list_number, TM)
                 fig, ax = plt.subplots()
                 ax2 = ax.twinx()
 
@@ -1724,23 +1749,28 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 fig.tight_layout()
                 utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-
+            ###############################################################
+            #                                                             #
+            #            AA propensity at terminal position               #
+            #                                                             #
+            ###############################################################
             Fig_Nr = "20c"
             title = 'AA propensity at terminal position'
             Fig_name = 'List{:02d}_Fig20c_BB_barchart_AA_prop_terminal_pos'.format(list_number)
-            fig, ax = plt.subplots()
-
+            # number of proteins with a last TMD seq
             n_prot = df["last_TMD_seq"].dropna().shape[0]
+            # value counts of each amino acid as a percentage
             vc_last = df["last_TMD_seq"].str[-1].value_counts() / n_prot * 100
             vc_minus_2 = df["last_TMD_seq"].str[-3].value_counts() / n_prot * 100
             vc_minus_4 = df["last_TMD_seq"].str[-5].value_counts() / n_prot * 100
             vc_minus_6 = df["last_TMD_seq"].str[-7].value_counts() / n_prot * 100
-
+            # combine into a single dataframe
             dfa = pd.DataFrame()
             dfa["terminal"] = vc_last
             dfa["pos -2"] = vc_minus_2
             dfa["pos -4"] = vc_minus_4
             dfa["pos -6"] = vc_minus_6
+            # plot directly from dataframe
             dfa.plot(kind="bar", color=color_list[1:])
             plt.title("amino acid propensity at terminal position")
             plt.ylabel("frequency (%)")
@@ -1858,7 +1888,11 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             #fig.tight_layout()
             utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-
+            ##################################################################
+            #                                                                #
+            #        linechart_AAIMON_slope_f_c_l_vs_number_of_TMDs          #
+            #                                                                #
+            ##################################################################
             Fig_name = 'List{:02d}_Fig21b_linechart_AAIMON_slope_f_c_l_vs_number_of_TMDs'.format(list_number)
             fig, ax = plt.subplots()
 
@@ -1881,14 +1915,14 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             for i in range(min_n_TMDs, max_num_TMDs_fig21):
                 # create a filtered selection with just that number of TMDs
                 dff = df_filt.loc[df_filt.number_of_TMDs == i]
-                dfn.loc[i, "TM01_AAIMON_slope_mean"] = dff["TM01_AAIMON_slope"].mean()
-                dfn.loc[i, "TM01_AAIMON_slope_sem"] = scipy.stats.sem(dff["TM01_AAIMON_slope"])
+                dfn.loc[i, "TM01_AAIMON_slope_mean"] = dff["TM01_AAIMON_slope"].mean()*1000
+                dfn.loc[i, "TM01_AAIMON_slope_sem"] = scipy.stats.sem(dff["TM01_AAIMON_slope"])*1000
                 # lipo_mean_central_TMDs
-                dfn.loc[i, "central_AAIMON_slope_mean"] = dff["AAIMON_slope_central_TMDs"].mean()
-                dfn.loc[i, "central_AAIMON_slope_sem"] = scipy.stats.sem(dff["AAIMON_slope_central_TMDs"])
+                dfn.loc[i, "central_AAIMON_slope_mean"] = dff["AAIMON_slope_central_TMDs"].mean()*1000
+                dfn.loc[i, "central_AAIMON_slope_sem"] = scipy.stats.sem(dff["AAIMON_slope_central_TMDs"])*1000
                 # last TM
-                dfn.loc[i, "last_AAIMON_slope_mean"] = dff["AAIMON_slope_last_TMD"].mean()
-                dfn.loc[i, "last_AAIMON_slope_sem"] = scipy.stats.sem(dff["AAIMON_slope_last_TMD"])
+                dfn.loc[i, "last_AAIMON_slope_mean"] = dff["AAIMON_slope_last_TMD"].mean()*1000
+                dfn.loc[i, "last_AAIMON_slope_sem"] = scipy.stats.sem(dff["AAIMON_slope_last_TMD"])*1000
                 # number of proteins
                 dfn.loc[i, "n_prot"] = dff["AAIMON_slope_last_TMD"].dropna().shape[0]
 
@@ -1982,7 +2016,12 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         c5 = "k"
         c6 = "0.5"
 
-        # plot the conservation line graphs
+        ##################################################################
+        #                                                                #
+        #                 linechart for CONSERVATION                     #
+        #             (first, central, last for protein subgroups)       #
+        #                                                                #
+        ##################################################################
         Fig_Nr = 22
         title = 'linechart_cons_f_c_l_multipass_prot_subgroups'
         Fig_name = 'List{:02d}_Fig22a_multipass_linechart_f_c_l_cons_protein_subgroups'.format(list_number)
@@ -2027,7 +2066,12 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-
+        ##################################################################
+        #                                                                #
+        #                    linechart for LIPOPHILICITY                 #
+        #             (first, central, last for protein subgroups)       #
+        #                                                                #
+        ##################################################################
         # plot the lipophilicity line graphs
         Fig_Nr = 22
         title = 'linechart_cons_f_c_l_multipass_prot_subgroups'
@@ -2068,8 +2112,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.set_xlim(-0.3, 2.3)
         # add annotations
         fontsize = 10
-        ax.annotate(s="TM more\nlipophilic", xy=(-0.12, 0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
-        ax.annotate(s="TM less\nlipophilic", xy=(-0.12, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+        ax.annotate(s="TM more\nlipophilic", xy=(-0.14, 0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+        ax.annotate(s="TM less\nlipophilic", xy=(-0.14, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
