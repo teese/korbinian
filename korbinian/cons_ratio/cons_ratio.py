@@ -224,8 +224,13 @@ def calculate_AAIMONs(p):
     #                 Calculate the nonTMD percentage identity and gaps                    #
     #                                                                                      #
     ########################################################################################
+    rand_nonTM_csv = os.path.normpath(os.path.join(s["data_dir"], "summaries/{ln:02d}/List{ln:02d}_rand/List{ln:02d}_rand_nonTM.csv".format(ln=s["list_number"])))
+    aa_prop_nonTM = pd.Series.from_csv(rand_nonTM_csv, sep="\t")
+    # the first line is the random identity. Extract and delete.
+    rand_nonTM = aa_prop_nonTM["random_sequence_identity_output"]
+
     # extract the length of the nonTMD region in the original query here, which should be in the original list summary file, created during uniprot_parse or OMPdb_get_TM_indices_and_slice
-    df_nonTMD, mean_ser = korbinian.cons_ratio.calc.calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser, p['len_nonTMD'])
+    df_nonTMD, mean_ser = korbinian.cons_ratio.calc.calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser, p['len_nonTMD'], rand_nonTM)
 
     ########################################################################################
     #                                                                                      #
@@ -240,8 +245,8 @@ def calculate_AAIMONs(p):
     dfh = dfh.loc[df_nonTMD.index, :]
     with zipfile.ZipFile(homol_cr_ratios_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
 
-        # save the nonTMD dataframe
-        nonTMD_cr_outfile_pickle = "{}_nonTMD_cr_df.pickle".format(protein_name)
+        # save the nonTMD dataframe BEFORE filtering
+        nonTMD_cr_outfile_pickle = "{}_nonTMD_cr_df_unfiltered.pickle".format(protein_name)
         with open(nonTMD_cr_outfile_pickle, "wb") as f:
             pickle.dump(df_nonTMD, f, protocol=pickle.HIGHEST_PROTOCOL)
         zipout.write(nonTMD_cr_outfile_pickle, arcname=nonTMD_cr_outfile_pickle)
@@ -260,12 +265,18 @@ def calculate_AAIMONs(p):
         n_homol_after_nonTMD_query = df_nonTMD.shape[0]
         mean_ser["n_homol_excluded_after_nonTMD_query"] = "__ {}/{} __".format(n_homol_before_nonTMD_query - n_homol_after_nonTMD_query, n_homol_before_nonTMD_query)
 
+        # save the nonTMD dataframe AFTER filtering
+        nonTMD_cr_outfile_pickle = "{}_nonTMD_cr_df.pickle".format(protein_name)
+        with open(nonTMD_cr_outfile_pickle, "wb") as f:
+            pickle.dump(df_nonTMD, f, protocol=pickle.HIGHEST_PROTOCOL)
+        zipout.write(nonTMD_cr_outfile_pickle, arcname=nonTMD_cr_outfile_pickle)
+        os.remove(nonTMD_cr_outfile_pickle)
+
         # Save the percentage nonTMD for all homologues
         # note that this might not match the final homologues with available AAIMON ratios
         mean_ser['perc_nonTMD_coverage_mean'] = df_nonTMD.perc_nonTMD_coverage.mean()
 
         #sys.stdout.write("\nn_homol_excluded_after_nonTMD_query {}".format(mean_ser["n_homol_excluded_after_nonTMD_query"]))
-
 
         ########################################################################################
         #                                                                                      #
@@ -443,6 +454,7 @@ def calculate_AAIMONs(p):
                 pickle.dump(df_cr, f, protocol=pickle.HIGHEST_PROTOCOL)
             zipout.write(TM_cr_pickle, arcname=TM_cr_pickle)
 
+
         # make a readable list of the number of homologues excluded for each TMD, based on filtering for gaps and lipophilicity, etc
         mean_ser["n_homol_excluded_after_TMD_filter"] = "__ {} __".format("".join(list_homol_excluded_in_TMD_filter))
 
@@ -520,8 +532,7 @@ def calculate_AAIMONs(p):
 
             with open(TM_cr_pickle, 'rb') as f:
                 df_cr = pickle.load(f)
-            # the TM_cr_pickle file has already been added to the zip, and can be deleted now
-            os.remove(TM_cr_pickle)
+
             # check that it's definitely a dataframe
             assert isinstance(df_cr, (pd.DataFrame))
 
@@ -651,6 +662,9 @@ def calculate_AAIMONs(p):
             # gaps per residue
             mean_ser['%s_SW_q_gaps_per_q_residue_mean' % TMD] = df_cr['%s_SW_q_gaps_per_q_residue' % TMD].dropna().mean()
 
+            # the TM_cr_pickle file has already been added to the zip, and can be deleted now
+            os.remove(TM_cr_pickle)
+
         # save the pandas series with the means to a csv in the cr_ratios zip file
         mean_ser.to_csv(mean_ser_filename)
         zipout.write(mean_ser_filename, arcname=mean_ser_filename)
@@ -660,7 +674,8 @@ def calculate_AAIMONs(p):
 
 # DEPRECATED FUNCTION
 def throw_out_truncated_sequences(pathdict, s, logging):
-    '''
+    """DEPRECATED TRUNCATION FUNCTION.
+    A cutoff for min % nonTMD is now in the main script.
     :param pathdict: dict
         Dictionary of the key paths and files associated with that List number.
     :param s:
@@ -670,7 +685,7 @@ def throw_out_truncated_sequences(pathdict, s, logging):
     :return:
         returns an altered dataframe that does not contain the homologues that do not match the requirements for validated homologues
         due to truncatiion of nonTMD sequence during local aligning of query and match sequence
-    '''
+    """
     logging.info('~~~~~~~~~~~~      starting run_filter_truncated_alignments        ~~~~~~~~~~~~')
     # if multiprocessing is used, log only to the console
     p_dict_logging = logging if s["use_multiprocessing"] != True else utils.Log_Only_To_Console()
@@ -695,6 +710,17 @@ def throw_out_truncated_sequences(pathdict, s, logging):
 
 
 def truncation_filter(p):
+    """DEPRECATED TRUNCATION FUNCTION.
+    A cutoff for min % nonTMD is now in the main script.
+
+    Parameters
+    ----------
+    p
+
+    Returns
+    -------
+
+    """
     pathdict, s, logging = p["pathdict"], p["s"], p["logging"]
     acc = p["acc"]
     protein_name = p["protein_name"]

@@ -1536,49 +1536,53 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
             # re-sort by p-value
             dfKW.sort_values("p-value_AAIMON_slope", inplace=True, ascending=True)
-            # get the mean value for the whole dataset
-            AAIMON_slope_whole_dataset_mean = dfKW.AAIMON_slope_whole_dataset_mean.iloc[0]
+            # ONLY CONTINUE IF THERE ARE ACTUALLY SOME KW WITH DATAPOINTS
+            if not dfKW.AAIMON_slope_whole_dataset_mean.empty:
+                # get the mean value for the whole dataset
+                AAIMON_slope_whole_dataset_mean = dfKW.AAIMON_slope_whole_dataset_mean.iloc[0]
 
-            # if it is a betabarrel dataset, replace the PFAM ids with the description
-            if True in df.betabarrel.tolist():
-                dfKW["orig_index"] = dfKW.index
-                dfKW.index = dfKW.index.astype(str) + "\n(" + dfKW["PFAM_desc"] + ")"
+                # if it is a betabarrel dataset, replace the PFAM ids with the description
+                if True in df.betabarrel.tolist():
+                    dfKW["orig_index"] = dfKW.index
+                    dfKW.index = dfKW.index.astype(str) + "\n(" + dfKW["PFAM_desc"] + ")"
 
-            # create a new dataframe with the mean values, including the "All {}".format(s["list_description"]) of the full dataset
-            orig_index = dfKW.index.tolist()
+                # create a new dataframe with the mean values, including the "All {}".format(s["list_description"]) of the full dataset
+                orig_index = dfKW.index.tolist()
 
-            new_index = ["All {}".format(s["list_description"])] + orig_index
-            df_barchart = pd.DataFrame(index=new_index)
-            # add the means
-            df_barchart["AAIMON_slope_mean"] = dfKW.AAIMON_slope_keyword_mean
-            df_barchart.loc["All {}".format(s["list_description"]), "AAIMON_slope_mean"] = AAIMON_slope_whole_dataset_mean
-            # calculate the SEM from the std
-            df_barchart["AAIMON_slope_keyword_SEM"] = dfKW.AAIMON_slope_keyword_std / np.sqrt(dfKW.number_of_proteins_keyword)
-            # get the SEM using the original dataframe derived from df_cr
-            sqrt_n = np.sqrt(df.AAIMON_slope_mean_all_TMDs.dropna().shape[0])
-            df_barchart.loc["All {}".format(s["list_description"]), "AAIMON_slope_keyword_SEM"] = scipy.stats.sem(df.AAIMON_slope_mean_all_TMDs)
+                new_index = ["All {}".format(s["list_description"])] + orig_index
+                df_barchart = pd.DataFrame(index=new_index)
+                # add the means
+                df_barchart["AAIMON_slope_mean"] = dfKW.AAIMON_slope_keyword_mean
+                df_barchart.loc["All {}".format(s["list_description"]), "AAIMON_slope_mean"] = AAIMON_slope_whole_dataset_mean
+                # calculate the SEM from the std
+                df_barchart["AAIMON_slope_keyword_SEM"] = dfKW.AAIMON_slope_keyword_std / np.sqrt(dfKW.number_of_proteins_keyword)
+                # get the SEM using the original dataframe derived from df_cr
+                sqrt_n = np.sqrt(df.AAIMON_slope_mean_all_TMDs.dropna().shape[0])
+                df_barchart.loc["All {}".format(s["list_description"]), "AAIMON_slope_keyword_SEM"] = scipy.stats.sem(df.AAIMON_slope_mean_all_TMDs)
 
-            # get a color list (HTML works best). Make it a long list, to accept list numbers frmo 1-1000
-            color_list = utils.create_colour_lists()['HTML_list01'] * 1000
-            color_first_bar_all_proteins = "0.35"
+                # get a color list (HTML works best). Make it a long list, to accept list numbers frmo 1-1000
+                color_list = utils.create_colour_lists()['HTML_list01'] * 1000
+                color_first_bar_all_proteins = "0.35"
 
-            ind = np.arange(df_barchart.shape[0]) + 0.1
-            width = 0.4
-            # add first color to be different ["first"] + ["chosen"]*10
-            colours = [color_first_bar_all_proteins] + [color_list[list_number - 1]] * df_barchart.shape[0]
-            ax.bar(ind, df_barchart["AAIMON_slope_mean"] * 1000, color=colours)
-            ax.errorbar(ind + width, df_barchart["AAIMON_slope_mean"] * 1000, yerr=df_barchart["AAIMON_slope_keyword_SEM"] * 1000, fmt="none",  ecolor="k", ls="none", capthick=1, elinewidth=1, capsize=4)
-            ax.set_xticks(ind + width)
-            # take only first 20 characters for the x-axis label
-            ax.set_xticklabels(pd.Series(df_barchart.index).str[0:20], rotation=90)
-            ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', rotation='vertical', fontsize=fontsize + 3)
-            if df_barchart.shape[0] < 10:
-                ax.set_xlim(0, 10)
-            # add annotations
-            ax.annotate(s="TM less\nconserved", xy=(-0.08, 0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
-            ax.annotate(s="TM more\nconserved", xy=(-0.08, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
-            fig.tight_layout()
-            utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+                ind = np.arange(df_barchart.shape[0]) + 0.1
+                width = 0.4
+                # add first color to be different ["first"] + ["chosen"]*10
+                colours = [color_first_bar_all_proteins] + [color_list[list_number - 1]] * df_barchart.shape[0]
+                ax.bar(ind, df_barchart["AAIMON_slope_mean"] * 1000, color=colours)
+                ax.errorbar(ind + width, df_barchart["AAIMON_slope_mean"] * 1000, yerr=df_barchart["AAIMON_slope_keyword_SEM"] * 1000, fmt="none",  ecolor="k", ls="none", capthick=1, elinewidth=1, capsize=4)
+                ax.set_xticks(ind + width)
+                # take only first 20 characters for the x-axis label
+                ax.set_xticklabels(pd.Series(df_barchart.index).str[0:20], rotation=90)
+                ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', rotation='vertical', fontsize=fontsize + 3)
+                if df_barchart.shape[0] < 10:
+                    ax.set_xlim(0, 10)
+                # add annotations
+                ax.annotate(s="TM less\nconserved", xy=(-0.08, 0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+                ax.annotate(s="TM more\nconserved", xy=(-0.08, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+                fig.tight_layout()
+                utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+            else:
+                sys.stdout.write("Fig19_barchart_keywords_signif_TM_cons skipped, dfKW.AAIMON_slope_whole_dataset_mean is empty, no KW were significant?")
 
     if s['Fig20_BB_linechart_lipo_patterns_orig_dataset']:
 
