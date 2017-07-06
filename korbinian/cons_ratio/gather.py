@@ -168,14 +168,14 @@ def gather_AAIMONs(pathdict, logging, s):
             dict_TMD_perc_identity_mean_all_TMDs[TMD] = dfg.loc[acc, '%s_perc_ident_mean' % TMD]
             dict_angle_between_slopes_all_TMDs[TMD] = dfg.loc[acc, '%s_angle_between_slopes' % TMD]
 
-        dfg.loc[acc, 'AAIMON_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_mean.values()))))
-        dfg.loc[acc, 'AAIMON_mean_all_TMDs_n'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_mean_n.values()))))
+        # dfg.loc[acc, 'AAIMON_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_mean.values()))))
+        # dfg.loc[acc, 'AAIMON_mean_all_TMDs_n'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_mean_n.values()))))
         #dfg.loc[acc, 'AAIMON_std_all_TMDs_n'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_std_n.values()))))
         dfg.loc[acc, 'AAIMON_std_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_std.values()))))
         dfg.loc[acc, 'AASMON_ratio_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AASMON_ratio_mean.values()))))
         dfg.loc[acc, 'AASMON_ratio_std_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AASMON_ratio_std.values()))))
-        dfg.loc[acc, 'AAIMON_slope_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_slope_mean.values()))))
-        dfg.loc[acc, 'AAIMON_n_slope_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_n_slope_mean.values()))))
+        #dfg.loc[acc, 'AAIMON_slope_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_slope_mean.values()))))
+        #dfg.loc[acc, 'AAIMON_n_slope_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_n_slope_mean.values()))))
         dfg.loc[acc, 'TMD_perc_identity_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_TMD_perc_identity_mean_all_TMDs.values()))))
         dfg.loc[acc, 'angle_between_slopes_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_angle_between_slopes_all_TMDs.values()))))
 
@@ -542,29 +542,6 @@ def gather_pretty_alignments(pathdict, logging, s):
                     if df_TMD.empty:
                         # skip to next TMD
                         continue
-
-                    # ########################################################################################
-                    # #                                                                                      #
-                    # #                      FILTERING HAS BEEN REMOVED.                                     #
-                    # #               AAIMONS ARE NOW ONLY CALCULATED FOR VALID HOMOLOGUES                   #
-                    # #                                                                                      #
-                    # ########################################################################################
-                    #
-                    # max_gaps = s["maxgaps_TMD"]
-                    # max_lipo_homol = s["max_lipo_homol"]
-                    # min_ident = s["cr_min_identity_of_TMD"]
-                    #
-                    # """This is used as a filter in filter_and_save_fasta, therefore is conducted earlier in the slicing function. """
-                    # ## count the number of gaps in the query and match sequences
-                    # cr_TMD_query_str = '{TMD}_perc_ident >= {min_ident} & ' \
-                    #                    '{TMD}_SW_query_num_gaps <= {max_gaps} & ' \
-                    #                    '{TMD}_SW_match_num_gaps <= {max_gaps} & ' \
-                    #                    '{TMD}_SW_match_lipo <= {max_lipo_homol}'.format(TMD=TMD, max_gaps=max_gaps,
-                    #                                                                     max_lipo_homol=max_lipo_homol,
-                    #                                                                     min_ident=min_ident)
-                    # # n_homol_before_filter = df_cr.shape[0]
-                    # # filter by the above query
-                    # df_TMD.query(cr_TMD_query_str, inplace=True)
 
                     # add protein and TMD-specific values
                     d["protein_name"] = protein_name

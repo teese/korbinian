@@ -304,6 +304,7 @@ def calculate_AAIMONs(p):
         fig, axarr = None, None
 
         AAIMON_all_TMD_dict = {}
+        SW_num_ident_res_dict = {}
         list_homol_excluded_in_TMD_filter = []
 
         for TMD_Nr, TMD in enumerate(list_of_TMDs):
@@ -421,15 +422,27 @@ def calculate_AAIMONs(p):
             # take whichever value is highest
             max_lipo_homol = np.array([max_lipo_homol_settings_file, orig_TM_lipo_plus_buffer]).max()
 
-            """This is used as a filter in filter_and_save_fasta, therefore is conducted earlier in the slicing function. """
+            """ Filtering of the homologues for this particular TMD
+             - max number of gaps in query
+             - max number of gaps in match
+             - max polarity (lipophilicity), which mostly excludes frameshifts
+             # OPTIONAL
+             - percentage identity of TMD does not equal zero (gives a TM/nonTM ratio of 0)
+            """
             ## count the number of gaps in the query and match sequences
             cr_TMD_query_str = '{TMD}_SW_query_num_gaps <= {max_gaps} & ' \
                                '{TMD}_SW_match_num_gaps <= {max_gaps} & ' \
-                               '{TMD}_SW_match_lipo <= {max_lipo_homol}'.format(TMD=TMD, max_gaps=max_gaps,
-                                                                                max_lipo_homol=max_lipo_homol)
+                               '{TMD}_SW_match_lipo <= {max_lipo_homol}'.format(TMD=TMD, max_gaps=max_gaps, max_lipo_homol=max_lipo_homol)
             n_homol_before_TMD_filter = df_cr.shape[0]
             # filter by the above query
             df_cr.query(cr_TMD_query_str, inplace=True)
+
+            # filter to exclude TMDs where the % identity of that TMD is zero (no identical residues)
+            # this may remove some valid homologues, especially when far homologues are included in the analysis
+            # Would be better to replace with number_of_ident_residues_all_TMDs / total_len_TMD_in_query, but this would disturb analyses of individual TM conservation.
+            if s["exclude_homol_with_0_ident_residues_in_any_TMD"]:
+                df_cr.query('{TMD}_perc_ident != 0'.format(TMD=TMD), inplace=True)
+
             n_homol_after_TMD_filter = df_cr.shape[0]
 
             # FOR SOME REASON -- 280/280 -- in the nonTMD query (e.g. no homologues with min % ident) gives -- 280/280 280/280 280/280 280/280 -- for all the TMDs.
@@ -445,9 +458,11 @@ def calculate_AAIMONs(p):
             #                                                                                      #
             #           Add the AAIMON values for this TMD to AAIMON_all_TMD_dict.                 #
             #  This will be used as a filter to select homologues that have good data for all TMDs #
+            #   Also create an array of the number of identical residues
             #                                                                                      #
             ########################################################################################
             AAIMON_all_TMD_dict['%s_AAIMON' % TMD] = df_cr['%s_AAIMON' % TMD].dropna()
+            SW_num_ident_res_dict['%s_SW_num_ident_res' % TMD] = df_cr['%s_SW_num_ident_res' % TMD].dropna()
 
             TM_cr_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
             with open(TM_cr_pickle, "wb") as f:
@@ -494,16 +509,102 @@ def calculate_AAIMONs(p):
         # create a bool if all TMDs have calculable AAIMON ratios
         df_AAIMON_all_TMD["all_TMDs_have_AAIMON"] = df_AAIMON_all_TMD["n_TMDs_with_measurable_AAIMON"] == p["number_of_TMDs_excl_SP"]
 
-        df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol'] = df_AAIMON_all_TMD.loc[:, AAIMON_cols].mean(axis=1)
+
         df_AAIMON_all_TMD['gapped_ident'] = dfh.loc[df_AAIMON_all_TMD.index, 'FASTA_gapped_identity']
         df_AAIMON_all_TMD['norm_factor'] = dfh.loc[df_AAIMON_all_TMD.index, 'norm_factor']
         df_AAIMON_all_TMD['perc_nonTMD_coverage'] = df_nonTMD.loc[df_AAIMON_all_TMD.index, 'perc_nonTMD_coverage']
-        df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol_n'] = df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol'] / df_AAIMON_all_TMD['norm_factor']
 
-        # # taken out by MO - figure replaced with plots for every single TMD
-        # korbinian.cons_ratio.norm.save_graph_for_normalized_AAIMON(acc,  df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol'],
-        #                                                              df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol_n'],
-        #                                                              df_AAIMON_all_TMD['gapped_ident'], zipout, protein_name)
+
+        ########################################################################################
+        #                                                                                      #
+        #                ADD AN ARRAY OF THE NUMBER OF IDENTICAL RESIDUES                      #
+        #    CALC % ident of TM region for all residues combined
+        #     This is important for datasets with far homologues, where TMDs may have
+        #      homologues without any identical residues (TM/nonTM = 0/x = 0)
+        #                                                                                      #
+        ########################################################################################
+        # convert dict to dataframe. index = hit number, columns = Index(['TM01_SW_num_ident_res', 'TM02_SW_num_ident_res', etc
+        df_SW_num_ident_res = pd.DataFrame(SW_num_ident_res_dict)
+        # save original cols with data (other columns will be added to same dataframe)
+        num_ident_res_orig_cols = df_SW_num_ident_res.columns
+        # add the evolutionary distance of each homologue (% identity of full protein)
+        df_SW_num_ident_res["obs_changes"] = dfh["obs_changes"]
+        df_SW_num_ident_res["norm_factor"] = dfh["norm_factor"]
+        df_SW_num_ident_res["nonTMD_perc_ident"] = df_nonTMD["nonTMD_perc_ident"]
+
+        # keep only homologues that gave valid AAIMONs in the preceding dataframe
+        df_SW_num_ident_res = df_SW_num_ident_res.loc[df_AAIMON_all_TMD.index, :]
+
+        TMD_seq_joined_len = p["TMD_seq_joined_len"]
+
+        df_SW_num_ident_res["SW_num_ident_res_all_TM"] = df_SW_num_ident_res.loc[:, num_ident_res_orig_cols].sum(axis=1)
+        df_SW_num_ident_res["perc_ident_all_TM_res"] = df_SW_num_ident_res["SW_num_ident_res_all_TM"] / TMD_seq_joined_len
+        df_SW_num_ident_res["AAIMON_all_TM_res"] = df_SW_num_ident_res["perc_ident_all_TM_res"] / df_SW_num_ident_res["nonTMD_perc_ident"]
+        df_SW_num_ident_res["AAIMON_n_all_TM_res"] = df_SW_num_ident_res["AAIMON_all_TM_res"] / df_SW_num_ident_res["norm_factor"]
+
+        # linear regression. X-axis = evolutionary distance (observed_changes), y-axis = AAIMON. Slope calculated with fixed 100% identity at AAIMON 1.0
+        AAIMON_slope, x_data, y_data = fit_data_to_linear_function(df_SW_num_ident_res["obs_changes"], df_SW_num_ident_res["AAIMON_all_TM_res"])
+        AAIMON_n_slope, x_data_n, y_data_n = fit_data_to_linear_function(df_SW_num_ident_res["obs_changes"], df_SW_num_ident_res["AAIMON_n_all_TM_res"])
+
+        mean_ser['AAIMON_mean_all_TMDs'] = df_SW_num_ident_res["AAIMON_all_TM_res"].mean()
+        mean_ser['AAIMON_n_mean_all_TMDs'] = df_SW_num_ident_res["AAIMON_n_all_TM_res"].mean()
+
+        mean_ser['AAIMON_slope_mean_all_TMDs'] = AAIMON_slope
+        mean_ser['AAIMON_n_slope_mean_all_TMDs'] = AAIMON_n_slope
+
+        fig, ax = plt.subplots()
+        # define data to plot
+        datapointsize = 0.5
+        x_data_obs_changes = df_SW_num_ident_res["obs_changes"]
+        scatter_data_AAIMON = df_SW_num_ident_res["AAIMON_all_TM_res"]
+        scatter_data_AAIMON_n = df_SW_num_ident_res["AAIMON_n_all_TM_res"]
+
+        # calculate angle between AAIMON_slope and AAIMON_n_slope
+        angle = korbinian.cons_ratio.histogram.angle_between_slopes((x_data[0], y_data[0]), (x_data[1], y_data[1]))
+
+        xlim_min = 0
+        xlim_max = 60
+
+        ax.scatter(x_data_obs_changes, scatter_data_AAIMON, color="k", alpha=0.3, s=datapointsize)
+        ax.scatter(x_data_obs_changes, scatter_data_AAIMON_n, color=(0.843, 0.098, 0.1098), marker='^', alpha=0.3, s=datapointsize)
+        ax.plot(x_data, y_data, color="k", alpha=0.3)
+        ax.plot(x_data, y_data_n, color=(0.843, 0.098, 0.1098), alpha=0.3)
+
+        ax.set_ylabel('%s AAIMON' % TMD, rotation='vertical', fontsize=fontsize)
+        # ax.set_xlabel('% identity')
+        ax.set_ylim(0.0, 3)
+        ax.annotate(s='AAIMON slope: {a:0.3f}, AAIMON_n slope: {b:0.3f}, angle {c:.2f}°'.format(a=AAIMON_slope, b=AAIMON_n_slope, c=angle),
+                                       xy=(0.01, 1.01), xytext=None, xycoords='axes fraction', alpha=0.75, fontsize=fontsize)
+        # ax.set_xticks(range(xlim_min,xlim_max+1,10))
+
+        # set x-axis min
+        ax.set_xlim(xlim_min, xlim_max)
+        # set x-axis ticks
+        # use the slide selection to select every second item in the list as an xtick(axis label)
+        ax.set_xticks(range(xlim_min, xlim_max + 1, 10))
+        ax.set_xlabel('% observed aa substitutions', fontsize=fontsize)
+        # change axis font size
+        ax.tick_params(labelsize=fontsize)
+        # create legend?#http://stackoverflow.com/questions/9834452/how-do-i-make-a-single-legend-for-many-subplots-with-matplotlib
+        ax.legend(['AAIMON slope', 'AAIMON_n slope', 'AAIMON', 'AAIMON_n'], loc='upper right', fontsize=fontsize)
+        # add background grid
+        ax.grid(True, color='0.75', alpha=0.5)
+        # automatically tighten the layout of plots in the figure
+        fig.tight_layout()
+        figpath = p['norm_scatter_path_prefix'] + '_all_TM_res.png'
+        # save files
+        fig.savefig(figpath, format='png', dpi=200)
+        # close figure
+        plt.close('all')
+        # add to zipfile
+        zipout.write(figpath, arcname=os.path.basename(figpath))
+        # delete temporory files
+        os.remove(figpath)
+
+        mean_ser['%s_angle_between_slopes' % TMD] = angle
+
+        df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol'] = df_AAIMON_all_TMD.loc[:, AAIMON_cols].mean(axis=1)
+        df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol_n'] = df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol'] / df_AAIMON_all_TMD['norm_factor']
 
         ########################################################################################
         #                                                                                      #
@@ -672,7 +773,7 @@ def calculate_AAIMONs(p):
 
     return acc, True, "0"
 
-# DEPRECATED FUNCTION
+
 def throw_out_truncated_sequences(pathdict, s, logging):
     """DEPRECATED TRUNCATION FUNCTION.
     A cutoff for min % nonTMD is now in the main script.
@@ -754,8 +855,6 @@ def truncation_filter(p):
         except:
             logging.info('pickle {} not found in zipfile - excluded'.format(in_file))
             pass
-
-
 
 ##############################################################
 #                                                            #
