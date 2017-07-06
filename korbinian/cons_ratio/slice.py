@@ -166,7 +166,7 @@ def slice_TMD_1_prot_from_homol(p):
             return acc, False, warning
 
         # add the FASTA_gapped_identity and length of the alignment sequence from dfs, to act as the "end" of all the nonTMD regions
-        df_nonTMD_sliced = dfs[['len_query_align_seq']].copy()
+        df_nonTMD_sliced = dfs[['len_query_align_seq', 'SW_query_coverage']].copy()
 
         # start with an empty dataframe, that will be replaced if there is any data to analyse
         df_TMD = pd.DataFrame()

@@ -1746,7 +1746,7 @@ def pn(p):
     sys.stdout.write("\n{}{}{}\n".format(variable_name, sep, p))
     sys.stdout.flush()
 
-def pr(p, end="\n"):
+def pr(p):
     """Shortened version of the print function
 
     Part of the debugging set of functions (pr, pc, pn)
@@ -1756,7 +1756,7 @@ def pr(p, end="\n"):
 
 
     """
-    sys.stdout.write("{}".format(p))
+    sys.stdout.write("{}\n".format(p))
     sys.stdout.flush()
 
 flatten = lambda x: [item for sublist in x for item in sublist]

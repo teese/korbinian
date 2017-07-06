@@ -1,5 +1,6 @@
 import korbinian
 import numpy as np
+import os
 import pandas as pd
 # import debugging tools
 from korbinian.utils import pr, pc, pn, aaa
@@ -202,7 +203,7 @@ def calc_AAIMON(TMD, df_cr, len_query_TMD):
 #     return mean_ser
 
 
-def calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser, len_nonTMD_orig_q):
+def calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser, len_nonTMD_orig_q, rand_nonTM):
     """Calculate the nonTMD percentage identity and gaps.
 
     Parameters
@@ -284,13 +285,31 @@ def calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser, len_nonTMD_orig_q):
     #                                                                                      #
     ########################################################################################
     # calculate the percentage identity of the nonTMD region (number of identical residues divided by the length excluding gaps)
-    df_nonTMD['nonTMD_perc_ident'] = df_nonTMD['nonTMD_num_ident_res'] / df_nonTMD['nonTMD_SW_align_len_excl_gaps']
+    df_nonTMD['nonTMD_perc_ident_alignable_region'] = df_nonTMD['nonTMD_num_ident_res'] / df_nonTMD['nonTMD_SW_align_len_excl_gaps']
+
+    ########################################################################################
+    #                                                                                      #
+    #                       adjust_for_trunc_ends_in_local_alignment                       #
+    #       nonTMD % identity = pf + r(1 - f)                                              #
+    #       where p = percentage identity of alignable nonTM sequence                      #
+    #       f = fraction of alignable region (e.g. 0.93)                                   #
+    #       r = random identity (e.g. 5.8%, 0.058)                                         #
+    #                                                                                      #
+    ########################################################################################
+    adjust_for_trunc_ends_in_local_alignment = True
+    if adjust_for_trunc_ends_in_local_alignment:
+        df_nonTMD['nonTMD_perc_ident'] = df_nonTMD['nonTMD_perc_ident_alignable_region'] * df_nonTMD['SW_query_coverage'] + rand_nonTM * (1 - df_nonTMD['SW_query_coverage'])
+    else:
+        # older, deprecated method
+        df_nonTMD['nonTMD_perc_ident'] = df_nonTMD['nonTMD_perc_ident_alignable_region']
 
     # drop any rows where there is no nonTMD_perc_ident
     df_nonTMD.dropna(subset=["nonTMD_perc_ident"], inplace=True)
 
+    # note that the similarity ratio won't be adjusted for truncated ends! Not currently in use for any calculations or protein comparisons.
     df_nonTMD['nonTMD_perc_sim'] = df_nonTMD['nonTMD_num_sim_res'] / df_nonTMD['nonTMD_SW_align_len_excl_gaps']
-    df_nonTMD['nonTMD_perc_sim_plus_ident'] = df_nonTMD['nonTMD_perc_ident'] +  df_nonTMD['nonTMD_perc_sim']
+    df_nonTMD['nonTMD_perc_sim_plus_ident'] = df_nonTMD['nonTMD_perc_ident_alignable_region'] +  df_nonTMD['nonTMD_perc_sim']
+
     # add to output dictionary with mean values for all homologues
     mean_ser['nonTMD_perc_ident_mean'] = float('%0.5f' % df_nonTMD['nonTMD_perc_ident'].mean())
     mean_ser['nonTMD_perc_sim_mean'] = float('%0.3f' % df_nonTMD['nonTMD_perc_sim'].mean())
@@ -303,23 +322,6 @@ def calc_nonTMD_perc_ident_and_gaps(df_nonTMD, mean_ser, len_nonTMD_orig_q):
     ########################################################################################
     df_nonTMD['perc_gaps_nonTMD_SW_align'] = (df_nonTMD['nonTMD_q_num_gaps'] + df_nonTMD['nonTMD_m_num_gaps']) / df_nonTMD['nonTMD_SW_align_len']
     mean_ser['perc_gaps_nonTMD_SW_align_mean'] = float('%0.2f' % df_nonTMD['perc_gaps_nonTMD_SW_align'].mean())
-
-    """ LEGACY CODE TO BE DELETED LATER """
-    # calculate the length of the nonTMD sequence excluding gaps
-    #df_nonTMD['len_nonTMD_q_excl_gaps'] = df_nonTMD['nonTMD_SW_align_len'] - df_nonTMD['nonTMD_q_num_gaps']
-    #df_nonTMD['len_nonTMD_m_excl_gaps'] = df_nonTMD['len_nonTMD_seq_match'] - df_nonTMD['nonTMD_m_num_gaps']
-    # calculate the length of the alignment by finding which seq excl gaps is smaller
-    # NOTE, THIS IS CURRENTLY TOO SHORT, GIVING NONTMD IDENTITIES ALWAYS ABOVE 1.0. NEEDS TO BE FIXED.
-    #df_nonTMD['len_nonTMD_align'] = df_nonTMD[['len_nonTMD_q_excl_gaps', 'len_nonTMD_m_excl_gaps']].min(axis=1)
-    # calculate the average number of gaps per residue in the nonTMD alignment
-    # # filter to analyse only sequences that are valid (length > 0)
-    # df_nonTMD_filt_gaps = df_nonTMD.loc[df_nonTMD['len_nonTMD_q_excl_gaps'] != 0]
-    # # calculate number of gaps in query AND match
-    # df_nonTMD_filt_gaps['nonTMD_qm_num_gaps'] = df_nonTMD_filt_gaps['nonTMD_q_num_gaps'] + df_nonTMD_filt_gaps['nonTMD_m_num_gaps']
-    # # add to simap dataframe
-    # df_nonTMD['nonTMD_qm_num_gaps'] = df_nonTMD_filt_gaps['nonTMD_qm_num_gaps']
-    # # gaps per query residue for both query and match = ((gaps in query + gaps in match)/2))/length of query excluding gaps
-    # df_nonTMD['nonTMD_qm_gaps_per_q_residue'] = df_nonTMD_filt_gaps['nonTMD_qm_num_gaps'] / 2 / df_nonTMD_filt_gaps['len_nonTMD_q_excl_gaps']
 
     ########################################################################################
     #                                                                                      #
