@@ -68,7 +68,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     df = pd.merge(df_cr_summary, df_list, left_index=True, right_index=True, suffixes=('_dfc', ''))
 
     # create number of datapoint dependent alpha_dpd
-    alpha_dpd = utils.calc_alpha_from_datapoints(df['AAIMON_mean_all_TMDs'])
+    alpha_dpd = utils.calc_alpha_from_datapoints(df['AAIMON_mean_all_TM_res'])
     #sys.stdout.write('\nopacity of datapoints: {a:.2f}\n'.format(a=alpha_dpd))
 
     # filter to remove proteins that have less than ~5 homologues
@@ -109,12 +109,12 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         list_prot_families = []
 
     # print mean aaimon slope for the full dataset
-    mean_AAIMON_slope = df['AAIMON_mean_all_TMDs'].mean()
+    mean_AAIMON_slope = df['AAIMON_mean_all_TM_res'].mean()
     logging.info("\n{p} mean AAIMON slope = {m:0.02f} * 10^-3".format(p="full dataset", m=mean_AAIMON_slope))
 
     # print mean values for protein families
     for prot_family in list_prot_families:
-        mean_AAIMON_slope = prot_family_df_dict[prot_family]['AAIMON_mean_all_TMDs'].mean()
+        mean_AAIMON_slope = prot_family_df_dict[prot_family]['AAIMON_mean_all_TM_res'].mean()
         logging.info("{p} mean AAIMON slope = {m:0.02f} * 10^-3".format(p=prot_family[3:], m=mean_AAIMON_slope))
 
     # # save dataframe
@@ -144,7 +144,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     max_num_TMDs = df.number_of_TMDs_excl_SP.max()
 
     # make list_of_TMDs a python list
-    df['list_of_TMDs'] = df['list_of_TMDs'].apply(lambda x: ast.literal_eval(x))
+    df['list_of_TMDs'] = df['list_of_TMDs'].apply(ast.literal_eval)
+    df['list_of_TMDs_excl_SP'] = df['list_of_TMDs_excl_SP'].apply(ast.literal_eval)
     # logging saved data types
     sys.stdout.write('\nSaving figures as: ')
     if s['save_pdf']:
@@ -164,7 +165,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # create a new figure
         fig, ax = plt.subplots()
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data_AAIMON_mean = np.array(df['AAIMON_mean_all_TMDs'].dropna())
+        hist_data_AAIMON_mean = np.array(df['AAIMON_mean_all_TM_res'].dropna())
         # use numpy to create a histogram
         freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
         # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
@@ -177,8 +178,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         barcontainer_AAIMON_mean = ax.bar(left=centre_of_bar_in_x_axis, height=freq_counts_I,
                                           align='center', width=col_width, color="#0489B1",
                                           alpha=0.5)  # edgecolor='black',
+
         # create numpy array of normalised membranous over nonmembranous conservation ratios (identity)
-        hist_data_AAIMON_n_mean = np.array(df['AAIMON_n_mean_all_TMDs'].dropna())
+        hist_data_AAIMON_n_mean = np.array(df['AAIMON_n_mean_all_TM_res'].dropna())
         # use numpy to create a histogram
         freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_n_mean, bins=binlist)
         # assuming all of the bins are exactly the same size, make the width of the column equal to 70% of each bin
@@ -191,8 +193,9 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         barcontainer_AAIMON_mean = ax.bar(left=centre_of_bar_in_x_axis, height=freq_counts_I,
                                           align='center', width=col_width, color="#EE762C",
                                           alpha=0.5)
+
         # create numpy array of membranous over nonmembranous conservation ratios (identity + similarity)
-        hist_data_AASMON_mean = np.array(df['AASMON_ratio_mean_all_TMDs'].dropna())
+        hist_data_AASMON_mean = np.array(df['AASMON_mean_all_TMDs_mean'].dropna())
         # use numpy to create a histogram
         freq_counts_S, bin_array_S = np.histogram(hist_data_AASMON_mean, bins=binlist)
         # barcontainer_S = axarr[row_nr,col_nr].bar(left=centre_of_bar_in_x_axis, height=freq_counts_S, align='center', width=col_width, color="#0101DF", edgecolor="#0101DF", alpha = 0.5)
@@ -311,30 +314,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         '''
         data = np.empty([0, 2])
 
-        # for n, acc in enumerate(df.index[0:20]):
-        #     list_of_TMDs = df.loc[acc, 'list_of_TMDs']
-        #     if n % 200 == 0:
-        #         sys.stdout.write('. ')
-        #         sys.stdout.flush()
-        #     for TMD in list_of_TMDs:
-        #         add = np.array([df.loc[acc, '%s_AAIMON_slope' % TMD], df.loc[acc, '%s_lipo' % TMD]])
-        #         data = (np.vstack((data, add)))
-        # sys.stdout.write('\n')
-        # data = data[~np.isnan(data).any(axis=1)]
-        #
-
-        # for n, acc in enumerate(df.index[0:20]):
-        #     list_of_TMDs = df.loc[acc, 'list_of_TMDs']
-        #     if n % 200 == 0:
-        #         sys.stdout.write('. ')
-        #         sys.stdout.flush()
-        #     for TMD in list_of_TMDs:
-        #         add = np.array([df.loc[acc, '%s_AAIMON_slope' % TMD], df.loc[acc, '%s_lipo' % TMD]])
-        #         data = (np.vstack((data, add)))
-        # sys.stdout.write('\n')
-        # data = data[~np.isnan(data).any(axis=1)]
-        #
-
         # add the signal peptide if necessary
         if "SP01_start" in df.columns:
             col_list_AAIMON_slope = ["SP01_AAIMON_slope"] + col_list_AAIMON_slope
@@ -360,11 +339,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         bins = [n_bins_x, n_bins_y]
         # density threshold
         thresh = 1
-
-        # # plot AAIMON_slope data
-        # x = data[:, 1]
-        # y = data[:, 0] * 1000
-        #
 
         x_border = 1.5
         y_border = 30
@@ -643,7 +617,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             hist_data = []
             for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
                 if df.loc[acc, 'number_of_TMDs'] == i:
-                    hist_data.append(df.loc[acc, 'AAIMON_mean_all_TMDs'])
+                    hist_data.append(df.loc[acc, 'AAIMON_mean_all_TM_res'])
             data_to_plot.append(hist_data)
             legend.append(i)
         meanpointprops = dict(marker='o', markerfacecolor='black', markersize=3)  # markeredgecolor='0.75',
@@ -712,7 +686,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         # plot AAIMON data
         x = df.obs_changes_mean
-        y = df.AAIMON_mean_all_TMDs
+        y = df.AAIMON_mean_all_TM_res
         # histogram the data
         hh, locx, locy = scipy.histogram2d(x, y, range=xyrange, bins=bins)
         # fill the areas with low density by NaNs
@@ -724,7 +698,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         xyrange = [[0, max_evol_distance], [-20, 20]]
         # plot AAIMON_slope data
         x = df.obs_changes_mean
-        y = df.AAIMON_slope_mean_all_TMDs * 1000
+        y = df.AAIMON_slope_all_TMDs_mean * 1000
         # histogram the data
         hh, locx, locy = scipy.histogram2d(x, y, range=xyrange, bins=bins)
         # fill the areas with low density by NaNs
@@ -921,7 +895,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # data that is binned
         column_for_bins = 'number_of_TMDs'
         # data that is plotted in bin
-        column_for_data = 'AAIMON_mean_all_TMDs'
+        column_for_data = 'AAIMON_mean_all_TM_res'
         hist_data = []
         legend = []
         TMD_number = list(range(1, 16, 1))
@@ -999,7 +973,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # data that is binned
         column_for_bins = 'seqlen'
         # data that is plotted in bin
-        column_for_data = 'AAIMON_mean_all_TMDs'
+        column_for_data = 'AAIMON_mean_all_TM_res'
         # specify variable for binning function
         x = df[column_for_bins]
         # specify number of bins
@@ -1072,7 +1046,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # data that is binned
         column_for_bins = 'nonTMD_SW_align_len_mean'
         # data that is plotted in bin
-        column_for_data = 'AAIMON_mean_all_TMDs'
+        column_for_data = 'AAIMON_mean_all_TM_res'
         # specify variable for binning function
         x = df[column_for_bins]
         # specify number of bins
@@ -1146,7 +1120,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # data that is binned
         column_for_bins = 'AAIMON_n_homol'
         # data that is plotted in bin
-        column_for_data = 'AAIMON_mean_all_TMDs'
+        column_for_data = 'AAIMON_mean_all_TM_res'
         # specify variable for binning function
         x = df[column_for_bins]
         # specify number of bins
@@ -1219,7 +1193,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 Fig_name = 'List{:02d}_Fig14_Hist_AAIMON_GPCRs_vs_nonGPCRs'.format(list_number)
                 fig, ax = plt.subplots()
                 # create numpy array of membranous over nonmembranous conservation ratios (identity)
-                hist_data_AAIMON_mean = np.array(df_GPCR['AAIMON_mean_all_TMDs'].dropna())
+                hist_data_AAIMON_mean = np.array(df_GPCR['AAIMON_mean_all_TM_res'].dropna())
                 # use numpy to create a histogram
                 freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
                 # normalize the frequency counts
@@ -1258,7 +1232,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 df_nonGPCR = df.loc[df['GPCR'] == False]
 
                 # create numpy array of membranous over nonmembranous conservation ratios (identity)
-                hist_data_AAIMON_mean = np.array(df_nonGPCR['AAIMON_mean_all_TMDs'].dropna())
+                hist_data_AAIMON_mean = np.array(df_nonGPCR['AAIMON_mean_all_TM_res'].dropna())
                 # use numpy to create a histogram
                 freq_counts_I, bin_array_I = np.histogram(hist_data_AAIMON_mean, bins=binlist)
                 # normalize the frequency counts
@@ -1383,8 +1357,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         Fig_name = 'List{:02d}_Fig16_Scatterplot_AAIMON_n_vs_slope'.format(list_number)
         fig, ax = plt.subplots()
 
-        x = df['AAIMON_mean_all_TMDs']
-        y = df['AAIMON_slope_mean_all_TMDs']*1000
+        x = df['AAIMON_mean_all_TM_res']
+        y = df['AAIMON_slope_all_TMDs_mean']*1000
 
         if len(x) > 5:
             # calculate linear regression for fitted line
@@ -1418,7 +1392,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         Fig_name = 'List{:02d}_Fig17_Scatterplot_perc_identity_nonTMD_vs_TMD'.format(list_number)
         fig, ax = plt.subplots()
 
-        x = df['TMD_perc_identity_mean_all_TMDs'] * 100
+        x = df['perc_ident_mean'] * 100
         y = df['nonTMD_perc_ident_mean'] * 100
 
         if len(x) > 5:
@@ -1557,8 +1531,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 # calculate the SEM from the std
                 df_barchart["AAIMON_slope_keyword_SEM"] = dfKW.AAIMON_slope_keyword_std / np.sqrt(dfKW.number_of_proteins_keyword)
                 # get the SEM using the original dataframe derived from df_cr
-                sqrt_n = np.sqrt(df.AAIMON_slope_mean_all_TMDs.dropna().shape[0])
-                df_barchart.loc["All {}".format(s["list_description"]), "AAIMON_slope_keyword_SEM"] = scipy.stats.sem(df.AAIMON_slope_mean_all_TMDs)
+                sqrt_n = np.sqrt(df.AAIMON_slope_all_TMDs_mean.dropna().shape[0])
+                df_barchart.loc["All {}".format(s["list_description"]), "AAIMON_slope_keyword_SEM"] = scipy.stats.sem(df.AAIMON_slope_all_TMDs_mean)
 
                 # get a color list (HTML works best). Make it a long list, to accept list numbers frmo 1-1000
                 color_list = utils.create_colour_lists()['HTML_list01'] * 1000
@@ -1821,7 +1795,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 df_list1_merged = pd.merge(df_list1, df_cr1, left_index=True, right_index=True, suffixes=('_dfc', ''))
 
                 df_list1_merged = df_list1_merged.loc[df_list1_merged['AAIMON_n_homol'] >= min_n_homol]
-                #aaa(df_list1_merged)
                 #df_filt = pd.concat([df, df_list1_merged])
                 df_filt = pd.merge(df_filt, df_list1_merged, how="outer")
                 logging.info("{} proteins added from List01 for Figure 21, linechart_lipo_f_c_l_vs_number_of_TMDs".format(df_list1_merged.shape[0]))

@@ -442,7 +442,7 @@ def prepare_protein_list(s, pathdict, logging):
         #     # there is only one TMD, add it as the TMD_seq_joined and as the lipo mean
         #     df.loc[acc, 'TMD_seq_joined'] = df.loc[acc, 'TM01_seq']
         #
-        #     df.loc[acc, 'lipo_mean_all_TMDs'
+        #     df.loc[acc, 'lipo_mean_all_TMDs_mean'
 
         # elif len(list_of_TMDs) > 1:
         ########################################################################################
@@ -481,7 +481,7 @@ def prepare_protein_list(s, pathdict, logging):
         df.loc[acc, 'TMD_seq_joined'] = TMD_seq_joined
         # calc the mean lipophilicity
         # note this is the mean of each TMD separately, not the lipo of the joined sequence
-        df.loc[acc, 'lipo_mean_all_TMDs'] = np.array(lipo_list).mean()
+        df.loc[acc, 'lipo_mean_all_TMDs_mean'] = np.array(lipo_list).mean()
         # calc the mean seqlen of all TMDs
         df.loc[acc, 'len_TMD_mean'] = np.array(TMD_seqlen_list).mean()
         # get last TMD
@@ -535,7 +535,7 @@ def prepare_protein_list(s, pathdict, logging):
 
     lipo_cutoff = s["max_lipo_list"]
 
-    list_acc_lipo_mean_above_cutoff = list(df['lipo_mean_all_TMDs'].loc[df['lipo_mean_all_TMDs'] > lipo_cutoff].index)
+    list_acc_lipo_mean_above_cutoff = list(df['lipo_mean_all_TMDs_mean'].loc[df['lipo_mean_all_TMDs_mean'] > lipo_cutoff].index)
 
     # convert current dataframe index to a set
     index_set = set(df.index)
@@ -544,7 +544,7 @@ def prepare_protein_list(s, pathdict, logging):
     # find acc to drop that are actually still in the index by looking for the overlap of both sets
     acc_lipo_mean_above_cutoff_to_remove = index_set.intersection(set_acc_lipo_mean_above_cutoff)
 
-    lipo_dropped = list(df.loc[acc_lipo_mean_above_cutoff_to_remove, 'lipo_mean_all_TMDs'])
+    lipo_dropped = list(df.loc[acc_lipo_mean_above_cutoff_to_remove, 'lipo_mean_all_TMDs_mean'])
 
     # drop rows
     df = df.drop(acc_lipo_mean_above_cutoff_to_remove)

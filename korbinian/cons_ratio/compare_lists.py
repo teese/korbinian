@@ -108,8 +108,8 @@ def compare_lists (s, df_lists_tab):
         df_merged = pd.merge(df_list, df_cr_summ, left_index=True, right_index=True, suffixes=('_dfy', ''))
         # count proteins before and after dropping proteins with less than x homologues (x from settings file "lists"), drop proteins
         proteins_before_dropping = len(df_merged)
-        # only keep proteins where an AAIMON_mean_all_TMDs has been calculated
-        df_merged = df_merged[np.isfinite(df_merged['AAIMON_mean_all_TMDs'])]
+        # only keep proteins where an AAIMON_mean_all_TM_res has been calculated
+        df_merged = df_merged[np.isfinite(df_merged['AAIMON_mean_all_TM_res'])]
         # only keep proteins where there is a minimum number of homologues
         df_merged = df_merged[df_merged.AAIMON_n_homol >= df_lists_tab.loc[prot_list, 'min_homol']]
         proteins_after_dropping = len(df_merged)
@@ -191,7 +191,7 @@ def compare_lists (s, df_lists_tab):
         color = dfv.loc[prot_list, 'color']
         ###   non-normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = np.array(df_dict[prot_list]['AAIMON_mean_all_TMDs'])
+        hist_data = np.array(df_dict[prot_list]['AAIMON_mean_all_TM_res'])
         AAIMON_mean = hist_data.mean()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
@@ -303,7 +303,7 @@ def compare_lists (s, df_lists_tab):
         color = dfv.loc[prot_list, 'color']
         ###   non-normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = np.array(df_dict[prot_list]['AAIMON_mean_all_TMDs'])
+        hist_data = np.array(df_dict[prot_list]['AAIMON_mean_all_TM_res'])
         AAIMON_slope_mean = hist_data.mean()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
@@ -378,7 +378,7 @@ def compare_lists (s, df_lists_tab):
         color = dfv.loc[prot_list, 'color']
         ###   non-normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = np.array(df_dict[prot_list]['AAIMON_slope_mean_all_TMDs']*1000)
+        hist_data = np.array(df_dict[prot_list]['AAIMON_slope_all_TMDs_mean']*1000)
         AAIMON_slope_mean = hist_data.mean()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
@@ -396,7 +396,7 @@ def compare_lists (s, df_lists_tab):
 
         ###   normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = np.array(df_dict[prot_list]['AAIMON_n_slope_mean_all_TMDs']*1000)
+        hist_data = np.array(df_dict[prot_list]['AAIMON_n_slope_all_TMDs_mean']*1000)
         AAIMON_slope_mean_n = hist_data.mean()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
@@ -489,7 +489,7 @@ def compare_lists (s, df_lists_tab):
         color = dfv.loc[prot_list, 'color']
         ###   non-normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = np.array(df_dict[prot_list]['AAIMON_slope_mean_all_TMDs'] * 1000)
+        hist_data = np.array(df_dict[prot_list]['AAIMON_slope_all_TMDs_mean'] * 1000)
         AAIMON_slope_mean = hist_data.mean()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
@@ -906,8 +906,8 @@ def compare_lists (s, df_lists_tab):
 
     #--------------------------------------------------------------------------------------------------------------------------------#
     Fig_Nr = 7
-    title = 'hist_lipo_mean_all_TMDs'
-    Fig_name = 'Fig07_hist_lipo_mean_all_TMDs'
+    title = 'hist_lipo_mean_all_TMDs_mean'
+    Fig_name = 'Fig07_hist_lipo_mean_all_TMDs_mean'
     min_ = -0.5
     max_ = 0.8
     binlist = np.linspace(min_, max_, n_bins_lipo+1) #41
@@ -1808,7 +1808,7 @@ def compare_lists (s, df_lists_tab):
         thresh = 1
 
         # data definition
-        data_TMD = df_dict[prot_list].TMD_perc_identity_mean_all_TMDs * 100
+        data_TMD = df_dict[prot_list].perc_ident_mean * 100
         data_nonTMD = df_dict[prot_list].nonTMD_perc_ident_mean * 100
         xdat, ydat = data_TMD, data_nonTMD
 
@@ -1897,8 +1897,8 @@ def compare_lists (s, df_lists_tab):
 
     mean_diff = []
     for n, prot_list in enumerate(protein_lists):
-        slope = df_dict[prot_list].AAIMON_slope_mean_all_TMDs * 1000
-        slope_n = df_dict[prot_list].AAIMON_n_slope_mean_all_TMDs * 1000
+        slope = df_dict[prot_list].AAIMON_slope_all_TMDs_mean * 1000
+        slope_n = df_dict[prot_list].AAIMON_n_slope_all_TMDs_mean * 1000
         diff = np.mean(abs(slope - slope_n))
         mean_diff.append(diff)
 
@@ -1919,7 +1919,7 @@ def compare_lists (s, df_lists_tab):
 
     # add mean values to dfv
     for prot_list in protein_lists:
-        dfv.loc[prot_list, 'mean_AAIMON_slope'] = np.mean(df_dict[prot_list].AAIMON_slope_mean_all_TMDs * 1000)
+        dfv.loc[prot_list, 'mean_AAIMON_slope'] = np.mean(df_dict[prot_list].AAIMON_slope_all_TMDs_mean * 1000)
     # initialise empty lists to hold data, annotations and labels
     heatmap_data = []
     heatmap_text = []
@@ -2027,7 +2027,7 @@ def compare_lists (s, df_lists_tab):
         df = df_dict[prot_list]
 
         # calculate mean, SEM and plot data for non-normalised slopes
-        data_slope = df.AAIMON_slope_mean_all_TMDs.dropna() * 1000
+        data_slope = df.AAIMON_slope_all_TMDs_mean.dropna() * 1000
         mean_slope = np.mean(data_slope)
         sem_slope = stats.sem(data_slope)
         width = 0.4
@@ -2039,7 +2039,7 @@ def compare_lists (s, df_lists_tab):
         ax.errorbar(n - 0.2, mean_slope, yerr=sem_slope, fmt="none", ecolor="k", ls="none", capthick=1, elinewidth=1, capsize=4, label=None)
 
         # calculate mean, SEM and plot data for normalised slopes
-        data_slope_n = df.AAIMON_n_slope_mean_all_TMDs.dropna() * 1000
+        data_slope_n = df.AAIMON_n_slope_all_TMDs_mean.dropna() * 1000
         mean_slope_n = np.mean(data_slope_n)
         sem_slope_n = stats.sem(data_slope_n)
         #ax.bar(n + 0.2, mean_slope_n, color=color_list[prot_list - 1], width=0.4, yerr=sem_slope_n, alpha=0.4)
