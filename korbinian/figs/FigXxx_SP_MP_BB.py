@@ -56,11 +56,11 @@ df_BB = pd.read_csv(BB_input_csv, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_c
     #    sys.stdout.writedf_BB.loc[acc, 'list_of_TMDs'])
 #    for TMD in ast.literal_eval(df_BB.loc[acc, 'list_of_TMDs']):
 #        dict_AAIMON_mean_BB[TMD] = df_BB.loc[acc, '%s_AAIMON_mean' % TMD]
-#    df_BB.loc[acc, 'AAIMON_mean_all_TMDs'] = np.mean(list(dict_AAIMON_mean_BB.values()))
+#    df_BB.loc[acc, 'AAIMON_mean_all_TM_res'] = np.mean(list(dict_AAIMON_mean_BB.values()))
 #    sys.stdout.write(dict_AAIMON_mean_BB)
 
 TM01_greater_5_homol = df_BB['AAIMON_n_homol'].loc[df_BB['AAIMON_n_homol'] > 5]
-mean_AAIMON_filt_BB = df_BB['AAIMON_mean_all_TMDs'].loc[TM01_greater_5_homol.index]
+mean_AAIMON_filt_BB = df_BB['AAIMON_mean_all_TM_res'].loc[TM01_greater_5_homol.index]
 sys.stdout.write("mean_AAIMON_filt_mean_BB", mean_AAIMON_filt_BB.mean())
 
 # create numpy array of membranous over nonmembranous conservation ratios (identity)
@@ -124,7 +124,7 @@ data_to_plot.append(list_BB)
 #    dict_AAIMON_mean_MP = {}
 #    for TMD in ast.literal_eval(df_MP.loc[acc, 'list_of_TMDs']):
 #        dict_AAIMON_mean_MP[TMD] = df_MP.loc[acc, '%s_AAIMON_mean' % TMD]
-#    df_MP.loc[acc, 'AAIMON_mean_all_TMDs'] = np.mean(list(dict_AAIMON_mean_MP.values()))
+#    df_MP.loc[acc, 'AAIMON_mean_all_TM_res'] = np.mean(list(dict_AAIMON_mean_MP.values()))
 
 homol_cutoff = 4500
 df_MP_less_4500 = pd.DataFrame()
@@ -132,7 +132,7 @@ df_MP_less_4500['AAIMON_n_homol'] = df_MP['AAIMON_n_homol'].loc[df_MP['AAIMON_n_
 sys.stdout.write('number_of_MP_proteins_excluded = ', len(df_MP.index) - len(df_MP_less_4500.index))
 
 TM01_greater_50_homol = df_MP_less_4500['AAIMON_n_homol'].loc[df_MP['AAIMON_n_homol'] > 50]
-mean_AAIMON_filt_MP = df_MP['AAIMON_mean_all_TMDs'].loc[TM01_greater_50_homol.index]
+mean_AAIMON_filt_MP = df_MP['AAIMON_mean_all_TM_res'].loc[TM01_greater_50_homol.index]
 sys.stdout.write("mean_AAIMON_filt_mean_MP", mean_AAIMON_filt_MP.mean())
 
 # create numpy array of membranous over nonmembranous conservation ratios (identity)
@@ -153,14 +153,14 @@ data_to_plot.append(list_MP)
 #    dict_AAIMON_mean_SP = {}
 #    for TMD in ast.literal_eval(df_SP.loc[acc, 'list_of_TMDs']):
 #        dict_AAIMON_mean_SP[TMD] = df_SP.loc[acc, '%s_AAIMON_mean' % TMD]
-#    df_SP.loc[acc, 'AAIMON_mean_all_TMDs'] = np.mean(list(dict_AAIMON_mean_SP.values()))
+#    df_SP.loc[acc, 'AAIMON_mean_all_TM_res'] = np.mean(list(dict_AAIMON_mean_SP.values()))
 homol_cutoff = 4500
 df_SP_less_4500 = pd.DataFrame()
 df_SP_less_4500['AAIMON_n_homol'] = df_SP['AAIMON_n_homol'].loc[df_SP['AAIMON_n_homol'] < homol_cutoff]
 sys.stdout.write('number_of_SP_proteins_excluded = ', len(df_SP.index) - len(df_SP_less_4500.index))
 
 TM01_greater_50_homol = df_SP_less_4500['AAIMON_n_homol'].loc[df_SP['AAIMON_n_homol'] > 50]
-mean_AAIMON_filt_SP = df_SP['AAIMON_mean_all_TMDs'].loc[TM01_greater_50_homol.index]
+mean_AAIMON_filt_SP = df_SP['AAIMON_mean_all_TM_res'].loc[TM01_greater_50_homol.index]
 #sys.stdout.write(mean_AAIMON_filt_SP)
 sys.stdout.write("mean_AAIMON_filt_mean_SP", mean_AAIMON_filt_SP.mean())
 

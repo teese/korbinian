@@ -561,10 +561,10 @@ def calculate_AAIMONs(p):
         mean_ser['AAIMON_n_mean_all_TM_res'] = df_SW_num_ident_res["AAIMON_n_all_TM_res"].mean()
         mean_ser['AAIMON_n_std_all_TM_res'] = df_SW_num_ident_res["AAIMON_n_all_TM_res"].std()
 
-        mean_ser['AAIMON_slope_mean_all_TM_res'] = AAIMON_slope
-        mean_ser['AAIMON_n_slope_mean_all_TM_res'] = AAIMON_n_slope
+        mean_ser['AAIMON_slope_all_TM_res'] = AAIMON_slope
+        mean_ser['AAIMON_n_slope_all_TM_res'] = AAIMON_n_slope
 
-        mean_ser['TMD_perc_identity_mean_all_TMDs'] = 1 - df_SW_num_ident_res["obs_changes"].mean()
+        mean_ser['perc_ident_mean'] = 1 - df_SW_num_ident_res["obs_changes"].mean()
 
         ########################################################################################
         #                                                                                      #
@@ -787,22 +787,13 @@ def calculate_AAIMONs(p):
             # the TM_cr_pickle file has already been added to the zip, and can be deleted now
             os.remove(TM_cr_pickle)
 
-        # dfg.loc[acc, 'AASMON_ratio_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AASMON_ratio_mean.values()))))
-        # dfg.loc[acc, 'AASMON_ratio_std_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AASMON_ratio_std.values()))))
-        # dfg.loc[acc, 'AAIMON_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_mean.values()))))
-        # dfg.loc[acc, 'AAIMON_n_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_n_mean.values()))))
-        # dfg.loc[acc, 'AAIMON_n_std_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_std_n.values()))))
-        # dfg.loc[acc, 'AAIMON_std_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_std.values()))))
-        # dfg.loc[acc, 'AAIMON_slope_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_slope_mean.values()))))
-        # dfg.loc[acc, 'AAIMON_n_slope_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_n_slope_mean.values()))))
-        # dfg.loc[acc, 'angle_between_slopes_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_angle_between_slopes_all_TMDs.values()))))
 
         # create a dict to cycle through the functions : mean, std, SEM, etc
         function_dict = {"mean" : np.mean, "std" : np.std, "SEM": sem}
         # ignore std and SEM if there are only one TMD in the list
         fxn_list = ["mean"] if len(list_of_TMDs_excl_SP) == 1 else function_dict.keys()
         # choose the values to apply the statistical functions
-        colnames = ["{}_AAIMON_mean", "{}_AAIMON_n_mean", "{}_AAIMON_slope", "{}_AAIMON_n_slope", "{}_angle_between_slopes"]
+        colnames = ["{}_AAIMON_mean", "{}_AAIMON_n_mean", "{}_AAIMON_slope", "{}_AAIMON_n_slope", "{}_angle_between_slopes", "{}_AASMON_mean"]
         for colname in colnames:
             sel_cols = [colname.format(TMD) for TMD in list_of_TMDs_excl_SP]
             # if all the selected cols are in the index
@@ -833,12 +824,10 @@ def calculate_AAIMONs(p):
         else:
             mean_ser['AAIMON_slope_central_TMDs'] = np.nan
 
-
-
         # for interest sake, check the difference between AAIMON slopes for all TM residues combined, and the TMDs separately
-        mean_ser["AAIMON_slope_all_TM_res_minus_all_TMDs"] = mean_ser["AAIMON_slope_mean_all_TM_res"] - mean_ser["AAIMON_slope_all_TMDs_mean"]
+        mean_ser["AAIMON_slope_all_TM_res_minus_all_TMDs"] = mean_ser["AAIMON_slope_all_TM_res"] - mean_ser["AAIMON_slope_all_TMDs_mean"]
 
-        logging.info('%s AAIMON_slope all TM residues: %0.5f' % (acc, mean_ser["AAIMON_slope_mean_all_TM_res"]))
+        logging.info('%s AAIMON_slope all TM residues: %0.5f' % (acc, mean_ser["AAIMON_slope_all_TM_res"]))
 
         # save the pandas series with the means to a csv in the cr_ratios zip file
         mean_ser.to_csv(mean_ser_filename)
