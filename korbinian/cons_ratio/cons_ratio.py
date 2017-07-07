@@ -9,6 +9,7 @@ import numpy as np
 import os
 import pandas as pd
 import pickle
+from scipy.stats import sem
 import sys
 import zipfile
 # import debugging tools
@@ -141,8 +142,13 @@ def calculate_AAIMONs(p):
     mean_ser["protein_name"] = p['protein_name']
     mean_ser["organism"] = p['organism']
     mean_ser["prot_descr"] = p['prot_descr']
-    mean_ser['list_of_TMDs'] = p['list_of_TMDs']
+    mean_ser["number_of_TMDs"] = p['number_of_TMDs']
+    mean_ser["number_of_TMDs_excl_SP"] = p['number_of_TMDs_excl_SP']
+
     list_of_TMDs = ast.literal_eval(p['list_of_TMDs'])
+    mean_ser['list_of_TMDs'] = list_of_TMDs
+    list_of_TMDs_excl_SP = ast.literal_eval(p['list_of_TMDs_excl_SP'])
+    mean_ser['list_of_TMDs_excl_SP'] = list_of_TMDs_excl_SP
 
     ########################################################################################
     #                                                                                      #
@@ -500,7 +506,7 @@ def calculate_AAIMONs(p):
             logging.info(message)
             return acc, False, message
         # get the original column names (M01_AAIMON, TM02_AAIMON, etc)
-        AAIMON_cols = ["{}_AAIMON".format(TMD) for TMD in list_of_TMDs]
+        AAIMON_cols = ["{}_AAIMON".format(TMD) for TMD in list_of_TMDs_excl_SP]
         # Get the number of TMDs whose AAIMON ratio was calculable
         # For truncated alignments, C and N-term TMDs may be missing
         # steps : 0) select just AAIMON data 1) convert nan to "", 2) count numbers with np.isreal,
@@ -525,6 +531,9 @@ def calculate_AAIMONs(p):
         ########################################################################################
         # convert dict to dataframe. index = hit number, columns = Index(['TM01_SW_num_ident_res', 'TM02_SW_num_ident_res', etc
         df_SW_num_ident_res = pd.DataFrame(SW_num_ident_res_dict)
+        # get the original column names (M01_AAIMON, TM02_AAIMON, etc)
+        num_ident_res_orig_cols = ['{}_SW_num_ident_res'.format(TMD) for TMD in list_of_TMDs_excl_SP]
+
         # save original cols with data (other columns will be added to same dataframe)
         num_ident_res_orig_cols = df_SW_num_ident_res.columns
         # add the evolutionary distance of each homologue (% identity of full protein)
@@ -546,12 +555,23 @@ def calculate_AAIMONs(p):
         AAIMON_slope, x_data, y_data = fit_data_to_linear_function(df_SW_num_ident_res["obs_changes"], df_SW_num_ident_res["AAIMON_all_TM_res"])
         AAIMON_n_slope, x_data_n, y_data_n = fit_data_to_linear_function(df_SW_num_ident_res["obs_changes"], df_SW_num_ident_res["AAIMON_n_all_TM_res"])
 
-        mean_ser['AAIMON_mean_all_TMDs'] = df_SW_num_ident_res["AAIMON_all_TM_res"].mean()
-        mean_ser['AAIMON_n_mean_all_TMDs'] = df_SW_num_ident_res["AAIMON_n_all_TM_res"].mean()
+        mean_ser['AAIMON_mean_all_TM_res'] = df_SW_num_ident_res["AAIMON_all_TM_res"].mean()
+        mean_ser['AAIMON_std_all_TM_res'] = df_SW_num_ident_res["AAIMON_all_TM_res"].std()
 
-        mean_ser['AAIMON_slope_mean_all_TMDs'] = AAIMON_slope
-        mean_ser['AAIMON_n_slope_mean_all_TMDs'] = AAIMON_n_slope
+        mean_ser['AAIMON_n_mean_all_TM_res'] = df_SW_num_ident_res["AAIMON_n_all_TM_res"].mean()
+        mean_ser['AAIMON_n_std_all_TM_res'] = df_SW_num_ident_res["AAIMON_n_all_TM_res"].std()
 
+        mean_ser['AAIMON_slope_mean_all_TM_res'] = AAIMON_slope
+        mean_ser['AAIMON_n_slope_mean_all_TM_res'] = AAIMON_n_slope
+
+        mean_ser['TMD_perc_identity_mean_all_TMDs'] = 1 - df_SW_num_ident_res["obs_changes"].mean()
+
+        ########################################################################################
+        #                                                                                      #
+        #          Plot the evol distance against AAIMON for all residues in protein           #
+        #          (Note that this excludes signal peptides where examined!)                   #
+        #                                                                                      #
+        ########################################################################################
         fig, ax = plt.subplots()
         # define data to plot
         datapointsize = 0.5
@@ -561,6 +581,7 @@ def calculate_AAIMONs(p):
 
         # calculate angle between AAIMON_slope and AAIMON_n_slope
         angle = korbinian.cons_ratio.histogram.angle_between_slopes((x_data[0], y_data[0]), (x_data[1], y_data[1]))
+        mean_ser['angle_between_slopes_mean_all_TM_res'] = angle
 
         xlim_min = 0
         xlim_max = 60
@@ -604,7 +625,7 @@ def calculate_AAIMONs(p):
         mean_ser['%s_angle_between_slopes' % TMD] = angle
 
         df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol'] = df_AAIMON_all_TMD.loc[:, AAIMON_cols].mean(axis=1)
-        df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol_n'] = df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol'] / df_AAIMON_all_TMD['norm_factor']
+        df_AAIMON_all_TMD['AAIMON_n_mean_all_TMDs_1_homol'] = df_AAIMON_all_TMD['AAIMON_mean_all_TMDs_1_homol'] / df_AAIMON_all_TMD['norm_factor']
 
         ########################################################################################
         #                                                                                      #
@@ -705,7 +726,7 @@ def calculate_AAIMONs(p):
             logging.info('%s AAIMON_slope %s: %0.5f' % (acc, TMD, mean_ser['%s_AAIMON_slope' % TMD]))
             # OTHER VALUES TO LOG, IF DESIRED
             #logging.info('%s AAIMON_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_mean' % TMD]))
-            #logging.info('%s AAIMON_n_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_mean_n' % TMD]))
+            #logging.info('%s AAIMON_n_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_n_mean' % TMD]))
             #logging.info('%s AAIMON_n_slope %s: %0.5f' % (acc, TMD, mean_ser['%s_AAIMON_n_slope' % TMD]))
             # logging.info('%s AASMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AASMON_ratio_mean'%TMD]))
 
@@ -753,7 +774,7 @@ def calculate_AAIMONs(p):
             mean_ser['%s_perc_sim_plus_ident_mean' % TMD] = df_cr['%s_perc_sim_plus_ident' % TMD].mean()
             # AAIMON ratios
             mean_ser['%s_AAIMON_mean' % TMD] = float(df_cr['%s_AAIMON' % TMD].mean())
-            mean_ser['%s_AAIMON_mean_n' % TMD] = float(df_cr['%s_AAIMON_n' % TMD].mean())
+            mean_ser['%s_AAIMON_n_mean' % TMD] = float(df_cr['%s_AAIMON_n' % TMD].mean())
             mean_ser['%s_AAIMON_std' % TMD] = df_cr['%s_AAIMON' % TMD].std()
             mean_ser['%s_AASMON_ratio_mean' % TMD] = df_cr['%s_AASMON_ratio' % TMD].mean()
             mean_ser['%s_AASMON_ratio_std' % TMD] = df_cr['%s_AASMON_ratio' % TMD].std()
@@ -765,6 +786,59 @@ def calculate_AAIMONs(p):
 
             # the TM_cr_pickle file has already been added to the zip, and can be deleted now
             os.remove(TM_cr_pickle)
+
+        # dfg.loc[acc, 'AASMON_ratio_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AASMON_ratio_mean.values()))))
+        # dfg.loc[acc, 'AASMON_ratio_std_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AASMON_ratio_std.values()))))
+        # dfg.loc[acc, 'AAIMON_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_mean.values()))))
+        # dfg.loc[acc, 'AAIMON_n_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_n_mean.values()))))
+        # dfg.loc[acc, 'AAIMON_n_std_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_std_n.values()))))
+        # dfg.loc[acc, 'AAIMON_std_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_std.values()))))
+        # dfg.loc[acc, 'AAIMON_slope_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_slope_mean.values()))))
+        # dfg.loc[acc, 'AAIMON_n_slope_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_n_slope_mean.values()))))
+        # dfg.loc[acc, 'angle_between_slopes_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_angle_between_slopes_all_TMDs.values()))))
+
+        # create a dict to cycle through the functions : mean, std, SEM, etc
+        function_dict = {"mean" : np.mean, "std" : np.std, "SEM": sem}
+        # ignore std and SEM if there are only one TMD in the list
+        fxn_list = ["mean"] if len(list_of_TMDs_excl_SP) == 1 else function_dict.keys()
+        # choose the values to apply the statistical functions
+        colnames = ["{}_AAIMON_mean", "{}_AAIMON_n_mean", "{}_AAIMON_slope", "{}_AAIMON_n_slope", "{}_angle_between_slopes"]
+        for colname in colnames:
+            sel_cols = [colname.format(TMD) for TMD in list_of_TMDs_excl_SP]
+            # if all the selected cols are in the index
+            if len(set(sel_cols).intersection(set(mean_ser.index))) == len(sel_cols):
+
+                for function_name in fxn_list:
+                    # get function (e.g. sem)
+                    function = function_dict[function_name]
+                    # make new variable name (eg. AAIMON_mean_all_TMDs_mean)
+                    new_var_name = colname[3:] + "_all_TMDs_" + function_name
+                    # add the mean, std or SEM to the output series
+                    mean_ser[new_var_name] = function(mean_ser.loc[sel_cols])
+
+        # add AAIMON_slope of the last TMD
+        last_TMD = p['last_TMD']
+        mean_ser["AAIMON_slope_last_TMD"] = mean_ser['%s_AAIMON_slope' %last_TMD]
+        mean_ser["AAIMON_n_slope_last_TMD"] = mean_ser['%s_AAIMON_n_slope' %last_TMD]
+
+
+        # iterate through each TMD, and calculate mean AAIMON slopes for central TMDs
+        if mean_ser['number_of_TMDs'] >= 3:
+            #for n, acc in enumerate(mean_ser['number_of_TMDs']):
+            list_of_central_TMDs = mean_ser['list_of_TMDs'][1:-1]
+            list_mean_slope_central_TMDs = []
+            for TMD in list_of_central_TMDs:
+                list_mean_slope_central_TMDs.append(pd.to_numeric(mean_ser['%s_AAIMON_slope' % TMD]))
+            mean_ser['AAIMON_slope_central_TMDs'] = np.mean(list_mean_slope_central_TMDs)
+        else:
+            mean_ser['AAIMON_slope_central_TMDs'] = np.nan
+
+
+
+        # for interest sake, check the difference between AAIMON slopes for all TM residues combined, and the TMDs separately
+        mean_ser["AAIMON_slope_all_TM_res_minus_all_TMDs"] = mean_ser["AAIMON_slope_mean_all_TM_res"] - mean_ser["AAIMON_slope_all_TMDs_mean"]
+
+        logging.info('%s AAIMON_slope all TM residues: %0.5f' % (acc, mean_ser["AAIMON_slope_mean_all_TM_res"]))
 
         # save the pandas series with the means to a csv in the cr_ratios zip file
         mean_ser.to_csv(mean_ser_filename)
