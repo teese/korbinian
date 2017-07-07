@@ -209,7 +209,7 @@ def compare_lists (s, df_lists_tab):
 
         ###   normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = np.array(df_dict[prot_list]['AAIMON_n_mean_all_TMDs'])
+        hist_data = np.array(df_dict[prot_list]['AAIMON_n_mean_all_TM_res'])
         AAIMON_n_mean = hist_data.mean()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
@@ -378,7 +378,7 @@ def compare_lists (s, df_lists_tab):
         color = dfv.loc[prot_list, 'color']
         ###   non-normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = np.array(df_dict[prot_list]['AAIMON_slope_all_TMDs_mean']*1000)
+        hist_data = np.array(df_dict[prot_list]['AAIMON_slope_all_TM_res']*1000)
         AAIMON_slope_mean = hist_data.mean()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
@@ -396,7 +396,7 @@ def compare_lists (s, df_lists_tab):
 
         ###   normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = np.array(df_dict[prot_list]['AAIMON_n_slope_all_TMDs_mean']*1000)
+        hist_data = np.array(df_dict[prot_list]['AAIMON_n_slope_all_TM_res']*1000)
         AAIMON_slope_mean_n = hist_data.mean()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
@@ -489,7 +489,7 @@ def compare_lists (s, df_lists_tab):
         color = dfv.loc[prot_list, 'color']
         ###   non-normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = np.array(df_dict[prot_list]['AAIMON_slope_all_TMDs_mean'] * 1000)
+        hist_data = np.array(df_dict[prot_list]['AAIMON_slope_all_TM_res'] * 1000)
         AAIMON_slope_mean = hist_data.mean()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)

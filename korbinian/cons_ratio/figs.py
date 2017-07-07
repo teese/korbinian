@@ -32,6 +32,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # set resolution for plots in png format
     dpi = 300
     plt.style.use('seaborn-whitegrid')
+    # get a color list (HTML works best). Make it a long list, to accept list numbers from 1-1000
+    color_list = utils.create_colour_lists()['HTML_list01'] * 1000
 
     # set default font size for plot
     fontsize = 8
@@ -88,7 +90,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     #df_uniprot = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0)
 
     prot_family_df_dict = {}
-    if 'uniprot_KW' in df.columns:
+    # only split into families if there are uniprot annotations are are multipass
+    if 'uniprot_KW' in df.columns and df.number_of_TMDs_excl_SP.mean() > 2:
         # create a new column showing whether the protein is a GPCR
         if "GPCR" not in df.columns:
             # convert the keywords from a stringlist to a python list
@@ -304,95 +307,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
 
-    def Fig03_Density_lipo_vs_TM_conservation(df, letter, suffix, col_list_AAIMON_slope, col_list_lipo, max_evol_distance, base_filepath, save_png, save_pdf, dpi, fontsize):
-        Fig_name = 'List{:02d}_Fig03{}_Density_lipo_vs_TM_conservation{}'.format(list_number, letter, suffix)
-        title = suffix[1:]
-        '''
-        data array columns:
-        |   0   |   1  |
-        | Slope | lipo |
-        '''
-        data = np.empty([0, 2])
-
-        # add the signal peptide if necessary
-        if "SP01_start" in df.columns:
-            col_list_AAIMON_slope = ["SP01_AAIMON_slope"] + col_list_AAIMON_slope
-            col_list_lipo = ["SP01_lipo"] + col_list_lipo
-        # select all AAIMON slopes or lipo data
-        df_slopes = df.loc[:, col_list_AAIMON_slope]
-        df_lipos = df.loc[:, col_list_lipo]
-        # check that .stack drops nans, and that there were exactly equal number of nans in the lipo and slope datasets
-        if df_slopes.stack().shape != df_lipos.stack().shape:
-            raise ValueError("There must be a nan in the lipo or AAIMON slopes. Check code, revert to orig if necessary.")
-
-        # convert slopes and lipos to a 1D numpy array
-        slopes = df_slopes.stack().values*1000
-        lipos = df_lipos.stack().values
-        # # join to a single numpy array
-        # data = np.array([slopes, lipos]).T
-
-        fig, (cbar_ax, ax) = plt.subplots(2, 1, figsize=(5, 5.5), gridspec_kw={'height_ratios': [0.2, 12]})
-        #fontsize = 16
-        # number of bins
-        n_bins_x = int(max_evol_distance*2)
-        n_bins_y = 120
-        bins = [n_bins_x, n_bins_y]
-        # density threshold
-        thresh = 1
-
-        x_border = 1.5
-        y_border = 30
-        xyrange = [[-x_border, x_border], [-y_border, y_border]]
-
-        # histogram the data
-        hh, locx, locy = scipy.histogram2d(lipos, slopes, range=xyrange, bins=bins)
-        hh1 = hh.reshape(1, n_bins_x * n_bins_y)
-        hh1 = hh1[hh1 > 0]
-        vmax = np.percentile(hh1, 99)
-        if vmax % 2 == True:
-            vmax = vmax - 1
-        # fill the areas with low density by NaNs
-        hh[hh < thresh] = np.nan
-        im = ax.imshow(np.flipud(hh.T), cmap='Oranges', extent=np.array(xyrange).flatten(),
-                       interpolation='none', origin='upper', aspect='auto', vmin=0, vmax=vmax)
-
-        cbar = matplotlib.colorbar.ColorbarBase(cbar_ax, cmap='Oranges', orientation='horizontal')
-        if vmax < 10:
-            cbar.set_ticks(np.linspace(0, 1, vmax + 1))
-            labels = list(range(0, int(vmax), 1))
-        else:
-            cbar.set_ticks(np.linspace(0, 1, vmax / 2 + 1))
-            labels = list(range(0, int(vmax), 2))
-
-        labels.append('>{}'.format(int(vmax)))
-        cbar.set_ticklabels(labels)
-        cbar_ax.xaxis.set_ticks_position('top')
-
-        # linear regression for data
-        slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(lipos, slopes)
-        fit_fn = np.poly1d(np.array([slope, intercept]))
-        fitted_data_x = fit_fn(lipos)
-        # plot regression line
-        ax.plot(lipos, fitted_data_x, color='k', linewidth=1)
-        # annotate regression line formula and R2 value
-        ax.annotate(s='$y = {s:.03f}x + {i:.03f}$\n$R^2 = {r_sq:.05f}$'.format(s=slope, i=intercept, r_sq=r_value ** 2),
-                    xy=(-1.45, 29), fontsize=fontsize - 2, verticalalignment='top')
-
-        ax.set_title(title, fontsize=fontsize)
-        ax.set_xlabel('lipophilicity (Hessa scale)', fontsize=fontsize)
-        ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
-        # set fontsize for axis labels and specify their separation from axis ticks
-        ax.tick_params(labelsize=fontsize, pad=3)
-        cbar_ax.tick_params(labelsize=fontsize, pad=0)
-        # set x and y axis limits to avoid weird limits caused by linear regression
-        ax.set_ylim(-y_border, y_border)
-        ax.set_xlim(-x_border, x_border)
-        # specify space between plot and colorbar
-        plt.subplots_adjust(hspace=0.03)
-        plt.tight_layout()
-
-        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
-
     if s['Fig03_Density_lipo_vs_TM_conservation']:
         Fig_Nr = 3
 
@@ -403,7 +317,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         col_list_lipo = ['TM{:02d}_lipo'.format(TM_nr) for TM_nr in range(1, max_n_TMDs + 1)]
 
         #plot the original dataset
-        Fig03_Density_lipo_vs_TM_conservation(df, "", "", col_list_AAIMON_slope, col_list_lipo, max_evol_distance, base_filepath, save_png, save_pdf, dpi, fontsize)
+        Fig03_Density_lipo_vs_TM_conservation(list_number, df, "", "", col_list_AAIMON_slope, col_list_lipo, max_evol_distance, base_filepath, save_png, save_pdf, dpi, fontsize)
 
         for i, prot_family in enumerate(list_prot_families):
             # a, b, c, etc
@@ -414,7 +328,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             df_Fig03 = prot_family_df_dict[prot_family]
             if not df_Fig03.empty:
                 # plot
-                Fig03_Density_lipo_vs_TM_conservation(df_Fig03, letter, suffix, col_list_AAIMON_slope, col_list_lipo, max_evol_distance, base_filepath, save_png, save_pdf, dpi, fontsize)
+                Fig03_Density_lipo_vs_TM_conservation(list_number, df_Fig03, letter, suffix, col_list_AAIMON_slope, col_list_lipo, max_evol_distance, base_filepath, save_png, save_pdf, dpi, fontsize)
 
         # for human multipass, test GPCR TM01 and TM07 only
         if list_number in [2,5]:
@@ -426,12 +340,12 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 suffix = "_{}".format(prot_family[3:]) + "_TM01_and_TM07_only"
                 df_Fig03 = prot_family_df_dict[prot_family]
                 if not df_Fig03.empty:
-                    Fig03_Density_lipo_vs_TM_conservation(df_Fig03, letter, suffix, col_list_AAIMON_slope, col_list_lipo, max_evol_distance, base_filepath, save_png, save_pdf, dpi, fontsize)
+                    Fig03_Density_lipo_vs_TM_conservation(list_number, df_Fig03, letter, suffix, col_list_AAIMON_slope, col_list_lipo, max_evol_distance, base_filepath, save_png, save_pdf, dpi, fontsize)
 
-    if s['Fig04_Boxplot_AAIMON_each_TMD']:
+    if s['Fig04_Boxplot_AAIMON_slope_each_TMD']:
         Fig_Nr = 4
         title = 'Boxplot of all TMDs'
-        Fig_name = 'List{:02d}_Fig04_Boxplot_AAIMON_each_TMD'.format(list_number)
+        Fig_name = 'List{:02d}_Fig04_Boxplot_AAIMON_slope_each_TMD'.format(list_number)
         fig, ax = plt.subplots()
         # "#0489B1"
         alpha = 0.25
@@ -440,12 +354,12 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         xlabel = 'average conservation ratio (membranous over nonmembranous)'
         # legend =
 
-        number_of_TMDs_excl_SP = df.number_of_TMDs_excl_SP.max()
+        max_number_of_TMDs_excl_SP = int(df.number_of_TMDs_excl_SP.max())
         legend = []
         data_to_plot = []
-        for i in range(1, number_of_TMDs_excl_SP.astype(np.int64) + 1):
+        for i in range(1, max_number_of_TMDs_excl_SP + 1):
             TM = 'TM%02d' % i
-            hist_data_AAIMON_each_TM = df['TM%02d_AAIMON_mean' % i].dropna()
+            hist_data_AAIMON_each_TM = df['TM%02d_AAIMON_slope' % i].dropna()*1000
             if len(hist_data_AAIMON_each_TM) > 0:
                 data_to_plot.append(hist_data_AAIMON_each_TM)
                 legend.append(TM)
@@ -480,7 +394,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         for flier in boxplotcontainer['fliers']:
             flier.set(marker='o', color='0.8', alpha=0.1, markerfacecolor='0.3', markersize=3)
 
-        ax.set_ylabel('AAIMON', rotation='vertical', fontsize=fontsize)
+        ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', rotation='vertical', fontsize=fontsize)
 
         ## Remove top axes and right axes ticks
         ax.get_xaxis().tick_bottom()
@@ -602,10 +516,10 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
 
-    if s['Fig06_Boxplot_AAIMON_by_number_of_TMDs']:
+    if s['Fig06_Boxplot_AAIMON_slope_by_number_of_TMDs']:
         Fig_Nr = 6
         title = 'num_TMDs vs AAIMON'
-        Fig_name = 'List{:02d}_Fig06_Boxplot_AAIMON_by_number_of_TMDs'.format(list_number)
+        Fig_name = 'List{:02d}_Fig06_Boxplot_AAIMON_slope_by_number_of_TMDs'.format(list_number)
         fig, ax = plt.subplots()
 
         alpha = 0.25
@@ -617,7 +531,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             hist_data = []
             for acc in df.loc[df['list_of_TMDs'].notnull()].loc[df['list_of_TMDs'] != 'nan'].index:
                 if df.loc[acc, 'number_of_TMDs'] == i:
-                    hist_data.append(df.loc[acc, 'AAIMON_mean_all_TM_res'])
+                    hist_data.append(df.loc[acc, 'AAIMON_slope_all_TM_res']*1000)
             data_to_plot.append(hist_data)
             legend.append(i)
         meanpointprops = dict(marker='o', markerfacecolor='black', markersize=3)  # markeredgecolor='0.75',
@@ -652,7 +566,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.set_xlabel('number of TMDs in protein', fontsize=fontsize)
         # move the x-axis label closer to the x-axis
         ax.xaxis.set_label_coords(0.45, -0.085)
-        ax.set_ylabel('Average TM/nonTM conservation for all TMDs', fontsize=fontsize)
+        ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
         # Remove top axes and right axes ticks
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
@@ -992,7 +906,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             legend.append('-'.join([str(borders[n - 1]), str(borders[n])]))
             select = (df[column_for_bins] > borders[n - 1]) & (df[column_for_bins] <= borders[n])
             data = df.loc[select, column_for_data].values
-            hist_data.append(data)
+            hist_data.append(data*1000)
 
         meanpointprops = dict(marker='o', markerfacecolor='black', markersize=3)  # markeredgecolor='0.75',
         flierprops = dict(marker='o', markerfacecolor='green', markersize=12, linestyle='none')
@@ -1024,29 +938,28 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             flier.set(marker='o', color='0.8', alpha=0.1, markerfacecolor='0.3', markersize=3)
 
         ax.set_xlabel('Length of protein in bins', fontsize=fontsize)
-        ax.set_ylim(ymin=0, ymax=2)
         # move the x-axis label closer to the x-axis
         # ax.xaxis.set_label_coords(0.45, -0.085)
-        ax.set_ylabel('Average TM/nonTM conservation for all TMDs', fontsize=fontsize)
+        ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
         ## Remove top axes and right axes ticks
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
         ## Custom x-axis labels
         ax.set_xticklabels(legend, rotation=25)
-
+        fig.tight_layout()
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s['Fig12_Boxplot_AAIMON_by_nonTMD_coverage']:
+    if s['Fig12_Boxplot_AAIMON_slope_by_nonTMD_len']:
         Fig_Nr = 12
         title = 'seqlen vs AAIMON'
-        Fig_name = 'List{:02d}_Fig12_Boxplot_AAIMON_by_nonTMD_coverage'.format(list_number)
+        Fig_name = 'List{:02d}_Fig12_Fig12_Boxplot_AAIMON_slope_by_nonTMD_len'.format(list_number)
 
         fig, ax = plt.subplots()
 
         # data that is binned
         column_for_bins = 'nonTMD_SW_align_len_mean'
         # data that is plotted in bin
-        column_for_data = 'AAIMON_mean_all_TM_res'
+        column_for_data = 'AAIMON_slope_all_TM_res'
         # specify variable for binning function
         x = df[column_for_bins]
         # specify number of bins
@@ -1065,7 +978,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             legend.append('-'.join([str(borders[n - 1]), str(borders[n])]))
             select = (df[column_for_bins] > borders[n - 1]) & (df[column_for_bins] <= borders[n])
             data = df.loc[select, column_for_data].values
-            hist_data.append(data)
+            hist_data.append(data*1000)
 
         meanpointprops = dict(marker='o', markerfacecolor='black', markersize=3)  # markeredgecolor='0.75',
 
@@ -1098,29 +1011,29 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             flier.set(marker='o', color='0.8', alpha=0.1, markerfacecolor='0.3', markersize=3)
 
         ax.set_xlabel('Average length of nonTMD region in homologues', fontsize=fontsize)
-        ax.set_ylim(ymin=0, ymax=2)
+        #ax.set_ylim(ymin=0, ymax=2)
         # move the x-axis label closer to the x-axis
         # ax.xaxis.set_label_coords(0.45, -0.085)
-        ax.set_ylabel('Average TM/nonTM conservation for all TMDs', fontsize=fontsize)
+        ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
         ## Remove top axes and right axes ticks
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
         ## Custom x-axis labels
         ax.set_xticklabels(legend, rotation=25)
-
+        fig.tight_layout()
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s['Fig13_Boxplot_AAIMON_by_num_of_simap_hits']:
+    if s['Fig13_Boxplot_AAIMON_slope_by_num_of_simap_hits']:
         Fig_Nr = 13
         title = 'number SIMAP hits'
-        Fig_name = 'List{:02d}_Fig13_Boxplot_AAIMON_by_num_of_simap_hits'.format(list_number)
+        Fig_name = 'List{:02d}_Fig13_Boxplot_AAIMON_slope_by_num_of_simap_hits'.format(list_number)
 
         fig, ax = plt.subplots()
 
         # data that is binned
         column_for_bins = 'AAIMON_n_homol'
         # data that is plotted in bin
-        column_for_data = 'AAIMON_mean_all_TM_res'
+        column_for_data = 'AAIMON_slope_all_TM_res'
         # specify variable for binning function
         x = df[column_for_bins]
         # specify number of bins
@@ -1139,7 +1052,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             legend.append('-'.join([str(borders[n - 1]), str(borders[n])]))
             select = (df[column_for_bins] > borders[n - 1]) & (df[column_for_bins] <= borders[n])
             data = df.loc[select, column_for_data].values
-            hist_data.append(data)
+            hist_data.append(data*1000)
 
         meanpointprops = dict(marker='o', markerfacecolor='black', markersize=3)  # markeredgecolor='0.75',
 
@@ -1172,16 +1085,16 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             flier.set(marker='o', color='0.8', alpha=0.1, markerfacecolor='0.3', markersize=3)
 
         ax.set_xlabel('total number of homologues', fontsize=fontsize)
-        ax.set_ylim(ymin=0, ymax=2)
+        #ax.set_ylim(ymin=0, ymax=2)
         # move the x-axis label closer to the x-axis
         # ax.xaxis.set_label_coords(0.45, -0.085)
-        ax.set_ylabel('Average TM/nonTM conservation for all TMDs', fontsize=fontsize)
+        ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
         ## Remove top axes and right axes ticks
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
         ## Custom x-axis labels
         ax.set_xticklabels(legend, rotation=25)
-
+        fig.tight_layout()
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if 'uniprot_KW' in df.columns:
@@ -1352,10 +1265,11 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 sys.stdout.write('Dataset does not contain GPCRs; cannot create figure 21 \n')
 
     if s['Fig16_Scatterplot_AAIMON_n_vs_slope']:
-        Fig_Nr = 16
+        Fig_Nr = "16a"
         title = 'AAIMON vs. AAIMON_slope'
-        Fig_name = 'List{:02d}_Fig16_Scatterplot_AAIMON_n_vs_slope'.format(list_number)
+        Fig_name = 'List{:02d}_Fig16a_Scatterplot_AAIMON_vs_AAIMON_slope'.format(list_number)
         fig, ax = plt.subplots()
+        colour = color_list[2]
 
         x = df['AAIMON_mean_all_TM_res']
         y = df['AAIMON_slope_all_TMDs_mean']*1000
@@ -1365,13 +1279,13 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             linear_regression = np.polyfit(x, y, 1)
             fit_fn = np.poly1d(linear_regression)
             fitted_data_x = fit_fn(x)
-            ax.plot(x, fitted_data_x, alpha=0.75, color='k')
+            ax.plot(x, fitted_data_x, "--", alpha=0.75, color=colour)
             ax.annotate(s='y = {a:.5f}x + {b:.5f}'.format(a=linear_regression[0], b=linear_regression[1]), xy=(0.85, 0.95),
                         fontsize=fontsize-2, xytext=None, xycoords='axes fraction', alpha=0.75)
         else:
             logging.info("The dataset has less than 5 proteins. Lines of best fit will not be calculated.")
 
-        ax.scatter(x, y, alpha=alpha_dpd, s=datapointsize)
+        ax.scatter(x, y, color = colour, alpha=alpha_dpd, s=datapointsize)
         ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', rotation='vertical', fontsize=fontsize)
         ax.set_xlabel('TM/nonTM conservation', fontsize=fontsize)
         ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
@@ -1385,6 +1299,40 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
+        ##################################################################
+        Fig_Nr = "16b"
+        title = 'AAIMON_slope_all_TM_res vs AAIMON_slope_all_TMDs_mean'
+        Fig_name = 'List{:02d}_Fig16b_Scatterplot_AAIMON_slope_all_TM_res_vs_AAIMON_slope_all_TMDs_mean'.format(list_number)
+        fig, ax = plt.subplots()
+
+        x = df['AAIMON_slope_all_TM_res']*1000
+        y = df['AAIMON_slope_all_TMDs_mean']*1000
+
+        if len(x) > 5:
+            # calculate linear regression for fitted line
+            linear_regression = np.polyfit(x, y, 1)
+            fit_fn = np.poly1d(linear_regression)
+            fitted_data_x = fit_fn(x)
+            ax.plot(x, fitted_data_x, "--", alpha=0.75, color=colour)
+            ax.annotate(s='y = {a:.5f}x + {b:.5f}'.format(a=linear_regression[0], b=linear_regression[1]), xy=(0.85, 0.95),
+                        fontsize=fontsize-2, xytext=None, xycoords='axes fraction', alpha=0.75)
+        else:
+            logging.info("The dataset has less than 5 proteins. Lines of best fit will not be calculated.")
+
+        ax.scatter(x, y, color = colour, alpha=alpha_dpd, s=datapointsize)
+        ax.set_xlabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$ (all TM residues in protein)', fontsize=fontsize)
+        ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$ (mean of all TMDs calculated separately)', rotation='vertical', fontsize=fontsize)
+
+        ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
+                    xycoords='axes fraction', alpha=0.75)
+        # add figure title to top left of subplot
+        ax.annotate(s=title, xy=(0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction',
+                    alpha=0.75)
+
+        # change axis font size
+        ax.tick_params(labelsize=fontsize)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
 
     if s['Fig17_Scatterplot_perc_identity_nonTMD_vs_TMD']:
         Fig_Nr = 17
@@ -1392,22 +1340,22 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         Fig_name = 'List{:02d}_Fig17_Scatterplot_perc_identity_nonTMD_vs_TMD'.format(list_number)
         fig, ax = plt.subplots()
 
-        x = df['perc_ident_mean'] * 100
+        x = df['TMD_perc_ident_mean'] * 100
         y = df['nonTMD_perc_ident_mean'] * 100
 
         if len(x) > 5:
             linear_regression = np.polyfit(x, y, 1)
             fit_fn = np.poly1d(linear_regression)
             fitted_data_x = fit_fn(x)
-            ax.plot(x, fitted_data_x, alpha=0.75, color='k')
+            ax.plot(x, fitted_data_x, ":", color="k", alpha=0.75, label="fitted")
             ax.annotate(s='y = {a:.5f}x + {b:.5f}'.format(a=linear_regression[0], b=linear_regression[1]),
                         xy=(0.85, 0.95), fontsize=fontsize - 2, xytext=None, xycoords='axes fraction',alpha=0.75)
 
-        ax.scatter(x, y, s=datapointsize, alpha=alpha_dpd, color=TUMblues)
+        ax.scatter(x, y, s=datapointsize, alpha=alpha_dpd, color=TUMblues, label="data")
         symmetrical = [s["min_ident"]*100, s["max_ident"]*100]
-        ax.plot(symmetrical, symmetrical, color=TUMblues[0], alpha=0.5, linestyle="-")
-        ax.set_xlabel('TMD_perc_identity_all_TMDs', fontsize=fontsize)
-        ax.set_ylabel('nonTMD_perc_ident_mean', rotation='vertical', fontsize=fontsize)
+        ax.plot(symmetrical, symmetrical, "--", color=TUMblues[0], alpha=0.5, label="symmetrical")
+        ax.set_xlabel('Average % identity in TM region, all homologues', fontsize=fontsize)
+        ax.set_ylabel('Average % identity in nonTM region, all homologues', rotation='vertical', fontsize=fontsize)
         ax.tick_params(labelsize=fontsize)
         ax.set_xlim(100-max_evol_distance, 100)
         ax.set_ylim(s["min_ident"]*100, 100)
@@ -1420,7 +1368,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         # change axis font size
         ax.tick_params(labelsize=fontsize)
-
+        ax.legend(loc = "lower right")
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if 'uniprot_KW' in df.columns:
@@ -1502,7 +1450,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             # replace the specific betabarrel PFAM ID
 
             dropped_KW = set(dfKW.index).intersection(set(list_ignored_KW))
-            logging.info("dropped KW from list_ignored_KW : {}".format(dropped_KW))
+            if len(dropped_KW) != 0:
+                logging.info("dropped KW from list_ignored_KW : {}".format(dropped_KW))
             dfKW = dfKW.reindex(index_excl_ignored_KW)
 
             # DEPRECATED -
@@ -1534,8 +1483,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 sqrt_n = np.sqrt(df.AAIMON_slope_all_TMDs_mean.dropna().shape[0])
                 df_barchart.loc["All {}".format(s["list_description"]), "AAIMON_slope_keyword_SEM"] = scipy.stats.sem(df.AAIMON_slope_all_TMDs_mean)
 
-                # get a color list (HTML works best). Make it a long list, to accept list numbers frmo 1-1000
-                color_list = utils.create_colour_lists()['HTML_list01'] * 1000
                 color_first_bar_all_proteins = "0.35"
 
                 ind = np.arange(df_barchart.shape[0]) + 0.1
@@ -1669,7 +1616,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             ax.grid(b=False)
             ax.set_ylabel("mean hydrophobicity, Hessa scale", color=c2)
 
-            ax2.plot(x, n_residue_list, color=c1, linestyle="--")
+            ax2.plot(x, n_residue_list, "--", color=c1)
             ax2.grid(b=False)
             ax2.set_ylabel("number of residues at position", color=c1)
 
@@ -2096,3 +2043,92 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
 
     return "~~~~~~~~~~~~        run_save_figures_describing_proteins_in_list is finished        ~~~~~~~~~~~~"
+
+def Fig03_Density_lipo_vs_TM_conservation(list_number, df, letter, suffix, col_list_AAIMON_slope, col_list_lipo, max_evol_distance, base_filepath, save_png, save_pdf, dpi, fontsize):
+    Fig_name = 'List{:02d}_Fig03{}_Density_lipo_vs_TM_conservation{}'.format(list_number, letter, suffix)
+    title = suffix[1:]
+    '''
+    data array columns:
+    |   0   |   1  |
+    | Slope | lipo |
+    '''
+    data = np.empty([0, 2])
+
+    # add the signal peptide if necessary
+    if "SP01_start" in df.columns:
+        col_list_AAIMON_slope = ["SP01_AAIMON_slope"] + col_list_AAIMON_slope
+        col_list_lipo = ["SP01_lipo"] + col_list_lipo
+    # select all AAIMON slopes or lipo data
+    df_slopes = df.loc[:, col_list_AAIMON_slope]
+    df_lipos = df.loc[:, col_list_lipo]
+    # check that .stack drops nans, and that there were exactly equal number of nans in the lipo and slope datasets
+    if df_slopes.stack().shape != df_lipos.stack().shape:
+        raise ValueError("There must be a nan in the lipo or AAIMON slopes. Check code, revert to orig if necessary.")
+
+    # convert slopes and lipos to a 1D numpy array
+    slopes = df_slopes.stack().values*1000
+    lipos = df_lipos.stack().values
+    # # join to a single numpy array
+    # data = np.array([slopes, lipos]).T
+
+    fig, (cbar_ax, ax) = plt.subplots(2, 1, figsize=(5, 5.5), gridspec_kw={'height_ratios': [0.2, 12]})
+    #fontsize = 16
+    # number of bins
+    n_bins_x = int(max_evol_distance*2)
+    n_bins_y = 120
+    bins = [n_bins_x, n_bins_y]
+    # density threshold
+    thresh = 1
+
+    x_border = 1.5
+    y_border = 30
+    xyrange = [[-x_border, x_border], [-y_border, y_border]]
+
+    # histogram the data
+    hh, locx, locy = scipy.histogram2d(lipos, slopes, range=xyrange, bins=bins)
+    hh1 = hh.reshape(1, n_bins_x * n_bins_y)
+    hh1 = hh1[hh1 > 0]
+    vmax = np.percentile(hh1, 99)
+    if vmax % 2 == True:
+        vmax = vmax - 1
+    # fill the areas with low density by NaNs
+    hh[hh < thresh] = np.nan
+    im = ax.imshow(np.flipud(hh.T), cmap='Oranges', extent=np.array(xyrange).flatten(),
+                   interpolation='none', origin='upper', aspect='auto', vmin=0, vmax=vmax)
+
+    cbar = matplotlib.colorbar.ColorbarBase(cbar_ax, cmap='Oranges', orientation='horizontal')
+    if vmax < 10:
+        cbar.set_ticks(np.linspace(0, 1, vmax + 1))
+        labels = list(range(0, int(vmax), 1))
+    else:
+        cbar.set_ticks(np.linspace(0, 1, vmax / 2 + 1))
+        labels = list(range(0, int(vmax), 2))
+
+    labels.append('>{}'.format(int(vmax)))
+    cbar.set_ticklabels(labels)
+    cbar_ax.xaxis.set_ticks_position('top')
+
+    # linear regression for data
+    slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(lipos, slopes)
+    fit_fn = np.poly1d(np.array([slope, intercept]))
+    fitted_data_x = fit_fn(lipos)
+    # plot regression line
+    ax.plot(lipos, fitted_data_x, color='k', linewidth=1)
+    # annotate regression line formula and R2 value
+    ax.annotate(s='$y = {s:.03f}x + {i:.03f}$\n$R^2 = {r_sq:.05f}$'.format(s=slope, i=intercept, r_sq=r_value ** 2),
+                xy=(-1.45, 29), fontsize=fontsize - 2, verticalalignment='top')
+
+    ax.set_title(title, fontsize=fontsize)
+    ax.set_xlabel('lipophilicity (Hessa scale)', fontsize=fontsize)
+    ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
+    # set fontsize for axis labels and specify their separation from axis ticks
+    ax.tick_params(labelsize=fontsize, pad=3)
+    cbar_ax.tick_params(labelsize=fontsize, pad=0)
+    # set x and y axis limits to avoid weird limits caused by linear regression
+    ax.set_ylim(-y_border, y_border)
+    ax.set_xlim(-x_border, x_border)
+    # specify space between plot and colorbar
+    plt.subplots_adjust(hspace=0.03)
+    plt.tight_layout()
+
+    utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)

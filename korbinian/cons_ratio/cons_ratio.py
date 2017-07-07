@@ -403,7 +403,7 @@ def calculate_AAIMONs(p):
             ########################################################################################
             df_cr['%s_AAIMON' % TMD] = df_cr['%s_perc_ident' % TMD] / df_nonTMD['nonTMD_perc_ident']
             # calculate the Amino Acid Similarity : Membranous Over Nonmembranous (AASMON) (includes similarity + identity based on the matrix used in the SW alignment of SIMAP)
-            df_cr['%s_AASMON_ratio' % TMD] = df_cr['%s_perc_sim_plus_ident' % TMD] / df_nonTMD['nonTMD_perc_sim_plus_ident']
+            df_cr['%s_AASMON' % TMD] = df_cr['%s_perc_sim_plus_ident' % TMD] / df_nonTMD['nonTMD_perc_sim_plus_ident']
             # calculate the AAIMON normalised by the random_AA_identity, to exclude identity due to lipophilicity
             df_cr['%s_AAIMON_n' % TMD] = df_cr['%s_AAIMON' % TMD] / dfh['norm_factor']
 
@@ -548,6 +548,11 @@ def calculate_AAIMONs(p):
 
         df_SW_num_ident_res["SW_num_ident_res_all_TM"] = df_SW_num_ident_res.loc[:, num_ident_res_orig_cols].sum(axis=1)
         df_SW_num_ident_res["perc_ident_all_TM_res"] = df_SW_num_ident_res["SW_num_ident_res_all_TM"] / TMD_seq_joined_len
+
+        # for each protein, save the mean % identity of TM and nonTM regions, to plot separately in scatter graph
+        mean_ser['TMD_perc_ident_mean'] = df_SW_num_ident_res["perc_ident_all_TM_res"].mean()
+        mean_ser['nonTMD_perc_ident_mean'] = df_SW_num_ident_res["nonTMD_perc_ident"].mean()
+
         df_SW_num_ident_res["AAIMON_all_TM_res"] = df_SW_num_ident_res["perc_ident_all_TM_res"] / df_SW_num_ident_res["nonTMD_perc_ident"]
         df_SW_num_ident_res["AAIMON_n_all_TM_res"] = df_SW_num_ident_res["AAIMON_all_TM_res"] / df_SW_num_ident_res["norm_factor"]
 
@@ -621,6 +626,7 @@ def calculate_AAIMONs(p):
         zipout.write(figpath, arcname=os.path.basename(figpath))
         # delete temporory files
         os.remove(figpath)
+        ########################################################################################
 
         mean_ser['%s_angle_between_slopes' % TMD] = angle
 
@@ -728,7 +734,7 @@ def calculate_AAIMONs(p):
             #logging.info('%s AAIMON_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_mean' % TMD]))
             #logging.info('%s AAIMON_n_mean %s: %0.2f' % (acc, TMD, mean_ser['%s_AAIMON_n_mean' % TMD]))
             #logging.info('%s AAIMON_n_slope %s: %0.5f' % (acc, TMD, mean_ser['%s_AAIMON_n_slope' % TMD]))
-            # logging.info('%s AASMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AASMON_ratio_mean'%TMD]))
+            # logging.info('%s AASMON MEAN %s: %0.2f' % (acc, TMD, mean_ser['%s_AASMON_mean'%TMD]))
 
             # use the dictionary to obtain the figure number, plot number in figure, plot indices, etc
             newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr = dict_organising_subplots[TMD_Nr]
@@ -776,8 +782,8 @@ def calculate_AAIMONs(p):
             mean_ser['%s_AAIMON_mean' % TMD] = float(df_cr['%s_AAIMON' % TMD].mean())
             mean_ser['%s_AAIMON_n_mean' % TMD] = float(df_cr['%s_AAIMON_n' % TMD].mean())
             mean_ser['%s_AAIMON_std' % TMD] = df_cr['%s_AAIMON' % TMD].std()
-            mean_ser['%s_AASMON_ratio_mean' % TMD] = df_cr['%s_AASMON_ratio' % TMD].mean()
-            mean_ser['%s_AASMON_ratio_std' % TMD] = df_cr['%s_AASMON_ratio' % TMD].std()
+            mean_ser['%s_AASMON_mean' % TMD] = df_cr['%s_AASMON' % TMD].mean()
+            mean_ser['%s_AASMON_std' % TMD] = df_cr['%s_AASMON' % TMD].std()
             # ratios for length of TMDs
             mean_ser['%s_ratio_len_TMD_to_len_nonTMD_mean' % TMD] = float('%0.2f' % df_cr['%s_ratio_len_TMD_to_len_nonTMD' % TMD].dropna().mean())
             mean_ser['%s_ratio_len_TMD_to_len_full_match_seq_mean' % TMD] = float('%0.2f' % df_cr['%s_ratio_len_TMD_to_len_full_match_seq' % TMD].dropna().mean())

@@ -90,7 +90,7 @@ def save_hist_AAIMON_single_protein (fig_nr, fig, axarr, df_cr, s, TMD, binarray
 #                                               alpha=0.2)  # edgecolor='black',
 
     # create numpy array of membranous over nonmembranous conservation ratios (identity + similarity)
-    hist_data_S = np.array(df_cr['%s_AASMON_ratio'%TMD].dropna())
+    hist_data_S = np.array(df_cr['%s_AASMON'%TMD].dropna())
     # use numpy to create a histogram
     freq_counts, bin_array = np.histogram(hist_data_S, bins=binarray)
     # create a line graph rather than a bar graph for the AASMON (ident + similarity)
