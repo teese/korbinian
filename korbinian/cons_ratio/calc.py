@@ -92,7 +92,7 @@ def calc_AAIMON(TMD, df_cr, len_query_TMD):
     ########################################################################################
     df_cr['%s_AAIMON'%TMD] = df_cr['%s_perc_ident'%TMD] / df_cr['nonTMD_perc_ident']
     # calculate the Amino Acid Similarity : Membranous Over Nonmembranous (AASMON) (includes similarity + identity based on the matrix used in the SW alignment of SIMAP)
-    df_cr['%s_AASMON_ratio'%TMD] = df_cr['%s_perc_sim_plus_ident'%TMD] / df_cr['nonTMD_perc_sim_plus_ident']
+    df_cr['%s_AASMON'%TMD] = df_cr['%s_perc_sim_plus_ident'%TMD] / df_cr['nonTMD_perc_sim_plus_ident']
     # calculate the AAIMON normalised by the random_AA_identity, to exclude identity due to lipophilicity
     df_cr['%s_AAIMON_n' % TMD] = df_cr['%s_AAIMON' % TMD] / df_cr['norm_factor']
 
