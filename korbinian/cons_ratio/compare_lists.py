@@ -209,8 +209,8 @@ def compare_lists (s, df_lists_tab):
 
         ###   normalised AAIMON   ###
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = np.array(df_dict[prot_list]['AAIMON_mean_all_TMDs_n'])
-        AAIMON_mean_n = hist_data.mean()
+        hist_data = np.array(df_dict[prot_list]['AAIMON_n_mean_all_TMDs'])
+        AAIMON_n_mean = hist_data.mean()
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
         freq_counts_normalised = freq_counts / freq_counts.max() + offset
@@ -232,7 +232,7 @@ def compare_lists (s, df_lists_tab):
         ###############################################################
         ax.annotate("mean:", [0.005, 0.9*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
         ax.annotate("original{: >7.02f}".format(AAIMON_mean), [0.01, 0.8*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
-        ax.annotate("normalised{: >5.02f}".format(AAIMON_mean_n), [0.01, 0.7*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+        ax.annotate("normalised{: >5.02f}".format(AAIMON_n_mean), [0.01, 0.7*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
 
         offset = offset - 1
 

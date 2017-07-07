@@ -143,52 +143,55 @@ def gather_AAIMONs(pathdict, logging, s):
     # for singlepass datasets, leave row blank by default
     dfg['AAIMON_slope_central_TMDs'] = np.nan
 
-    # calculate mean AAIMON for all TMDs
-    for acc in dfg.index:
+    # # calculate mean AAIMON for all TMDs
+    # for acc in dfg.index:
         # CODE COPIED FROM FIGS.PY
-        dict_AAIMON_mean = {}
-        dict_AAIMON_std = {}
-        dict_AAIMON_mean_n = {}
-        dict_AAIMON_std_n = {}
-        dict_AASMON_ratio_mean = {}
-        dict_AASMON_ratio_std = {}
-        dict_AAIMON_slope_mean = {}
-        dict_AAIMON_n_slope_mean = {}
-        dict_TMD_perc_identity_mean_all_TMDs = {}
-        dict_angle_between_slopes_all_TMDs = {}
-        for TMD in dfg.loc[acc, 'list_of_TMDs']:
-            dict_AAIMON_mean[TMD] = dfg.loc[acc, '%s_AAIMON_mean' % TMD]
-            dict_AAIMON_std[TMD] = dfg.loc[acc, '%s_AAIMON_std' % TMD]
-            dict_AAIMON_mean_n[TMD] = dfg.loc[acc, '%s_AAIMON_mean_n' % TMD]
-            #dict_AAIMON_std_n[TMD] = dfg.loc[acc, '%s_AAIMON_std_n' % TMD]
-            dict_AASMON_ratio_mean[TMD] = dfg.loc[acc, '%s_AASMON_ratio_mean' % TMD]
-            dict_AASMON_ratio_std[TMD] = dfg.loc[acc, '%s_AASMON_ratio_std' % TMD]
-            dict_AAIMON_slope_mean[TMD] = dfg.loc[acc, '%s_AAIMON_slope' %TMD]
-            dict_AAIMON_n_slope_mean[TMD] = dfg.loc[acc, '%s_AAIMON_n_slope' % TMD]
-            dict_TMD_perc_identity_mean_all_TMDs[TMD] = dfg.loc[acc, '%s_perc_ident_mean' % TMD]
-            dict_angle_between_slopes_all_TMDs[TMD] = dfg.loc[acc, '%s_angle_between_slopes' % TMD]
-
+        # dict_AAIMON_mean = {}
+        # dict_AAIMON_std = {}
+        # dict_AAIMON_n_mean = {}
+        # dict_AAIMON_std_n = {}
+        # dict_AASMON_ratio_mean = {}
+        # dict_AASMON_ratio_std = {}
+        # dict_AAIMON_slope_mean = {}
+        # dict_AAIMON_n_slope_mean = {}
+        # dict_TMD_perc_identity_mean_all_TMDs = {}
+        # dict_angle_between_slopes_all_TMDs = {}
+        # for TMD in dfg.loc[acc, 'list_of_TMDs']:
+        #     dict_AAIMON_mean[TMD] = dfg.loc[acc, '%s_AAIMON_mean' % TMD]
+        #     dict_AAIMON_std[TMD] = dfg.loc[acc, '%s_AAIMON_std' % TMD]
+        #     dict_AAIMON_n_mean[TMD] = dfg.loc[acc, '%s_AAIMON_n_mean' % TMD]
+        #     #dict_AAIMON_std_n[TMD] = dfg.loc[acc, '%s_AAIMON_std_n' % TMD]
+        #     dict_AASMON_ratio_mean[TMD] = dfg.loc[acc, '%s_AASMON_ratio_mean' % TMD]
+        #     dict_AASMON_ratio_std[TMD] = dfg.loc[acc, '%s_AASMON_ratio_std' % TMD]
+        #     dict_AAIMON_slope_mean[TMD] = dfg.loc[acc, '%s_AAIMON_slope' %TMD]
+        #     dict_AAIMON_n_slope_mean[TMD] = dfg.loc[acc, '%s_AAIMON_n_slope' % TMD]
+        #     dict_TMD_perc_identity_mean_all_TMDs[TMD] = dfg.loc[acc, '%s_perc_ident_mean' % TMD]
+        #     dict_angle_between_slopes_all_TMDs[TMD] = dfg.loc[acc, '%s_angle_between_slopes' % TMD]
+        #
+        # dfg.loc[acc, 'AASMON_ratio_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AASMON_ratio_mean.values()))))
+        # dfg.loc[acc, 'AASMON_ratio_std_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AASMON_ratio_std.values()))))
         # dfg.loc[acc, 'AAIMON_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_mean.values()))))
-        # dfg.loc[acc, 'AAIMON_mean_all_TMDs_n'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_mean_n.values()))))
-        #dfg.loc[acc, 'AAIMON_std_all_TMDs_n'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_std_n.values()))))
-        dfg.loc[acc, 'AAIMON_std_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_std.values()))))
-        dfg.loc[acc, 'AASMON_ratio_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AASMON_ratio_mean.values()))))
-        dfg.loc[acc, 'AASMON_ratio_std_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AASMON_ratio_std.values()))))
-        #dfg.loc[acc, 'AAIMON_slope_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_slope_mean.values()))))
-        #dfg.loc[acc, 'AAIMON_n_slope_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_n_slope_mean.values()))))
-        dfg.loc[acc, 'TMD_perc_identity_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_TMD_perc_identity_mean_all_TMDs.values()))))
-        dfg.loc[acc, 'angle_between_slopes_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_angle_between_slopes_all_TMDs.values()))))
+        # dfg.loc[acc, 'AAIMON_n_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_n_mean.values()))))
+        # dfg.loc[acc, 'AAIMON_n_std_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_std_n.values()))))
+        # dfg.loc[acc, 'AAIMON_std_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_std.values()))))
+        # dfg.loc[acc, 'AAIMON_slope_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_slope_mean.values()))))
+        # dfg.loc[acc, 'AAIMON_n_slope_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_AAIMON_n_slope_mean.values()))))
+        # dfg.loc[acc, 'angle_between_slopes_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_angle_between_slopes_all_TMDs.values()))))
 
-        # add AAIMON_slope of the last TMD to dfg
-        last_TMD = df.loc[acc, 'last_TMD']
-        dfg.loc[acc, 'AAIMON_slope_last_TMD'] = dfg.loc[acc, '%s_AAIMON_slope' %last_TMD]
-        dfg.loc[acc, 'AAIMON_n_slope_last_TMD'] = dfg.loc[acc, '%s_AAIMON_n_slope' % last_TMD]
+        # DEPRECATED CALCULATIONS, NOW IMPLEMENTED IN cons_ratio.py
+        #dfg.loc[acc, 'TMD_perc_identity_mean_all_TMDs'] = np.mean(pd.to_numeric(pd.Series(list(dict_TMD_perc_identity_mean_all_TMDs.values()))))
+
+
+        # # add AAIMON_slope of the last TMD to dfg
+        # last_TMD = df.loc[acc, 'last_TMD']
+        # dfg.loc[acc, 'AAIMON_slope_last_TMD'] = dfg.loc[acc, '%s_AAIMON_slope' %last_TMD]
+        # dfg.loc[acc, 'AAIMON_n_slope_last_TMD'] = dfg.loc[acc, '%s_AAIMON_n_slope' % last_TMD]
 
         # count the number of TMDs for each protein
-        dfg.loc[acc, 'number_of_TMDs'] = len(dfg.loc[acc, 'list_of_TMDs'])
+        #dfg.loc[acc, 'number_of_TMDs'] = len(dfg.loc[acc, 'list_of_TMDs'])
 
-        # add sequence length to dfg
-        dfg.loc[acc, 'seqlen'] = df.loc[acc, 'seqlen']
+        # # add sequence length to dfg
+        # dfg.loc[acc, 'seqlen'] = df.loc[acc, 'seqlen']
 
         ###############################################################
         #                                                             #
@@ -196,17 +199,20 @@ def gather_AAIMONs(pathdict, logging, s):
         #                                                             #
         ###############################################################
 
-        ##### copied from compare_lists ####
-        # iterate through each TMD, and calculate mean AAIMON slopes for central TMDs
-        if dfg.loc[acc, 'number_of_TMDs'] >= 3:
-            #for n, acc in enumerate(dfg.loc[acc, 'number_of_TMDs']):
-            list_of_central_TMDs = dfg.loc[acc, 'list_of_TMDs'][1:-1]
-            list_mean_slope_central_TMDs = []
-            for TMD in list_of_central_TMDs:
-                list_mean_slope_central_TMDs.append(pd.to_numeric(dfg.loc[acc, '%s_AAIMON_slope' % TMD]))
-            dfg.loc[acc, 'AAIMON_slope_central_TMDs'] = np.mean(list_mean_slope_central_TMDs)
-        else:
-            dfg.loc[acc, 'AAIMON_slope_central_TMDs'] = np.nan
+        # ##### copied from compare_lists ####
+        # # SHIFTED TO CONS_RATIO
+        # # iterate through each TMD, and calculate mean AAIMON slopes for central TMDs
+        # if dfg.loc[acc, 'number_of_TMDs'] >= 3:
+        #     #for n, acc in enumerate(dfg.loc[acc, 'number_of_TMDs']):
+        #     list_of_central_TMDs = dfg.loc[acc, 'list_of_TMDs'][1:-1]
+        #     list_mean_slope_central_TMDs = []
+        #     for TMD in list_of_central_TMDs:
+        #         list_mean_slope_central_TMDs.append(pd.to_numeric(dfg.loc[acc, '%s_AAIMON_slope' % TMD]))
+        #     dfg.loc[acc, 'AAIMON_slope_central_TMDs'] = np.mean(list_mean_slope_central_TMDs)
+        # else:
+        #     dfg.loc[acc, 'AAIMON_slope_central_TMDs'] = np.nan
+
+
         # add dataframe to a dictionary of dataframes
 
         # # add total_number_of_simap_hits
@@ -222,7 +228,7 @@ def gather_AAIMONs(pathdict, logging, s):
 
     # print out mean AAIMON values in dataset
     mean_AAIMON_in_dataset = np.mean(dfg['AAIMON_mean_all_TMDs'])
-    mean_AAIMON_n_in_dataset = np.mean(dfg['AAIMON_mean_all_TMDs_n'])
+    mean_AAIMON_n_in_dataset = np.mean(dfg['AAIMON_n_mean_all_TMDs'])
     mean_AAIMON_slope_in_dataset = np.mean(dfg['AAIMON_slope_mean_all_TMDs'])
     mean_AAIMON_n_slope_in_dataset = np.mean(dfg['AAIMON_n_slope_mean_all_TMDs'])
     sys.stdout.write('\n\nmean AAIMON         in dataset: {a:.05f}'
@@ -440,6 +446,7 @@ def gather_AAIMONs(pathdict, logging, s):
             zipout.write('binned_data_characterising_each_homol_TMD.pickle', arcname='binned_data_characterising_each_homol_TMD.pickle')
             os.remove('binned_data_characterising_each_homol_TMD.pickle')
 
+    aaa(dfg)
     logging.info("\n~~~~~~~~~~~~                           finished gather_AAIMONs                      ~~~~~~~~~~~~")
     return pathdict
 
