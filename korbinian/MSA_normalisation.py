@@ -331,7 +331,6 @@ def calc_random_aa_ident_via_randomisation(aa_prop_csv_in, rand_seq_ident_csv_ou
     if multiprocessing_mode == False:
         # save the setries as csv file
         output_ser.to_csv(rand_seq_ident_csv_out, sep="\t")
-        sys.stdout.write("calc_random_aa_ident is finished\n")
     else:
         return random_aa_identity, output_ser
 
