@@ -640,19 +640,29 @@ def calculate_AAIMONs(p):
         #                                                                                      #
         ########################################################################################
         # first get a list of all the homologues that have AAIMON ratios for all TMDs
-        df_AAIMON_all_TMD["AAIMON_avail_all_TMDs"] = df_AAIMON_all_TMD.n_TMDs_with_measurable_AAIMON == p["number_of_TMDs"]
-        filt_index = df_AAIMON_all_TMD["AAIMON_avail_all_TMDs"][df_AAIMON_all_TMD["AAIMON_avail_all_TMDs"]].index.tolist()
+        df_AAIMON_all_TMD["AAIMON_avail_all_TMDs"] = df_AAIMON_all_TMD.n_TMDs_with_measurable_AAIMON == p["number_of_TMDs_excl_SP"]
+        filt_index = df_AAIMON_all_TMD[df_AAIMON_all_TMD["AAIMON_avail_all_TMDs"] == True].index.tolist()
 
         # add the number of homologues with AAIMON for all TMDs
         mean_ser['AAIMON_n_homol'] = len(filt_index)
+
+        if mean_ser['AAIMON_n_homol'] == 0:
+            # save the pandas series with the means to a csv in the cr_ratios zip file
+            mean_ser.to_csv(mean_ser_filename)
+            zipout.write(mean_ser_filename, arcname=mean_ser_filename)
+            os.remove(mean_ser_filename)
+            message = "{} has no valid homologues.".format(acc)
+            logging.info(message)
+            return acc, False, message
 
         # save the dataframe containing normalisation factor and normalised AAIMON to zipout
         df_AAIMON_all_TMD.to_csv(protein_name + '_AAIMON_all_TMD.csv')
         zipout.write(protein_name + '_AAIMON_all_TMD.csv', arcname=protein_name + '_AAIMON_all_TMD.csv')
         os.remove(protein_name + '_AAIMON_all_TMD.csv')
 
+        # count how many TMDs actually have data
+        n_TMDs_with_data = 0
         # since the data is saved in separate files, iterate through them again
-
         for TMD in list_of_TMDs:
             # find the TMD number (starting from 1)
             TMD_Nr = list_of_TMDs.index(TMD) + 1
@@ -696,6 +706,8 @@ def calculate_AAIMONs(p):
                 # There is no gapped identity or AAIMON data for these homologues, skip to next TMD
                 logging.info("{} {} No observed changes or AAIMON data for this TMD".format(acc, TMD))
                 continue
+            else:
+                n_TMDs_with_data += 1
             # linear regression for non-norm. and norm. AAIMON with fixed 100% identity at AAIMON 1.0
             AAIMON_slope, x_data, y_data = fit_data_to_linear_function(obs_changes, AAIMON)
             mean_ser['%s_AAIMON_slope' % TMD] = AAIMON_slope
@@ -793,6 +805,13 @@ def calculate_AAIMONs(p):
             # the TM_cr_pickle file has already been added to the zip, and can be deleted now
             os.remove(TM_cr_pickle)
 
+        if n_TMDs_with_data == 0:
+            # save the pandas series with the means to a csv in the cr_ratios zip file
+            mean_ser.to_csv(mean_ser_filename)
+            zipout.write(mean_ser_filename, arcname=mean_ser_filename)
+            os.remove(mean_ser_filename)
+            # skip protein, as no data is available
+            return acc, False, "{} skipped. No TMDs contained homologue data.".format(acc)
 
         # create a dict to cycle through the functions : mean, std, SEM, etc
         function_dict = {"mean" : np.mean, "std" : np.std, "SEM": sem}
@@ -815,9 +834,8 @@ def calculate_AAIMONs(p):
 
         # add AAIMON_slope of the last TMD
         last_TMD = p['last_TMD']
-        mean_ser["AAIMON_slope_last_TMD"] = mean_ser['%s_AAIMON_slope' %last_TMD]
+        mean_ser["AAIMON_slope_last_TMD"] = mean_ser['%s_AAIMON_slope' % last_TMD]
         mean_ser["AAIMON_n_slope_last_TMD"] = mean_ser['%s_AAIMON_n_slope' %last_TMD]
-
 
         # iterate through each TMD, and calculate mean AAIMON slopes for central TMDs
         if mean_ser['number_of_TMDs'] >= 3:

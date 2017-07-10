@@ -124,7 +124,7 @@ def create_protein_list(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa
             if analyse_sp == True:
                 desired_features_in_uniprot.append('SIGNAL')
             desired_features_in_uniprot_dict = {}
-            location_of_sp_in_featrue_list = []
+            location_of_sp_in_feature_list = []
             location_of_tmds_in_feature_list = []
             location_of_non_tmds_in_feature_list = []
 
@@ -143,8 +143,8 @@ def create_protein_list(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa
                                                             x == feature]
                     desired_features_in_uniprot_dict[feature] = location_of_features_in_feature_list
                     if feature == 'SIGNAL':
-                        location_of_sp_in_featrue_list = location_of_features_in_feature_list
-                        # location_of_sp_in_featrue_list.sort()
+                        location_of_sp_in_feature_list = location_of_features_in_feature_list
+                        # location_of_sp_in_feature_list.sort()
                     if feature == 'TRANSMEM':
                         location_of_tmds_in_feature_list = location_of_features_in_feature_list
                         # sort list to be sure that the "transmem" notation is definitely ordered correctly,
@@ -157,7 +157,7 @@ def create_protein_list(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa
                         location_of_non_tmds_in_feature_list.sort()
 
             # count the number of SP
-            output_dict['number_of_SP'] = len(location_of_sp_in_featrue_list)
+            output_dict['number_of_SP'] = len(location_of_sp_in_feature_list)
             # count the number of "TRANSMEM" TMDs listed in the feature-list
             output_dict['number_of_TMDs'] = len(location_of_tmds_in_feature_list)
 
@@ -185,10 +185,10 @@ def create_protein_list(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa
 
                 # information about SP location
                 if output_dict['number_of_SP'] != 0:
-                    for SP_location in location_of_sp_in_featrue_list:
+                    for SP_location in location_of_sp_in_feature_list:
                         SP = 'SP01'
                         list_of_TMDs.append(SP)
-                    for SP_location in location_of_sp_in_featrue_list:
+                    for SP_location in location_of_sp_in_feature_list:
                         output_dict['SP01_start'] = record.features[SP_location][1]
                         output_dict['SP01_end'] = record.features[SP_location][2]
                         output_dict['SP01_description'] = record.features[SP_location][3]

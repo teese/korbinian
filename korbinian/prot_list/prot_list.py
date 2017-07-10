@@ -396,7 +396,7 @@ def prepare_protein_list(s, pathdict, logging):
     #                                                                                      #
     ########################################################################################
 
-    max_num_TMDs = df["number_of_TMDs_excl_SP"].max()
+    max_num_TMDs = int(df["number_of_TMDs_excl_SP"].max())
 
     n_aa_before_tmd = s["n_aa_before_tmd"]
     n_aa_after_tmd = s["n_aa_after_tmd"]
@@ -419,25 +419,52 @@ def prepare_protein_list(s, pathdict, logging):
     # indicate that the prepare_protein_list function has been run
     df['prepare_protein_list'] = True
 
+    for TMD_Nr in range(1, max_num_TMDs + 1):
+        TMD = "TM{:02d}".format(TMD_Nr)
+        # calculate TMD length
+        df["{}_seqlen".format(TMD)] = df["{}_seq".format(TMD)].str.len()
+        # calculate lipophilicity
+        df["{}_lipo".format(TMD)] = df["{}_seq".format(TMD)].dropna().apply(utils.calc_lipophilicity)
+    if "SP01_seq" in df.columns:
+        df["SP01_lipo".format(TMD)] = df["SP01_seq".format(TMD)].dropna().apply(utils.calc_lipophilicity)
+
+    df['X_in_seq'] = df["full_seq"].str.contains("X")
+    list_acc_X_in_seq = df.loc[df['X_in_seq']].index.tolist()
+
+    seq_cols = ["{}_seq".format(TMD) for TMD_Nr in range(1, max_num_TMDs + 1)]
+    df['TMD_seq_joined'] = df.loc[:,seq_cols].fillna("").sum(axis=1)
+    df['n_TMD_res'] = df['TMD_seq_joined'].str.len()
+
+    lipo_cols = ["{}_lipo".format(TMD) for TMD_Nr in range(1, max_num_TMDs + 1)]
+    df['lipo_mean_all_TMDs_mean'] = df.loc[:, lipo_cols].mean(axis=1)
+
+    df["lipo_mean_all_TM_res"] = df['TMD_seq_joined'].apply(utils.calc_lipophilicity)
+
+    len_cols = ["{}_seqlen".format(TMD) for TMD_Nr in range(1, max_num_TMDs + 1)]
+    df['len_TMD_mean'] = df.loc[:, len_cols].mean(axis=1)
+
+    df['last_TMD'] = df['list_of_TMDs_excl_SP'].dropna().apply(lambda x : x[-1])
+
     # add a column that holds all joined TMD sequences, drop proteins with 'X' in full sequence
     logging.info('joining TMD sequences, dropping proteins with "X", calculating lipophilicity:')
-    list_acc_X_in_seq = []
-    list_acc_missing_TM_indices = []
+    # list_acc_X_in_seq = []
+    # list_acc_missing_TM_indices = []
     for n, acc in enumerate(df.index):
         if n % 20 == 0 and n != 0:
             sys.stdout.write('.'), sys.stdout.flush()
             if n % 600 == 0:
                 sys.stdout.write('\n'), sys.stdout.flush()
-        ########################################################################################
-        #                               X in sequence                                          #
-        ########################################################################################
-        if 'X' in df.loc[acc, 'full_seq']:
-            # remove protein from dataframe if sequence contains "X". Add acc to list.
-            list_acc_X_in_seq.append(acc)
-            # skip to next protein
-            continue
+        # ########################################################################################
+        # #                               X in sequence                                          #
+        # ########################################################################################
+        # if 'X' in df.loc[acc, 'full_seq']:
+        #     # remove protein from dataframe if sequence contains "X". Add acc to list.
+        #     list_acc_X_in_seq.append(acc)
+        #     # skip to next protein
+        #     continue
 
-        list_of_TMDs = df.loc[acc, 'list_of_TMDs'].copy()
+        list_of_TMDs = df.loc[acc, 'list_of_TMDs']
+        list_of_TMDs_excl_SP = df.loc[acc, "list_of_TMDs_excl_SP"]
         # if len(list_of_TMDs) == 1:
         #     # there is only one TMD, add it as the TMD_seq_joined and as the lipo mean
         #     df.loc[acc, 'TMD_seq_joined'] = df.loc[acc, 'TM01_seq']
@@ -450,42 +477,42 @@ def prepare_protein_list(s, pathdict, logging):
         #                       measure lipophilicity all TM sequences                         #
         #                             get length of every TMD                                  #
         ########################################################################################
-        TMD_seq_joined = ''
-        lipo_list = []
-        TMD_seqlen_list = []
-        list_of_TMDs_excl_SP = df.loc[acc, "list_of_TMDs_excl_SP"]
+        # TMD_seq_joined = ''
+        # lipo_list = []
+        # TMD_seqlen_list = []
 
-        for TMD in list_of_TMDs_excl_SP:
-            if "{}_seq".format(TMD) not in df.columns:
-                list_acc_missing_TM_indices.append(acc)
-                # skip this TMD. Add protein to list to be dropped.
-                continue
-            seq = df.loc[acc, '%s_seq' % TMD]
-            # get length of TMD sequence
-            seqlen = len(seq)
-            df.loc[acc, '%s_seqlen' %TMD] = seqlen
-            TMD_seqlen_list.append(seqlen)
-            if type(seq) is float:
-                list_acc_missing_TM_indices.append(acc)
-                # skip this TMD. Add protein to list to be dropped.
-                continue
-            # add each TM sequence to the end of the growing string
-            TMD_seq_joined += seq
 
-            # calculate lipophilicity, add new col for each TMD, add to list in order to calc mean for all TMDs
-            lipo = utils.calc_lipophilicity(seq)
-            df.loc[acc, '%s_lipo' % TMD] = lipo
-            if TMD != 'SP01':
-                lipo_list.append(lipo)
+        # for TMD in list_of_TMDs_excl_SP:
+        #     if "{}_seq".format(TMD) not in df.columns:
+        #         list_acc_missing_TM_indices.append(acc)
+        #         # skip this TMD. Add protein to list to be dropped.
+        #         continue
+        #     seq = df.loc[acc, '%s_seq' % TMD]
+        #     # get length of TMD sequence
+        #     seqlen = len(seq)
+        #     df.loc[acc, '%s_seqlen' %TMD] = seqlen
+        #     TMD_seqlen_list.append(seqlen)
+        #     if type(seq) is float:
+        #         list_acc_missing_TM_indices.append(acc)
+        #         # skip this TMD. Add protein to list to be dropped.
+        #         continue
+        #     # add each TM sequence to the end of the growing string
+        #     TMD_seq_joined += seq
+        #
+        #     # calculate lipophilicity, add new col for each TMD, add to list in order to calc mean for all TMDs
+        #     lipo = utils.calc_lipophilicity(seq)
+        #     df.loc[acc, '%s_lipo' % TMD] = lipo
+        #     if TMD != 'SP01':
+        #         lipo_list.append(lipo)
 
-        df.loc[acc, 'TMD_seq_joined'] = TMD_seq_joined
-        # calc the mean lipophilicity
-        # note this is the mean of each TMD separately, not the lipo of the joined sequence
-        df.loc[acc, 'lipo_mean_all_TMDs_mean'] = np.array(lipo_list).mean()
-        # calc the mean seqlen of all TMDs
-        df.loc[acc, 'len_TMD_mean'] = np.array(TMD_seqlen_list).mean()
+        # df.loc[acc, 'TMD_seq_joined'] = TMD_seq_joined
+        # # calc the mean lipophilicity
+        # # note this is the mean of each TMD separately, not the lipo of the joined sequence
+        # df.loc[acc, 'lipo_mean_all_TMDs_mean'] = np.array(lipo_list).mean()
+        # # calc the mean seqlen of all TMDs
+        # df.loc[acc, 'len_TMD_mean'] = np.array(TMD_seqlen_list).mean()
         # get last TMD
-        last_TMD = list_of_TMDs[-1]
+        last_TMD = list_of_TMDs_excl_SP[-1]
         # if 'SP01' in list_of_TMDs:
         #     last_TMD = list_of_TMDs[-2]
         # else:
@@ -525,12 +552,12 @@ def prepare_protein_list(s, pathdict, logging):
         else:
             df.loc[acc, 'lipo_mean_excl_TM01'] = np.nan
 
-    df = df.drop(list_acc_X_in_seq)
+    df = df.loc[df['X_in_seq'] != True]
     n_prot_AFTER_dropping_with_X_in_seq = df.shape[0]
 
     # the ones without TMD_seq are actually proteins where the indices were a string, for example
     # TM01_start was "?"
-    df = df.drop(list_acc_missing_TM_indices)
+    df = df.loc[df['n_TMD_res'] >= 1]
     n_prot_AFTER_dropping_missing_TM_indices = df.shape[0]
 
     lipo_cutoff = s["max_lipo_list"]
@@ -583,6 +610,21 @@ def prepare_protein_list(s, pathdict, logging):
 
     ########################################################################################
     #                                                                                      #
+    #             count signal peptides and save a new column "SiPe_in_dataset"            #
+    #                                                                                      #
+    ########################################################################################
+
+    # number of proteins with signal_peptides
+    n_SP_ser = df["number_of_TMDs"] - df["number_of_TMDs_excl_SP"]
+    n_prot_with_SP = n_SP_ser.sum()
+    logging.info("n_prot_with_SP = {}".format(n_prot_with_SP))
+    if "SiPe" in s["regions"] and n_prot_with_SP >= 1:
+        df["SiPe_in_dataset"] = True
+    else:
+        df["SiPe_in_dataset"] = False
+
+    ########################################################################################
+    #                                                                                      #
     #                           Print record of dropped proteins                           #
     #                                                                                      #
     ########################################################################################
@@ -590,29 +632,27 @@ def prepare_protein_list(s, pathdict, logging):
 
     logging.info('n_prot_AFTER_dropping_SCAMPI_nonTM_seqences: {}'.format(n_prot_AFTER_dropping_SCAMPI_nonTM_seqences))
     if modification_date is not None:
-        logging.info("modification_date of scampi file: {}".format(modification_date))
+        logging.info("modification_date of scampi file: {} ---".format(modification_date))
 
     logging.info('n_prot_AFTER_non_trusted_Signal_Peptides: {}'.format(n_prot_AFTER_dropping_non_trusted_SiPe))
     if len(TM01_potential_SiPe_acc_list) > 0:
         logging.info('TM01_potential_SiPe_acc_list: {}'.format(TM01_potential_SiPe_acc_list))
     if modification_date_SignalP is not None:
-        logging.info("modification_date of SignalP file: {}".format(modification_date_SignalP))
+        logging.info("modification_date of SignalP file: {} ---".format(modification_date_SignalP))
 
     logging.info('n_prot_AFTER_dropping_TMSEG_nonTM_proteins: {}'.format(n_prot_AFTER_dropping_TMSEG_nonTM_proteins))
     if modification_date_TMSEG_nonTM is not None:
-        logging.info("modification_date of TMSEG nonTM file: {}".format(modification_date_TMSEG_nonTM))
+        logging.info("modification_date of TMSEG nonTM file: {} ---".format(modification_date_TMSEG_nonTM))
 
     logging.info('n_prot_AFTER_dropping_without_list_TMDs: {}'.format(n_prot_AFTER_dropping_without_list_TMDs)) # line 107
 
     logging.info('n_prot_AFTER_n_TMDs_cutoff: {}'.format(n_prot_AFTER_n_TMDs_cutoff)) # line 215
 
     logging.info('n_prot_AFTER_dropping_with_X_in_seq: {}'.format(n_prot_AFTER_dropping_with_X_in_seq)) # line 297
-    if list_acc_X_in_seq != []:
+    if len(list_acc_X_in_seq) > 0:
         logging.info('list_acc_X_in_seq: {}'.format(list_acc_X_in_seq))
 
     logging.info('n_prot_AFTER_dropping_missing_TM_indices: {}'.format(n_prot_AFTER_dropping_missing_TM_indices)) # line 297
-    if list_acc_missing_TM_indices != []:
-        logging.info('list_acc_missing_TM_indices: {}'.format(list_acc_missing_TM_indices))
 
     logging.info('n_prot_AFTER_lipo_cutoff: {}'.format(n_prot_AFTER_lipo_cutoff))# line 311
     if list_acc_lipo_mean_above_cutoff != []:
