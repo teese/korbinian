@@ -453,7 +453,7 @@ def prepare_protein_list(s, pathdict, logging):
 
     # create an empty column, for single-pass etc that do not have a calculated value
     df['lipo_mean_central_TMDs'] = np.nan
-
+    df['lipo_mean_excl_TM01'] = np.nan
 
     # add a column that holds all joined TMD sequences, drop proteins with 'X' in full sequence
 
@@ -557,8 +557,7 @@ def prepare_protein_list(s, pathdict, logging):
             list_of_TMDs_excl_SP_excl_TM01 = list_of_TMDs_excl_SP[1:]
             lipo_cols_excl_TM01 = ["{}_lipo".format(TMD) for TMD in list_of_TMDs_excl_SP_excl_TM01]
             lipo_sel_ser_excl_TM01 = df.loc[acc,lipo_cols_excl_TM01]
-            df.loc[acc, 'lipo_mean_central_TMDs'] = lipo_sel_ser_excl_TM01.mean()
-
+            df.loc[acc, 'lipo_mean_excl_TM01'] = lipo_sel_ser_excl_TM01.mean()
 
         # if len(list_of_TMDs_excl_SP) >= 2:
         # # calculate mean lipophilicity excluding first and last TM

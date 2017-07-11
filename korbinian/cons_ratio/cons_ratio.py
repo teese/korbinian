@@ -802,8 +802,11 @@ def calculate_AAIMONs(p):
             # gaps per residue
             mean_ser['%s_SW_q_gaps_per_q_residue_mean' % TMD] = df_cr['%s_SW_q_gaps_per_q_residue' % TMD].dropna().mean()
 
-            # the TM_cr_pickle file has already been added to the zip, and can be deleted now
-            os.remove(TM_cr_pickle)
+            try:
+                # the TM_cr_pickle file has already been added to the zip, and can be deleted now
+                os.remove(TM_cr_pickle)
+            except:
+                pass
 
         if n_TMDs_with_data == 0:
             # save the pandas series with the means to a csv in the cr_ratios zip file
