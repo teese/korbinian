@@ -316,8 +316,16 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         col_list_AAIMON_slope = ['TM{:02d}_AAIMON_slope'.format(TM_nr) for TM_nr in range(1, max_n_TMDs + 1)]
         col_list_lipo = ['TM{:02d}_lipo'.format(TM_nr) for TM_nr in range(1, max_n_TMDs + 1)]
 
-        #plot the original dataset
+        #plot the original dataset (excluding signal peptides)
         Fig03_Density_lipo_vs_TM_conservation(list_number, df, "", "", col_list_AAIMON_slope, col_list_lipo, max_evol_distance, base_filepath, save_png, save_pdf, dpi, fontsize)
+
+        # create a separate graph of signal peptids if available
+        if "SP01_start" in df.columns:
+            df_contains_SP = df.loc[df.SP01_AAIMON_slope.notnull()]
+            col_list_AAIMON_slope_SP = ["SP01_AAIMON_slope"]
+            col_list_lipo_SP = ["SP01_lipo"]
+            suffix_SP = "_signal_peptide"
+            Fig03_Density_lipo_vs_TM_conservation(list_number, df_contains_SP, "", suffix_SP, col_list_AAIMON_slope_SP, col_list_lipo_SP, max_evol_distance, base_filepath, save_png, save_pdf, dpi, fontsize)
 
         for i, prot_family in enumerate(list_prot_families):
             # a, b, c, etc
@@ -728,6 +736,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # offset = len(protein_lists) - 1
 
         # create numpy array of membranous over nonmembranous conservation ratios (identity)
+        aaa(df)
         hist_data = np.array(df['lipo_mean_excl_TM01'].dropna())
         # use numpy to create a histogram
         freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
@@ -2054,14 +2063,11 @@ def Fig03_Density_lipo_vs_TM_conservation(list_number, df, letter, suffix, col_l
     '''
     data = np.empty([0, 2])
 
-    # add the signal peptide if necessary
-    if "SP01_start" in df.columns:
-        col_list_AAIMON_slope = ["SP01_AAIMON_slope"] + col_list_AAIMON_slope
-        col_list_lipo = ["SP01_lipo"] + col_list_lipo
     # select all AAIMON slopes or lipo data
     df_slopes = df.loc[:, col_list_AAIMON_slope]
     df_lipos = df.loc[:, col_list_lipo]
     # check that .stack drops nans, and that there were exactly equal number of nans in the lipo and slope datasets
+
     if df_slopes.stack().shape != df_lipos.stack().shape:
         raise ValueError("There must be a nan in the lipo or AAIMON slopes. Check code, revert to orig if necessary.")
 
