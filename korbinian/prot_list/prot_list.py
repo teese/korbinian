@@ -159,7 +159,6 @@ def prepare_protein_list(s, pathdict, logging):
     # else:
     #    modification_date_PrediSi = None
 
-
     if s['TM_def'] == "SCAMPI":
         df = korbinian.cons_ratio.SCAMPI.read_scampi_data(pathdict, s, logging, df)
 
@@ -222,7 +221,6 @@ def prepare_protein_list(s, pathdict, logging):
             nested_list_of_SEs.append(list_of_SEs)
         # convert nested list to pandas series
         list_of_SEs_ser = pd.Series(nested_list_of_SEs, index=df_SE.index)
-
 
         # SHOULD NO LONGER BE A STRING; SHOULD ALL BE PYTHON LIST FORMAT
         # if type(df["list_of_TMDs"][0]) == str:
@@ -358,7 +356,6 @@ def prepare_protein_list(s, pathdict, logging):
     df['csv_file_av_cons_ratios_hits'] = df.simap_filename_base + '_cons_ratios.csv'
     df['csv_file_av_cons_ratios_hits_BASENAME'] = df.protein_name + '_cons_ratios_'
     df['csv_file_av_cons_ratios_hits_BASENAMEPATH'] = df.simap_filename_base + '_cons_ratios_'
-
 
     ########################################################################################
     #                                                                                      #
@@ -689,7 +686,8 @@ def prepare_protein_list(s, pathdict, logging):
     #                                                                                      #
     ########################################################################################
     # drop any rows that have no data for any proteins (e.g. TM02_start for single-pass proteins)
-    df.dropna(axis=1, inplace=True, how="all")
+    # deprecated : caused errors due to dropping of lipo_mean_excl_TM01 in singlepass datasets
+    #df.dropna(axis=1, inplace=True, how="all")
     # save to a csv
     df.to_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
     ########################################################################################

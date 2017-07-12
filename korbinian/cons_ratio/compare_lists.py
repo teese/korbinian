@@ -916,7 +916,6 @@ def compare_lists (s, df_lists_tab):
 
     for prot_list in protein_lists:
         color = dfv.loc[prot_list, 'color']
-        print(df_lists_tab.loc[prot_list, "max_TMDs"])
         is_multipass = True if df_lists_tab.loc[prot_list, "max_TMDs"] > 2 else False
 
         ###   TM01 lipo   ###

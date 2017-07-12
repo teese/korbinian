@@ -52,7 +52,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     max_evol_distance = int((1 - s["min_ident"]) * 100)
 
     '''Prepare data for the following plots'''
-
     # load cr_summary file
     df_cr_summary = pd.read_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
     if df_cr_summary.shape[0] < s["min_n_proteins_in_list"]:
@@ -62,12 +61,18 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # load summary file
     df_list = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
 
-    if 'uniprot_KW' in df_list.columns:
-        if not "uniprot_KW_for_analysis" in df_list.columns:
-            raise ValueError("Please run keyword analysis.")
+    # if 'uniprot_KW' in df_list.columns:
+    #     if not "uniprot_KW_for_analysis" in df_list.columns:
+    #         raise ValueError("Please run keyword analysis.")
 
     # merge cr_summary and summary file, if columns are equal in both files, suffix _dfc will be added in cr_summary column names for backwards compatibility
     df = pd.merge(df_cr_summary, df_list, left_index=True, right_index=True, suffixes=('_dfc', ''))
+
+    # consider the dataset to be multipass if it contains at least 3 proteins with TM02
+    if "TM02_AAIMON_slope" in df.columns and df["TM02_AAIMON_slope"].dropna().shape[0] >= 3:
+        dataset_is_multipass = True
+    else:
+        dataset_is_multipass = False
 
     # create number of datapoint dependent alpha_dpd
     alpha_dpd = utils.calc_alpha_from_datapoints(df['AAIMON_mean_all_TM_res'])
@@ -726,87 +731,87 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s['Fig09_Hist_lipo_TM01_vs_lastTM']:
-        Fig_Nr = 9
-        title = 'Lipo TM01 vs lastTM'
-        Fig_name = 'List{:02d}_Fig09_Hist_lipo_TM01_vs_lastTM'.format(list_number)
-        min_ = -0.5
-        max_ = 0.8
-        binlist = np.linspace(min_, max_, 21)
-        fig, ax = plt.subplots()
-        # offset = len(protein_lists) - 1
+        if dataset_is_multipass:
+            Fig_Nr = 9
+            title = 'Lipo TM01 vs lastTM'
+            Fig_name = 'List{:02d}_Fig09_Hist_lipo_TM01_vs_lastTM'.format(list_number)
+            min_ = -0.5
+            max_ = 0.8
+            binlist = np.linspace(min_, max_, 21)
+            fig, ax = plt.subplots()
+            # offset = len(protein_lists) - 1
 
-        # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        aaa(df)
-        hist_data = np.array(df['lipo_mean_excl_TM01'].dropna())
-        # use numpy to create a histogram
-        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
-        freq_counts_normalised = freq_counts / freq_counts.max()
-        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
-        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
-        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
-        # add the final bin, which is physically located just after the last regular bin but represents all higher values
-        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=TUMblues[0],
-                                            alpha=1,
-                                            linewidth=1)
+            # create numpy array of membranous over nonmembranous conservation ratios (identity)
+            hist_data = np.array(df['lipo_mean_excl_TM01'].dropna())
+            # use numpy to create a histogram
+            freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+            freq_counts_normalised = freq_counts / freq_counts.max()
+            # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+            col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+            # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+            centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+            # add the final bin, which is physically located just after the last regular bin but represents all higher values
+            bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+            centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+            linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=TUMblues[0],
+                                                alpha=1,
+                                                linewidth=1)
 
-        # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        hist_data = np.array(df['TM01_lipo'].dropna())
-        # use numpy to create a histogram
-        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
-        freq_counts_normalised = freq_counts / freq_counts.max()
-        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
-        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
-        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
-        # add the final bin, which is physically located just after the last regular bin but represents all higher values
-        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=TUMblues[1],
-                                            alpha=1, linewidth=1)
+            # create numpy array of membranous over nonmembranous conservation ratios (identity)
+            hist_data = np.array(df['TM01_lipo'].dropna())
+            # use numpy to create a histogram
+            freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+            freq_counts_normalised = freq_counts / freq_counts.max()
+            # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+            col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+            # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+            centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+            # add the final bin, which is physically located just after the last regular bin but represents all higher values
+            bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+            centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+            linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=TUMblues[1],
+                                                alpha=1, linewidth=1)
 
-        # # create numpy array of membranous over nonmembranous conservation ratios (identity)
-        # hist_data = np.array(df['lipo_last_TMD'].dropna())
-        # # use numpy to create a histogram
-        # freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
-        # freq_counts_normalised = freq_counts / freq_counts.max()
-        # # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
-        # col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
-        # # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-        # centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
-        # # add the final bin, which is physically located just after the last regular bin but represents all higher values
-        # bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-        # centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-        # linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=TUMblues[2],
-        #                                     alpha=1,
-        #                                     linewidth=1)
+            # # create numpy array of membranous over nonmembranous conservation ratios (identity)
+            # hist_data = np.array(df['lipo_last_TMD'].dropna())
+            # # use numpy to create a histogram
+            # freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+            # freq_counts_normalised = freq_counts / freq_counts.max()
+            # # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+            # col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+            # # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+            # centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+            # # add the final bin, which is physically located just after the last regular bin but represents all higher values
+            # bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+            # centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+            # linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=TUMblues[2],
+            #                                     alpha=1,
+            #                                     linewidth=1)
 
-        ###############################################################
-        #                                                             #
-        #                       set up plot style                     #
-        #                                                             #
-        ###############################################################
+            ###############################################################
+            #                                                             #
+            #                       set up plot style                     #
+            #                                                             #
+            ###############################################################
 
-        ax.set_xlabel('lipophilicity (Hessa scale)', fontsize=fontsize)
-        # move the x-axis label closer to the x-axis
-        ax.xaxis.set_label_coords(0.5, -0.085)
-        # x axes min and max
-        xlim_min = min_
-        xlim_max = max_
-        ax.set_xlim(xlim_min, xlim_max)
-        ax.set_ylabel('freq', rotation='vertical', fontsize=fontsize)
-        # change axis font size
-        ax.tick_params(labelsize=fontsize)
+            ax.set_xlabel('lipophilicity (Hessa scale)', fontsize=fontsize)
+            # move the x-axis label closer to the x-axis
+            ax.xaxis.set_label_coords(0.5, -0.085)
+            # x axes min and max
+            xlim_min = min_
+            xlim_max = max_
+            ax.set_xlim(xlim_min, xlim_max)
+            ax.set_ylabel('freq', rotation='vertical', fontsize=fontsize)
+            # change axis font size
+            ax.tick_params(labelsize=fontsize)
 
-        # add annotations
-        ax.annotate(s="more lipophilic", xy=(0, -0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction')
-        ax.annotate(s="less lipophilic", xy=(1.0, -0.1), fontsize=fontsize, xytext=None, horizontalalignment='right', xycoords='axes fraction')
+            # add annotations
+            ax.annotate(s="more lipophilic", xy=(0, -0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction')
+            ax.annotate(s="less lipophilic", xy=(1.0, -0.1), fontsize=fontsize, xytext=None, horizontalalignment='right', xycoords='axes fraction')
 
-        ax.legend(['mean excl. TM01', 'TM01'], fontsize=fontsize, frameon=True)
+            ax.legend(['mean excl. TM01', 'TM01'], fontsize=fontsize, frameon=True)
 
-        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+            utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
 
     if s['Fig10_Boxplot_AAIMON_by_number_of_TMDs'] and s["max_TMDs"] >= 2:
@@ -1380,7 +1385,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.legend(loc = "lower right")
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if 'uniprot_KW' in df.columns:
+    if 'uniprot_KW' in df.columns and "uniprot_KW_for_analysis" in df.columns:
+
         # convert stringlists to python lists
         if isinstance(df.uniprot_KW_for_analysis.dropna().iloc[0], str):
             df["uniprot_KW_for_analysis"] = df.uniprot_KW_for_analysis.dropna().apply(lambda x: ast.literal_eval(x))
@@ -1438,6 +1444,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             ax.legend(frameon=True)
             fig.tight_layout()
             utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+    else:
+        logging.info("keyword figures were not created. 'uniprot_KW_for_analysis' was not in columns")
 
     if s['Fig19_barchart_keywords_signif_TM_cons']:
         Fig_Nr = 19
@@ -1463,7 +1471,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 logging.info("dropped KW from list_ignored_KW : {}".format(dropped_KW))
             dfKW = dfKW.reindex(index_excl_ignored_KW)
 
-            # DEPRECATED -
+            # DEPRECATED
             #dfKW.index = pd.Series(dfKW.index).replace(PFAM_dict)
 
             # re-sort by p-value
@@ -1907,150 +1915,150 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s["Fig22_multipass_linechart_f_c_l_cons_lipo_protein_subgroups"] and list_number == 2:
-        # select only those proteins with at least 3 TMDs, to give first, central and last TM conservation
-        df_min_3 = df.loc[df.number_of_TMDs_excl_SP >= 3].copy()
+        if 'uniprot_KW' in df.columns and "uniprot_KW_for_analysis" in df.columns:
 
-        # select the solute carriers
-        df_solute = df_min_3.loc[df_min_3.prot_descr.str.contains("Solute carrier")].copy()
-        # select only those with 11, 12 and 13 TM helices, which show a highly conserved TM01
-        n_TMDs_to_include = [11, 12, 13]
-        df_solute["selected_n_TMDs"] = df_solute.number_of_TMDs.apply(lambda x: x in n_TMDs_to_include)
-        df_solute_sel = df_solute.loc[df_solute["selected_n_TMDs"]]
-        # create df with subset of ion channels
-        df_min_3["ion channel"] = df_min_3.uniprot_KW_for_analysis.apply(lambda x: "Ion channel" in x)
-        df_ion_channel = df_min_3.loc[df_min_3["ion channel"]]
-        # create df with subset of enzymes
-        df_min_3["enzyme"] = df_min_3.uniprot_KW_for_analysis.apply(lambda x: "Enzyme" in x)
-        df_enzyme = df_min_3.loc[df_min_3["enzyme"]]
-        min_ = df_enzyme.number_of_TMDs.min()
-        # create df with three transporters, who show a conserved TM01
-        sel_transporter_kw = ["Amino-acid transport", "Neurotransmitter transport", "Lipid transport"]
-        def iter_in_list(input_list):
-            item_found = False
-            for item in input_list:
-                if item in sel_transporter_kw:
-                    item_found = True
-                    break
-            return item_found
-        df_min_3["sel_transporter"] = df_min_3.uniprot_KW_for_analysis.apply(iter_in_list)
-        df_sel_transporter = df_min_3.loc[df_min_3["sel_transporter"]]
-        # create a selection that excludes all above
-        others_index = set(df_min_3.index) - set(df_GPCR.index) - set(df_solute_sel.index) - set(df_ion_channel.index) - set(df_enzyme.index) - set(df_sel_transporter.index)
-        df_others = df_min_3.loc[others_index, :]
+            # select only those proteins with at least 3 TMDs, to give first, central and last TM conservation
+            df_min_3 = df.loc[df.number_of_TMDs_excl_SP >= 3].copy()
 
-        min_ = df_others.number_of_TMDs.min()
-        df_others = df_others.loc[df_others.number_of_TMDs >= 3]
+            # select the solute carriers
+            df_solute = df_min_3.loc[df_min_3.prot_descr.str.contains("Solute carrier")].copy()
+            # select only those with 11, 12 and 13 TM helices, which show a highly conserved TM01
+            n_TMDs_to_include = [11, 12, 13]
+            df_solute["selected_n_TMDs"] = df_solute.number_of_TMDs.apply(lambda x: x in n_TMDs_to_include)
+            df_solute_sel = df_solute.loc[df_solute["selected_n_TMDs"]]
+            # create df with subset of ion channels
+            df_min_3["ion channel"] = df_min_3.uniprot_KW_for_analysis.apply(lambda x: "Ion channel" in x)
+            df_ion_channel = df_min_3.loc[df_min_3["ion channel"]]
+            # create df with subset of enzymes
+            df_min_3["enzyme"] = df_min_3.uniprot_KW_for_analysis.apply(lambda x: "Enzyme" in x)
+            df_enzyme = df_min_3.loc[df_min_3["enzyme"]]
+            min_ = df_enzyme.number_of_TMDs.min()
+            # create df with three transporters, who show a conserved TM01
+            sel_transporter_kw = ["Amino-acid transport", "Neurotransmitter transport", "Lipid transport"]
+            def iter_in_list(input_list):
+                item_found = False
+                for item in input_list:
+                    if item in sel_transporter_kw:
+                        item_found = True
+                        break
+                return item_found
+            df_min_3["sel_transporter"] = df_min_3.uniprot_KW_for_analysis.apply(iter_in_list)
+            df_sel_transporter = df_min_3.loc[df_min_3["sel_transporter"]]
+            # create a selection that excludes all above
+            others_index = set(df_min_3.index) - set(df_GPCR.index) - set(df_solute_sel.index) - set(df_ion_channel.index) - set(df_enzyme.index) - set(df_sel_transporter.index)
+            df_others = df_min_3.loc[others_index, :]
 
-        # define colours
-        c1 = cdict["TUM_oranges"]["TUM3"]
-        c2 = cdict["TUM_oranges"]["TUM2"]
-        c3 = cdict["TUM_colours"]["TUM2"]
-        c4 = cdict["TUM_colours"]["TUM1"]
-        c5 = "k"
-        c6 = "0.5"
+            min_ = df_others.number_of_TMDs.min()
+            df_others = df_others.loc[df_others.number_of_TMDs >= 3]
 
-        ##################################################################
-        #                                                                #
-        #                 linechart for CONSERVATION                     #
-        #             (first, central, last for protein subgroups)       #
-        #                                                                #
-        ##################################################################
-        Fig_Nr = 22
-        title = 'linechart_cons_f_c_l_multipass_prot_subgroups'
-        Fig_name = 'List{:02d}_Fig22a_multipass_linechart_f_c_l_cons_protein_subgroups'.format(list_number)
+            # define colours
+            c1 = cdict["TUM_oranges"]["TUM3"]
+            c2 = cdict["TUM_oranges"]["TUM2"]
+            c3 = cdict["TUM_colours"]["TUM2"]
+            c4 = cdict["TUM_colours"]["TUM1"]
+            c5 = "k"
+            c6 = "0.5"
 
-        fig = plt.figure()
-        ax = fig.add_axes([0.1,0.1,0.6,0.6])
-        x = np.arange(3)
+            ##################################################################
+            #                                                                #
+            #                 linechart for CONSERVATION                     #
+            #             (first, central, last for protein subgroups)       #
+            #                                                                #
+            ##################################################################
+            Fig_Nr = 22
+            title = 'linechart_cons_f_c_l_multipass_prot_subgroups'
+            Fig_name = 'List{:02d}_Fig22a_multipass_linechart_f_c_l_cons_protein_subgroups'.format(list_number)
 
-        y_solute_sel = [df_solute_sel.TM01_AAIMON_slope.mean() * 1000, df_solute_sel.AAIMON_slope_central_TMDs.mean() * 1000, df_solute_sel.AAIMON_slope_last_TMD.mean() * 1000]
-        ax.plot(x, y_solute_sel, color=c1, label="solute carriers with 11-13 TM helices, n={}".format(df_solute_sel.shape[0]))
+            fig = plt.figure()
+            ax = fig.add_axes([0.1,0.1,0.6,0.6])
+            x = np.arange(3)
 
-        y_sel_transporter = [df_sel_transporter.TM01_AAIMON_slope.mean() * 1000, df_sel_transporter.AAIMON_slope_central_TMDs.mean() * 1000, df_sel_transporter.AAIMON_slope_last_TMD.mean() * 1000]
-        ax.plot(x, y_sel_transporter, color=c2, label="amino acid, lipid, or neurotransmitter transporters, n={}".format(df_sel_transporter.shape[0]), linestyle="-.")
+            y_solute_sel = [df_solute_sel.TM01_AAIMON_slope.mean() * 1000, df_solute_sel.AAIMON_slope_central_TMDs.mean() * 1000, df_solute_sel.AAIMON_slope_last_TMD.mean() * 1000]
+            ax.plot(x, y_solute_sel, color=c1, label="solute carriers with 11-13 TM helices, n={}".format(df_solute_sel.shape[0]))
 
-        y_GPCR = [df_GPCR.TM01_AAIMON_slope.mean() * 1000, df_GPCR.AAIMON_slope_central_TMDs.mean() * 1000, df_GPCR.AAIMON_slope_last_TMD.mean() * 1000]
-        ax.plot(x, y_GPCR, color=c3, label="GPCRs, n={}".format(df_GPCR.shape[0]))
+            y_sel_transporter = [df_sel_transporter.TM01_AAIMON_slope.mean() * 1000, df_sel_transporter.AAIMON_slope_central_TMDs.mean() * 1000, df_sel_transporter.AAIMON_slope_last_TMD.mean() * 1000]
+            ax.plot(x, y_sel_transporter, color=c2, label="amino acid, lipid, or neurotransmitter transporters, n={}".format(df_sel_transporter.shape[0]), linestyle="-.")
 
-        # y_transport = [df_transport.TM01_AAIMON_slope.mean()*1000, df_transport.AAIMON_slope_central_TMDs.mean()*1000, df_transport.AAIMON_slope_last_TMD.mean()*1000]
-        # ax.plot(x, y_transport, color = "b", label="other transporters, n={}".format(df_transport.shape[0]), linestyle="--")
+            y_GPCR = [df_GPCR.TM01_AAIMON_slope.mean() * 1000, df_GPCR.AAIMON_slope_central_TMDs.mean() * 1000, df_GPCR.AAIMON_slope_last_TMD.mean() * 1000]
+            ax.plot(x, y_GPCR, color=c3, label="GPCRs, n={}".format(df_GPCR.shape[0]))
 
-        y_ionchannel = [df_ion_channel.TM01_AAIMON_slope.mean() * 1000, df_ion_channel.AAIMON_slope_central_TMDs.mean() * 1000, df_ion_channel.AAIMON_slope_last_TMD.mean() * 1000]
-        ax.plot(x, y_ionchannel, color=c4, label="ion channels, n={}".format(df_ion_channel.shape[0]), linestyle="--")
+            # y_transport = [df_transport.TM01_AAIMON_slope.mean()*1000, df_transport.AAIMON_slope_central_TMDs.mean()*1000, df_transport.AAIMON_slope_last_TMD.mean()*1000]
+            # ax.plot(x, y_transport, color = "b", label="other transporters, n={}".format(df_transport.shape[0]), linestyle="--")
 
-        y_enzyme = [df_enzyme.TM01_AAIMON_slope.mean() * 1000, df_enzyme.AAIMON_slope_central_TMDs.mean() * 1000, df_enzyme.AAIMON_slope_last_TMD.mean() * 1000]
-        ax.plot(x, y_enzyme, color=c5, label="enzymes, n={}".format(df_enzyme.shape[0]), linestyle="--")
+            y_ionchannel = [df_ion_channel.TM01_AAIMON_slope.mean() * 1000, df_ion_channel.AAIMON_slope_central_TMDs.mean() * 1000, df_ion_channel.AAIMON_slope_last_TMD.mean() * 1000]
+            ax.plot(x, y_ionchannel, color=c4, label="ion channels, n={}".format(df_ion_channel.shape[0]), linestyle="--")
 
-        y_others = [df_others.TM01_AAIMON_slope.mean() * 1000, df_others.AAIMON_slope_central_TMDs.mean() * 1000, df_others.AAIMON_slope_last_TMD.mean() * 1000]
-        ax.plot(x, y_others, color=c6, label="other human multipass proteins, n={}".format(df_others.shape[0]), linestyle=":")
+            y_enzyme = [df_enzyme.TM01_AAIMON_slope.mean() * 1000, df_enzyme.AAIMON_slope_central_TMDs.mean() * 1000, df_enzyme.AAIMON_slope_last_TMD.mean() * 1000]
+            ax.plot(x, y_enzyme, color=c5, label="enzymes, n={}".format(df_enzyme.shape[0]), linestyle="--")
 
-        x_labels = ["first", "central", "last"]
-        ax.set_xticks(x)
-        ax.set_xticklabels(x_labels)
-        ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$')
-        ax.set_xlabel("transmembrane domain(s)")
-        lgd = ax.legend(frameon=True, bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
-                  ncol=1, mode="expand", borderaxespad=0.)
-        ax.set_xlim(-0.3, 2.3)
-        # add annotations
-        fontsize = 10
-        ax.annotate(s="TM less\nconserved", xy=(-0.12, 0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
-        ax.annotate(s="TM more\nconserved", xy=(-0.12, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+            y_others = [df_others.TM01_AAIMON_slope.mean() * 1000, df_others.AAIMON_slope_central_TMDs.mean() * 1000, df_others.AAIMON_slope_last_TMD.mean() * 1000]
+            ax.plot(x, y_others, color=c6, label="other human multipass proteins, n={}".format(df_others.shape[0]), linestyle=":")
 
-        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+            x_labels = ["first", "central", "last"]
+            ax.set_xticks(x)
+            ax.set_xticklabels(x_labels)
+            ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$')
+            ax.set_xlabel("transmembrane domain(s)")
+            lgd = ax.legend(frameon=True, bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+                      ncol=1, mode="expand", borderaxespad=0.)
+            ax.set_xlim(-0.3, 2.3)
+            # add annotations
+            fontsize = 10
+            ax.annotate(s="TM less\nconserved", xy=(-0.12, 0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+            ax.annotate(s="TM more\nconserved", xy=(-0.12, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
 
-        ##################################################################
-        #                                                                #
-        #                    linechart for LIPOPHILICITY                 #
-        #             (first, central, last for protein subgroups)       #
-        #                                                                #
-        ##################################################################
-        # plot the lipophilicity line graphs
-        Fig_Nr = 22
-        title = 'linechart_cons_f_c_l_multipass_prot_subgroups'
-        Fig_name = 'List{:02d}_Fig22b_multipass_linechart_f_c_l_lipo_protein_subgroups'.format(list_number)
+            utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-        fig = plt.figure()
-        ax = fig.add_axes([0.1, 0.1, 0.6, 0.6])
-        x = np.arange(3)
+            ##################################################################
+            #                                                                #
+            #                    linechart for LIPOPHILICITY                 #
+            #             (first, central, last for protein subgroups)       #
+            #                                                                #
+            ##################################################################
+            # plot the lipophilicity line graphs
+            Fig_Nr = 22
+            title = 'linechart_cons_f_c_l_multipass_prot_subgroups'
+            Fig_name = 'List{:02d}_Fig22b_multipass_linechart_f_c_l_lipo_protein_subgroups'.format(list_number)
 
-        y_solute_sel = [df_solute_sel.TM01_lipo.mean(), df_solute_sel.lipo_mean_central_TMDs.mean(), df_solute_sel.lipo_last_TMD.mean()]
-        ax.plot(x, y_solute_sel, color=c1, label="solute carriers with 11-13 TM helices, n={}".format(df_solute_sel.shape[0]))
+            fig = plt.figure()
+            ax = fig.add_axes([0.1, 0.1, 0.6, 0.6])
+            x = np.arange(3)
 
-        y_sel_transporter = [df_sel_transporter.TM01_lipo.mean(), df_sel_transporter.lipo_mean_central_TMDs.mean(), df_sel_transporter.lipo_last_TMD.mean()]
-        ax.plot(x, y_sel_transporter, color=c2, label="amino acid, lipid, or neurotransmitter transporters, n={}".format(df_sel_transporter.shape[0]), linestyle="-.")
+            y_solute_sel = [df_solute_sel.TM01_lipo.mean(), df_solute_sel.lipo_mean_central_TMDs.mean(), df_solute_sel.lipo_last_TMD.mean()]
+            ax.plot(x, y_solute_sel, color=c1, label="solute carriers with 11-13 TM helices, n={}".format(df_solute_sel.shape[0]))
 
-        y_GPCR = [df_GPCR.TM01_lipo.mean(), df_GPCR.lipo_mean_central_TMDs.mean(), df_GPCR.lipo_last_TMD.mean()]
-        ax.plot(x, y_GPCR, color=c3, label="GPCRs, n={}".format(df_GPCR.shape[0]))
+            y_sel_transporter = [df_sel_transporter.TM01_lipo.mean(), df_sel_transporter.lipo_mean_central_TMDs.mean(), df_sel_transporter.lipo_last_TMD.mean()]
+            ax.plot(x, y_sel_transporter, color=c2, label="amino acid, lipid, or neurotransmitter transporters, n={}".format(df_sel_transporter.shape[0]), linestyle="-.")
 
-        # y_transport = [df_transport.TM01_lipo.mean()*1000, df_transport.lipo_mean_central_TMDs.mean()*1000, df_transport.lipo_last_TMD.mean()*1000]
-        # ax.plot(x, y_transport, color = "b", label="other transporters, n={}".format(df_transport.shape[0]), linestyle="--")
+            y_GPCR = [df_GPCR.TM01_lipo.mean(), df_GPCR.lipo_mean_central_TMDs.mean(), df_GPCR.lipo_last_TMD.mean()]
+            ax.plot(x, y_GPCR, color=c3, label="GPCRs, n={}".format(df_GPCR.shape[0]))
 
-        y_ionchannel = [df_ion_channel.TM01_lipo.mean(), df_ion_channel.lipo_mean_central_TMDs.mean(), df_ion_channel.lipo_last_TMD.mean()]
-        ax.plot(x, y_ionchannel, color=c4, label="ion channels, n={}".format(df_ion_channel.shape[0]), linestyle="--")
+            # y_transport = [df_transport.TM01_lipo.mean()*1000, df_transport.lipo_mean_central_TMDs.mean()*1000, df_transport.lipo_last_TMD.mean()*1000]
+            # ax.plot(x, y_transport, color = "b", label="other transporters, n={}".format(df_transport.shape[0]), linestyle="--")
 
-        y_enzyme = [df_enzyme.TM01_lipo.mean(), df_enzyme.lipo_mean_central_TMDs.mean(), df_enzyme.lipo_last_TMD.mean()]
-        ax.plot(x, y_enzyme, color=c5, label="enzymes, n={}".format(df_enzyme.shape[0]), linestyle="--")
+            y_ionchannel = [df_ion_channel.TM01_lipo.mean(), df_ion_channel.lipo_mean_central_TMDs.mean(), df_ion_channel.lipo_last_TMD.mean()]
+            ax.plot(x, y_ionchannel, color=c4, label="ion channels, n={}".format(df_ion_channel.shape[0]), linestyle="--")
 
-        y_others = [df_others.TM01_lipo.mean(), df_others.lipo_mean_central_TMDs.mean(), df_others.lipo_last_TMD.mean()]
-        ax.plot(x, y_others, color=c6, label="other human multipass proteins, n={}".format(df_others.shape[0]), linestyle=":")
+            y_enzyme = [df_enzyme.TM01_lipo.mean(), df_enzyme.lipo_mean_central_TMDs.mean(), df_enzyme.lipo_last_TMD.mean()]
+            ax.plot(x, y_enzyme, color=c5, label="enzymes, n={}".format(df_enzyme.shape[0]), linestyle="--")
 
-        x_labels = ["first", "central", "last"]
-        ax.set_xticks(x)
-        ax.set_xticklabels(x_labels)
-        ax.set_ylabel('mean lipophilicity\n(Hessa scale)')
-        ax.set_xlabel("transmembrane domain(s)")
-        ax.legend(frameon=True, bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
-                  ncol=1, mode="expand", borderaxespad=0.)
-        ax.set_xlim(-0.3, 2.3)
-        # add annotations
-        fontsize = 10
-        ax.annotate(s="TM more\nlipophilic", xy=(-0.14, 0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
-        ax.annotate(s="TM less\nlipophilic", xy=(-0.14, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+            y_others = [df_others.TM01_lipo.mean(), df_others.lipo_mean_central_TMDs.mean(), df_others.lipo_last_TMD.mean()]
+            ax.plot(x, y_others, color=c6, label="other human multipass proteins, n={}".format(df_others.shape[0]), linestyle=":")
 
-        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+            x_labels = ["first", "central", "last"]
+            ax.set_xticks(x)
+            ax.set_xticklabels(x_labels)
+            ax.set_ylabel('mean lipophilicity\n(Hessa scale)')
+            ax.set_xlabel("transmembrane domain(s)")
+            ax.legend(frameon=True, bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+                      ncol=1, mode="expand", borderaxespad=0.)
+            ax.set_xlim(-0.3, 2.3)
+            # add annotations
+            fontsize = 10
+            ax.annotate(s="TM more\nlipophilic", xy=(-0.14, 0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+            ax.annotate(s="TM less\nlipophilic", xy=(-0.14, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
 
-
+            utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
     return "~~~~~~~~~~~~        run_save_figures_describing_proteins_in_list is finished        ~~~~~~~~~~~~"
 
 def Fig03_Density_lipo_vs_TM_conservation(list_number, df, letter, suffix, col_list_AAIMON_slope, col_list_lipo, max_evol_distance, base_filepath, save_png, save_pdf, dpi, fontsize):
