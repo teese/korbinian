@@ -891,7 +891,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s['Fig11_Boxplot_AAIMON_by_seqlen']:
+    if s['Fig11_Boxplot_AAIMON_slope_by_seqlen']:
         Fig_Nr = 11
         title = 'seqlen vs AAIMON'
         Fig_name = 'List{:02d}_Fig11_Boxplot_AAIMON_by_seqlen'.format(list_number)
@@ -901,7 +901,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # data that is binned
         column_for_bins = 'seqlen'
         # data that is plotted in bin
-        column_for_data = 'AAIMON_mean_all_TM_res'
+        column_for_data = 'AAIMON_slope_all_TM_res'
         # specify variable for binning function
         x = df[column_for_bins]
         # specify number of bins
@@ -1428,22 +1428,22 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             # only examine keywords with a significant number of proteins
             cutoff_min_num_prot_with_KW = 100
             df_KW_signif = df_KW.loc[df_KW.total > cutoff_min_num_prot_with_KW]
-
-            fig, ax = plt.subplots()
-            x = df_KW_signif.index
-            y = df_KW_signif.many_frac_containing_KW
-            y2 = df_KW_signif.few_frac_containing_KW
-            width = 0.4
-            x_ind = np.array(range(len(x))) + width
-            ax.bar(left=x_ind, height=y, width=width, color="#0489B1", label=">{} homologues".format(cutoff_int))
-            ax.bar(left=x_ind + width, height=y2, width=width, color="0.9", label="<{} homologues".format(cutoff_int))
-            ax.set_xlim(0, x_ind[-1] + 1 + width / 2)
-            ax.set_xticks(x_ind + width)
-            ax.set_xticklabels(x, rotation=90)
-            ax.set_ylabel("Fraction of proteins containing keyword")
-            ax.legend(frameon=True)
-            fig.tight_layout()
-            utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+            if not df_KW_signif.empty:
+                fig, ax = plt.subplots()
+                x = df_KW_signif.index
+                y = df_KW_signif.many_frac_containing_KW
+                y2 = df_KW_signif.few_frac_containing_KW
+                width = 0.4
+                x_ind = np.array(range(len(x))) + width
+                ax.bar(left=x_ind, height=y, width=width, color="#0489B1", label=">{} homologues".format(cutoff_int))
+                ax.bar(left=x_ind + width, height=y2, width=width, color="0.9", label="<{} homologues".format(cutoff_int))
+                ax.set_xlim(0, x_ind[-1] + 1 + width / 2)
+                ax.set_xticks(x_ind + width)
+                ax.set_xticklabels(x, rotation=90)
+                ax.set_ylabel("Fraction of proteins containing keyword")
+                ax.legend(frameon=True)
+                fig.tight_layout()
+                utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
     else:
         logging.info("keyword figures were not created. 'uniprot_KW_for_analysis' was not in columns")
 
