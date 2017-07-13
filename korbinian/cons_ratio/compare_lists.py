@@ -584,7 +584,7 @@ def compare_lists (s, df_lists_tab):
         #        annotate the mean values on the plots                #
         #                                                             #
         ###############################################################
-        ax.annotate("mean: {: >2.0f}".format(mean_seqlen), [0.86, 0.3*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+        ax.annotate("mean: {: >2.0f}".format(mean_seqlen), [0.86, 0.15*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
 
         offset = offset - 1
 
@@ -594,7 +594,7 @@ def compare_lists (s, df_lists_tab):
     #                                                             #
     ###############################################################
 
-    ax.set_xlabel('sequence length', fontsize=fontsize)
+    ax.set_xlabel('sequence length (full protein)', fontsize=fontsize)
     # move the x-axis label closer to the x-axis
     ax.xaxis.set_label_coords(0.5, -0.085)
     # x and y axes min and max
@@ -670,7 +670,7 @@ def compare_lists (s, df_lists_tab):
         #        annotate the mean values on the plots                #
         #                                                             #
         ###############################################################
-        ax.annotate("mean:{: >4.01f}".format(number_of_TMDs_mean), [0.81, 0.3*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+        ax.annotate("mean:{: >4.01f}".format(number_of_TMDs_mean), [0.81, 0.1*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
 
         offset = offset - 1
 
@@ -749,7 +749,7 @@ def compare_lists (s, df_lists_tab):
         #        annotate the mean values on the plots                #
         #                                                             #
         ###############################################################
-        ax.annotate("mean: {: >7.02f}".format(evol_dist_mean), [0.82, 0.3*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+        ax.annotate("mean: {: >7.02f}".format(evol_dist_mean), [0.82, 0.1*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
 
         offset = offset - 1
 
@@ -850,7 +850,7 @@ def compare_lists (s, df_lists_tab):
         #        annotate the mean values on the plots                #
         #                                                             #
         ###############################################################
-        ax.annotate("mean: {: >7.02f}".format(AAIMON_n_homol_mean), [0.8, 0.3*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+        ax.annotate("mean: {: >7.02f}".format(AAIMON_n_homol_mean), [0.8, 0.1*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
 
         offset = offset - 1
 
@@ -1076,7 +1076,7 @@ def compare_lists (s, df_lists_tab):
         #        annotate the mean values on the plots                #
         #                                                             #
         ###############################################################
-        ax.annotate("mean: {: >2.0%}".format(perc_TMD_mean), [0.84, 0.3*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+        ax.annotate("mean: {: >2.0%}".format(perc_TMD_mean), [0.84, 0.1*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
 
         offset = offset - 1
 
@@ -1170,7 +1170,7 @@ def compare_lists (s, df_lists_tab):
         #        annotate the mean values on the plots                #
         #                                                             #
         ###############################################################
-        ax.annotate("mean: {: >7.02f}".format(len_TMDs_mean), [0.8, 0.3*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+        ax.annotate("mean: {: >7.02f}".format(len_TMDs_mean), [0.8, 0.1*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
 
         offset = offset - 1
 
