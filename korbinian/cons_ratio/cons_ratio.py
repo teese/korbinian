@@ -569,7 +569,7 @@ def calculate_AAIMONs(p):
         mean_ser['AAIMON_slope_all_TM_res'] = AAIMON_slope
         mean_ser['AAIMON_n_slope_all_TM_res'] = AAIMON_n_slope
 
-        mean_ser['perc_ident_mean'] = 1 - df_SW_num_ident_res["obs_changes"].mean()
+        mean_ser['perc_ident_mean'] = 100 - df_SW_num_ident_res["obs_changes"].mean()
 
         ########################################################################################
         #                                                                                      #

@@ -213,7 +213,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
         # http://html-color-codes.info/
         # label the x-axis for each plot, based on the TMD
-        ax.set_xlabel('average conservation ratio (membranous over nonmembranous)', fontsize=fontsize)
+        ax.set_xlabel('TM/EM conservation ratio', fontsize=fontsize)
         # move the x-axis label closer to the x-axis
         ax.xaxis.set_label_coords(0.45, -0.085)
         xlim_min = s["mp_xlim_min01"]
@@ -292,7 +292,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         # ax.grid(False, which='both')
         ax.tick_params(axis='both', which='major', length=3, width=1, color='#CCCCCC')
         ax.set_xlabel('evolutionary distance (% substitutions)', fontsize=fontsize)
-        ax.set_ylabel('TM/nonTM conservation', rotation=90, fontsize=fontsize)
+        #ax.set_ylabel(r'$\mathrm{\mathsf{\frac {TM}{EM}  conservation}}}}$', rotation=90, fontsize=fontsize)
+        ax.set_ylabel('TM/EM  conservation ratio', rotation=90, fontsize=fontsize)
 
         # get colorbar from latest imshow element (color scale should be the same for all subplots)
         # fig.subplots_adjust(right=0.8)
@@ -407,7 +408,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         for flier in boxplotcontainer['fliers']:
             flier.set(marker='o', color='0.8', alpha=0.1, markerfacecolor='0.3', markersize=3)
 
-        ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', rotation='vertical', fontsize=fontsize)
+        ax.set_ylabel(r'm$_{\rm TM/EM} *10^{\rm -3}$', rotation='vertical', fontsize=fontsize)
 
         ## Remove top axes and right axes ticks
         ax.get_xaxis().tick_bottom()
@@ -579,7 +580,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.set_xlabel('number of TMDs in protein', fontsize=fontsize)
         # move the x-axis label closer to the x-axis
         ax.xaxis.set_label_coords(0.45, -0.085)
-        ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
+        ax.set_ylabel(r'm$_{\rm TM/EM} *10^{\rm -3}$', fontsize=fontsize)
         # Remove top axes and right axes ticks
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
@@ -638,8 +639,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax2.set_ylim(-20, 20)
         ax1.tick_params(labelsize=fontsize, pad=2)
         ax2.tick_params(labelsize=fontsize, pad=2)
-        ax1.set_ylabel('TM/nonTM conservation', fontsize=fontsize)
-        ax2.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
+        ax1.set_ylabel('TM/EM conservation ratio', fontsize=fontsize)
+        ax2.set_ylabel(r'm$_{\rm TM/EM} *10^{\rm -3}$', fontsize=fontsize)
         ax1.set(adjustable='box-forced')
         ax2.set(adjustable='box-forced')
         plt.xlabel('average evolutionary distance of homologues (% substitutions)', fontsize=fontsize)
@@ -707,7 +708,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                                             alpha=0.9,
                                             linewidth=linewidth)
 
-        ax.set_xlabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
+        ax.set_xlabel(r'm$_{\rm TM/EM} *10^{\rm -3}$', fontsize=fontsize)
         # move the x-axis label closer to the x-axis
         ax.xaxis.set_label_coords(0.5, -0.085)
         # x and y axes min and max
@@ -881,7 +882,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.set_xlim(xmin=0, xmax=17)
         # move the x-axis label closer to the x-axis
         # ax.xaxis.set_label_coords(0.45, -0.085)
-        ax.set_ylabel('Average TM/nonTM conservation for all TMDs', fontsize=fontsize)
+        ax.set_ylabel('Average TM/EM conservation ratio for all TMDs', fontsize=fontsize)
         ax2.set_ylabel('Number of proteins in bin', fontsize=fontsize)
         ## Remove top axes and right axes ticks
         ax.get_xaxis().tick_bottom()
@@ -954,7 +955,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         ax.set_xlabel('Length of protein in bins', fontsize=fontsize)
         # move the x-axis label closer to the x-axis
         # ax.xaxis.set_label_coords(0.45, -0.085)
-        ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
+        ax.set_ylabel(r'm$_{\rm TM/EM} *10^{\rm -3}$', fontsize=fontsize)
         ## Remove top axes and right axes ticks
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
@@ -1028,7 +1029,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         #ax.set_ylim(ymin=0, ymax=2)
         # move the x-axis label closer to the x-axis
         # ax.xaxis.set_label_coords(0.45, -0.085)
-        ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
+        ax.set_ylabel(r'm$_{\rm TM/EM} *10^{\rm -3}$', fontsize=fontsize)
         ## Remove top axes and right axes ticks
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
@@ -1102,7 +1103,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         #ax.set_ylim(ymin=0, ymax=2)
         # move the x-axis label closer to the x-axis
         # ax.xaxis.set_label_coords(0.45, -0.085)
-        ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
+        ax.set_ylabel(r'm$_{\rm TM/EM} *10^{\rm -3}$', fontsize=fontsize)
         ## Remove top axes and right axes ticks
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
@@ -1266,7 +1267,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 ax.get_yaxis().tick_left()
                 ## Custom x-axis labels
                 ax.set_xticklabels(legend, rotation=45)
-                ax.set_ylabel('TM/nonTM conservation', fontsize=fontsize)
+                ax.set_ylabel('TM/EM conservation ratio', fontsize=fontsize)
                 # add figure number to top left of subplot
                 ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
                             xycoords='axes fraction', alpha=0.75)
@@ -1292,16 +1293,17 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             # calculate linear regression for fitted line
             linear_regression = np.polyfit(x, y, 1)
             fit_fn = np.poly1d(linear_regression)
-            fitted_data_x = fit_fn(x)
-            ax.plot(x, fitted_data_x, "--", alpha=0.75, color=colour)
+            x_first_last_dp = [x.min(), x.max()]
+            y_fitted = fit_fn(x_first_last_dp)
+            ax.plot(x_first_last_dp, y_fitted, "--", alpha=0.75, color=colour)
             ax.annotate(s='y = {a:.5f}x + {b:.5f}'.format(a=linear_regression[0], b=linear_regression[1]), xy=(0.85, 0.95),
                         fontsize=fontsize-2, xytext=None, xycoords='axes fraction', alpha=0.75)
         else:
             logging.info("The dataset has less than 5 proteins. Lines of best fit will not be calculated.")
 
         ax.scatter(x, y, color = colour, alpha=alpha_dpd, s=datapointsize)
-        ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', rotation='vertical', fontsize=fontsize)
-        ax.set_xlabel('TM/nonTM conservation', fontsize=fontsize)
+        ax.set_ylabel(r'm$_{\rm TM/EM} *10^{\rm -3}$', rotation='vertical', fontsize=fontsize)
+        ax.set_xlabel('TM/EM conservation ratio', fontsize=fontsize)
         ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
                     xycoords='axes fraction', alpha=0.75)
         # add figure title to top left of subplot
@@ -1326,16 +1328,17 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             # calculate linear regression for fitted line
             linear_regression = np.polyfit(x, y, 1)
             fit_fn = np.poly1d(linear_regression)
-            fitted_data_x = fit_fn(x)
-            ax.plot(x, fitted_data_x, "--", alpha=0.75, color=colour)
+            x_first_last_dp = [x.min(), x.max()]
+            y_fitted = fit_fn(x_first_last_dp)
+            ax.plot(x_first_last_dp, y_fitted, "--", alpha=0.75, color=colour)
             ax.annotate(s='y = {a:.5f}x + {b:.5f}'.format(a=linear_regression[0], b=linear_regression[1]), xy=(0.85, 0.95),
                         fontsize=fontsize-2, xytext=None, xycoords='axes fraction', alpha=0.75)
         else:
             logging.info("The dataset has less than 5 proteins. Lines of best fit will not be calculated.")
 
         ax.scatter(x, y, color = colour, alpha=alpha_dpd, s=datapointsize)
-        ax.set_xlabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$ (all TM residues in protein)', fontsize=fontsize)
-        ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$ (mean of all TMDs calculated separately)', rotation='vertical', fontsize=fontsize)
+        ax.set_xlabel(r'm$_{\rm TM/EM} *10^{\rm -3}$ (all TM residues in protein)', fontsize=fontsize)
+        ax.set_ylabel(r'm$_{\rm TM/EM} *10^{\rm -3}$ (mean of all TMDs calculated separately)', rotation='vertical', fontsize=fontsize)
 
         ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
                     xycoords='axes fraction', alpha=0.75)
@@ -1360,19 +1363,21 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         if len(x) > 5:
             linear_regression = np.polyfit(x, y, 1)
             fit_fn = np.poly1d(linear_regression)
-            fitted_data_x = fit_fn(x)
-            ax.plot(x, fitted_data_x, ":", color="k", alpha=0.75, label="fitted")
+            x_first_last_dp = [x.min(), x.max()]
+            y_fitted = fit_fn(x_first_last_dp)
+            ax.plot(x_first_last_dp, y_fitted, ":", color="k", alpha=0.75, label="fitted")
             ax.annotate(s='y = {a:.5f}x + {b:.5f}'.format(a=linear_regression[0], b=linear_regression[1]),
-                        xy=(0.85, 0.95), fontsize=fontsize - 2, xytext=None, xycoords='axes fraction',alpha=0.75)
+                        xy=(0.65, 0.95), fontsize=fontsize - 2, xytext=None, xycoords='axes fraction',alpha=0.75)
 
         ax.scatter(x, y, s=datapointsize, alpha=alpha_dpd, color=TUMblues, label="data")
-        symmetrical = [s["min_ident"]*100, s["max_ident"]*100]
+        #symmetrical = [s["min_ident"]*100, s["max_ident"]*100]
+        symmetrical = x_first_last_dp
         ax.plot(symmetrical, symmetrical, "--", color=TUMblues[0], alpha=0.5, label="symmetrical")
         ax.set_xlabel('Average % identity in TM region, all homologues', fontsize=fontsize)
-        ax.set_ylabel('Average % identity in nonTM region, all homologues', rotation='vertical', fontsize=fontsize)
+        ax.set_ylabel('Average % identity in EM region, all homologues', rotation='vertical', fontsize=fontsize)
         ax.tick_params(labelsize=fontsize)
-        ax.set_xlim(100-max_evol_distance, 100)
-        ax.set_ylim(s["min_ident"]*100, 100)
+        #ax.set_xlim(100-max_evol_distance, 100)
+        #ax.set_ylim(s["min_ident"]*100, 100)
 
         ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
                     xycoords='axes fraction', alpha=0.75)
@@ -1511,7 +1516,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 ax.set_xticks(ind + width)
                 # take only first 20 characters for the x-axis label
                 ax.set_xticklabels(pd.Series(df_barchart.index).str[0:20], rotation=90)
-                ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', rotation='vertical', fontsize=fontsize + 3)
+                ax.set_ylabel(r'm$_{\rm TM/EM} *10^{\rm -3}$', rotation='vertical', fontsize=fontsize + 3)
                 if df_barchart.shape[0] < 10:
                     ax.set_xlim(0, 10)
                 # add annotations
@@ -1900,8 +1905,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             ax2.tick_params(axis="y", colors=cdict['TUM_oranges']["TUM0"])
 
             ax.set_xlabel("number of TM regions")
-            #ax.set_ylabel("m$_{\rm TM/nonTM} *10^{\rm -3}$")
-            ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', rotation='vertical', fontsize=fontsize + 3)
+            #ax.set_ylabel("m$_{\rm TM/EM} *10^{\rm -3}$")
+            ax.set_ylabel(r'm$_{\rm TM/EM} *10^{\rm -3}$', rotation='vertical', fontsize=fontsize + 3)
             #ax.set_ylim(0.45, 0.75)
             ax.set_xlim(dfn.index.min() - 1, dfn.index.max() + 1 + 1)
 
@@ -1997,7 +2002,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             x_labels = ["first", "central", "last"]
             ax.set_xticks(x)
             ax.set_xticklabels(x_labels)
-            ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$')
+            ax.set_ylabel(r'm$_{\rm TM/EM} *10^{\rm -3}$')
             ax.set_xlabel("transmembrane domain(s)")
             lgd = ax.legend(frameon=True, bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
                       ncol=1, mode="expand", borderaxespad=0.)
@@ -2075,15 +2080,16 @@ def Fig03_Density_lipo_vs_TM_conservation(list_number, df, letter, suffix, col_l
     df_slopes = df.loc[:, col_list_AAIMON_slope]
     df_lipos = df.loc[:, col_list_lipo]
     # check that .stack drops nans, and that there were exactly equal number of nans in the lipo and slope datasets
-
     if df_slopes.stack().shape != df_lipos.stack().shape:
         raise ValueError("There must be a nan in the lipo or AAIMON slopes. Check code, revert to orig if necessary.")
 
     # convert slopes and lipos to a 1D numpy array
-    slopes = df_slopes.stack().values*1000
-    lipos = df_lipos.stack().values
+    y_slopes = df_slopes.stack().values*1000
+    x_lipos = df_lipos.stack().values
+    x_first_last_dp = [x_lipos.min(), x_lipos.max()]
+
     # # join to a single numpy array
-    # data = np.array([slopes, lipos]).T
+    # data = np.array([y_slopes, x_lipos]).T
 
     fig, (cbar_ax, ax) = plt.subplots(2, 1, figsize=(5, 5.5), gridspec_kw={'height_ratios': [0.2, 12]})
     #fontsize = 16
@@ -2099,7 +2105,7 @@ def Fig03_Density_lipo_vs_TM_conservation(list_number, df, letter, suffix, col_l
     xyrange = [[-x_border, x_border], [-y_border, y_border]]
 
     # histogram the data
-    hh, locx, locy = scipy.histogram2d(lipos, slopes, range=xyrange, bins=bins)
+    hh, locx, locy = scipy.histogram2d(x_lipos, y_slopes, range=xyrange, bins=bins)
     hh1 = hh.reshape(1, n_bins_x * n_bins_y)
     hh1 = hh1[hh1 > 0]
     vmax = np.percentile(hh1, 99)
@@ -2123,18 +2129,18 @@ def Fig03_Density_lipo_vs_TM_conservation(list_number, df, letter, suffix, col_l
     cbar_ax.xaxis.set_ticks_position('top')
 
     # linear regression for data
-    slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(lipos, slopes)
+    slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(x_lipos, y_slopes)
     fit_fn = np.poly1d(np.array([slope, intercept]))
-    fitted_data_x = fit_fn(lipos)
+    y_fitted = fit_fn(x_first_last_dp)
     # plot regression line
-    ax.plot(lipos, fitted_data_x, color='k', linewidth=1)
+    ax.plot(x_first_last_dp, y_fitted, color='k', linewidth=1)
     # annotate regression line formula and R2 value
     ax.annotate(s='$y = {s:.03f}x + {i:.03f}$\n$R^2 = {r_sq:.05f}$'.format(s=slope, i=intercept, r_sq=r_value ** 2),
                 xy=(-1.45, 29), fontsize=fontsize - 2, verticalalignment='top')
 
     ax.set_title(title, fontsize=fontsize)
     ax.set_xlabel('lipophilicity (Hessa scale)', fontsize=fontsize)
-    ax.set_ylabel(r'm$_{\rm TM/nonTM} *10^{\rm -3}$', fontsize=fontsize)
+    ax.set_ylabel(r'm$_{\rm TM/EM} *10^{\rm -3}$', fontsize=fontsize)
     # set fontsize for axis labels and specify their separation from axis ticks
     ax.tick_params(labelsize=fontsize, pad=3)
     cbar_ax.tick_params(labelsize=fontsize, pad=0)
