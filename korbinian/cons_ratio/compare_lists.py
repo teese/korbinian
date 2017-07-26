@@ -1361,7 +1361,7 @@ def compare_lists (s, df_lists_tab):
     ax.set_xticks(ind + width)
     # extract list names
     x_labels = dfv.loc[protein_lists, 'list_description']
-    ax.set_xticklabels(x_labels)
+    ax.set_xticklabels(x_labels, rotation=45)
     ax.set_xlim(0, ind[-1]+ width*2.4)
     ax.legend()
     ax.set_ylabel("percent lipophilic residues (LIVFA)")
@@ -1808,6 +1808,9 @@ def compare_lists (s, df_lists_tab):
         thresh = 1
 
         # data definition
+
+        min_ = df_dict[prot_list].perc_ident_mean.min()
+        max_ = df_dict[prot_list].perc_ident_mean.max()
         data_TMD = df_dict[prot_list].perc_ident_mean * 100
         data_nonTMD = df_dict[prot_list].nonTMD_perc_ident_mean * 100
         xdat, ydat = data_TMD, data_nonTMD

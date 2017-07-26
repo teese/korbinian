@@ -136,7 +136,7 @@ def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_
             if "SEQUENCE" in line and take_ID == True:
                 # after the "SEQUENCE" statement in a line, all db cross references are collected and can be saved
                 save_db_cross_ref = True
-                keywords["len_Sequence"].append(line[7])
+                keywords["seqlen"].append(line[7])
                 take_next_seq = True
                 sequence_header = True
             # add db cross references from previous protein to keywords dict

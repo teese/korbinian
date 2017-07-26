@@ -118,7 +118,7 @@ def gather_AAIMONs(pathdict, logging, s):
         #logging.info(protein_name)
         sys.stdout.write("{}, ".format(acc)), sys.stdout.flush()
         if not os.path.exists(df.loc[acc, 'homol_cr_ratios_zip']):
-            logging.info("{} Protein skipped. File does not exist".format(df.loc[acc, 'homol_cr_ratios_zip']))
+            logging.info("{} skipped. homol_cr_ratios_zip does not exist".format(acc))
             continue
         # open csv as pandas dataframe (note, it was originally a series, and contains only one column and an index)
         # set delete_corrupt=True so that if the expected csv is not in the zip, the wholezipfile will be deleted
