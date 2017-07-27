@@ -32,6 +32,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     # set resolution for plots in png format
     dpi = 300
     plt.style.use('seaborn-whitegrid')
+    #plt.rcParams.update(plt.rcParamsDefault)
+
     # get a color list (HTML works best). Make it a long list, to accept list numbers from 1-1000
     color_list = utils.create_colour_lists()['HTML_list01'] * 1000
 
@@ -1507,13 +1509,14 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
                 color_first_bar_all_proteins = "0.35"
 
-                ind = np.arange(df_barchart.shape[0]) + 0.1
+                ind = np.arange(df_barchart.shape[0]) + 0.5
                 width = 0.4
                 # add first color to be different ["first"] + ["chosen"]*10
                 colours = [color_first_bar_all_proteins] + [color_list[list_number - 1]] * df_barchart.shape[0]
                 ax.bar(ind, df_barchart["AAIMON_slope_mean"] * 1000, color=colours)
-                ax.errorbar(ind + width, df_barchart["AAIMON_slope_mean"] * 1000, yerr=df_barchart["AAIMON_slope_keyword_SEM"] * 1000, fmt="none",  ecolor="k", ls="none", capthick=1, elinewidth=1, capsize=4)
-                ax.set_xticks(ind + width)
+                ax.errorbar(ind, df_barchart["AAIMON_slope_mean"] * 1000, yerr=df_barchart["AAIMON_slope_keyword_SEM"] * 1000, fmt="none",  ecolor="k", ls="none", capthick=1, elinewidth=1, capsize=4)
+                #ax.set_xticks(ind + width)
+                ax.set_xticks(ind)
                 # take only first 20 characters for the x-axis label
                 ax.set_xticklabels(pd.Series(df_barchart.index).str[0:20], rotation=90)
                 ax.set_ylabel(r'm$_{\rm TM/EM} *10^{\rm -3}$', rotation='vertical', fontsize=fontsize + 3)
@@ -2058,6 +2061,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             ax.legend(frameon=True, bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
                       ncol=1, mode="expand", borderaxespad=0.)
             ax.set_xlim(-0.3, 2.3)
+            ax.set_ylim(0.05, 0.35)
             # add annotations
             fontsize = 10
             ax.annotate(s="TM more\nlipophilic", xy=(-0.14, 0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
