@@ -1787,6 +1787,7 @@ def compare_lists (s, df_lists_tab):
     Fig_Nr = 16
     title = '% AA identity TMD vs nonTMD'
     Fig_name = 'Fig16_perc_AA_identity_TMD_vs_nonTMD'
+    sys.stdout.write("Fig16 may be empty until data is rerun.")
 
     fig, axes = plt.subplots(ncols=len(df_dict), nrows=1, sharex=True, sharey=True, figsize=(len(df_dict) * 2.5, 5))
     vmax = 15
@@ -1804,25 +1805,28 @@ def compare_lists (s, df_lists_tab):
         xyrange = [[0, 100], [0, 100]]
         # number of bins
         bins = [50, 50]
-        # density threshold
-        thresh = 1
 
         # data definition
-
         min_ = df_dict[prot_list].perc_ident_mean.min()
         max_ = df_dict[prot_list].perc_ident_mean.max()
-        data_TMD = df_dict[prot_list].perc_ident_mean * 100
+        sys.stdout.write("Fig16 prot_list {} : min_ = {}, max_ = {}".format(prot_list, min_, max_))
+
+
+        data_TMD = df_dict[prot_list].perc_ident_mean
         data_nonTMD = df_dict[prot_list].nonTMD_perc_ident_mean * 100
-        xdat, ydat = data_TMD, data_nonTMD
 
+        sys.stdout.write("data_TMD[0:5] {}".format(data_TMD[0:5]))
+        sys.stdout.flush()
         # histogram the data
-        hh, locx, locy = scipy.histogram2d(xdat, ydat, range=xyrange, bins=bins)
+        hh, locx, locy = scipy.histogram2d(data_TMD, data_nonTMD, range=xyrange, bins=bins)
 
+        # density threshold
+        thresh = 1
         # fill the areas with low density by NaNs
         hh[hh < thresh] = np.nan
 
         # if there are just a few datapoints, multiply count to get visible values
-        if len(xdat) < 50:
+        if len(data_TMD) < 50:
             hh = hh * 5
             ax.annotate('count in bin $*5$', fontsize=5, xy=(69, 1))
 
