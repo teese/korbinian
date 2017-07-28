@@ -18,9 +18,30 @@ from korbinian.utils import pr, pc, pn, aaa
 
 def save_figures_describing_proteins_in_list(pathdict, s, logging):
     logging.info("~~~~~~~~~~~~         starting run_save_figures_describing_proteins_in_list          ~~~~~~~~~~~~")
+    plt.style.use('seaborn-whitegrid')
+    plt.rcParams["legend.framealpha"] = 1
+    plt.rcParams['errorbar.capsize'] = 3
+    # set resolution for plots in png format
+    dpi = 300
+    #plt.rcParams.update(plt.rcParamsDefault)
+
     # define save settings
     save_png = s["save_png"]
     save_pdf = s["save_pdf"]
+
+    # get a color list (HTML works best). Make it a long list, to accept list numbers from 1-1000
+    color_list = utils.create_colour_lists()['HTML_list01'] * 1000
+    # set default font size for plot
+    fontsize = 8
+    datapointsize = 8
+
+    cdict = utils.create_colour_lists()
+    #TUMblues = ['#0F3750', '#0076B8', '#9ECEEC']
+    TUMblues = [cdict['TUM_colours']["TUM2"],cdict['TUM_colours']["TUMBlue"],cdict['TUM_colours']["TUM1"]]
+
+    # letters for saving variations of a figure
+    letters = list("abcdefghijk")
+
     try:
         base_filepath = pathdict["single_list_fig_path"]
     except:
@@ -29,25 +50,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         logging.info(type(pathdict))
 
     list_number = s["list_number"]
-    # set resolution for plots in png format
-    dpi = 300
-    plt.style.use('seaborn-whitegrid')
-    #plt.rcParams.update(plt.rcParamsDefault)
 
-    # get a color list (HTML works best). Make it a long list, to accept list numbers from 1-1000
-    color_list = utils.create_colour_lists()['HTML_list01'] * 1000
-
-    # set default font size for plot
-    fontsize = 8
-    datapointsize = 8
-    #alpha = 0.1
-
-    cdict = utils.create_colour_lists()
-    #TUMblues = ['#0F3750', '#0076B8', '#9ECEEC']
-    TUMblues = [cdict['TUM_colours']["TUM2"],cdict['TUM_colours']["TUMBlue"],cdict['TUM_colours']["TUM1"]]
-
-    # letters for saving variations of a figure
-    letters = list("abcdefghijk")
     # for xlim, use the min and max evolutionary distance settings for the full dataset
     # this is used for subsequent figures
     min_evol_distance = int((1 - s["max_ident"]) * 100)
@@ -289,6 +292,14 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         im = ax.imshow(np.flipud(hh.T), cmap='Oranges', extent=np.array(xyrange).flatten(),
                        interpolation='none', origin='upper', aspect='auto', vmin=0, vmax=vmax)
 
+        """Plot the binned data (line graph)
+        The binned_data typically has the shape 50, 8
+        binned_data[:, 0] = % substitutions bins, eg array([ 49.5,  48.5,  47.5,  46.5,  45.5]
+        binned_data[:, 1] = AAIMON data, e.g. array([ 0.97796493,  0.98020355,  0.98166374,  0.98894771,  0.99462542,
+        binned_data[:, 2-6] as above. 2 is the normalised data. I am not sure what 3-6 are.
+        binned_data[:, 7] = homologue counts, e.g. array([ 214263.,  238795.,  215564.,  191406.,  154984.,
+
+        """
         ax.plot(binned_data[:, 0], binned_data[:, 1], color='#0F3750', label='non-normalised')
         ax.plot(binned_data[:, 0], binned_data[:, 2], color='#9ECEEC', label='normalised')
         # ax.grid(False, which='both')
