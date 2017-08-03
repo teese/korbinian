@@ -102,21 +102,24 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     prot_family_df_dict = {}
     # only split into families if there are uniprot annotations are are multipass
     if 'uniprot_KW' in df.columns and df.number_of_TMDs_excl_SP.mean() > 2:
-        # create a new column showing whether the protein is a GPCR
-        if "GPCR" not in df.columns:
-            # convert the keywords from a stringlist to a python list
-            if isinstance(df['uniprot_KW'][0], str):
-                df['uniprot_KW'] = df['uniprot_KW'].apply(lambda x: ast.literal_eval(x))
-            df['GPCR'] = df['uniprot_KW'].apply(lambda x: 'G-protein coupled receptor' in x)
-            df['olfactory_receptor'] = df['prot_descr'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=(['Olfactory receptor'],))
+        if df.number_of_TMDs_excl_SP.mean() > 2:
+            # create a new column showing whether the protein is a GPCR
+            if "GPCR" not in df.columns:
+                # convert the keywords from a stringlist to a python list
+                if isinstance(df['uniprot_KW'][0], str):
+                    df['uniprot_KW'] = df['uniprot_KW'].apply(lambda x: ast.literal_eval(x))
+                df['GPCR'] = df['uniprot_KW'].apply(lambda x: 'G-protein coupled receptor' in x)
+                df['olfactory_receptor'] = df['prot_descr'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=(['Olfactory receptor'],))
 
-        df_GPCR = df.loc[df['GPCR'] == True]
-        # add the dataframe segments to a dictionary for easy access?
-        prot_family_df_dict["df_GPCR"] = df_GPCR
-        prot_family_df_dict["df_nonGPCR"] = df.loc[df['GPCR'] == False]
-        prot_family_df_dict["df_olfactory_receptorGPCR"] = df_GPCR.loc[df_GPCR['olfactory_receptor'] == True]
-        prot_family_df_dict["df_non_olfactory_receptorGPCR"] = df_GPCR.loc[df_GPCR['olfactory_receptor'] == False]
-        list_prot_families = ["df_GPCR", "df_nonGPCR", "df_olfactory_receptorGPCR", "df_non_olfactory_receptorGPCR"]
+            df_GPCR = df.loc[df['GPCR'] == True]
+            # add the dataframe segments to a dictionary for easy access?
+            prot_family_df_dict["df_GPCR"] = df_GPCR
+            prot_family_df_dict["df_nonGPCR"] = df.loc[df['GPCR'] == False]
+            prot_family_df_dict["df_olfactory_receptorGPCR"] = df_GPCR.loc[df_GPCR['olfactory_receptor'] == True]
+            prot_family_df_dict["df_non_olfactory_receptorGPCR"] = df_GPCR.loc[df_GPCR['olfactory_receptor'] == False]
+            list_prot_families = ["df_GPCR", "df_nonGPCR", "df_olfactory_receptorGPCR", "df_non_olfactory_receptorGPCR"]
+        else:
+            sys.stdout.write('Not a multipass dataset. GPCR figs will be skipped.\n')
     else:
         sys.stdout.write('No uniprot keywords available! cannot create figures 19-21 \n')
         list_prot_families = []
@@ -1128,7 +1131,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     if 'uniprot_KW' in df.columns:
 
         if s['Fig14_Hist_AAIMON_GPCRs_vs_nonGPCRs']:
-            if True in df.GPCR:
+            if True in df.GPCR.tolist():
                 Fig_Nr = 14
                 title = 'only GPCR in uniprot KW, NORM'
                 Fig_name = 'List{:02d}_Fig14_Hist_AAIMON_GPCRs_vs_nonGPCRs'.format(list_number)
@@ -1220,7 +1223,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 sys.stdout.write('Dataset does not contain GPCRs; cannot create figure 19 \n')
 
         if s['Fig15_Boxplot_AAIMON_by_number_of_TMDs_GPCRs_only']:
-            if True in df.GPCR:
+            if True in df.GPCR.tolist():
                 Fig_Nr = 15
                 title = 'Only GPCRs, boxplot for each TMD'
                 Fig_name = 'List{:02d}_Fig15_Boxplot_AAIMON_by_number_of_TMDs_GPCRs_only'.format(list_number)
@@ -1344,6 +1347,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             x_first_last_dp = [x.min(), x.max()]
             y_fitted = fit_fn(x_first_last_dp)
             ax.plot(x_first_last_dp, y_fitted, "--", alpha=0.75, color=colour)
+            ax.plot(x_first_last_dp, x_first_last_dp, "--", alpha=0.75, color="k", label="symmetrical")
             ax.annotate(s='y = {a:.5f}x + {b:.5f}'.format(a=linear_regression[0], b=linear_regression[1]), xy=(0.85, 0.95),
                         fontsize=fontsize-2, xytext=None, xycoords='axes fraction', alpha=0.75)
         else:

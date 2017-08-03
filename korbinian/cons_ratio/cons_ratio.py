@@ -94,16 +94,16 @@ def calculate_AAIMONs(p):
     -----------------------
     homol_cr_ratios_zip(zipfile)
         PROTEIN_NAME_cr_ratios.zip (E.g. A6BM72_MEG11_HUMAN_cr_ratios.zip)
-            A6BM72_MEG11_HUMAN_AAIMON_hist_0.png : png
+            A6BM72_AAIMON_hist_0.png : png
                 Histograms of AAIMON ratios for homologues of each TMD.
-            A6BM72_MEG11_HUMAN_cr_mean.csv : csv
+            A6BM72_cr_mean.csv : csv
                 Summary file for that protein. Contains conservation ratios means.
                 Will be gathered for all proteins by the gather_AAIMONs function.
-            A6BM72_MEG11_HUMAN_nonTMD_cr_df.pickle : pickled pd.DataFrame
+            A6BM72_nonTMD_cr_df.pickle : pickled pd.DataFrame
                 Dataframe containing the percentage_identity etc for sliced nonTMD region.
-            A6BM72_MEG11_HUMAN_SP01_cr_df.pickle : pickled pd.DataFrame
+            A6BM72_SP01_cr_df.pickle : pickled pd.DataFrame
                 Dataframe containing the percentage_identity etc for that particular TMD/region (in this case, the signal peptide).
-            A6BM72_MEG11_HUMAN_TM01_cr_df.pickle
+            A6BM72_TM01_cr_df.pickle
                 Dataframe containing the percentage_identity etc for that particular TMD/region (in this case, TM01).
 
     Returns
@@ -157,7 +157,9 @@ def calculate_AAIMONs(p):
     ########################################################################################
 
     homol_cr_ratios_zip = p['homol_cr_ratios_zip']
-    mean_ser_filename = "{}_cr_mean.csv".format(protein_name)
+    mean_ser_filename = "{}_cr_mean.csv".format(acc)
+
+
 
     #assume af first that there is no previous data, and that the calculations can be re-run
     if s["overwrite_prev_calculated_AAIMON_ratios"] == False:
@@ -470,11 +472,12 @@ def calculate_AAIMONs(p):
             AAIMON_all_TMD_dict['%s_AAIMON' % TMD] = df_cr['%s_AAIMON' % TMD].dropna()
             SW_num_ident_res_dict['%s_SW_num_ident_res' % TMD] = df_cr['%s_SW_num_ident_res' % TMD].dropna()
 
-            TM_cr_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
+            TM_cr_pickle = "{}_{}_cr_df.pickle".format(acc, TMD)
             with open(TM_cr_pickle, "wb") as f:
                 pickle.dump(df_cr, f, protocol=pickle.HIGHEST_PROTOCOL)
             zipout.write(TM_cr_pickle, arcname=TM_cr_pickle)
-
+            # hopefully the file is actually removed here
+            #os.remove(TM_cr_pickle)
 
         # make a readable list of the number of homologues excluded for each TMD, based on filtering for gaps and lipophilicity, etc
         mean_ser["n_homol_excluded_after_TMD_filter"] = "__ {} __".format("".join(list_homol_excluded_in_TMD_filter))
@@ -666,10 +669,15 @@ def calculate_AAIMONs(p):
         for TMD in list_of_TMDs:
             # find the TMD number (starting from 1)
             TMD_Nr = list_of_TMDs.index(TMD) + 1
-            TM_cr_pickle = "{}_{}_cr_df.pickle".format(protein_name, TMD)
+            # re-open dataframe from zipped pickle
+            # keeping the temp pickle file from above and deleting later was discontinued, as there were troubles deleting the file for some reason
+
+
+            TM_cr_pickle = "{}_{}_cr_df.pickle".format(acc, TMD)
+            # df_cr = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, filename=TM_cr_pickle, delete_corrupt=False)
 
             with open(TM_cr_pickle, 'rb') as f:
-                df_cr = pickle.load(f)
+               df_cr = pickle.load(f)
 
             # check that it's definitely a dataframe
             assert isinstance(df_cr, (pd.DataFrame))
@@ -802,12 +810,6 @@ def calculate_AAIMONs(p):
             # gaps per residue
             mean_ser['%s_SW_q_gaps_per_q_residue_mean' % TMD] = df_cr['%s_SW_q_gaps_per_q_residue' % TMD].dropna().mean()
 
-            try:
-                # the TM_cr_pickle file has already been added to the zip, and can be deleted now
-                os.remove(TM_cr_pickle)
-            except:
-                pass
-
         if n_TMDs_with_data == 0:
             # save the pandas series with the means to a csv in the cr_ratios zip file
             mean_ser.to_csv(mean_ser_filename)
@@ -860,6 +862,15 @@ def calculate_AAIMONs(p):
         mean_ser.to_csv(mean_ser_filename)
         zipout.write(mean_ser_filename, arcname=mean_ser_filename)
         os.remove(mean_ser_filename)
+
+    # the TM_cr_pickle files remained stuck in the homol directory. Hopefully this removes the offending files.
+    for TMD in list_of_TMDs:
+        TM_cr_pickle = "{}_{}_cr_df.pickle".format(acc, TMD)
+        try:
+            os.remove(TM_cr_pickle)
+        except:
+            sys.stdout.write("{} could not be deleted.".format(TM_cr_pickle))
+
 
     return acc, True, "0"
 
