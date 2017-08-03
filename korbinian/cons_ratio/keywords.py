@@ -678,7 +678,7 @@ def get_list_enzyme_KW_and_list_ignored_KW():
                        'Transducer', 'Polymorphism', 'Glycoprotein', 'Calcium transport', 'Ion transport', 'Transport', 'Protein transport',
                        'Voltage-gated channel', 'ATP-binding', 'Calcium', 'Zinc', 'Synapse', 'Signal', 'Disulfide bond', '3D-structure',
                        'Host-virus interaction', 'Palmitate', 'Potassium transport', 'Endoplasmic reticulum', 'G-protein coupled receptor',
-                       'Plasma membrane', 'Golgi apparatus','Sensory transduction']
+                       'Plasma membrane', 'Golgi apparatus','Sensory transduction', 'Calcium channel', 'Sugar transport', 'Metal-binding']
 
     list_ignored_PFAM_acc = ["PF13505", "PF13568", "DUF3078", "PF04338"] # Outer membrane protein beta-barrel domain,  Outer membrane protein beta-barrel domain : This domain is found in a wide range of outer membrane proteins. This domain assumes a membrane bound beta-barrel fold.
 

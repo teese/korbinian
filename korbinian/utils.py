@@ -27,6 +27,7 @@ import matplotlib.colors as colors
 import numpy as np
 import pandas as pd
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
+from inspect import currentframe, getframeinfo, stack
 
 
 def aaa(df_or_series):
@@ -1268,6 +1269,10 @@ def open_df_from_csv_zip(in_zipfile, filename=None, delete_corrupt=False):
     -------
     Much faster than reading from excel.
     """
+    # in case someone accidentally applies the csv function to a pickle file, etc, print a warning
+    if filename is not None:
+        if filename[-4:] != ".csv":
+            sys.stdout.write("Warning: extension is not .csv. ({})".format(filename)), sys.stdout.flush()
     # create bool deciding whether zip file will be deleted
     deletezip = False
     if os.path.isfile(in_zipfile):
@@ -1310,7 +1315,7 @@ def open_df_from_csv_zip(in_zipfile, filename=None, delete_corrupt=False):
     else:
         raise FileNotFoundError("{} not found".format(in_zipfile))
     if deletezip:
-        logging.info("{} does not contain expected pickle file {}. File is old or damaged, and has been deleted".format(in_zipfile, filename))
+        logging.info("{} does not contain expected csv file {}. File is old or damaged, and has been deleted".format(in_zipfile, filename))
         os.remove(in_zipfile)
         df_loaded = pd.DataFrame()
     return df_loaded
@@ -1340,6 +1345,10 @@ def open_df_from_pickle_zip(in_zipfile, filename=None, delete_corrupt=False):
         if df.empty:
             raise ValueError("corrupt zip or file not found")
     """
+    # in case someone accidentally applies the csv function to a pickle file, etc, print a warning
+    if filename is not None:
+        if filename[-7:] != ".pickle":
+            sys.stdout.write("Warning: extension is not .pickle. ({})".format(filename)), sys.stdout.flush()
     # create bool deciding whether zip file will be deleted
     deletezip = False
     if os.path.isfile(in_zipfile):
@@ -1721,7 +1730,9 @@ def pc(p):
             variable_name = m.group(1)
             break
     sep = ", "
-    sys.stdout.write("\n{}{}{}\n".format(variable_name, sep, p))
+    frameinfo = getframeinfo(currentframe())
+    sys.stdout.write("\nline {}, {}\n".format(frameinfo.lineno, os.path.basename(frameinfo.filename)))
+    sys.stdout.write("{}{}{}\n".format(variable_name, sep, p))
     sys.stdout.flush()
 
 def pn(p):
@@ -1743,8 +1754,13 @@ def pn(p):
             variable_name = m.group(1)
             break
     sep = "\n"
-    sys.stdout.write("\n{}{}{}\n".format(variable_name, sep, p))
+    frameinfo = getframeinfo(currentframe())
+    sys.stdout.write("\nline {}, {}\n".format(frameinfo.lineno, os.path.basename(frameinfo.filename)))
+    sys.stdout.write("{}{}{}\n".format(variable_name, sep, p))
     sys.stdout.flush()
+
+    caller = getframeinfo(stack()[1][0])
+    print(caller)
 
 def pr(p):
     """Shortened version of the print function
@@ -1759,8 +1775,8 @@ def pr(p):
     sys.stdout.write("{}\n".format(p))
     sys.stdout.flush()
 
+# simple flatten function
 flatten = lambda x: [item for sublist in x for item in sublist]
-
 
 def read_signalp_output(filepath):
     """read signalp output file
@@ -1809,3 +1825,15 @@ def read_signalp_gff(filepath):
     df_gff.columns = cols
     return df_gff
 
+
+def HTMLColorToRGB(colorstring):
+    """ convert #RRGGBB to an (R, G, B) tuple
+    from http://code.activestate.com/recipes/266466-html-colors-tofrom-rgb-tuples/
+    """
+    colorstring = colorstring.strip()
+    if colorstring[0] == '#': colorstring = colorstring[1:]
+    if len(colorstring) != 6:
+        raise ValueError ("input #%s is not in #RRGGBB format" % colorstring)
+    r, g, b = colorstring[:2], colorstring[2:4], colorstring[4:]
+    r, g, b = [int(n, 16) for n in (r, g, b)]
+    return (r, g, b)
