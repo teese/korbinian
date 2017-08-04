@@ -223,6 +223,9 @@ def create_pathdict(base_filename_summaries, s):
     pathdict["acc_not_in_homol_db_txt"] = '%s_acc_not_in_homol_db.txt' % base_filename_summaries
     # for SIMAP or BLAST downloads in Windows OS, give a list of acc that are too large to run in the command line
     pathdict["too_large_to_download_txt"] = '%s_too_large_to_download.txt' % base_filename_summaries
+    # list of SIMAP Tarballs where the sequence does not match uniprot, and should be deleted
+    pathdict["mismatch_full_seq_with_simap_txt"] = '%s_mismatch_full_seq_with_simap.txt' % base_filename_summaries
+
     # add the base path for the sub-sequences (SE01, SE02, etc) added by the user
     pathdict["list_user_subseqs_csv"] = '%s_user_subseqs.csv' % base_filename_summaries
     pathdict["list_user_subseqs_xlsx"] = '%s_user_subseqs.xlsx' % base_filename_summaries

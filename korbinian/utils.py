@@ -1755,12 +1755,12 @@ def pn(p):
             break
     sep = "\n"
     frameinfo = getframeinfo(currentframe())
-    sys.stdout.write("\nline {}, {}\n".format(frameinfo.lineno, os.path.basename(frameinfo.filename)))
-    sys.stdout.write("{}{}{}\n".format(variable_name, sep, p))
-    sys.stdout.flush()
-
     caller = getframeinfo(stack()[1][0])
-    print(caller)
+    line = caller.lineno
+    scriptname = os.path.basename(caller.filename)
+    sys.stdout.write("\nline {}, {}\n".format(line, scriptname))
+    sys.stdout.write("{}{}{} ({})\n".format(variable_name, sep, p, type(p)))
+    sys.stdout.flush()
 
 def pr(p):
     """Shortened version of the print function

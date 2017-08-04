@@ -210,45 +210,63 @@ def parse_SIMAP_to_csv(p):
         # file is probably normal, as it doesn't contain the message saying that the protein is not found in the database
         pass
 
+    # the sdict is the dictionary of info at top of SIMAP XML, before the matches start
+    # it will be saved in a separate csv
+    sdict = {}
+
     try:
-        p['SIMAP_created'] = simap_homologue_root[0][0][0][0][2][1][0].attrib["created"]
+        sdict['SIMAP_created'] = simap_homologue_root[0][0][0][0][2][1][0].attrib["created"]
 
         for parameters in simap_homologue_root[0][0][0][0].iter('parameters'):
-            p['SIMAP_input_seq_details_dict'] = str(parameters[0][0].attrib)
+            sdict['SIMAP_input_seq_details_dict'] = str(parameters[0][0].attrib)
             for SIMAP_filter in parameters.iter('filter'):
                 SIMAP_filter_string = SIMAP_filter.text
-            p['SIMAP_filter_string'] = str(SIMAP_filter_string)
+            sdict['SIMAP_filter_string'] = str(SIMAP_filter_string)
             for resultSpecification in parameters.iter('resultSpecification'):
                 SIMAP_resultSpecification_dict = resultSpecification.attrib
-            p['SIMAP_resultSpecification_dict'] = '"%s"' % SIMAP_resultSpecification_dict
+            sdict['SIMAP_resultSpecification_dict'] = '"%s"' % SIMAP_resultSpecification_dict
             for databases in parameters.iter('databases'):
                 database_details_dict = databases[0].attrib
-            p['database_details_dict'] = '"%s"' % database_details_dict
-            p['simap_version'] = simap_homologue_root[0][0][0][0][0].attrib['version']
-            p['SIMAP_total_hits'] = int(simap_homologue_root[0][0][0][1][0].attrib['total'])
+            sdict['database_details_dict'] = '"%s"' % database_details_dict
+            sdict['simap_version'] = simap_homologue_root[0][0][0][0][0].attrib['version']
+            sdict['SIMAP_total_hits'] = int(simap_homologue_root[0][0][0][1][0].attrib['total'])
 
-        if p['simap_version'] != '4.0':
+        if sdict['simap_version'] != '4.0':
             logging.warning('WARNING! Your XML file is simap version %s,'
                             'however this SIMAP parser was developed for SIMAP version 4.0.' %
-                             p['simap_version'])
+                             sdict['simap_version'])
 
         query_sequence_node = simap_homologue_root[0][0][0][0][2][0][0]
         ''' xxxx CURRENTLY THE df is filled with nan values,
             but that doesn't make sense as the script seems to work
         '''
-        p['query_md5'] = query_sequence_node.attrib['md5']
-        p['seqlen'] = int(query_sequence_node.attrib['length'])
-        p['query_selfscore'] = query_sequence_node.attrib['selfscore']
-        p['query_sequenceid'] = query_sequence_node.attrib['sequenceid']
-        p['total_number_of_simap_hits'] = query_sequence_node[0].attrib['number_hits']
-        p['query_sequence_from_homologue_XML_file'] = query_sequence_node[0][0].text
-        p['number_of_hits_in_homologue_XML_file'] = int(
-            simap_homologue_root[0][0][0][1][0].attrib['total'])
+        sdict['query_md5'] = query_sequence_node.attrib['md5']
+        sdict['seqlen'] = int(query_sequence_node.attrib['length'])
+        sdict['query_selfscore'] = query_sequence_node.attrib['selfscore']
+        sdict['query_sequenceid'] = query_sequence_node.attrib['sequenceid']
+        sdict['total_number_of_simap_hits'] = query_sequence_node[0].attrib['number_hits']
+        sdict['query_sequence_from_homologue_XML_file'] = query_sequence_node[0][0].text
+        sdict['number_of_hits_in_homologue_XML_file'] = int(simap_homologue_root[0][0][0][1][0].attrib['total'])
     except (IndexError, KeyError):
         warning = "{} skipped, homologue XML seems to be damaged. Error in reading general query details.".format(protein_name)
         logging.warning("{} skipped, homologue XML seems to be damaged. Error in reading general query details.".format(protein_name))
         # skip to the next protein
         return acc, False, warning
+
+    if p['full_seq'].upper() != sdict['query_sequence_from_homologue_XML_file'].upper():
+
+        logging.warning("...............................\n"
+                        "{} WARNING: Mismatch between full_seq and SIMAP seq from XML file. Tarball with SIMAP XML is probably old and should be deleted.\n"
+                        "full_seq : {}\n"
+                        "XML_seq  : {}\n"
+                        "Tarball  : {}\n"
+                        "acc has been added to mismatch_full_seq_with_simap_txt\n"
+                        "...............................\n".format(acc, p['full_seq'].upper(),sdict['query_sequence_from_homologue_XML_file'].upper(), p['SIMAP_tar']))
+        # add accession number to the list of acc with a sequence mismatch
+        mismatch_full_seq_with_simap_list = utils.get_acc_list_from_txt(pathdict["mismatch_full_seq_with_simap_txt"])
+        if acc not in mismatch_full_seq_with_simap_list:
+            with open(pathdict["mismatch_full_seq_with_simap_txt"], "a") as source:
+                source.write("\n{}".format(acc))
 
     #for each hit, save all the relevant data in the form of a dictionary,
     # so it can be added to a csv file or used in other calculations
@@ -455,15 +473,22 @@ def parse_SIMAP_to_csv(p):
     # save the whole dataframe as a pickle for faster opening later
     with open(p['homol_df_orig_pickle'], "wb") as pick:
         pickle.dump(df_homol, pick, protocol=pickle.HIGHEST_PROTOCOL)
+
+    simap_header_info_ser = pd.Series(sdict)
+    simap_header_info_ser.to_csv(p['simap_header_info_csv'])
+
     # either create new zip and add ("w"), or open existing zip and add "a"
     with zipfile.ZipFile(p['homol_df_orig_zip'], mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
         #zipout.write(SIMAP_orig_csv, arcname=os.path.basename(SIMAP_orig_csv))
         zipout.write(p['SIMAP_align_pretty_csv'], arcname=os.path.basename(p['SIMAP_align_pretty_csv']))
         zipout.write(p['homol_df_orig_pickle'], arcname=os.path.basename(p['homol_df_orig_pickle']))
+        zipout.write(p['simap_header_info_csv'], arcname=os.path.basename(p['simap_header_info_csv']))
+
     # delete temporary uncompressed files
     os.remove(SIMAP_orig_csv)
     os.remove(p['SIMAP_align_pretty_csv'])
     os.remove(p['homol_df_orig_pickle'])
+    os.remove(p['simap_header_info_csv'])
     return acc, True, "0"
 
 def get_phobius_TMD_region(feature_table_root):

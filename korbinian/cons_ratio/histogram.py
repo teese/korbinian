@@ -147,9 +147,15 @@ def save_scatter_AAIMON_norm_and_AAIMON_slope_single_protein (fig_nr, fig, axarr
                                                                     TMD, zipout, row_nr, col_nr, fontsize, savefig, norm_scatter_path_prefix):
     # define data to plot
     datapointsize = 0.5
-    x_data_obs_changes = df_cr['obs_changes']
-    scatter_data_AAIMON = df_cr['%s_AAIMON'%TMD]
-    scatter_data_AAIMON_n = df_cr['%s_AAIMON_n'%TMD]
+    # avoid the matplotlib nan/rgb bug by dropping the nan values, if present
+    # https://github.com/matplotlib/matplotlib/issues/8658
+    # ValueError: Invalid RGBA argument: 0.098000000000000004 (this is a perfectly good python rgb colour value!)
+    df_scatter = df_cr.loc[:, ['obs_changes', '%s_AAIMON'%TMD, '%s_AAIMON_n'%TMD]]
+    df_scatter.dropna(inplace=True)
+
+    x_data_obs_changes = df_scatter['obs_changes']
+    scatter_data_AAIMON = df_scatter['%s_AAIMON'%TMD]
+    scatter_data_AAIMON_n = df_scatter['%s_AAIMON_n'%TMD]
 
     xlim_min = 0
     xlim_max = 60

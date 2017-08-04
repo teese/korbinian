@@ -283,6 +283,8 @@ def prepare_protein_list(s, pathdict, logging):
     df['homol_df_orig_pickle'] = df['homol_parsed'] + '_df_orig.pickle'
     # ORIG: create filename for zip that holds the XML parsed to a table (i.e. pandas dataframe, pickled)
     df['homol_df_orig_zip'] = df['homol_parsed'] + '_homol_orig_table.zip'
+    # filename for header csv, which holds info at top of SIMAP XML
+    df['simap_header_info_csv'] = df['homol_parsed'] + '_simap_header_info.csv'
 
     ########################################################################################
     #                                                                                      #
