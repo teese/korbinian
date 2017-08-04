@@ -460,6 +460,8 @@ def calculate_AAIMONs(p):
                 list_homol_excluded_in_TMD_filter.append(excluded_string)
             else:
                 list_homol_excluded_in_TMD_filter = "__ 0/0 __"
+                sys.stdout.write("\n{} {}:{}/{} valid homol.".format(acc, TMD, n_homol_after_TMD_filter, n_homol_before_TMD_filter))
+                sys.stdout.flush()
             #sys.stdout.write("\nn_homol_excluded_after_TMD_filter", mean_ser["n_homol_excluded_after_TMD_filter"]), sys.stdout.flush()
 
             ########################################################################################
@@ -508,6 +510,7 @@ def calculate_AAIMONs(p):
             message = "{} skipped, no homologues with calculable AAIMONs were available. homol_cr_ratios_zip will be deleted".format(acc)
             logging.info(message)
             return acc, False, message
+
         # get the original column names (M01_AAIMON, TM02_AAIMON, etc)
         AAIMON_cols = ["{}_AAIMON".format(TMD) for TMD in list_of_TMDs_excl_SP]
         # Get the number of TMDs whose AAIMON ratio was calculable

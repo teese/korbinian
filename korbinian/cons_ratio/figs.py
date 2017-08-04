@@ -121,16 +121,16 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         else:
             sys.stdout.write('Not a multipass dataset. GPCR figs will be skipped.\n')
     else:
-        sys.stdout.write('No uniprot keywords available! cannot create figures 19-21 \n')
+        sys.stdout.write('No multipass proteins found with UniProt keywords. Cannot create figures 19-21 \n')
         list_prot_families = []
 
     # print mean aaimon slope for the full dataset
-    mean_AAIMON_slope = df['AAIMON_mean_all_TM_res'].mean()
+    mean_AAIMON_slope = df['AAIMON_slope_all_TM_res'].mean()
     logging.info("\n{p} mean AAIMON slope = {m:0.02f} * 10^-3".format(p="full dataset", m=mean_AAIMON_slope))
 
     # print mean values for protein families
     for prot_family in list_prot_families:
-        mean_AAIMON_slope = prot_family_df_dict[prot_family]['AAIMON_mean_all_TM_res'].mean()
+        mean_AAIMON_slope = prot_family_df_dict[prot_family]['AAIMON_slope_all_TM_res'].mean()
         logging.info("{p} mean AAIMON slope = {m:0.02f} * 10^-3".format(p=prot_family[3:], m=mean_AAIMON_slope))
 
     # # save dataframe
@@ -454,12 +454,12 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
         all_TMDs_series = pd.Series(nested_list_all_TMDs)
         # obtain series of TMD_counts
         TMD_counts = all_TMDs_series.value_counts()
-        # exclude TMD numbers with less than x applicable proteins from boxplot max detection
+        # exclude TMD numbers with less than x applic0able proteins from boxplot max detection
         boxplot_cutoff_number_of_TMDs = 20
-        TMD_counts_major = TMD_counts[TMD_counts >= boxplot_cutoff_number_of_TMDs]
-        max_num_TMDs = int(TMD_counts_major.index.max())
+        #TMD_counts_major = TMD_counts[TMD_counts >= boxplot_cutoff_number_of_TMDs]
+        max_num_TMDs = int(TMD_counts.index.max())
 
-        if pd.notnull(max_num_TMDs):
+        if max_num_TMDs > boxplot_cutoff_number_of_TMDs:
             # title = str(keyword) + '_Boxplot'
             # Fig_name = str(str(Fig_Nr) + '._' + 'Keyword_' + title)
             fig, ax = plt.subplots()
@@ -1311,13 +1311,13 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             fit_fn = np.poly1d(linear_regression)
             x_first_last_dp = [x.min(), x.max()]
             y_fitted = fit_fn(x_first_last_dp)
-            ax.plot(x_first_last_dp, y_fitted, "--", alpha=0.75, color=colour)
+            ax.plot(x_first_last_dp, y_fitted, "--", alpha=0.75, color=colour, label="fitted")
             ax.annotate(s='y = {a:.5f}x + {b:.5f}'.format(a=linear_regression[0], b=linear_regression[1]), xy=(0.85, 0.95),
                         fontsize=fontsize-2, xytext=None, xycoords='axes fraction', alpha=0.75)
         else:
             logging.info("The dataset has less than 5 proteins. Lines of best fit will not be calculated.")
 
-        ax.scatter(x, y, color = colour, alpha=alpha_dpd, s=datapointsize)
+        ax.scatter(x, y, color = colour, alpha=alpha_dpd, s=datapointsize, label="data")
         ax.set_ylabel(r'm$_{\rm TM/EM} *10^{\rm -3}$', rotation='vertical', fontsize=fontsize)
         ax.set_xlabel('TM/EM conservation ratio', fontsize=fontsize)
         ax.annotate(s=str(Fig_Nr) + '.', xy=(0.04, 0.9), fontsize=fontsize, xytext=None,
@@ -1328,7 +1328,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         # change axis font size
         ax.tick_params(labelsize=fontsize)
-
+        ax.legend(loc="lower right")
+        fig.tight_layout()
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
         ##################################################################
@@ -1346,14 +1347,14 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
             fit_fn = np.poly1d(linear_regression)
             x_first_last_dp = [x.min(), x.max()]
             y_fitted = fit_fn(x_first_last_dp)
-            ax.plot(x_first_last_dp, y_fitted, "--", alpha=0.75, color=colour)
+            ax.plot(x_first_last_dp, y_fitted, "--", alpha=0.75, color=colour, label="fitted")
             ax.plot(x_first_last_dp, x_first_last_dp, "--", alpha=0.75, color="k", label="symmetrical")
             ax.annotate(s='y = {a:.5f}x + {b:.5f}'.format(a=linear_regression[0], b=linear_regression[1]), xy=(0.85, 0.95),
                         fontsize=fontsize-2, xytext=None, xycoords='axes fraction', alpha=0.75)
         else:
             logging.info("The dataset has less than 5 proteins. Lines of best fit will not be calculated.")
 
-        ax.scatter(x, y, color = colour, alpha=alpha_dpd, s=datapointsize)
+        ax.scatter(x, y, color = colour, alpha=alpha_dpd, s=datapointsize, label="data")
         ax.set_xlabel(r'm$_{\rm TM/EM} *10^{\rm -3}$ (all TM residues in protein)', fontsize=fontsize)
         ax.set_ylabel(r'm$_{\rm TM/EM} *10^{\rm -3}$ (mean of all TMDs calculated separately)', rotation='vertical', fontsize=fontsize)
 
@@ -1365,6 +1366,8 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         # change axis font size
         ax.tick_params(labelsize=fontsize)
+        ax.legend(loc = "lower right")
+        fig.tight_layout()
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
 
@@ -1404,14 +1407,17 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         # change axis font size
         ax.tick_params(labelsize=fontsize)
-        ax.legend(loc = "lower right")
+        ax.legend(loc="lower right")
+        fig.tight_layout()
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if 'uniprot_KW' in df.columns and "uniprot_KW_for_analysis" in df.columns:
 
         # convert stringlists to python lists
-        if isinstance(df.uniprot_KW_for_analysis.dropna().iloc[0], str):
-            df["uniprot_KW_for_analysis"] = df.uniprot_KW_for_analysis.dropna().apply(lambda x: ast.literal_eval(x))
+        #if isinstance(df.uniprot_KW_for_analysis.dropna().iloc[0], str):
+        df["uniprot_KW_for_analysis"] = df["uniprot_KW_for_analysis"].fillna("[]")
+        df["uniprot_KW_for_analysis"] = df.uniprot_KW_for_analysis.dropna().apply(lambda x: ast.literal_eval(x))
+
 
         if s['Fig18_KW_assoc_with_large_number_of_homol']:
             Fig_Nr = 18

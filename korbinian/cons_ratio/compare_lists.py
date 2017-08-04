@@ -26,7 +26,7 @@ def compare_lists (s, df_lists_tab):
     Histograms of AAIMON ratios
     Histograms of AAIMON slope
     Full sequence length
-    Length of nonTMD
+    Length of EM
     Number of homologues
     etc.
 
@@ -1841,7 +1841,7 @@ def compare_lists (s, df_lists_tab):
     # --------------------------------------------------------------------------------------------------------------------------------#
     Fig_Nr = 16
     if Fig_Nr in list_figs_to_run:
-        title = '% AA identity TMD vs nonTMD'
+        title = '% AA identity TMD vs EM'
         Fig_name = 'Fig16_perc_AA_identity_TMD_vs_nonTMD'
         sys.stdout.write("Fig16 may be empty until data is rerun.")
 
@@ -1863,16 +1863,15 @@ def compare_lists (s, df_lists_tab):
             bins = [50, 50]
 
             # data definition
-            min_ = df_dict[prot_list].perc_ident_mean.min()
-            max_ = df_dict[prot_list].perc_ident_mean.max()
-            sys.stdout.write("Fig16 prot_list {} : min_ = {}, max_ = {}".format(prot_list, min_, max_))
+            #min_ = df_dict[prot_list].perc_ident_mean.min()
+            #max_ = df_dict[prot_list].perc_ident_mean.max()
+            #sys.stdout.write("Fig16 prot_list {} : min_ = {}, max_ = {}".format(prot_list, min_, max_))
 
-
-            data_TMD = df_dict[prot_list].perc_ident_mean
+            data_TMD = df_dict[prot_list].TMD_perc_ident_mean * 100
             data_nonTMD = df_dict[prot_list].nonTMD_perc_ident_mean * 100
 
-            sys.stdout.write("data_TMD[0:5] {}".format(data_TMD[0:5]))
-            sys.stdout.flush()
+            #sys.stdout.write("data_TMD[0:5] {}".format(data_TMD[0:5]))
+            #sys.stdout.flush()
             # histogram the data
             hh, locx, locy = scipy.histogram2d(data_TMD, data_nonTMD, range=xyrange, bins=bins)
 
@@ -1896,7 +1895,7 @@ def compare_lists (s, df_lists_tab):
             ax.annotate('TMD more conserved', xy=(7, 1), rotation=0, fontsize=8, ha='left', va='bottom')
 
             if n == 0:
-                ax.set_ylabel('mean % identity\nof nonTMD region', fontsize=10)
+                ax.set_ylabel('mean % identity\nof EM region', fontsize=10)
 
         # get colorbar from latest imshow element (color scale should be the same for all subplots)
         fig.subplots_adjust(right=0.8)
@@ -1907,7 +1906,7 @@ def compare_lists (s, df_lists_tab):
         cbar_ax.set_yticklabels(labels)
 
         plt.subplots_adjust(wspace=0.15, hspace=0.05)
-        fig.text(0.465, 0.27, 'mean % identity of TMD region amongst homologues', ha='center', fontsize=10)
+        fig.text(0.465, 0.27, 'mean % identity of TM region amongst homologues', ha='center', fontsize=10)
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
