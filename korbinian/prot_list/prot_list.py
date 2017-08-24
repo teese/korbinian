@@ -96,8 +96,10 @@ def prepare_protein_list(s, pathdict, logging):
         n_prot_AFTER_dropping_non_trusted_SiPe = df.shape[0]
 
     elif True in df.betabarrel.tolist():
+        print("True in BB list")
         # for old parsed data, add OMPdb_SiPe (can be removed after re-running all parsing)
         if "OMPdb_SiPe" not in df.columns:
+            print('"OMPdb_SiPe" not in df.columns')
             df["OMPdb_SiPe"] = df.SP01_start.notnull()
         ########################################################################################
         #                                                                                      #
@@ -106,8 +108,8 @@ def prepare_protein_list(s, pathdict, logging):
         ########################################################################################
         # first select those where no signal peptide was found
         df_removed = df.loc[df["OMPdb_SiPe"] == False]
-        # from these, select those where the TM01_start is in the first 40 residues
-        df_removed = df_removed.loc[df_removed["TM01_start"] < 40]
+        # from these, select those where the TM01_start is in the first 15 residues
+        df_removed = df_removed.loc[df_removed["TM01_start"] < 15]
         # make a list of those removed
         TM01_potential_SiPe_acc_list = list(df_removed.index)
         # drop and note change in length of the dataframe[to be replaced later with a bool column]

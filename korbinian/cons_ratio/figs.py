@@ -1784,13 +1784,22 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 list1_cr_csv = pathdict["list_cr_summary_csv"].replace("02", "01")
                 df_list1 = pd.read_csv(list1_csv, index_col=0)
                 df_cr1 = pd.read_csv(list1_cr_csv, index_col=0)
-                #df_list1_merged = pd.concat([df_list1, df_cr1])
                 df_list1_merged = pd.merge(df_list1, df_cr1, left_index=True, right_index=True, suffixes=('_dfc', ''))
-
                 df_list1_merged = df_list1_merged.loc[df_list1_merged['AAIMON_n_homol'] >= min_n_homol]
-                #df_filt = pd.concat([df, df_list1_merged])
                 df_filt = pd.merge(df_filt, df_list1_merged, how="outer")
                 logging.info("{} proteins added from List01 for Figure 21, linechart_lipo_f_c_l_vs_number_of_TMDs".format(df_list1_merged.shape[0]))
+
+            # for list 31, add the singlepass data to the analysis for this plot
+            if list_number == 31:
+                list30_csv = pathdict["list_csv"].replace("31", "30")
+                list30_cr_csv = pathdict["list_cr_summary_csv"].replace("31", "30")
+                df_list30 = pd.read_csv(list30_csv, index_col=0)
+                df_cr30 = pd.read_csv(list30_cr_csv, index_col=0)
+                df_list30_merged = pd.merge(df_list30, df_cr30, left_index=True, right_index=True, suffixes=('_dfc', ''))
+                df_list30_merged = df_list30_merged.loc[df_list30_merged['AAIMON_n_homol'] >= min_n_homol]
+                #df_filt = pd.concat([df, df_list30_merged])
+                df_filt = pd.merge(df_filt, df_list30_merged, how="outer")
+                logging.info("{} proteins added from List01 for Figure 21, linechart_lipo_f_c_l_vs_number_of_TMDs".format(df_list30_merged.shape[0]))
 
             sys.stdout.write("\ncode gives RuntimeWarning\n")
             # NOTE: this code gives a RuntimeWarning: Degrees of freedom <= 0 for slice
@@ -1880,6 +1889,12 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 df_list1_merged_shape = df_list1_merged.shape
                 df_filt = pd.merge(df_filt, df_list1_merged, how="outer")
                 #logging.info("{} proteins added from List01 for Figure 21, linechart_lipo_f_c_l_vs_number_of_TMDs".format(df_list1_merged.shape[0]))
+
+            if list_number == 31:
+                # limit columns to avoid errors from python lists during merging
+                df_list30_merged = df_list30_merged.loc[:, ["number_of_TMDs", "TM01_AAIMON_slope", "AAIMON_slope_central_TMDs", "AAIMON_slope_last_TMD"]]
+                df_list30_merged_shape = df_list30_merged.shape
+                df_filt = pd.merge(df_filt, df_list30_merged, how="outer")
 
             dfn = pd.DataFrame()
             for i in range(min_n_TMDs, max_num_TMDs_fig21):

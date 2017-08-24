@@ -126,6 +126,9 @@ def gather_AAIMONs(pathdict, logging, s):
         mean_ser = utils.open_df_from_csv_zip(df.loc[acc, 'homol_cr_ratios_zip'], filename=mean_ser_filename, delete_corrupt=True)
         dfg = pd.concat([dfg,mean_ser], axis=1)
 
+    if dfg.empty:
+        raise ValueError("\n\ndfg is an empty dataframe.\nThis means that none of the proteins had any correctly processed conservation ratios.\nSuggest checking the output of all previous steps.")
+
     # transpose dataframe (flip index and columns)
     dfg = dfg.T.copy()
 
@@ -218,7 +221,8 @@ def gather_AAIMONs(pathdict, logging, s):
             ########################################################################################
             # first get a list of all the homologues that have AAIMON ratios for all TMDs
             df_AAIMON_all_TMD["AAIMON_avail_all_TMDs"] = df_AAIMON_all_TMD.n_TMDs_with_measurable_AAIMON == df.loc[acc, "number_of_TMDs"]
-            filt_index = df_AAIMON_all_TMD["AAIMON_avail_all_TMDs"][df_AAIMON_all_TMD["AAIMON_avail_all_TMDs"]].index.tolist()
+            filt_index = df_AAIMON_all_TMD.loc[df_AAIMON_all_TMD["AAIMON_avail_all_TMDs"] == True].index.tolist()
+            #filt_index = [int(x) for x in filt_index]
 
             if not os.path.isfile(homol_cr_ratios_zip):
                 # skip to next protein
@@ -239,6 +243,12 @@ def gather_AAIMONs(pathdict, logging, s):
                     os.remove(homol_cr_ratios_zip)
                     # skip to next protein
                     break
+
+                if set(filt_index).intersection(set(df_TMD.index)) == set():
+                    # there is a mismatch between the filt_index for df_AAIMON_all_TMD, and the columns in df_TMD
+                    # replace filt_index with empty list
+                    logging.warning("Indexing Error in gather script. set(filt_index).intersection(set(df_TMD.index)) == set(). Try re-running calculate_AAIMON_ratios")
+                    filt_index = []
                 # use the filt_index above that shows homologues with AAIMON available for all TMDs
                 df_TMD = df_TMD.loc[filt_index, :]
                 # convert to numpy array
