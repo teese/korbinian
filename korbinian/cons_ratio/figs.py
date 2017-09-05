@@ -39,7 +39,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
     #TUMblues = ['#0F3750', '#0076B8', '#9ECEEC']
     TUMblues = [cdict['TUM_colours']["TUM2"],cdict['TUM_colours']["TUMBlue"],cdict['TUM_colours']["TUM1"]]
 
-    # letters for saving variations of a figure
+    # letters for saving variations o0f a figure
     letters = list("abcdefghijk")
 
     try:
