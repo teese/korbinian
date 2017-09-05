@@ -3,6 +3,7 @@ import csv
 import korbinian.utils as utils
 import pandas as pd
 import numpy as np
+import re
 import sys
 # import debugging tools
 from korbinian.utils import pr, pc, pn, aaa
@@ -36,6 +37,24 @@ def extract_omp_IDs_from_nr_fasta(ListXX_OMPdb_nr_fasta, ListXX_OMPdb_nr_acc, lo
 def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_flatfile, OMPdb_list_csv, logging, s):
     """ Extracts ID, seq and topology data from the full OMPdb flatfile, saves to csv.
 
+    Note that instead of parsing line-by-line and saving to a csv, this method store every single value into a huge dictionary, which for 3
+    proteins looks like this:
+
+    BB_SiPe                                        [True, True, False]
+    Coverage(%)                                  [99.82, 96.61, 92.19]
+    Description      [Pilin outer membrane usher protein SafC, Oute...
+    NCBI_TaxID                                     [59201, 470, 59201]
+    Organism         [Salmonella enterica I, Acinetobacter baumanni...
+    SP01_start                                          [1, 1, np.nan]
+    Sequence         [MKFKQPALLLFIAGVVHCANAHTYTFDASMLGDAAKGVDMSLFNQ...
+    Topology         [IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII...
+    Topology_Reli                                [84.13, 94.00, 93.07]
+    Uniprot                       [A0A0F7J6A4, A0A090B0L0, A0A0F7J6D5]
+    seqlen                                             [836, 356, 721]
+
+    The size of this dictionary with >7000 entries may cause memory problems on a regular PC.
+    Currently this method is functional, though, and is not a priority to be fixed.
+
     Parameters
     ----------
     ListXX_OMPdb_nr_acc : str
@@ -60,10 +79,10 @@ def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_
 
     # Creating dictionary keywords
     keywords = {"Uniprot": [], "Family": [], "Gene_Name": [], "Organism": [], "NCBI_TaxID": [], "Coverage(%)": [],
-                "Sequence": [], "len_Sequence": [], "Topology_Reli": [], "Topology": [], "Description": [], "Pfam_ID": [], "OMPdb_SiPe": []}
+                "Sequence": [], "Topology_Reli": [], "Topology": [], "Description": [], "Pfam_ID": [], "BB_SiPe": [], "seqlen": [], "fragment": []}
 
     # check if signal peptides should be added to the list_of_TMDs and analysed
-    # signal peptides will still be detected, via "True" in OMPdb_SiPe. This is useful for excluding potential TM01 mis-labelled as SP.
+    # signal peptides will still be detected, via "True" in BB_SiPe. This is useful for excluding potential TM01 mis-labelled as SP.
     analyse_SiPe = False
     if 'SiPe' in s['regions']:
         analyse_SiPe = True
@@ -93,52 +112,67 @@ def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_
         db_cross_ref = {}
         save_db_cross_ref = False
         for line in data_file:
-            line = line.strip().split(" ")
+            line_list = line.strip().split(" ")
             # Further settings which are changed every loop
             sequence_header = False
             topo_header = False
             # If-conditions make sure, that the ID is in the list of Potential IDs and check for keywords in each line
-            if "UNIPROT" in line and line[-1] in ID_list:
-                keywords["Uniprot"].append(line[-1])
+            if "UNIPROT" in line_list and line_list[-1] in ID_list:
+                keywords["Uniprot"].append(line_list[-1])
                 take_ID = True
                 counter += 1
                 if counter % 100 == 0:
                     sys.stdout.write(". ")
                     sys.stdout.flush()
-            if "FAMILY" in line and take_ID == True:
-                keywords["Family"].append(" ".join(line[9:]))
-            if "DESCRIPTION" in line and take_ID == True:
-                keywords["Description"].append(" ".join(line[4:]))
-            if "GENE_NAME" in line and take_ID == True:
-                keywords["Gene_Name"].append(" ".join(line[6:]))
-            if "ORGANISM" in line and take_ID == True:
-                keywords["Organism"].append(" ".join(line[7:]))
-            if "NCBI_TAXID" in line and take_ID == True:
-                keywords["NCBI_TaxID"].append(line[-1])
-            if "DB_REF" in line and take_ID == True:
+            if "FAMILY" in line_list and take_ID == True:
+                keywords["Family"].append(" ".join(line_list[9:]))
+            if "DESCRIPTION" in line_list and take_ID == True:
+                keywords["Description"].append(" ".join(line_list[4:]))
+            if "GENE_NAME" in line_list and take_ID == True:
+                keywords["Gene_Name"].append(" ".join(line_list[6:]))
+            if "ORGANISM" in line_list and take_ID == True:
+                keywords["Organism"].append(" ".join(line_list[7:]))
+            if "NCBI_TAXID" in line_list and take_ID == True:
+                keywords["NCBI_TaxID"].append(line_list[-1])
+            if "DB_REF" in line_list and take_ID == True:
                 # add database cross references to special dict
-                db_cross_ref.update({line[9][:-1]: line[10].split('|')})
-            if "SIGNAL_PEPTIDE" in line and take_ID == True:
-                keywords["OMPdb_SiPe"].append(True)
-                if analyse_SiPe == True:
-                    if ' '.join(line[1:]) != 'No information available':
-                        keywords["SP01_start"].append(line[1][0])
-                        keywords["SP01_end"].append(line[1][2:-1])
-                        keywords["SP01_seq"].append(line[2][:-1])
-                        keywords["SiPe_source"].append(' '.join(line[-2:]))
-                    else:
+                db_cross_ref.update({line_list[9][:-1]: line_list[10].split('|')})
+            if "SIGNAL_PEPTIDE" in line_list and take_ID == True:
+                if ' '.join(line_list[1:]) == 'No information available':
+                    keywords["BB_SiPe"].append(False)
+                    if analyse_SiPe == True:
                         keywords["SP01_start"].append(np.nan)
                         keywords["SP01_end"].append(np.nan)
                         keywords["SP01_seq"].append(np.nan)
-                        keywords["SiPe_source"].append(np.nan)
-            if "COVERAGE(%)" in line and take_ID == True:
-                keywords["Coverage(%)"].append(line[-1])
-            if "SEQUENCE" in line and take_ID == True:
-                # after the "SEQUENCE" statement in a line, all db cross references are collected and can be saved
+                        keywords["SiPe_source"].append('No information available')
+                else:
+                    # assume there is a signal peptide that starts at 1 (not very optimum code!!!)
+                    keywords["BB_SiPe"].append(True)
+                    if analyse_SiPe == True:
+                        keywords["SP01_start"].append(line_list[1][0])
+                        keywords["SP01_end"].append(line_list[1][2:-1])
+                        keywords["SP01_seq"].append(line_list[2][:-1])
+                        keywords["SiPe_source"].append(' '.join(line_list[-2:]))
+
+            if "COVERAGE(%)" in line_list and take_ID == True:
+                keywords["Coverage(%)"].append(line_list[-1])
+            if "SEQUENCE" in line_list and take_ID == True:
+                # after the "SEQUENCE" statement in a line_list, all db cross references are collected and can be saved
                 save_db_cross_ref = True
-                keywords["seqlen"].append(line[7])
+                keywords["seqlen"].append(line_list[7])
                 take_next_seq = True
                 sequence_header = True
+                # some of the OMPdb entries are labeled as fragments. These should be removed.
+                if "Fragment:" in line:
+                    searchstring = ".*Fragment\:([NC])"
+                    match = re.match(searchstring, line)
+                    if match:
+                        N_or_C = match.group(1)
+                    else:
+                        N_or_C = "undefined"
+                    keywords["fragment"].append("{}-term".format(N_or_C))
+                else:
+                    keywords["fragment"].append("undefined")
             # add db cross references from previous protein to keywords dict
             if save_db_cross_ref == True:
                 if "Pfam" in db_cross_ref.keys():
@@ -148,21 +182,21 @@ def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_
                 # reset db_cross_ref for next cycle
                 save_db_cross_ref = False
                 db_cross_ref = {}
-            if "TOPOLOGY" in line and take_ID == True:
+            if "TOPOLOGY" in line_list and take_ID == True:
                 Raw_Sequences.extend(";")
-                keywords["Topology_Reli"].append(line[-1].strip('"').strip("%"))
+                keywords["Topology_Reli"].append(line_list[-1].strip('"').strip("%"))
                 take_next_seq = False
                 take_next_topo = True
                 topo_header = True
             if take_next_seq == True and sequence_header != True and take_ID == True:
-                Raw_Sequences.extend(line)
-            if "//" in line and take_ID == True:
+                Raw_Sequences.extend(line_list)
+            if "//" in line_list and take_ID == True:
                 Raw_Topos.extend(";")
                 topo_header = False
                 take_next_topo = False
                 take_ID = False
             if take_next_topo == True and topo_header != True:
-                Raw_Topos.extend(line)
+                Raw_Topos.extend(line_list)
         Sequences = "".join(Raw_Sequences).split(";")
         Sequences.remove("")
         keywords["Sequence"] = Sequences
@@ -175,9 +209,20 @@ def parse_OMPdb_all_selected_to_csv(ListXX_OMPdb_nr_acc, ListXX_OMPdb_redundant_
     # set the uniprot_acc as the index
     dfKW.set_index("Uniprot", inplace=True, drop=False)
     dfKW.index.name = "acc"
+
+    # DEPRECATED. OMPdb seems to label everything as a fragment?
+    # n_prot_before_dropping_fragments = dfKW.shape[0]
+    # dfKW = dfKW.loc[dfKW.fragment == "no fragment annotation"]
+    # n_prot_after_dropping_fragments = dfKW.shape[0]
+    # n_prot_fragments_dropped = n_prot_before_dropping_fragments - n_prot_after_dropping_fragments
+
+    n_fragments = dfKW.loc[dfKW.fragment != "N"].shape[0]
+    logging.info("{}/{} proteins labeled as 'Fragment:N' in flatfile.".format(n_fragments, dfKW.shape[0]))
+
     utils.make_sure_path_exists(OMPdb_list_csv, isfile=True)
     dfKW.to_csv(OMPdb_list_csv)
-    logging.info("parse_OMPdb_all_selected_to_csv is completed. Dataframe shape = {}".format(dfKW.shape))
+    logging.info("parse_OMPdb_all_selected_to_csv is completed.\n"
+                 "Final number of proteins = {}".format(dfKW.shape[0]))
 
 
 def get_omp_TM_indices_and_slice_from_summary_table(OMPdb_list_csv, list_parsed_csv, OMPdb_topology_reliability_cutoff, logging, s):
