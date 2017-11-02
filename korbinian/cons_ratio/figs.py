@@ -328,7 +328,6 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-
     if s['Fig03_Density_lipo_vs_TM_conservation']:
         Fig_Nr = 3
 
