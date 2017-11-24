@@ -10,6 +10,7 @@ import ast
 import csv
 import ctypes
 import errno
+import glob
 import inspect
 import logging
 import os
@@ -26,6 +27,8 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import numpy as np
 import pandas as pd
+from shutil import copyfile
+from time import strftime
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from inspect import currentframe, getframeinfo, stack
 
@@ -1005,8 +1008,6 @@ def get_end_juxta_after_TMD(x, input_TMD, list_of_tmds):
 def get_start_and_end_of_TMD_in_query(x, TMD_regex_ss):
     '''
     define function to obtain regex output (start, stop, etc) as a tuple
-    the functions were originally in MAIN, as I am not sure how to apply **args and **kwargs in functions that apply to pandas
-    note that TMD_regex_ss is therefore a global variable
     '''
     m = re.search(TMD_regex_ss, x)
     if m:
@@ -1837,3 +1838,44 @@ def HTMLColorToRGB(colorstring):
     r, g, b = colorstring[:2], colorstring[2:4], colorstring[4:]
     r, g, b = [int(n, 16) for n in (r, g, b)]
     return (r, g, b)
+
+def create_tarballs_from_xml_files_in_folder(xml_dir, download_date="2017.11.02"):
+    """script to create .tar.gz compressed files from a folder of xml files
+
+    COPY SECTIONS INTO JUPYTER NOTEBOOK AND MODIFY AS NEEDED
+
+    to add today's date
+    date = strftime("%Y.%m.%d")
+
+    THIS SCRIPT DOES NOT DELETE THE ORIGINAL XML FILES
+
+    """
+
+    xml_list = glob.glob(os.path.join(xml_dir, "*.xml"))
+
+    for xml in xml_list:
+        xml_renamed = xml[:-4] + ".BLAST.xml"
+        xml_tar_gz = xml[:-4] + ".BLAST.xml.tar.gz"
+        xml_txt = xml[:-4] + ".BLAST_details.txt"
+
+        if not os.path.isfile(xml_tar_gz):
+            copyfile(xml, xml_renamed)
+            acc = os.path.basename(xml).split(".")[0]
+            sys.stdout.write("{}, ".format(acc))
+            sys.stdout.flush()
+            # create an empty text file with the download date
+            date = strftime("%Y%m%d")
+            with open(xml_txt, "w") as f:
+                f.write("acc\t{}\ndownload_date\t{}\ndatabase\tncbi_nr\ne_value\t1\n".format(acc, download_date))
+
+            with tarfile.open(xml_tar_gz, mode='w:gz') as tar:
+                # add the files to the compressed tarfile
+                tar.add(xml_renamed, arcname=os.path.basename(xml_renamed))
+                tar.add(xml_txt, arcname=os.path.basename(xml_txt))
+
+            # delete the original files
+            try:
+                os.remove(xml_renamed)
+                os.remove(xml_txt)
+            except:
+                print("{} could not be deleted".format(xml_renamed))
