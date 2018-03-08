@@ -1615,7 +1615,7 @@ def send_email_when_finished(s, pathdict):
     from email.mime.base import MIMEBase
     from email import encoders
 
-    fromaddr = "tlab.korbinian@gmail.com"
+    fromaddr = s["email_address"]
     toaddr = s['send_email_to']
 
     msg = MIMEMultipart()
@@ -1654,7 +1654,7 @@ def send_email_when_finished(s, pathdict):
 
     server = smtplib.SMTP('smtp.gmail.com', 587)
     server.starttls()
-    server.login("tlab.korbinian@gmail.com", "python_is_Fun!")
+    server.login(s["email_address"], s["email_p_w0rd"])
     text = msg.as_string()
     server.sendmail(fromaddr, toaddr, text)
     server.quit()
