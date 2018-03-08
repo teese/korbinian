@@ -5,14 +5,16 @@ Author:         Mark Teese
 Created:        Fri Oct 25 17:45:09 2013
 Dependencies:   Python 3.x
                 numpy
-                Bio
-                Java
-                Javascript for SIMAP accession
                 pandas
-Purpose:        Analysis of BLAST-like SIMAP data
-Credits:        All sections by Mark Teese. The Javascript for SIMAP accession was written by Peter Honigschmidt.
-Further Details:For details regarding the java access to SIMAP, see here: E:\Stephis\Projects\Programming\Python\programs\eaSimap_MT_notes.txt
-
+                Bio
+                Java (for SIMAP homologue downloads)
+Purpose:        Protein Data Science
+                Analysis of evolutionary sequences of transmembrane proteins
+Credits:        Mark Teese
+                Martin Ortner
+                Shenger Wang
+                Rimma Jenske
+License         Released under the permissive MIT license.
 """
 import argparse
 import ast
