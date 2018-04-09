@@ -1,21 +1,39 @@
-# README #
-
-The korbinian module is used for the analysis of TMD conservation, primarily using uniprot, OMPdb and simap data.
+# korbinian #
+Bioinformatic sequence analysis of membrane proteins
 
 ### What is this repository for? ###
 
-* Uniprot parsing and analysis
-* SIMAP downloading, parsing and analysis
+* Parsing of UniProt flatfiles
+* Downloading homologues (primarily with SIMAP)
+* Parsing BLAST-like XML files
+* Analysis of protein sequences
+* Automated figure creation
 
-### How do I get set up? ###
+### License ###
 
-* Currently instructions are available on Google Docs. Ask Mark and Yao.
+* korbinian is released under the permissive MIT licence
 
-### Contribution guidelines ###
-
-* Pull requests are welcome. 
-* Backwards compatibility is not so important. Focus on readability, flexibility and speed.
-
-### Who do I talk to? ###
+### Credits ###
 
 * Mark Teese
+(for contact details, see the Langosch lab website at TUM)
+* Martin Ortner
+* Shenger Wang
+* Rimma Jenske 
+
+### Citation ###
+
+* scientific publication to be added
+* currently cited as "the korbinian python package (Mark Teese, Technical University of Munich)"
+
+### Examples ###
+
+![density](korbinian/examples/images/density.png)
+
+![n_homol](korbinian/examples/images/n_homol.png)
+
+![aa_propens](korbinian/examples/images/aa_propens.png)
+
+![len](korbinian/examples/images/len.png)
+
+![percent_TM](korbinian/examples/images/percent_TM.png)

@@ -2,9 +2,6 @@
 # -*- coding: utf-8 -*-
 """
 Utilities file containing useful functions.
-More recent functions are at the top.
-Authors: Mark Teese, Rimma Jenske
-Created on Fri Nov  8 15:45:06 2013
 """
 import ast
 import csv
@@ -58,7 +55,7 @@ def all_df_in_list_contain_data(df_list_KW, title = '', KW = '', data_names_list
     #simply create a list that numbers the dataframes, if they are not explicitly named
     if data_names_list == []:
         data_names_list = ['%i' % i for i in range(len(df_list_KW))]
-    
+
     #first assume that they contain data
     both_df_contain_data = True
     #if any of them don't contain data, return false
@@ -151,6 +148,7 @@ def get_signif_symbol(number):
 #    else:
 #        #if the tmd is not in the query, return False, NaN, NaN
 #        return (bool(m), np.nan, np.nan)
+
 def round_sig(x, sig=1):
     from math import floor
     from math import log10
