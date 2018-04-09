@@ -19,7 +19,8 @@ Bioinformatic sequence analysis of membrane proteins
 (for contact details, see the Langosch lab website at TUM)
 * Martin Ortner
 * Shenger Wang
-* Rimma Jenske 
+* Rimma Jenske
+* Enzo Torasso
 
 ### Citation ###
 
