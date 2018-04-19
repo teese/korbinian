@@ -5,7 +5,8 @@ import os
 import korbinian.utils as utils
 import korbinian
 import pandas as pd
-from statsmodels.stats.api import DescrStatsW
+#from statsmodels.stats.api import DescrStatsW
+from statsmodels.stats import weightstats as sms
 import pickle
 import re
 import sys
@@ -270,7 +271,7 @@ def gather_AAIMONs(pathdict, logging, s):
             bin_for_mean = data[(percentage >= data[:, 0]) & (data[:, 0] > percentage - binwidth)]
             if bin_for_mean.size != 0:
                 # calculate conf. interv. in bin, alpha describes the significance level in the style 1-alpha
-                conf = DescrStatsW(bin_for_mean[:, 1]).tconfint_mean(alpha=confidence_interval)
+                conf = sms.DescrStatsW(bin_for_mean[:, 1]).tconfint_mean(alpha=confidence_interval)
                 # calculate conf. interv. in bin _n, alpha describes the significance level in the style 1-alpha
                 conf_norm = sms.DescrStatsW(bin_for_mean[:, 2]).tconfint_mean(alpha=confidence_interval)
                 mean_data_in_bin = np.array([percentage - binwidth / 2,

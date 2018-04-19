@@ -28,6 +28,7 @@ from shutil import copyfile
 from time import strftime
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from inspect import currentframe, getframeinfo, stack
+import io
 
 
 def aaa(df_or_series):
@@ -1375,7 +1376,20 @@ def open_df_from_pickle_zip(in_zipfile, filename=None, delete_corrupt=False):
                     if  filename in filenamelist:
                         with openzip.open(filename) as pickle_file_handle:
                             # read as pandas dataframe
-                            df_loaded = pickle.load(pickle_file_handle)
+                            # TEMP try/except function to understand the compatibility issues
+                            try:
+                                df_loaded = pd.read_pickle(pickle_file_handle)
+                                # DEPRECATED METHOD
+                                # df_loaded = pickle.load(pickle_file_handle)
+                            except (EOFError, ModuleNotFoundError, io.UnsupportedOperation) as e:
+                                # pickle files created by an older version of python have compatibility issues
+                                if delete_corrupt:
+                                    deletezip = True
+                                    df_loaded = pd.DataFrame()
+                                else:
+                                    # assume they can be recreated. Return empty dataframe, usually a sign that the file should be deleted.
+                                    df_loaded = pd.DataFrame()
+                                    #raise IOError("{} in {} was created by an older version of pandas and cannot be opened.".format(filename, in_zipfile))
                             # make sure that the pickled object was REALLY a pandas object, and not some other python datatype that was pickled.
                             assert isinstance(df_loaded, (pd.Series, pd.DataFrame))
                     else:
@@ -1836,3 +1850,21 @@ def HTMLColorToRGB(colorstring):
     r, g, b = colorstring[:2], colorstring[2:4], colorstring[4:]
     r, g, b = [int(n, 16) for n in (r, g, b)]
     return (r, g, b)
+
+def file_is_old(filepath, oldest_acceptable_file_date_str):
+    file_mtime = os.path.getmtime(filepath)
+    oldest_acceptable_file_date_timeobject = time.strptime(oldest_acceptable_file_date_str, '%d_%m_%Y')
+    oldest_acceptable_file_date_epochtime = time.mktime(oldest_acceptable_file_date_timeobject)
+    if file_mtime < oldest_acceptable_file_date_epochtime:
+        return True
+    else:
+        return False
+
+def file_is_old_and_will_be_removed(filepath, oldest_acceptable_file_date_str, logging, acc):
+    if file_is_old(filepath, oldest_acceptable_file_date_str):
+        os.remove(filepath)
+        message = "{} skipped, filepath is old and has been deleted".format(acc)
+        logging.info(message)
+    else:
+        message = ""
+    return message

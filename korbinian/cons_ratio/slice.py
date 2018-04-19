@@ -124,6 +124,12 @@ def slice_TMD_1_prot_from_homol(p):
         logging.info(warning)
         return acc, False, warning
 
+    if utils.file_is_old(p['homol_df_orig_zip'], s["oldest_acceptable_file_date"]):
+        os.remove(p['homol_df_orig_zip']),
+        message = "{} skipped, file is old and has been deleted".format(acc)
+        logging.info(message)
+        return acc, False, message
+
     dfs = utils.open_df_from_pickle_zip(p['homol_df_orig_zip'], delete_corrupt=True)
     if dfs.empty:
         warning = "{} Protein skipped, file deleted as it is possibly corrupt.".format(p['homol_df_orig_zip'])

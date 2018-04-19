@@ -12,6 +12,7 @@ import pickle
 from scipy.stats import sem
 import sys
 import zipfile
+import io
 # import debugging tools
 from korbinian.utils import pr, pc, pn, aaa
 
@@ -207,6 +208,12 @@ def calculate_AAIMONs(p):
 
     if not os.path.exists(p['fa_cr_sliced_TMDs_zip']):
         message = "{} Protein skipped. File does not exist".format(p['fa_cr_sliced_TMDs_zip'])
+        logging.info(message)
+        return acc, False, message
+
+    if utils.file_is_old(p['fa_cr_sliced_TMDs_zip'], s["oldest_acceptable_file_date"]):
+        os.remove(p['fa_cr_sliced_TMDs_zip']),
+        message = "{} skipped, file is old and has been deleted".format(acc)
         logging.info(message)
         return acc, False, message
 
@@ -675,12 +682,29 @@ def calculate_AAIMONs(p):
             # re-open dataframe from zipped pickle
             # keeping the temp pickle file from above and deleting later was discontinued, as there were troubles deleting the file for some reason
 
-
             TM_cr_pickle = "{}_{}_cr_df.pickle".format(acc, TMD)
             # df_cr = utils.open_df_from_pickle_zip(homol_cr_ratios_zip, filename=TM_cr_pickle, delete_corrupt=False)
 
-            with open(TM_cr_pickle, 'rb') as f:
-               df_cr = pickle.load(f)
+            if utils.file_is_old(TM_cr_pickle, s["oldest_acceptable_file_date"]):
+                os.remove(TM_cr_pickle),
+                message = "{} skipped, file is old and has been deleted".format(acc)
+                logging.info(message)
+                return acc, False, message
+
+            df_cr = pd.read_pickle(TM_cr_pickle)
+
+            # try:
+            #     logging.info(os.path.getmtime(f))
+            #     #df_cr = pd.read_pickle(f)
+            #     nonTMD_cr_outfile_pickle
+            # except (EOFError, ModuleNotFoundError, io.UnsupportedOperation) as e:
+            #     # pickle files created by an older version of python have compatibility issues
+            #     message = "{} is created by an older version of pandas and has been deleted".format(TM_cr_pickle)
+            #     logging.info(message)
+            #     os.remove(TM_cr_pickle)
+            #     return acc, False, message
+            #with open(TM_cr_pickle, 'rb') as f:
+               #df_cr = pickle.load(f)
 
             # check that it's definitely a dataframe
             assert isinstance(df_cr, (pd.DataFrame))
@@ -946,7 +970,8 @@ def truncation_filter(p):
         in_file = "{}_{}_cr_df_RAW.pickle".format(protein_name, TMD)
         # with zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED) as openzip:
         try:
-            df_cr = pickle.load(zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED).open(in_file, "r"))
+            #df_cr = pickle.load(zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED).open(in_file, "r"))
+            df_cr = pd.read_pickle(zipfile.ZipFile(in_zipfile, "r", zipfile.ZIP_DEFLATED))
             sys.stdout.write('{}, {}: ' .format(uniprot_acc, TMD))
             # filtering step
             df_cr = utils.filter_for_truncated_sequences(min_perc_nonTMD, df_cr)
