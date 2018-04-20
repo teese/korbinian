@@ -1491,6 +1491,12 @@ def create_colour_lists():
     output_dict['TUM_colours_list_with_greys'] = TUM_colours_list_with_greys
 
     output_dict['HTML_list01'] = ['#808080', '#D59460', '#005293', '#A1B11A', '#9ECEEC', '#0076B8', '#454545', "#7b3294", "#c2a5cf", "#008837", "#a6dba0"]
+
+
+    output_dict['BGO_rgb'] = [(0,93,151), (83,167,214),(158,206,236),(94,152,49),(105,190,158),(166,213,196),(238,119,4),(214,168,82)]
+
+    output_dict['BGO_arr'] = [np.array(x)/255 for x in output_dict['BGO_rgb']]
+
     return output_dict
 
 def savefig_if_necessary(savefig, fig, fig_nr, base_filepath, tight_layout = False, formats = ['png','pdf'], dpi = 400):

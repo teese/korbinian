@@ -121,6 +121,12 @@ def gather_AAIMONs(pathdict, logging, s):
         if not os.path.exists(df.loc[acc, 'homol_cr_ratios_zip']):
             logging.info("{} skipped. homol_cr_ratios_zip does not exist".format(acc))
             continue
+
+        if utils.file_is_old(df.loc[acc, 'homol_cr_ratios_zip'], s["oldest_acceptable_file_date"]):
+            os.remove(df.loc[acc, 'homol_cr_ratios_zip']),
+            logging.info("{} skipped, file is old and has been deleted".format(acc))
+            continue
+
         # open csv as pandas dataframe (note, it was originally a series, and contains only one column and an index)
         # set delete_corrupt=True so that if the expected csv is not in the zip, the wholezipfile will be deleted
         mean_ser_filename = "{}_cr_mean.csv".format(acc)

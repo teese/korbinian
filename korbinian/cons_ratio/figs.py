@@ -1829,133 +1829,140 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
             dfn = dfn.loc[dfn.n_prot >= min_n_prot]
 
-            # plot central
-            ax.plot(dfn.index, dfn.central_lipo_mean, color=c0, label="central TMs")
-            ax.errorbar(x=dfn.index, y=dfn.central_lipo_mean, yerr=np.array(dfn.central_lipo_sem),
-                        color=c0, capthick=1, elinewidth=1.5, capsize=3, label=None)
-            # plot first
-            ax.plot(dfn.index, dfn.TM01_lipo_mean, color=c1, label="TM01", linestyle="--")
-            ax.errorbar(x=dfn.index, y=dfn.TM01_lipo_mean, yerr=np.array(dfn.TM01_lipo_sem),
-                        color=c1, capthick=1, elinewidth=1.5, capsize=3, linestyle="--", label=None)
+            if not dfn.empty:
 
-            # plot last
-            ax.plot(dfn.index, dfn.last_lipo_mean, color=c2, label="last TM", linestyle=":", )
-            ax.errorbar(x=dfn.index, y=dfn.last_lipo_mean, yerr=np.array(dfn.last_lipo_sem),
-                        color=c2, capthick=1, elinewidth=1.5, capsize=3, linestyle=":", label=None)
+                # plot central
+                ax.plot(dfn.index, dfn.central_lipo_mean, color=c0, label="central TMs")
+                ax.errorbar(x=dfn.index, y=dfn.central_lipo_mean, yerr=np.array(dfn.central_lipo_sem),
+                            color=c0, capthick=1, elinewidth=1.5, capsize=3, label=None)
+                # plot first
+                ax.plot(dfn.index, dfn.TM01_lipo_mean, color=c1, label="TM01", linestyle="--")
+                ax.errorbar(x=dfn.index, y=dfn.TM01_lipo_mean, yerr=np.array(dfn.TM01_lipo_sem),
+                            color=c1, capthick=1, elinewidth=1.5, capsize=3, linestyle="--", label=None)
 
-            # plot number of proteins
-            ax2.plot(dfn.index, dfn.n_prot, color=cdict['TUM_oranges']["TUM0"], label="number of proteins")
-            ax2.grid(b=False)
-            ax2.set_ylabel("number of proteins", color=cdict['TUM_oranges']["TUM0"])
-            #ax2.legend(loc="upper right")
-            ax2.set_ylim(0, dfn.n_prot.max()*5)
-            ax2.spines["right"].set_color(cdict['TUM_oranges']["TUM0"])
-            ax2.yaxis.label.set_color(cdict['TUM_oranges']["TUM0"])
-            ax2.tick_params(axis="y", colors=cdict['TUM_oranges']["TUM0"])
+                # plot last
+                ax.plot(dfn.index, dfn.last_lipo_mean, color=c2, label="last TM", linestyle=":", )
+                ax.errorbar(x=dfn.index, y=dfn.last_lipo_mean, yerr=np.array(dfn.last_lipo_sem),
+                            color=c2, capthick=1, elinewidth=1.5, capsize=3, linestyle=":", label=None)
 
-            ax.set_xlabel("number of TM regions")
-            ax.set_ylabel("mean lipophilicity\n(Hessa scale)")
-            #ax.set_ylim(0.45, 0.75)
-            ax.set_xlim(dfn.index.min() - 1, dfn.index.max() + 1 + 1)
+                # plot number of proteins
+                ax2.plot(dfn.index, dfn.n_prot, color=cdict['TUM_oranges']["TUM0"], label="number of proteins")
+                ax2.grid(b=False)
+                ax2.set_ylabel("number of proteins", color=cdict['TUM_oranges']["TUM0"])
+                #ax2.legend(loc="upper right")
+                ylim_max = dfn.n_prot.max()
+                if not np.isnan(ylim_max):
+                    ax2.set_ylim(0, ylim_max * 5)
+                ax2.spines["right"].set_color(cdict['TUM_oranges']["TUM0"])
+                ax2.yaxis.label.set_color(cdict['TUM_oranges']["TUM0"])
+                ax2.tick_params(axis="y", colors=cdict['TUM_oranges']["TUM0"])
 
-            # add annotations
-            ax.annotate(s="TM more\nlipophilic", xy=(-0.15, 0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
-            ax.annotate(s="TM less\nlipophilic", xy=(-0.15, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+                ax.set_xlabel("number of TM regions")
+                ax.set_ylabel("mean lipophilicity\n(Hessa scale)")
+                #ax.set_ylim(0.45, 0.75)
+                if not np.isnan(ylim_max):
+                    ax.set_xlim(dfn.index.min() - 1, dfn.index.max() + 1 + 1)
 
-            ax.legend(frameon=True, loc="upper left")
-            #fig.tight_layout()
-            utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+                # add annotations
+                ax.annotate(s="TM more\nlipophilic", xy=(-0.15, 0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+                ax.annotate(s="TM less\nlipophilic", xy=(-0.15, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
 
-            ##################################################################
-            #                                                                #
-            #        linechart_AAIMON_slope_f_c_l_vs_number_of_TMDs          #
-            #                                                                #
-            ##################################################################
-            Fig_name = 'List{:02d}_Fig21b_linechart_AAIMON_slope_f_c_l_vs_number_of_TMDs'.format(list_number)
-            fig, ax = plt.subplots()
+                ax.legend(frameon=True, loc="upper left")
+                #fig.tight_layout()
+                utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-            # exclude GPCRs from multipass datasets
-            # NOTE: source of data is the merged cr_summary and list csv, filtered by sufficient homologues
-            if "GPCR" in df.columns:
-                df_filt = df.loc[df.GPCR == False]
-            else:
-                df_filt = df
+                ##################################################################
+                #                                                                #
+                #        linechart_AAIMON_slope_f_c_l_vs_number_of_TMDs          #
+                #                                                                #
+                ##################################################################
+                Fig_name = 'List{:02d}_Fig21b_linechart_AAIMON_slope_f_c_l_vs_number_of_TMDs'.format(list_number)
+                fig, ax = plt.subplots()
 
-            # for list 2, add the singlepass data to the analysis for this plot
-            if list_number == 2:
-                # limit columns to avoid errors from python lists during merging
-                df_list1_merged = df_list1_merged.loc[:, ["number_of_TMDs", "TM01_AAIMON_slope", "AAIMON_slope_central_TMDs", "AAIMON_slope_last_TMD"]]
-                df_list1_merged_shape = df_list1_merged.shape
-                df_filt = pd.merge(df_filt, df_list1_merged, how="outer")
-                #logging.info("{} proteins added from List01 for Figure 21, linechart_lipo_f_c_l_vs_number_of_TMDs".format(df_list1_merged.shape[0]))
+                # exclude GPCRs from multipass datasets
+                # NOTE: source of data is the merged cr_summary and list csv, filtered by sufficient homologues
+                if "GPCR" in df.columns:
+                    df_filt = df.loc[df.GPCR == False]
+                else:
+                    df_filt = df
 
-            if list_number == 31:
-                # limit columns to avoid errors from python lists during merging
-                df_list30_merged = df_list30_merged.loc[:, ["number_of_TMDs", "TM01_AAIMON_slope", "AAIMON_slope_central_TMDs", "AAIMON_slope_last_TMD"]]
-                df_list30_merged_shape = df_list30_merged.shape
-                df_filt = pd.merge(df_filt, df_list30_merged, how="outer")
+                # for list 2, add the singlepass data to the analysis for this plot
+                if list_number == 2:
+                    # limit columns to avoid errors from python lists during merging
+                    df_list1_merged = df_list1_merged.loc[:, ["number_of_TMDs", "TM01_AAIMON_slope", "AAIMON_slope_central_TMDs", "AAIMON_slope_last_TMD"]]
+                    df_list1_merged_shape = df_list1_merged.shape
+                    df_filt = pd.merge(df_filt, df_list1_merged, how="outer")
+                    #logging.info("{} proteins added from List01 for Figure 21, linechart_lipo_f_c_l_vs_number_of_TMDs".format(df_list1_merged.shape[0]))
 
-            dfn = pd.DataFrame()
-            for i in range(min_n_TMDs, max_num_TMDs_fig21):
-                # create a filtered selection with just that number of TMDs
-                dff = df_filt.loc[df_filt.number_of_TMDs == i]
-                dfn.loc[i, "TM01_AAIMON_slope_mean"] = dff["TM01_AAIMON_slope"].mean()*1000
-                dfn.loc[i, "TM01_AAIMON_slope_sem"] = scipy.stats.sem(dff["TM01_AAIMON_slope"])*1000
-                # lipo_mean_central_TMDs
-                dfn.loc[i, "central_AAIMON_slope_mean"] = dff["AAIMON_slope_central_TMDs"].mean()*1000
-                dfn.loc[i, "central_AAIMON_slope_sem"] = scipy.stats.sem(dff["AAIMON_slope_central_TMDs"])*1000
-                # last TM
-                dfn.loc[i, "last_AAIMON_slope_mean"] = dff["AAIMON_slope_last_TMD"].mean()*1000
-                dfn.loc[i, "last_AAIMON_slope_sem"] = scipy.stats.sem(dff["AAIMON_slope_last_TMD"])*1000
-                # number of proteins
-                dfn.loc[i, "n_prot"] = dff["AAIMON_slope_last_TMD"].dropna().shape[0]
+                if list_number == 31:
+                    # limit columns to avoid errors from python lists during merging
+                    df_list30_merged = df_list30_merged.loc[:, ["number_of_TMDs", "TM01_AAIMON_slope", "AAIMON_slope_central_TMDs", "AAIMON_slope_last_TMD"]]
+                    df_list30_merged_shape = df_list30_merged.shape
+                    df_filt = pd.merge(df_filt, df_list30_merged, how="outer")
 
-            dfn = dfn.loc[dfn.n_prot >= min_n_prot]
+                dfn = pd.DataFrame()
+                for i in range(min_n_TMDs, max_num_TMDs_fig21):
+                    # create a filtered selection with just that number of TMDs
+                    dff = df_filt.loc[df_filt.number_of_TMDs == i]
+                    dfn.loc[i, "TM01_AAIMON_slope_mean"] = dff["TM01_AAIMON_slope"].mean()*1000
+                    dfn.loc[i, "TM01_AAIMON_slope_sem"] = scipy.stats.sem(dff["TM01_AAIMON_slope"])*1000
+                    # lipo_mean_central_TMDs
+                    dfn.loc[i, "central_AAIMON_slope_mean"] = dff["AAIMON_slope_central_TMDs"].mean()*1000
+                    dfn.loc[i, "central_AAIMON_slope_sem"] = scipy.stats.sem(dff["AAIMON_slope_central_TMDs"])*1000
+                    # last TM
+                    dfn.loc[i, "last_AAIMON_slope_mean"] = dff["AAIMON_slope_last_TMD"].mean()*1000
+                    dfn.loc[i, "last_AAIMON_slope_sem"] = scipy.stats.sem(dff["AAIMON_slope_last_TMD"])*1000
+                    # number of proteins
+                    dfn.loc[i, "n_prot"] = dff["AAIMON_slope_last_TMD"].dropna().shape[0]
 
-            fig, ax = plt.subplots()
-            ax2 = ax.twinx()
-            fontsize = 8
-            c0 = "0.5"
-            c1 = cdict["TUM_colours"]["TUM1"]
-            c2 = cdict["TUM_colours"]["TUM2"]
-            # plot central
-            ax.plot(dfn.index, dfn.central_AAIMON_slope_mean, color=c0, label="central TMs")
-            ax.errorbar(x=dfn.index, y=dfn.central_AAIMON_slope_mean, yerr=np.array(dfn.central_AAIMON_slope_sem),
-                        color=c0, capthick=1, elinewidth=1.5, capsize=3, label=None)
-            # plot first
-            ax.plot(dfn.index, dfn.TM01_AAIMON_slope_mean, color=c1, label="TM01", linestyle="--")
-            ax.errorbar(x=dfn.index, y=dfn.TM01_AAIMON_slope_mean, yerr=np.array(dfn.TM01_AAIMON_slope_sem),
-                        color=c1, capthick=1, elinewidth=1.5, capsize=3, linestyle="--", label=None)
+                dfn = dfn.loc[dfn.n_prot >= min_n_prot]
 
-            # plot last
-            ax.plot(dfn.index, dfn.last_AAIMON_slope_mean, color=c2, label="last TM", linestyle=":", )
-            ax.errorbar(x=dfn.index, y=dfn.last_AAIMON_slope_mean, yerr=np.array(dfn.last_AAIMON_slope_sem),
-                        color=c2, capthick=1, elinewidth=1.5, capsize=3, linestyle=":", label=None)
+                if not dfn.empty:
 
-            # plot number of proteins
-            ax2.plot(dfn.index, dfn.n_prot, color=cdict['TUM_oranges']["TUM0"], label="number of proteins")
-            ax2.grid(b=False)
-            ax2.set_ylabel("number of proteins", color=cdict['TUM_oranges']["TUM0"])
-            #ax2.legend(loc="upper right")
-            ax2.set_ylim(0, dfn.n_prot.max()*5)
-            ax2.spines["right"].set_color(cdict['TUM_oranges']["TUM0"])
-            ax2.yaxis.label.set_color(cdict['TUM_oranges']["TUM0"])
-            ax2.tick_params(axis="y", colors=cdict['TUM_oranges']["TUM0"])
+                    fig, ax = plt.subplots()
+                    ax2 = ax.twinx()
+                    fontsize = 8
+                    c0 = "0.5"
+                    c1 = cdict["TUM_colours"]["TUM1"]
+                    c2 = cdict["TUM_colours"]["TUM2"]
+                    # plot central
+                    ax.plot(dfn.index, dfn.central_AAIMON_slope_mean, color=c0, label="central TMs")
+                    ax.errorbar(x=dfn.index, y=dfn.central_AAIMON_slope_mean, yerr=np.array(dfn.central_AAIMON_slope_sem),
+                                color=c0, capthick=1, elinewidth=1.5, capsize=3, label=None)
+                    # plot first
+                    ax.plot(dfn.index, dfn.TM01_AAIMON_slope_mean, color=c1, label="TM01", linestyle="--")
+                    ax.errorbar(x=dfn.index, y=dfn.TM01_AAIMON_slope_mean, yerr=np.array(dfn.TM01_AAIMON_slope_sem),
+                                color=c1, capthick=1, elinewidth=1.5, capsize=3, linestyle="--", label=None)
 
-            ax.set_xlabel("number of TM regions")
-            #ax.set_ylabel("m$_{\rm TM/EM} *10^{\rm -3}$")
-            ax.set_ylabel(r'm$_{\rm TM/EM} *10^{\rm -3}$', rotation='vertical', fontsize=fontsize + 3)
-            #ax.set_ylim(0.45, 0.75)
-            ax.set_xlim(dfn.index.min() - 1, dfn.index.max() + 1 + 1)
+                    # plot last
+                    ax.plot(dfn.index, dfn.last_AAIMON_slope_mean, color=c2, label="last TM", linestyle=":", )
+                    ax.errorbar(x=dfn.index, y=dfn.last_AAIMON_slope_mean, yerr=np.array(dfn.last_AAIMON_slope_sem),
+                                color=c2, capthick=1, elinewidth=1.5, capsize=3, linestyle=":", label=None)
 
-            # add annotations
-            ax.annotate(s="TM less\nconserved", xy=(-0.15, 0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
-            ax.annotate(s="TM more\nconserved", xy=(-0.15, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+                    # plot number of proteins
+                    ax2.plot(dfn.index, dfn.n_prot, color=cdict['TUM_oranges']["TUM0"], label="number of proteins")
+                    ax2.grid(b=False)
+                    ax2.set_ylabel("number of proteins", color=cdict['TUM_oranges']["TUM0"])
+                    #ax2.legend(loc="upper right")
+                    ax2.set_ylim(0, dfn.n_prot.max()*5)
+                    ax2.spines["right"].set_color(cdict['TUM_oranges']["TUM0"])
+                    ax2.yaxis.label.set_color(cdict['TUM_oranges']["TUM0"])
+                    ax2.tick_params(axis="y", colors=cdict['TUM_oranges']["TUM0"])
 
-            ax.legend(frameon=True, loc="upper left")
+                    ax.set_xlabel("number of TM regions")
+                    #ax.set_ylabel("m$_{\rm TM/EM} *10^{\rm -3}$")
+                    ax.set_ylabel(r'm$_{\rm TM/EM} *10^{\rm -3}$', rotation='vertical', fontsize=fontsize + 3)
+                    #ax.set_ylim(0.45, 0.75)
+                    ax.set_xlim(dfn.index.min() - 1, dfn.index.max() + 1 + 1)
 
-            #fig.tight_layout()
-            utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+                    # add annotations
+                    ax.annotate(s="TM less\nconserved", xy=(-0.15, 0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+                    ax.annotate(s="TM more\nconserved", xy=(-0.15, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+
+                    ax.legend(frameon=True, loc="upper left")
+
+                    #fig.tight_layout()
+                    utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
     if s["Fig22_multipass_linechart_f_c_l_cons_lipo_protein_subgroups"] and list_number == 2:
         if 'uniprot_KW' in df.columns and "uniprot_KW_for_analysis" in df.columns:

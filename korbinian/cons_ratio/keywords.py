@@ -33,6 +33,9 @@ def keyword_analysis(pathdict, s, logging):
     if df_list.shape[0] < s["min_n_proteins_in_list"]:
         return "~~~~~~~~~~~~           keyword_analysis skipped, only {} proteins in list            ~~~~~~~~~~~~".format(df_list.shape[0])
 
+    if utils.file_is_old(pathdict["list_cr_summary_csv"], s["oldest_acceptable_file_date"]):
+        raise ValueError("{} is too old for analysis".format(pathdict["list_cr_summary_csv"]))
+
     # load cr_summary file
     df_cr_summary = pd.read_csv(pathdict["list_cr_summary_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
     # merge cr_summary and summary file, if columns are equal in both files, suffix _dfc will be added in cr_summary column names for backwards compatibility
