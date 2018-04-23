@@ -12,6 +12,7 @@ import pickle
 import scipy
 import seaborn as sns
 import scipy.stats as stats
+import time
 import zipfile
 # import debugging tools
 from korbinian.utils import pr, pc, pn, aaa
@@ -78,11 +79,18 @@ def compare_lists (s, df_lists_tab):
     n_bins_lipo = 25
 
     # get a color list (HTML works best)
-    color_list = utils.create_colour_lists()['HTML_list01']
+    #color_list = utils.create_colour_lists()['HTML_list01']
+    color_list = utils.create_colour_lists()['BGO_arr']
+    color_list_dark = utils.create_colour_lists()['BGO_dark_arr']
 
     protein_lists = ast.literal_eval(s['protein_lists'])
     # number of protein lists
     n_prot_lists = len(protein_lists)
+
+    df_lists_tab = df_lists_tab.reindex(index=protein_lists)
+    df_lists_tab["color"] = color_list[0:n_prot_lists]
+    df_lists_tab["color_dark"] = color_list_dark[0:n_prot_lists]
+
     # initialise dataframe that hols all variables for every protein list
     dfv = pd.DataFrame(index=protein_lists)
     # get current date and time for folder name, join elements in protein_lists to string
@@ -115,64 +123,87 @@ def compare_lists (s, df_lists_tab):
     if not os.path.exists(base_filepath):
         os.makedirs(base_filepath)
 
-    # import datasets, load data and hold pandas dataframes in dictionary
-
-    df_dict = {}
     for n, prot_list in enumerate(protein_lists):
         # add the list description (also from the df_lists_tab)
         # this is legacy code : they could all be grabbed directly from df_lists_tab
-        dfv.loc[prot_list, 'list_description'] = df_lists_tab.loc[prot_list, 'list_description']
         dfv.loc[prot_list, 'list_csv'] = os.path.join(s["data_dir"], "summaries", '%02d' % prot_list, 'List%02d.csv' % prot_list)
         dfv.loc[prot_list, 'cr_summary_csv'] = os.path.join(s["data_dir"], "summaries", '%02d' % prot_list, 'List%02d_cr_summary.csv' % prot_list)
         dfv.loc[prot_list, 'compare_dir'] = base_filepath
-        dfv.loc[prot_list, 'color'] = color_list[n]
 
-        # read list summary.csv and cr_summary.csv from disk, join them to one big dataframe
-        df_list = pd.read_csv(dfv.loc[prot_list, 'list_csv'], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
-        df_cr_summ = pd.read_csv(dfv.loc[prot_list, 'cr_summary_csv'], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
-        df_merged = pd.merge(df_list, df_cr_summ, left_index=True, right_index=True, suffixes=('_dfy', ''))
-        # count proteins before and after dropping proteins with less than x homologues (x from settings file "lists"), drop proteins
-        proteins_before_dropping = len(df_merged)
-        # only keep proteins where an AAIMON_mean_all_TM_res has been calculated
-        df_merged = df_merged[np.isfinite(df_merged['AAIMON_mean_all_TM_res'])]
-        # only keep proteins where there is a minimum number of homologues
-        df_merged = df_merged[df_merged.AAIMON_n_homol >= df_lists_tab.loc[prot_list, 'min_homol']]
-        proteins_after_dropping = len(df_merged)
-        sys.stdout.write('List{:02} - {}: {} proteins ({}/{} dropped)\n'.format(prot_list, df_lists_tab.loc[prot_list,'list_description'], proteins_after_dropping,
-                                                                                proteins_before_dropping - proteins_after_dropping, proteins_before_dropping))
-        # make list of TMDs a python list
-        df_merged.list_of_TMDs = df_merged.list_of_TMDs.apply(lambda x: ast.literal_eval(x))
-
-        # SHIFTED TO prepare_protein_list
-        # # check for uniprot keywords, make them a python list and search for GPCRs to exclude them later
-        # if 'uniprot_KW' in df_merged.columns:
-        #     df_merged['uniprot_KW'] = df_merged['uniprot_KW'].apply(lambda x: ast.literal_eval(x))
-        #     df_merged['GPCR'] = df_merged['uniprot_KW'].apply(KW_list_contains_any_desired_KW, args=(['G-protein coupled receptor'],))
-        # else:
-        #     df_merged['GPCR'] = False
-
-        # SHIFTED TO GATHER
-        # if not 'AAIMON_slope_central_TMDs' in df_merged.columns:
-        #     for acc in df_merged.index:
-        #         if df_merged.loc[acc, 'number_of_TMDs'] >= 3:
-        #             list_of_central_TMDs = df_merged.loc[acc, 'list_of_TMDs'][1:-1]
-        #             list_mean_slope_central_TMDs = []
-        #             for TMD in list_of_central_TMDs:
-        #                 list_mean_slope_central_TMDs.append(pd.to_numeric(df_merged.loc[acc, '%s_AAIMON_slope' % TMD]))
-        #             df_merged.loc[acc, 'AAIMON_slope_central_TMDs'] = np.mean(list_mean_slope_central_TMDs)
-        # add dataframe to a dictionary of dataframes
-        df_dict[prot_list] = df_merged
-
-    # save the large df_dict as a pickle in the output folder
     df_dict_pickle_path = os.path.join(base_filepath, "df_dict.pickle")
-    with open(df_dict_pickle_path, "wb") as pkl:
-        pickle.dump(df_dict, pkl, protocol=pickle.HIGHEST_PROTOCOL)
+    if os.path.isfile(df_dict_pickle_path):
+        yesterday = time.time() - 60 * 60 * 24
+        file_mtime = os.path.getmtime(df_dict_pickle_path)
+        file_is_old = file_mtime < yesterday
+    else:
+        file_is_old = False
+
+    if s["regenerate_df_dict_with_data_for_compare_lists"] or file_is_old:
+        # import datasets, load data and hold pandas dataframes in dictionary
+        df_dict = {}
+        for n, prot_list in enumerate(protein_lists):
+            # # add the list description (also from the df_lists_tab)
+            # # this is legacy code : they could all be grabbed directly from df_lists_tab
+            # dfv.loc[prot_list, 'list_description'] = df_lists_tab.loc[prot_list, 'list_description']
+            # dfv.loc[prot_list, 'list_csv'] = os.path.join(s["data_dir"], "summaries", '%02d' % prot_list, 'List%02d.csv' % prot_list)
+            # dfv.loc[prot_list, 'cr_summary_csv'] = os.path.join(s["data_dir"], "summaries", '%02d' % prot_list, 'List%02d_cr_summary.csv' % prot_list)
+            # dfv.loc[prot_list, 'compare_dir'] = base_filepath
+            # dfv.loc[prot_list, 'color'] = color_list[n]
+
+            # read list summary.csv and cr_summary.csv from disk, join them to one big dataframe
+            df_list = pd.read_csv(dfv.loc[prot_list, 'list_csv'], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
+            df_cr_summ = pd.read_csv(dfv.loc[prot_list, 'cr_summary_csv'], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
+            df_merged = pd.merge(df_list, df_cr_summ, left_index=True, right_index=True, suffixes=('_dfy', ''))
+            # count proteins before and after dropping proteins with less than x homologues (x from settings file "lists"), drop proteins
+            proteins_before_dropping = len(df_merged)
+            # only keep proteins where an AAIMON_mean_all_TM_res has been calculated
+            df_merged = df_merged[np.isfinite(df_merged['AAIMON_mean_all_TM_res'])]
+            # only keep proteins where there is a minimum number of homologues
+            df_merged = df_merged[df_merged.AAIMON_n_homol >= df_lists_tab.loc[prot_list, 'min_homol']]
+            proteins_after_dropping = len(df_merged)
+            sys.stdout.write('List{:02} - {}: {} proteins ({}/{} dropped)\n'.format(prot_list, df_lists_tab.loc[prot_list,'list_description'], proteins_after_dropping,
+                                                                                    proteins_before_dropping - proteins_after_dropping, proteins_before_dropping))
+            # make list of TMDs a python list
+            df_merged.list_of_TMDs = df_merged.list_of_TMDs.apply(lambda x: ast.literal_eval(x))
+
+            # SHIFTED TO prepare_protein_list
+            # # check for uniprot keywords, make them a python list and search for GPCRs to exclude them later
+            # if 'uniprot_KW' in df_merged.columns:
+            #     df_merged['uniprot_KW'] = df_merged['uniprot_KW'].apply(lambda x: ast.literal_eval(x))
+            #     df_merged['GPCR'] = df_merged['uniprot_KW'].apply(KW_list_contains_any_desired_KW, args=(['G-protein coupled receptor'],))
+            # else:
+            #     df_merged['GPCR'] = False
+
+            # SHIFTED TO GATHER
+            # if not 'AAIMON_slope_central_TMDs' in df_merged.columns:
+            #     for acc in df_merged.index:
+            #         if df_merged.loc[acc, 'number_of_TMDs'] >= 3:
+            #             list_of_central_TMDs = df_merged.loc[acc, 'list_of_TMDs'][1:-1]
+            #             list_mean_slope_central_TMDs = []
+            #             for TMD in list_of_central_TMDs:
+            #                 list_mean_slope_central_TMDs.append(pd.to_numeric(df_merged.loc[acc, '%s_AAIMON_slope' % TMD]))
+            #             df_merged.loc[acc, 'AAIMON_slope_central_TMDs'] = np.mean(list_mean_slope_central_TMDs)
+            # add dataframe to a dictionary of dataframes
+            df_dict[prot_list] = df_merged
+
+        # save the large df_dict as a pickle in the output folder
+        with open(df_dict_pickle_path, "wb") as pkl:
+            pickle.dump(df_dict, pkl, protocol=pickle.HIGHEST_PROTOCOL)
+
+    else:
+        list_str = "-".join([str(i) for i in sorted(protein_lists)])
+        df_dict_pickle = r"D:\Databases\compare_lists\Lists-{}\df_dict.pickle".format(list_str)
+        with open(df_dict_pickle, "rb") as pkl:
+            df_dict = pickle.load(pkl)
+
+    list_descriptions = df_lists_tab.loc[protein_lists, 'list_description']
 
     # check if structure data is plotted -> changed bins due to reduced number of proteins
     reduce_bins = False
     # iterate through "singlepass", "multipass", etc
     for element in df_lists_tab.loc[protein_lists, "list_description"]:
-        if 'STR' in element[:3]:
+        #if 'STR' in element[:3]:
+        if "crystal" in element:
             reduce_bins = True
     if reduce_bins == True:
         n_bins_cons = 20
@@ -213,7 +244,7 @@ def compare_lists (s, df_lists_tab):
             offset = len(protein_lists) - 1
 
             for prot_list in protein_lists:
-                color = dfv.loc[prot_list, 'color']
+                color = df_lists_tab.loc[prot_list, 'color']
                 ###   non-normalised AAIMON   ###
                 # create numpy array of membranous over nonmembranous conservation ratios (identity)
                 hist_data = np.array(df_dict[prot_list]['AAIMON_mean_all_TM_res'])
@@ -327,7 +358,7 @@ def compare_lists (s, df_lists_tab):
         for prot_list in protein_lists:
             offset = offset_dict[prot_list]
             label = df_lists_tab.loc[prot_list, 'list_description']
-            color = dfv.loc[prot_list, 'color']
+            color = df_lists_tab.loc[prot_list, 'color']
             ###   non-normalised AAIMON   ###
             # create numpy array of membranous over nonmembranous conservation ratios (identity)
             hist_data = np.array(df_dict[prot_list]['AAIMON_mean_all_TM_res'])
@@ -404,7 +435,7 @@ def compare_lists (s, df_lists_tab):
 
             for prot_list in protein_lists:
                 offset = offset_dict[prot_list]
-                color = dfv.loc[prot_list, 'color']
+                color = df_lists_tab.loc[prot_list, 'color']
                 ###   non-normalised AAIMON   ###
                 # create numpy array of membranous over nonmembranous conservation ratios (identity)
                 hist_data = np.array(df_dict[prot_list]['AAIMON_slope_all_TM_res']*1000)
@@ -516,7 +547,7 @@ def compare_lists (s, df_lists_tab):
         for prot_list in protein_lists:
             offset = offset_dict[prot_list]
             label = df_lists_tab.loc[prot_list, 'list_description']
-            color = dfv.loc[prot_list, 'color']
+            color = df_lists_tab.loc[prot_list, 'color']
             ###   non-normalised AAIMON   ###
             # create numpy array of membranous over nonmembranous conservation ratios (identity)
             hist_data = np.array(df_dict[prot_list]['AAIMON_slope_all_TM_res'] * 1000)
@@ -590,7 +621,7 @@ def compare_lists (s, df_lists_tab):
         offset = len(protein_lists) - 1
 
         for prot_list in protein_lists:
-            color = dfv.loc[prot_list, 'color']
+            color = df_lists_tab.loc[prot_list, 'color']
             ###   non-normalised AAIMON   ###
             # create numpy array of membranous over nonmembranous conservation ratios (identity)
             # hist_data = np.array(df_dict[prot_list]['nonTMD_SW_align_len_excl_gaps_mean'])
@@ -677,7 +708,7 @@ def compare_lists (s, df_lists_tab):
         offset = len(protein_lists) - 1
 
         for prot_list in protein_lists:
-            color = dfv.loc[prot_list, 'color']
+            color = df_lists_tab.loc[prot_list, 'color']
             ###   non-normalised AAIMON   ###
             # create numpy array of membranous over nonmembranous conservation ratios (identity)
             # hist_data = np.array(df_dict[prot_list]['nonTMD_SW_align_len_excl_gaps_mean'])
@@ -757,7 +788,7 @@ def compare_lists (s, df_lists_tab):
         offset = len(protein_lists) - 1
 
         for prot_list in protein_lists:
-            color = dfv.loc[prot_list, 'color']
+            color = df_lists_tab.loc[prot_list, 'color']
             ###   non-normalised AAIMON   ###
             # create numpy array of membranous over nonmembranous conservation ratios (identity)
             # hist_data = np.array(df_dict[prot_list]['nonTMD_SW_align_len_excl_gaps_mean'])
@@ -854,10 +885,12 @@ def compare_lists (s, df_lists_tab):
         fig, (ax, ax1) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [6, 1]})
 
         for n, prot_list in enumerate(protein_lists):
-            color = dfv.loc[prot_list, 'color']
+            color = df_lists_tab.loc[prot_list, 'color']
             n_of_homologues = sum(df_dict[prot_list]['AAIMON_n_homol'])
             sys.stdout.write('number of homologues {}: {:.0f}\n'.format(df_lists_tab.loc[prot_list, 'list_description'], n_of_homologues))
-            ax1.bar(n + 1, n_of_homologues / 100000, width=0.75, align='center', color=dfv.loc[prot_list, 'color'], edgecolor='')
+            #ax1.bar(n + 1, n_of_homologues / 100000, width=0.75, align='center', color=df_lists_tab.loc[prot_list, 'color'], edgecolor='')
+            # IMPORTANT: barchart plots n_of_homologues /1000 (x 10^-3)
+            ax1.bar(n + 1, n_of_homologues / 1000, width=0.75, align='center', color=df_lists_tab.loc[prot_list, 'color'], edgecolor='')
 
             ###   non-normalised AAIMON   ###
             # create numpy array of membranous over nonmembranous conservation ratios (identity)
@@ -884,7 +917,10 @@ def compare_lists (s, df_lists_tab):
             #        annotate the mean values on the plots                #
             #                                                             #
             ###############################################################
-            ax.annotate("mean: {: >7.02f}".format(AAIMON_n_homol_mean), [0.8, 0.1*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+            if n_prot_lists == 3:
+                ax.annotate("mean: {: >7.02f}".format(AAIMON_n_homol_mean), [0.8, 0.1*ysh+ysh*offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
+            else:
+                ax.annotate("mean:{: >4.0f}".format(AAIMON_n_homol_mean), [0.8, 0.4 * ysh + ysh * offset], fontsize=anno_fontsize, fontproperties="monospace", color=color, xycoords=xyc, weight="semibold")
 
             offset = offset - 1
 
@@ -894,7 +930,7 @@ def compare_lists (s, df_lists_tab):
         #                                                             #
         ###############################################################
 
-        ax.set_xlabel('number of valid homologues $*10^3$ (note: unequal bins)', fontsize=fontsize)
+        ax.set_xlabel('number of valid homologues (note: unequal bins)', fontsize=fontsize)# $*10^3$
         # move the x-axis label closer to the x-axis
         ax.xaxis.set_label_coords(0.5, -0.085)
         # x and y axes min and max
@@ -916,16 +952,23 @@ def compare_lists (s, df_lists_tab):
         ax.xaxis.get_majorticklocs()
         list_xticks = np.arange(xlim_min, xlim_max + 1, 200)
         list_xticks[-4:] = range(2000, 5001, 1000)
-        ax.set_xticklabels((list_xticks) / 1000)
+        #ax.set_xticklabels((list_xticks) / 1000)
+        ax.set_xticklabels(list_xticks)
 
         ax1.yaxis.tick_right()
-        ax1.set_ylabel('total number of valid homologues $*10^5$', fontsize=fontsize)
+        ax1.set_ylabel('number of valid homologues in entire dataset ($*10^3$)', fontsize=fontsize)
+        #ax1.tick_params(axis='y', pad=-11)
         ax1.tick_params(labelsize=fontsize)
         ax1.yaxis.set_label_position("right")
         # ax1.xaxis.set_ticks(range(1, len(df_dict) + 1, 1))
         ax1.set_xticklabels([])
+        #ax1.set_yticklabels(ax.get_yticks() / 1000)
         plt.subplots_adjust(wspace=0.05, hspace=0)
 
+        ax1.grid(axis="x", b=False)
+        ax.grid(axis="x", b=False)
+
+        create_legend = False
         if create_legend:
             # Get artists and labels for legend and chose which ones to display
             handles, labels = ax.get_legend_handles_labels()
@@ -961,7 +1004,7 @@ def compare_lists (s, df_lists_tab):
         offset = len(protein_lists) - 1
 
         for prot_list in protein_lists:
-            color = dfv.loc[prot_list, 'color']
+            color = df_lists_tab.loc[prot_list, 'color']
             is_multipass = True if df_lists_tab.loc[prot_list, "max_TMDs"] > 2 else False
 
             ###   TM01 lipo   ###
@@ -1099,7 +1142,7 @@ def compare_lists (s, df_lists_tab):
         offset = len(protein_lists) - 1
 
         for prot_list in protein_lists:
-            color = dfv.loc[prot_list, 'color']
+            color = df_lists_tab.loc[prot_list, 'color']
             ###   non-normalised AAIMON   ###
             # create numpy array of membranous over nonmembranous conservation ratios (identity)
             hist_data = np.array(df_dict[prot_list]['perc_TMD'])
@@ -1114,7 +1157,7 @@ def compare_lists (s, df_lists_tab):
             # add the final bin, which is physically located just after the last regular bin but represents all higher values
             bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
             centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-            linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=dfv.loc[prot_list, 'color'],
+            linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, color=df_lists_tab.loc[prot_list, 'color'],
                                                 alpha=alpha, linewidth=linewidth,
                                                 label=df_lists_tab.loc[prot_list, 'list_description'])
 
@@ -1190,7 +1233,7 @@ def compare_lists (s, df_lists_tab):
         #         df_dict[prot_list].loc[acc, 'TMD_len_mean'] = np.mean(list_TMD_lenghts)
 
         for prot_list in protein_lists:
-            color = dfv.loc[prot_list, 'color']
+            color = df_lists_tab.loc[prot_list, 'color']
             # collect length data for all TMDs individually
             data = df_dict[prot_list]
             list_len_TMDs = []
@@ -1314,11 +1357,11 @@ def compare_lists (s, df_lists_tab):
 
             # plot that section of the graph, from beginning to where values are high
             # convert to array to avoid auto legend)
-            ax.plot(df_norm["perc_aa_sub"][:index_max]*100, np.array(df_norm["norm"][:index_max]), color=dfv.loc[prot_list, 'color'],
+            ax.plot(df_norm["perc_aa_sub"][:index_max]*100, np.array(df_norm["norm"][:index_max]), color=df_lists_tab.loc[prot_list, 'color'],
                     alpha=alpha, linewidth=linewidth,
                     label=None)
             # plot that section of the graph, from most negative value until the end
-            ax.plot(df_norm["perc_aa_sub"][index_min:]*100, np.array(df_norm["norm"][index_min:]), color=dfv.loc[prot_list, 'color'],
+            ax.plot(df_norm["perc_aa_sub"][index_min:]*100, np.array(df_norm["norm"][index_min:]), color=df_lists_tab.loc[prot_list, 'color'],
                     alpha=alpha, linewidth=linewidth, label=label)
 
         ###############################################################
@@ -1404,16 +1447,22 @@ def compare_lists (s, df_lists_tab):
         # indices (position of bar) are at 0.1, 1.1, 2.1
         ind = np.arange(len(x)) + 0.1
         # create bar for the rand_TM
-        ax.bar(ind, TM_perc_LIVFA_for_each_dataset_ser*100, width, color=color_list[:len(x)], alpha=0.9, label="TM")#color=color_list[2]
+        ax.bar(ind, TM_perc_LIVFA_for_each_dataset_ser*100, width, color=color_list_dark[:len(x)], alpha=1, label="TM")#color=color_list[2]
         # create bar for the rand_nonTM
-        ax.bar(ind + width, nonTM_perc_LIVFA_for_each_dataset_ser*100, width, color=color_list[:len(x)], alpha=0.5, label="nonTM")
+        ax.bar(ind + width, nonTM_perc_LIVFA_for_each_dataset_ser*100, width, color=color_list[:len(x)], alpha=1, label="nonTM")
         # put labels in between bars
         ax.set_xticks(ind + width)
         # extract list names
-        x_labels = dfv.loc[protein_lists, 'list_description']
-        ax.set_xticklabels(x_labels, rotation=45)
-        ax.set_xlim(0, ind[-1]+ width*2.4)
+        x_labels = df_lists_tab.loc[protein_lists, 'list_description']
+        ax.set_xticklabels(x_labels, rotation=45, ha="right")
+
+        if n_prot_lists == 3:
+            ax.set_xlim(0, ind[-1]+ width*2.4)
+        else:
+            ax.set_xlim(-0.4, ind[-1] + width * 2.4)
         ax.legend(frameon=True)
+        # turn off vertical grid
+        ax.grid(axis="x", b=False)
         ax.set_ylabel("percent lipophilic residues (LIVFA)")
 
         ########################################################################################
@@ -1430,15 +1479,18 @@ def compare_lists (s, df_lists_tab):
         # indices (position of bar) are at 0.1, 1.1, 2.1
         ind = np.arange(len(x)) + 0.1
         # create bar for the rand_TM
-        ax2.bar(ind, df_rand.rand_TM, width, color=color_list[:len(x)], alpha=1, label="TM")#color=color_list[2]
+        ax2.bar(ind, df_rand.rand_TM, width, color=color_list_dark[:len(x)], alpha=1, label="TM")#color=color_list[2]
         # create bar for the rand_nonTM
-        ax2.bar(ind + width, df_rand.rand_nonTM, width, color=color_list[:len(x)], alpha=0.5, label="nonTM")
+        ax2.bar(ind + width, df_rand.rand_nonTM, width, color=color_list[:len(x)], alpha=1, label="nonTM")
         # put labels in between bars
         ax2.set_xticks(ind + width)
         # extract list names
-        x_labels = dfv.loc[protein_lists, 'list_description']
-        ax2.set_xticklabels(x_labels)
-        ax2.legend()
+        x_labels = df_lists_tab.loc[protein_lists, 'list_description']
+        ax2.set_xticklabels(x_labels, rotation=45, ha="right")
+        #ax2.set_xticklabels(x_labels)
+        # turn off vertical grid
+        ax2.grid(axis="x", b=False)
+        ax2.legend(frameon=True)
         ax2.set_ylabel("random identity")
 
         fig.tight_layout()
@@ -1546,7 +1598,7 @@ def compare_lists (s, df_lists_tab):
                 # CREATE a boolean for singlepass and multipass
                 is_multipass = True if df_lists_tab.loc[prot_list, "max_TMDs"] > 2 else False
 
-                color = dfv.loc[prot_list, 'color']
+                color = df_lists_tab.loc[prot_list, 'color']
 
                 ###   lipo TM01   ###
                 # create numpy array of membranous over nonmembranous conservation ratios (identity)
@@ -1589,21 +1641,25 @@ def compare_lists (s, df_lists_tab):
                     ###   last TM lipo   ###
                     # create numpy array of membranous over nonmembranous conservation ratios (identity)
                     hist_data = np.array(df_filt['lipo_last_TMD'].dropna())
-                    # get the mean value for annotations
-                    mean_lipo_last = hist_data.mean()
-                    # use numpy to create a histogram
-                    freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
-                    freq_counts_normalised = freq_counts / freq_counts.max() + offset
-                    # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
-                    col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
-                    # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
-                    centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
-                    # add the final bin, which is physically located just after the last regular bin but represents all higher values
-                    bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-                    centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
-                    linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, ':', color=color,
-                                                        alpha=alpha,
-                                                        linewidth=linewidth)
+
+                    if hist_data.shape[0] != 0:
+                        # get the mean value for annotations
+                        mean_lipo_last = hist_data.mean()
+                        # use numpy to create a histogram
+                        freq_counts, bin_array = np.histogram(hist_data, bins=binlist)
+                        freq_counts_normalised = freq_counts / freq_counts.max() + offset
+                        # assuming all of the bins are exactly the same size, make the width of the column equal to XX% (e.g. 95%) of each bin
+                        col_width = float('%0.3f' % (0.95 * (bin_array[1] - bin_array[0])))
+                        # when align='center', the central point of the bar in the x-axis is simply the middle of the bins ((bin_0-bin_1)/2, etc)
+                        centre_of_bar_in_x_axis = (bin_array[:-2] + bin_array[1:-1]) / 2
+                        # add the final bin, which is physically located just after the last regular bin but represents all higher values
+                        bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
+                        centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
+                        linecontainer_AAIMON_mean = ax.plot(centre_of_bar_in_x_axis, freq_counts_normalised, ':', color=color,
+                                                            alpha=alpha,
+                                                            linewidth=linewidth)
+                    else:
+                        sys.stdout.write("{} hist_data is empty".format(prot_list))
 
                 ###############################################################
                 #                                                             #
@@ -1715,7 +1771,7 @@ def compare_lists (s, df_lists_tab):
 
             is_multipass = True if df_lists_tab.loc[prot_list, "max_TMDs"] > 2 else False
 
-            color = dfv.loc[prot_list, 'color']
+            color = df_lists_tab.loc[prot_list, 'color']
 
             ###   AAIMON_slope TM01   ###
             # create numpy array of membranous over nonmembranous conservation ratios (identity)
@@ -1889,7 +1945,7 @@ def compare_lists (s, df_lists_tab):
             im = ax.imshow(np.flipud(hh.T), cmap='Oranges', extent=np.array(xyrange).flatten(),
                            interpolation='none', origin='upper', aspect='equal', vmin=1, vmax=vmax)
 
-            ax.annotate(df_lists_tab.loc[prot_list, 'list_description'], xy=(3, 90), color=dfv.loc[prot_list, 'color'], fontsize=10)
+            ax.annotate(df_lists_tab.loc[prot_list, 'list_description'], xy=(3, 90), color=df_lists_tab.loc[prot_list, 'color'], fontsize=10)
             ax.tick_params(labelsize=10)
             ax.annotate('TMD less conserved', xy=(1, 7), rotation=90, fontsize=8, ha='left', va='bottom')
             ax.annotate('TMD more conserved', xy=(7, 1), rotation=0, fontsize=8, ha='left', va='bottom')
@@ -1951,8 +2007,8 @@ def compare_lists (s, df_lists_tab):
                         hist_data_norm = hist_data / hist_data.max()
                         bins = df_GPCR.number_of_TMDs_excl_SP.value_counts().index
 
-                        ax.bar(bins, hist_data_norm, align='center', color=dfv.loc[prot_list, 'color'])
-                        ax.annotate(df_lists_tab.loc[prot_list, 'list_description'], xy=(0.5, 1.05), color=dfv.loc[prot_list, 'color'], fontsize=fontsize - 2)
+                        ax.bar(bins, hist_data_norm, align='center', color=df_lists_tab.loc[prot_list, 'color'])
+                        ax.annotate(df_lists_tab.loc[prot_list, 'list_description'], xy=(0.5, 1.05), color=df_lists_tab.loc[prot_list, 'color'], fontsize=fontsize - 2)
                         ax.annotate('only GPCRs\nn = {}'.format(len(df_GPCR)), xy=(0.5, 0.80), fontsize=fontsize - 2, alpha=0.5)
 
                 plt.tight_layout()
@@ -2045,7 +2101,11 @@ def compare_lists (s, df_lists_tab):
             compare_enzyme = False
         protein_lists_KW = []
         df = pd.DataFrame(index=dfv.index)
-        df['list_description'] = dfv['list_description']
+        #df['list_description'] = dfv['list_description']
+        df['list_description'] = list_descriptions
+        df['color'] = color_list[0:n_prot_lists]
+        df['color dark'] = color_list_dark[0:n_prot_lists]
+
         for n, prot_list in enumerate(protein_lists):
             # skip lists that don't contain uniprot_KW
             if not 'uniprot_KW' in df_dict[prot_list].columns:
@@ -2065,27 +2125,52 @@ def compare_lists (s, df_lists_tab):
 
         df = df.set_index(['list_description']).dropna().T
 
-        if protein_lists_KW != []:
-            fig, ax = plt.subplots()
-            n = len(protein_lists_KW)
-            # width of bar
-            width = 0.8 / n
-            # indices (position of bar)
-            ind = np.arange(df.shape[0])
-            for m, prot_list in enumerate(protein_lists_KW):
-                list_description = df_lists_tab.loc[prot_list, 'list_description']
-                ind_for_list = ind + width * m
-                ax.bar(ind_for_list, df[list_description], width=width, color=dfv.loc[prot_list, 'color'], label=df_lists_tab.loc[prot_list, 'list_description'], edgecolor='k')
-            xtick_locations = ind + width# / 2  # - n/2*width
-            ax.set_xticks(xtick_locations)
-            label = [element.replace('_', '\n') for element in df.index]
-            ax.set_xticklabels(label, rotation=0)
-            ax.tick_params(labelsize=fontsize, pad=3)
-            ax.set_ylabel('% of dataset', fontsize=fontsize)
-            ax.legend(frameon=True, fontsize=fontsize)
+        if "G-protein_coupled_receptor" in df.index:
+            df.drop("G-protein_coupled_receptor", axis=0, inplace=True)
+            sys.stdout.write("G-protein_coupled_receptor dropped from KW analysis")
 
-            plt.tight_layout()
-            utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
+        df.index = df.index.str.replace("_", "\n")
+
+        print(df.head())
+        aaa(df)
+
+        if protein_lists_KW != []:
+            manual = False
+            if manual:
+                fig, ax = plt.subplots()
+                n = len(protein_lists_KW)
+                # width of bar
+                width = 0.7 / n
+                # indices (position of bar)
+                ind = np.arange(df.shape[0])
+                for m, prot_list in enumerate(protein_lists_KW):
+                    list_description = df_lists_tab.loc[prot_list, 'list_description']
+                    ind_for_list = ind + width * m
+                    ax.bar(ind_for_list, df[list_description], width=width, color=df_lists_tab.loc[prot_list, 'color'], label=df_lists_tab.loc[prot_list, 'list_description'],
+                           edgecolor=df_lists_tab.loc[prot_list, 'color_dark'])
+                    print(m, prot_list)
+                xtick_locations = ind + width# / 2  # - n/2*width
+                ax.set_xticks(xtick_locations)
+                label = [element.replace('_', '\n') for element in df.index]
+                ax.set_xticklabels(label, rotation=0, ha="center")
+                ax.tick_params(labelsize=fontsize, pad=3)
+                ax.set_ylabel('% of dataset', fontsize=fontsize)
+                ax.legend(frameon=True, fontsize=fontsize)
+                plt.tight_layout()
+                utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
+
+            else:
+                fig, ax = plt.subplots()
+                df_to_plot = df.iloc[2:,:]
+                df_to_plot.plot(kind="bar", ax=ax, color=df.loc["color", :], width=0.7)#, edgecolor=df.loc["color dark", :]
+                ax.set_xticklabels(df_to_plot.index, rotation=0)
+                ax.legend(frameon=True, fontsize=fontsize)
+                ax.grid(axis="x", b=False)
+                ax.set_ylabel('percentage of dataset', fontsize=fontsize)
+                plt.tight_layout()
+                utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
+
+
         else:
             sys.stdout.write('no uniprot keywords found, {} cannot be processed!'. format(Fig_name))
 
@@ -2126,7 +2211,8 @@ def compare_lists (s, df_lists_tab):
             else:
                 label = None
             # for the normalised data, create a bar that is lighter than the original data
-            lighter_colour = np.array(utils.HTMLColorToRGB(color_list[n]))/255 + 0.2
+            #lighter_colour = np.array(utils.HTMLColorToRGB(color_list[n]))/255 + 0.2
+            lighter_colour = color_list[n] + 0.2
             # replace all values above 1 with 1
             lighter_colour[lighter_colour > 1] = 1
             ax.bar(n + 0.2, mean_slope_n, color=lighter_colour, width=width, align="center", label=label)  # , yerr=std_slope , alpha=0.4
@@ -2137,7 +2223,7 @@ def compare_lists (s, df_lists_tab):
         ax.set_xlim(0.5, len(protein_lists) + 0.5)
         # set custom x-axis ticks and labels
         ax.set_xticks(range(1, len(protein_lists) + 1))
-        ax.set_xticklabels(dfv.list_description, fontsize=fontsize)
+        ax.set_xticklabels(df_lists_tab.list_description, fontsize=fontsize)
         # set y-axis label
         ax.set_ylabel(r'mean m$_{\rm TM/EM} *10^{\rm -3}$', fontsize=fontsize)
         # set y-limits - can be changed to fit purposes
@@ -2204,6 +2290,123 @@ def compare_lists (s, df_lists_tab):
 
         #ax.autoscale_view(tight=True, scalex=True, scaley=True)
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
+
+    # ---------------------------------------------------------------------------------------------------------------------------------#
+    def create_boxplot(col, ylabel, df_dict, protein_lists, list_descriptions, mult=1, add_xlabel=False, log=False, sym="o"):
+        colors = korbinian.utils.create_colour_lists()['BGO_arr']
+        darker_colors = [utils.darken_or_lighten(c, -0.33) for c in colors]
+        # colors = [tuple(c) for c in colors]
+        double_colors = []
+        for i in darker_colors:
+            double_colors.extend([i, i])
+
+        nested_data = []
+        for n in protein_lists:
+            dft = df_dict[n]
+            # multiply by a value?
+            data = dft[col] * mult
+            nested_data.append(data.tolist())
+        plt.close("all")
+        fig, ax = plt.subplots(figsize=(5, 5))
+        meanpointprops = dict(marker='.', markerfacecolor='k', markeredgecolor="k", markersize=4)
+        boxplotcontainer = ax.boxplot(nested_data, showmeans=True, meanprops=meanpointprops, patch_artist=True,
+                                      notch=True, bootstrap=2000, widths=0.7)
+        ax.set_ylabel(ylabel)
+        if add_xlabel:
+            #ax.set_xticklabels(df.name, rotation=90)
+            ax.set_xticklabels(list_descriptions, rotation=90)
+
+        # ax.grid(False)
+        if log:
+            ax.set_yscale('log')
+        # fill with colors
+        # colors = color_list*3
+
+        for n, patch in enumerate(boxplotcontainer["boxes"]):
+            # fc = darker_colors[n]
+            # lighter_colour = np.array(korbinian.utils.HTMLColorToRGB(fc))/255 + 0.3
+
+            # lighter_colour = fc + 0.3
+            # replace all values above 1 with 1
+            # lighter_colour[lighter_colour > 1] = 1
+            # plt.setp(boxplotcontainer["facecolor"], color=fc)
+            patch.set_color(darker_colors[n])
+            patch.set_facecolor(colors[n])
+
+        for element in ["whiskers", "caps"]:
+            for n, patch in enumerate(boxplotcontainer[element]):
+                fc = double_colors[n]
+                patch.set_color(fc)
+
+        ## change color and linewidth of the medians
+        for n, median in enumerate(boxplotcontainer['medians']):
+            median.set_color(darker_colors[n])
+        for n, mean in enumerate(boxplotcontainer['means']):
+            mean.set_markeredgecolor(darker_colors[n])
+            mean.set_markerfacecolor(darker_colors[n])
+
+        for n, flier in enumerate(boxplotcontainer['fliers']):
+            flier.set(marker="o", alpha=0.8, markersize=3)
+            flier.set_markeredgecolor(darker_colors[n])
+            # flier.set_linewidth(0)
+            # flier.set_fillstyle("full")
+            # flier.set_markerfacecolor(colors[n])
+
+            # change the style of fliers and their fill
+            # for flier in boxplotcontainer['fliers']:
+            #    flier.set(marker=sym, color='0.8', alpha=0.5, markerfacecolor='k', markersize=3)
+            # plt.setp(boxplotcontainer["fliers"], color="red")
+
+            #     for patch, color in zip(boxplotcontainer["boxes"], colors):
+            #         patch.set_facecolor(color)
+            #         patch.set_color(color)
+        ax.grid(axis="x", b=False)
+        fig.tight_layout()
+        return fig, ax
+
+
+    Fig_Nr = 23
+    if Fig_Nr in list_figs_to_run:
+        Fig_name = 'Fig23_boxplot_AAIMON_slope'
+        #df, protein_lists, col, ylabel, df_dict, list_descriptions,
+        fig, ax = create_boxplot("AAIMON_slope_all_TM_res", r'm$_{\rm TM/EM} *10^{\rm -3}$', df_dict, protein_lists, list_descriptions, mult=1000, add_xlabel=True)
+        #fig.savefig("AAIMON_slope_all_TM_res.png")
+        #fig.savefig("AAIMON_slope_all_TM_res.pdf")
+
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
+
+
+    Fig_Nr = 24
+    if Fig_Nr in list_figs_to_run:
+        Fig_name = 'Fig24_boxplot_lipo_mean_all_TM_res'
+        fig, ax = create_boxplot("lipo_mean_all_TM_res", "mean TM lipophilicity", df_dict, protein_lists, list_descriptions, add_xlabel=True)
+        # add annotations
+        fontsize = 8
+        ax.annotate(s="more\nlipophilic", xy=(-0.14, 0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+        ax.annotate(s="less\nlipophilic", xy=(-0.08, 0.9), horizontalalignment="right", fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+        ax.set_ylabel("mean TM lipophilicity", labelpad=12)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
+
+    Fig_Nr = 25
+    if Fig_Nr in list_figs_to_run:
+        Fig_name = 'Fig25_boxplot_seqlen'
+        fig, ax = create_boxplot("seqlen", "sequence length", df_dict, protein_lists, list_descriptions, add_xlabel=True, log=True)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
+
+    Fig_Nr = 26
+    if Fig_Nr in list_figs_to_run:
+        Fig_name = 'Fig26_boxplot_evol_dist'
+        fig, ax = create_boxplot("obs_changes_mean", "evolutionary distance\n(% substitutions)", df_dict, protein_lists, list_descriptions, add_xlabel=True)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
+
+    Fig_Nr = 27
+    if Fig_Nr in list_figs_to_run:
+        Fig_name = 'Fig27_boxplot_n_homol'
+        fig, ax = create_boxplot("AAIMON_n_homol", "number of homologues", df_dict, protein_lists, list_descriptions, add_xlabel=True, log=True)
+        #ax.set_yscale("log")
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
+
+
 
     #dfv.to_csv(os.path.join(base_filepath, 'Lists_%s_variables.csv'%str_protein_lists))
     sys.stdout.write("\n~~~~~~~~~~~~         compare_lists finished           ~~~~~~~~~~~~\n")
