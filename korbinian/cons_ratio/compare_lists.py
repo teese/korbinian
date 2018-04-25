@@ -2188,6 +2188,9 @@ def compare_lists (s, df_lists_tab):
             n += 1
             # define data
             df = df_dict[prot_list]
+            edgecolor = df_lists_tab.loc[prot_list, "color_dark"]
+            color = df_lists_tab.loc[prot_list, "color"]
+
 
             # calculate mean, SEM and plot data for non-normalised slopes
             data_slope = df.AAIMON_slope_all_TM_res.dropna() * 1000
@@ -2198,7 +2201,7 @@ def compare_lists (s, df_lists_tab):
                 label = "original"
             else:
                 label = None
-            ax.bar(n - 0.2, mean_slope, color=color_list[n], width=width, align="center", label=label)#, yerr=std_slope
+            ax.bar(n - 0.2, mean_slope, color=color, width=width, align="center", label=label, edgecolor=edgecolor)#, yerr=std_slope
             ax.errorbar(n - 0.2, mean_slope, yerr=sem_slope, fmt="none", ecolor="k", ls="none", capthick=1, elinewidth=1, capsize=4, label=None)
 
             # calculate mean, SEM and plot data for normalised slopes
@@ -2210,12 +2213,12 @@ def compare_lists (s, df_lists_tab):
                 label = "normalised"
             else:
                 label = None
-            # for the normalised data, create a bar that is lighter than the original data
-            #lighter_colour = np.array(utils.HTMLColorToRGB(color_list[n]))/255 + 0.2
-            lighter_colour = color_list[n] + 0.2
-            # replace all values above 1 with 1
-            lighter_colour[lighter_colour > 1] = 1
-            ax.bar(n + 0.2, mean_slope_n, color=lighter_colour, width=width, align="center", label=label)  # , yerr=std_slope , alpha=0.4
+            # # for the normalised data, create a bar that is lighter than the original data
+            # #lighter_colour = np.array(utils.HTMLColorToRGB(color_list[n]))/255 + 0.2
+            # lighter_colour = color_list[n] + 0.2
+            # # replace all values above 1 with 1
+            # lighter_colour[lighter_colour > 1] = 1
+            ax.bar(n + 0.2, mean_slope_n, color=color, width=width, align="center", label=label, hatch="////", edgecolor=edgecolor)  # , yerr=std_slope , alpha=0.4
             ax.errorbar(n + 0.2, mean_slope_n, yerr=sem_slope_n, fmt="none", ecolor="k", ls="none", capthick=1, elinewidth=1, capsize=4, label=None)
 
 
@@ -2223,7 +2226,7 @@ def compare_lists (s, df_lists_tab):
         ax.set_xlim(0.5, len(protein_lists) + 0.5)
         # set custom x-axis ticks and labels
         ax.set_xticks(range(1, len(protein_lists) + 1))
-        ax.set_xticklabels(df_lists_tab.list_description, fontsize=fontsize)
+        ax.set_xticklabels(df_lists_tab.list_description, fontsize=fontsize, ha="right", rotation=45)
         # set y-axis label
         ax.set_ylabel(r'mean m$_{\rm TM/EM} *10^{\rm -3}$', fontsize=fontsize)
         # set y-limits - can be changed to fit purposes
@@ -2231,8 +2234,18 @@ def compare_lists (s, df_lists_tab):
 
         ax.tick_params(labelsize=fontsize-3, pad=2)
         #ax.legend(['non-normalised', 'normalised'], frameon=True, fontsize=fontsize - 3)#, loc='upper center')
-        ax.legend(frameon=True, fontsize=fontsize - 3)
+        leg = ax.legend(frameon=True, fontsize=fontsize - 3)
+        leg.legendHandles[0].set_color('0.5')
+        leg.legendHandles[1].set_color('0.5')
+
+        import matplotlib.patches as mpatches
+        circ1 = mpatches.Patch(facecolor="0.5", label='original', edgecolor="k")
+        circ2 = mpatches.Patch(facecolor="0.5", label='normalised', hatch="////", edgecolor="k")
+
+        ax.legend(handles=[circ1, circ2], frameon=True)
+
         ax.yaxis.set_label_coords(-0.07, 0.5)
+        ax.grid(False)
         plt.tight_layout()
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
@@ -2364,21 +2377,30 @@ def compare_lists (s, df_lists_tab):
         fig.tight_layout()
         return fig, ax
 
-
     Fig_Nr = 23
     if Fig_Nr in list_figs_to_run:
-        Fig_name = 'Fig23_boxplot_AAIMON_slope'
+        Fig_name = 'Fig23_boxplot_AAIMON'
         #df, protein_lists, col, ylabel, df_dict, list_descriptions,
-        fig, ax = create_boxplot("AAIMON_slope_all_TM_res", r'm$_{\rm TM/EM} *10^{\rm -3}$', df_dict, protein_lists, list_descriptions, mult=1000, add_xlabel=True)
+        fig, ax = create_boxplot("AAIMON_mean_all_TM_res", r'TM/EM conservation ratio', df_dict, protein_lists, list_descriptions, add_xlabel=False)
+        #fig.savefig("AAIMON_slope_all_TM_res.png")
+        #fig.savefig("AAIMON_slope_all_TM_res.pdf")
+
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
+
+    Fig_Nr = 24
+    if Fig_Nr in list_figs_to_run:
+        Fig_name = 'Fig24_boxplot_AAIMON_slope'
+        #df, protein_lists, col, ylabel, df_dict, list_descriptions,
+        fig, ax = create_boxplot("AAIMON_slope_all_TM_res", r'm$_{\rm TM/EM} *10^{\rm -3}$', df_dict, protein_lists, list_descriptions, mult=1000, add_xlabel=False)
         #fig.savefig("AAIMON_slope_all_TM_res.png")
         #fig.savefig("AAIMON_slope_all_TM_res.pdf")
 
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
 
-    Fig_Nr = 24
+    Fig_Nr = 25
     if Fig_Nr in list_figs_to_run:
-        Fig_name = 'Fig24_boxplot_lipo_mean_all_TM_res'
+        Fig_name = 'Fig25_boxplot_lipo_mean_all_TM_res'
         fig, ax = create_boxplot("lipo_mean_all_TM_res", "mean TM lipophilicity", df_dict, protein_lists, list_descriptions, add_xlabel=True)
         # add annotations
         fontsize = 8
@@ -2387,21 +2409,21 @@ def compare_lists (s, df_lists_tab):
         ax.set_ylabel("mean TM lipophilicity", labelpad=12)
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
-    Fig_Nr = 25
-    if Fig_Nr in list_figs_to_run:
-        Fig_name = 'Fig25_boxplot_seqlen'
-        fig, ax = create_boxplot("seqlen", "sequence length", df_dict, protein_lists, list_descriptions, add_xlabel=True, log=True)
-        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
-
     Fig_Nr = 26
     if Fig_Nr in list_figs_to_run:
-        Fig_name = 'Fig26_boxplot_evol_dist'
-        fig, ax = create_boxplot("obs_changes_mean", "evolutionary distance\n(% substitutions)", df_dict, protein_lists, list_descriptions, add_xlabel=True)
+        Fig_name = 'Fig26_boxplot_seqlen'
+        fig, ax = create_boxplot("seqlen", "sequence length", df_dict, protein_lists, list_descriptions, add_xlabel=True, log=True)
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
 
     Fig_Nr = 27
     if Fig_Nr in list_figs_to_run:
-        Fig_name = 'Fig27_boxplot_n_homol'
+        Fig_name = 'Fig27_boxplot_evol_dist'
+        fig, ax = create_boxplot("obs_changes_mean", "evolutionary distance\n(% substitutions)", df_dict, protein_lists, list_descriptions, add_xlabel=True)
+        utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)
+
+    Fig_Nr = 28
+    if Fig_Nr in list_figs_to_run:
+        Fig_name = 'Fig28_boxplot_n_homol'
         fig, ax = create_boxplot("AAIMON_n_homol", "number of homologues", df_dict, protein_lists, list_descriptions, add_xlabel=True, log=True)
         #ax.set_yscale("log")
         utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf)

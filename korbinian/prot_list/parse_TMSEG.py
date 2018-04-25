@@ -31,6 +31,7 @@ def parse_TMSEG_results(pathdict, s, logging):
     TMSEG_nonTM_outpath = pathdict['TMSEG_nonTM']
 
     df_parsed = pd.read_csv(pathdict["list_parsed_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
+    print(df_parsed.shape, "after loading")
 
     columns_to_keep = ['organism_domain', 'create_protein_list', 'uniprot_acc', 'uniprot_all_accessions', 'uniprot_entry_name', 'uniprot_features',
                        'uniprot_orgclass', 'uniprot_SiPe', 'singlepass', 'typeI', 'typeII', 'uniprot_KW', 'organism', 'prot_descr', 'membrane',
@@ -42,11 +43,10 @@ def parse_TMSEG_results(pathdict, s, logging):
     # else:
     #     analyse_sp == False
 
-    list_indices = list(df_parsed.index)
-
-
+    acc_list_orig = list(df_parsed.index)
 
     if os.path.isfile(TMSEG_fastalike_path):
+        sys.stdout.write("Extracting topology from TMSEG_fastalike file.")
         # DEPRECATED drop the full sequence, and get from TMSEG
         #df_parsed.drop('full_seq', axis=1, inplace=True)
 
@@ -82,10 +82,20 @@ def parse_TMSEG_results(pathdict, s, logging):
         df['full_seq'] = input_data[1::3]
         df['topo'] = input_data[2::3]
 
+        acc_list_TMSEG = df.index.tolist()
+
+        intersection_acc_list = set(acc_list_TMSEG).intersection(set(acc_list_orig))
+
+        print(df.shape, "before keep")
+        print(df.head())
         keep = []
         for acc in df.index:
-            if acc in list_indices:
+            if acc in acc_list_orig:
                 keep.append(acc)
+
+        print(len(keep))
+        print(df.head())
+
         df = df.loc[keep,:]
         if df.shape[0] == 0:
             return sys.stdout.write('no remaining proteins in list!')
@@ -166,6 +176,8 @@ def parse_TMSEG_results(pathdict, s, logging):
 
         sys.stdout.write('slicing TMD and nonTMD sequences:\n')
 
+        print(df.shape, "before iteration")
+
         for n, acc in enumerate(df.index):
             # get nested tuple of TMDs
             nested_tup_TMs = df.loc[acc, "TM_indices"]
@@ -216,9 +228,12 @@ def parse_TMSEG_results(pathdict, s, logging):
 
         # slice out the nonTM segments with a function
         # note that for some reason, this is very slow after merging the dataframes
+        print(df.shape, "before slice")
         df = slice_nonTMD_in_prot_list(df)
 
+        print(df.shape, "before")
         df = pd.merge(df, df_parsed, left_index=True, right_index=True, suffixes=('', '_list_parsed'))
+        print(df.shape, "after")
 
         # actually, I'd prefer to keep these for troubleshooting purposes
         # cols_to_drop = ['M_indices', 'SiPe_indices', 'Membrane_Borders', 'TM_indices']
@@ -330,6 +345,7 @@ def parse_TMSEG_results(pathdict, s, logging):
     df["number_of_TMDs"] = df["list_of_TMDs"].dropna().apply(lambda x : len(x))
     df['parse_TMSEG'] = True
     df.to_csv(pathdict["list_parsed_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+    print(df.shape)
     logging.info("\n~~~~~~~~~~~~                       parse_TMSEG_results is finished                  ~~~~~~~~~~~~")
 
 def slice_nonTMD_in_prot_list(df):

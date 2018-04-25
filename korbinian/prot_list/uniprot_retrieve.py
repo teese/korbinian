@@ -5,7 +5,7 @@ import sys
 # import debugging tools
 from korbinian.utils import pr, pc, pn, aaa
 
-def parse_large_flatfile_with_list_uniprot_accessions(input_accession_list, uniprot_dir, logging, selected_uniprot_records_flatfile):
+def parse_large_flatfile_with_list_uniprot_accessions(s, input_accession_list, uniprot_dir, logging, selected_uniprot_records_flatfile):
     """Retrieves UniProt flatfiles from a large flatfile (e.g. All UniProt), based on a list of accession numbers.
 
     Parameters

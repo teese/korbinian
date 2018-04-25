@@ -51,7 +51,7 @@ def create_protein_list(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa
     with open(selected_uniprot_records_flatfile, "r") as f:
         records = SwissProt.parse(f)
         count_of_uniprot_records_processed = 0
-        for record in records:
+        for m, record in enumerate(records):
             # create an empty output dictionary to hold the uniprot data for each record
             output_dict = {}
             # extract the subcellular location detail from the (poorly organized and unsorted) uniprot comments section
@@ -337,8 +337,8 @@ def create_protein_list(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa
         utils.make_sure_path_exists(list_parsed_csv, isfile=True)
         # count records in dataframe
         count_of_uniprot_records_added_to_csv = dfu.shape[0]
+        aaa(dfu)
         dfu.to_csv(list_parsed_csv, sep=",", quoting=csv.QUOTE_NONNUMERIC)
-
 
     return '\n%i valid UniProt records parsed to csv (from %i initial)\n~~~~~~~~~~~~                 finished create_protein_list              ~~~~~~~~~~~~' % (count_of_uniprot_records_added_to_csv, count_of_initial_uniprot_records)
 

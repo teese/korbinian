@@ -135,7 +135,7 @@ def run_statements(s):
 
     if s["parse_large_flatfile_with_list_uniprot_accessions"]:
         input_accession_list_path = os.path.join(s["data_dir"], "uniprot", "selected", "List{:02d}_uniprot_accessions.txt".format(list_number))
-        korbinian.prot_list.uniprot_retrieve.parse_large_flatfile_with_list_uniprot_accessions(input_accession_list_path, uniprot_dir_sel, logging, selected_uniprot_records_flatfile)
+        korbinian.prot_list.uniprot_retrieve.parse_large_flatfile_with_list_uniprot_accessions(s, input_accession_list_path, uniprot_dir_sel, logging, selected_uniprot_records_flatfile)
 
     if s["retrieve_uniprot_data_for_acc_list_in_xlsx_file"]:
         input_uniprot_flatfile = "needs to be defined if you use this function!"
