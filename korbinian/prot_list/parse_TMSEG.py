@@ -66,44 +66,52 @@ def parse_TMSEG_results(pathdict, s, logging):
                     input_data.append(line)
 
         # initialise pandas dataframe with uniprot accession as index
-        df = pd.DataFrame(index=input_data[0::3])
+        df_TMSEG = pd.DataFrame(index=input_data[0::3])
 
         # add the signal peptide definitions from UniProt, to be used for slicing the nonTMD etc later
         if analyse_sp:
             for col in ['SP01_start', 'SP01_end', 'SP01_seq']:
-                df[col] = df_parsed[col]
+                df_TMSEG[col] = df_parsed[col]
 
         # drop unnecessary columns from df_parsed, to be merged later
         df_parsed = df_parsed[columns_to_keep]
 
         # add selected columns from input_data list
-        #df['uniprot_entry_name'] = input_data[1::5]
-        #df['prot_descr'] = input_data[2::5]
-        df['full_seq'] = input_data[1::3]
-        df['topo'] = input_data[2::3]
+        #df_TMSEG['uniprot_entry_name'] = input_data[1::5]
+        #df_TMSEG['prot_descr'] = input_data[2::5]
+        df_TMSEG['full_seq'] = input_data[1::3]
+        df_TMSEG['topo'] = input_data[2::3]
 
-        acc_list_TMSEG = df.index.tolist()
+        acc_list_TMSEG = df_TMSEG.index.tolist()
 
-        intersection_acc_list = set(acc_list_TMSEG).intersection(set(acc_list_orig))
+        TMSEG_avail_list = set(acc_list_TMSEG).intersection(set(acc_list_orig))
+        TMSEG_unavail_list = list(set(acc_list_orig) - set(acc_list_TMSEG))
 
-        print(df.shape, "before keep")
-        print(df.head())
-        keep = []
-        for acc in df.index:
-            if acc in acc_list_orig:
-                keep.append(acc)
+        # create a boolean whether the TMSEG topology is available
+        df_parsed.loc[TMSEG_avail_list,"TMSEG_avail"] = True
+        df_parsed.loc[TMSEG_unavail_list, "TMSEG_avail"] = False
 
-        print(len(keep))
-        print(df.head())
+        # drop proteins from df_TMSEG that are not in the listxx_parsed.csv
+        df_TMSEG = df_TMSEG.loc[TMSEG_avail_list, :]
 
-        df = df.loc[keep,:]
-        if df.shape[0] == 0:
+        fa_dir = pathdict['TMSEG_unavail_fa_dir']
+        utils.make_sure_path_exists(fa_dir)
+        for acc in TMSEG_unavail_list:
+            out_fasta = os.path.join(fa_dir, "{}.fasta".format(acc))
+            seq = df_parsed.loc[acc, "full_seq"]
+            with open(out_fasta, "w") as f:
+                f.write(">{}\n{}".format(acc, seq))
+
+        n_prot_dropped_TMSEG = len(set(acc_list_TMSEG) - set(acc_list_orig))
+        logging.info("n_prot_dropped_TMSEG as not in listxx_parsed.csv = {} ({} remaining)".format(n_prot_dropped_TMSEG, len(TMSEG_avail_list)))
+
+        if df_TMSEG.shape[0] == 0:
             return sys.stdout.write('no remaining proteins in list!')
 
         # get list of uniprot accessions of proteins where no transmembrane region was predicted
         list_nonTMD = []
-        for acc in df.index:
-            if 'N' in df.loc[acc, 'topo']:
+        for acc in df_TMSEG.index:
+            if 'N' in df_TMSEG.loc[acc, 'topo']:
                 list_nonTMD.append(acc)
 
         # write list of nonTM proteins to file
@@ -114,12 +122,19 @@ def parse_TMSEG_results(pathdict, s, logging):
         file.close()
 
         # drop proteins that do not contain TM regions
-        df = df.drop(list_nonTMD)
+        df_TMSEG = df_TMSEG.drop(list_nonTMD)
+
+        # create a boolean whether the TMSEG topology is available
+        TMSEG_avail_and_TM = set(TMSEG_avail_list) - set(list_nonTMD)
+        TMSEG_avail_but_SOL = set(acc_list_orig).intersection(set(list_nonTMD))
+        df_parsed["membrane"] = np.nan
+        df_parsed.loc[TMSEG_avail_and_TM, "membrane"] = True
+        df_parsed.loc[TMSEG_avail_but_SOL, "membrane"] = False
 
         # add seqlen and indices for all TMD and SiPe regions
-        df["seqlen"] = df.full_seq.apply(lambda x: len(x))
-        df['M_indices'] = df.topo.apply(getting_membrane_indices_from_helix_symbol)
-        df['SiPe_indices'] = df.topo.apply(getting_SiPe_indices_from_symbol)
+        df_TMSEG["seqlen"] = df_TMSEG.full_seq.apply(lambda x: len(x))
+        df_TMSEG['M_indices'] = df_TMSEG.topo.apply(getting_membrane_indices_from_helix_symbol)
+        df_TMSEG['SiPe_indices'] = df_TMSEG.topo.apply(getting_SiPe_indices_from_symbol)
 
         # Creating new list (nested list)
         nested_list_of_membrane_borders = []
@@ -130,7 +145,7 @@ def parse_TMSEG_results(pathdict, s, logging):
         #                                                                                      #
         ########################################################################################
         # Filling nest with lists of start and end-points
-        for m_index_list in df.M_indices:
+        for m_index_list in df_TMSEG.M_indices:
             m_borders = []
             # add the first membrane index (e.g. 13)
             m_borders.append(m_index_list[0])
@@ -157,50 +172,50 @@ def parse_TMSEG_results(pathdict, s, logging):
         #     nested_list_m_borders_python_indexstyle.append(list(subarray))
 
         # Creating new column, which contains start and end-points
-        #df["Membrane_Borders"] = nested_list_m_borders_python_indexstyle
+        #df_TMSEG["Membrane_Borders"] = nested_list_m_borders_python_indexstyle
 
-        df["Membrane_Borders"] = nested_list_of_membrane_borders
+        df_TMSEG["Membrane_Borders"] = nested_list_of_membrane_borders
 
         # Creating new column, which contains the number of TMDS
-        #df["number_of_TMDs"] = df.Membrane_Borders.apply(lambda x: len(x) / 2)
+        #df_TMSEG["number_of_TMDs"] = df_TMSEG.Membrane_Borders.apply(lambda x: len(x) / 2)
 
-        df["TM_indices"] = df["Membrane_Borders"].apply(lambda x: tuple(zip(x[::2], x[1::2])))
+        df_TMSEG["TM_indices"] = df_TMSEG["Membrane_Borders"].apply(lambda x: tuple(zip(x[::2], x[1::2])))
         # create a list of [TM01, TM02, TM03, etc.
         long_list_of_TMDs = []
         for i in range(1, 50):
             long_list_of_TMDs.append("TM{:02d}".format(i))
 
         ## for the .set_value function, set dtype as object
-        df["list_of_TMDs"] = ""
-        df["list_of_TMDs"].astype(object)
+        df_TMSEG["list_of_TMDs"] = ""
+        df_TMSEG["list_of_TMDs"].astype(object)
 
         sys.stdout.write('slicing TMD and nonTMD sequences:\n')
 
-        print(df.shape, "before iteration")
+        print(df_TMSEG.shape, "before iteration")
 
-        for n, acc in enumerate(df.index):
+        for n, acc in enumerate(df_TMSEG.index):
             # get nested tuple of TMDs
-            nested_tup_TMs = df.loc[acc, "TM_indices"]
+            nested_tup_TMs = df_TMSEG.loc[acc, "TM_indices"]
             # slice long list of TMD names to get an appropriate list for that protein [TM01, TM02, TM03, etc.
             len_nested_tup_TMs = len(nested_tup_TMs)
             list_of_TMDs = long_list_of_TMDs[:len_nested_tup_TMs]
             # add that list to the dataframe (could also be added as a stringlist, but that's irritating somehow)
-            #df.loc[acc, 'list_of_TMDs'] = list_of_TMDs
-            df.set_value(acc, "list_of_TMDs", list_of_TMDs)
+            #df_TMSEG.loc[acc, 'list_of_TMDs'] = list_of_TMDs
+            df_TMSEG.set_value(acc, "list_of_TMDs", list_of_TMDs)
             # set seq for slicing
-            full_seq = df.loc[acc, "full_seq"]
+            full_seq = df_TMSEG.loc[acc, "full_seq"]
             # topo = dft.loc[acc, "Topology"]
             # iterate through all the TMDs of that protein, slicing out the sequences
             for i, TMD in enumerate(list_of_TMDs):
                 TMD = list_of_TMDs[i]
                 start, end = nested_tup_TMs[i]
                 # with UniProt indexing, need to slice with -1, not like python index style
-                df.loc[acc, "%s_start" % TMD] = start
-                df.loc[acc, "%s_end" % TMD] = end
+                df_TMSEG.loc[acc, "%s_start" % TMD] = start
+                df_TMSEG.loc[acc, "%s_end" % TMD] = end
                 # for python indexing of the TMD rather than uniprot, the start should be minus 1
                 python_indexing_tuple = (start - 1, end)
-                df.loc[acc, "%s_seq" % TMD] = utils.slice_with_listlike(full_seq, python_indexing_tuple)
-                df.loc[acc, "%s_seqlen" % TMD] = len(df.loc[acc, "%s_seq" % TMD])
+                df_TMSEG.loc[acc, "%s_seq" % TMD] = utils.slice_with_listlike(full_seq, python_indexing_tuple)
+                df_TMSEG.loc[acc, "%s_seqlen" % TMD] = len(df_TMSEG.loc[acc, "%s_seq" % TMD])
                 # dft.loc[acc, TMD + "_top"] = utils.slice_with_listlike(topo, tup)
 
             #DEPRECATED, ONLY REINSTATE IF YOU REALLY WANT TMSEG TM DEFINITIONS TO STAY
@@ -208,16 +223,16 @@ def parse_TMSEG_results(pathdict, s, logging):
             # if analyse_sp == True:
             #     if type(df_parsed.loc[acc, 'SP01_seq']) == str:
             #         list_of_TMDs.append('SP01')
-            #         df.set_value(acc, "list_of_TMDs", list_of_TMDs)
+            #         df_TMSEG.set_value(acc, "list_of_TMDs", list_of_TMDs)
 
                 # # code necessary for TMSEG signal peptides - depreciated by MO 20.04.2017
-                # SiPe_indices = df.loc[acc, 'SiPe_indices']
+                # SiPe_indices = df_TMSEG.loc[acc, 'SiPe_indices']
                 # if SiPe_indices != []:
-                #     df.loc[acc, 'SP01_start'] = SiPe_indices[0]
-                #     df.loc[acc, 'SP01_end'] = SiPe_indices[-1]
-                #     df.loc[acc, 'SP01_seq'] = full_seq[SiPe_indices[0]:SiPe_indices[-1]+1]
+                #     df_TMSEG.loc[acc, 'SP01_start'] = SiPe_indices[0]
+                #     df_TMSEG.loc[acc, 'SP01_end'] = SiPe_indices[-1]
+                #     df_TMSEG.loc[acc, 'SP01_seq'] = full_seq[SiPe_indices[0]:SiPe_indices[-1]+1]
                 #     list_of_TMDs.append('SP01')
-                #     df.set_value(acc, "list_of_TMDs", list_of_TMDs)
+                #     df_TMSEG.set_value(acc, "list_of_TMDs", list_of_TMDs)
 
             if n % 50 == 0 and n != 0:
                 sys.stdout.write(". ")
@@ -228,16 +243,19 @@ def parse_TMSEG_results(pathdict, s, logging):
 
         # slice out the nonTM segments with a function
         # note that for some reason, this is very slow after merging the dataframes
-        print(df.shape, "before slice")
-        df = slice_nonTMD_in_prot_list(df)
+        print(df_TMSEG.shape, "before slice")
+        df_TMSEG = slice_nonTMD_in_prot_list(df_TMSEG)
 
-        print(df.shape, "before")
-        df = pd.merge(df, df_parsed, left_index=True, right_index=True, suffixes=('', '_list_parsed'))
-        print(df.shape, "after")
+        print(df_TMSEG.shape, "before")
+
+
+        #df_TOP = pd.merge(df_parsed, df_TMSEG, how="left", left_on=True, suffixes=('_list_parsed', ""))# left_index=True, right_index=False,
+        df_TOP = df_parsed.merge(df_TMSEG, how="left", suffixes=('_list_parsed', ""))  # left_index=True, right_index=False,
+        print(df_TOP.shape, "after")
 
         # actually, I'd prefer to keep these for troubleshooting purposes
         # cols_to_drop = ['M_indices', 'SiPe_indices', 'Membrane_Borders', 'TM_indices']
-        # df.drop(cols_to_drop, axis=1, inplace=True)
+        # df_TMSEG.drop(cols_to_drop, axis=1, inplace=True)
 
     elif os.path.isfile(TMSEG_top_txtoutput_path):
         """ PARSE DATA WITH THE FOLLOWING FORMAT, proteins listed one after each other
@@ -334,18 +352,17 @@ def parse_TMSEG_results(pathdict, s, logging):
         start = time.clock()
         # slice out the nonTM segments with a function
         # note that for some reason, this is very slow after merging the dataframes
-        df = slice_nonTMD_in_prot_list(df)
+        df_TOP = slice_nonTMD_in_prot_list(df)
         sys.stdout.write("\ntime taken : {:0.03f} s".format(time.clock() - start))
-
 
     else:
         raise FileNotFoundError("None of the TMSEG combined output files were found.")
 
     # define number of TMDs (includes Signal peptides!)
-    df["number_of_TMDs"] = df["list_of_TMDs"].dropna().apply(lambda x : len(x))
-    df['parse_TMSEG'] = True
-    df.to_csv(pathdict["list_parsed_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
-    print(df.shape)
+    df_TOP["number_of_TMDs"] = df_TOP["list_of_TMDs"].dropna().apply(lambda x : len(x))
+    df_TOP['parse_TMSEG'] = True
+    df_TOP.to_csv(pathdict["list_parsed_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+    print(df_TOP.shape)
     logging.info("\n~~~~~~~~~~~~                       parse_TMSEG_results is finished                  ~~~~~~~~~~~~")
 
 def slice_nonTMD_in_prot_list(df):

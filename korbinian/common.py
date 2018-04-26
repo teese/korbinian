@@ -207,7 +207,7 @@ def create_pathdict(base_filename_summaries, s):
     pathdict["settings_copy_xlsx"] = '%s_settings_copy.xlsx' % base_filename_summaries
     # add base_filename_summaries itself to the path dictionary
     pathdict["base_filename_summaries"] = base_filename_summaries
-    # cadd path to csv after parsing from UniProt or OMPdb
+    # add path to csv after parsing from UniProt or OMPdb
     pathdict["list_parsed_csv"] = '%s_parsed.csv' % base_filename_summaries
     # currently the protein list summary (each row is a protein, from uniprot etc) is a csv file
     pathdict["list_csv"] = '%s.csv' % base_filename_summaries
@@ -253,6 +253,9 @@ def create_pathdict(base_filename_summaries, s):
     # TMSEG upper prediction output, e.g. "# TRANSMEM	4	24	7"
     pathdict['TMSEG_top_txtoutput'] = os.path.join(pathdict['TMSEG_dir'], 'topology_upper.txt')
     pathdict['TMSEG_nonTM'] = os.path.join(pathdict['TMSEG_dir'], 'nonTM_acc_list.txt')
+    # directory of fasta files for which TMSEG is unavailable
+    pathdict['TMSEG_unavail_fa_dir'] = os.path.join(pathdict['TMSEG_dir'], 'TMSEG_unavail')
+
     pathdict['SignalP_dir'] = os.path.join(pathdict['predictions_basename'], "SignalP")
     pathdict['SignalP_SiPe_acc'] = os.path.join(pathdict['SignalP_dir'], "gff.txt")
 

@@ -2131,9 +2131,6 @@ def compare_lists (s, df_lists_tab):
 
         df.index = df.index.str.replace("_", "\n")
 
-        print(df.head())
-        aaa(df)
-
         if protein_lists_KW != []:
             manual = False
             if manual:

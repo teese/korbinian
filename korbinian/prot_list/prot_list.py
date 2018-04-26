@@ -118,6 +118,7 @@ def prepare_protein_list(s, pathdict, logging):
         TM01_potential_SiPe_acc_list = []
 
     # drop all TMSEG nonTM proteins
+    drop_TMSEG_nonTM = False
     n_prot_AFTER_dropping_TMSEG_nonTM_proteins = 'TMSEG output file not found!'
     if os.path.isfile(pathdict['TMSEG_nonTM']):
         modification_date_TMSEG_nonTM = time.ctime(os.path.getmtime(pathdict['TMSEG_nonTM']))
@@ -285,7 +286,6 @@ def prepare_protein_list(s, pathdict, logging):
     df['homol_df_orig_zip'] = df['homol_parsed'] + '_homol_orig_table.zip'
     # filename for header csv, which holds info at top of SIMAP XML
     df['simap_header_info_csv'] = df['homol_parsed'] + '_simap_header_info.csv'
-    print(df['simap_header_info_csv'][0])
 
     ########################################################################################
     #                                                                                      #
@@ -369,6 +369,9 @@ def prepare_protein_list(s, pathdict, logging):
     min_TMDs = s["min_TMDs"]
     max_TMDs = s["max_TMDs"]
     # drop any proteins without a number of TMDs
+    df["number_of_TMDs"].isnull().index
+
+
     df.dropna(subset=["number_of_TMDs"], inplace=True)
 
     # create empty column to avoid problems inserting a list into a cell
@@ -607,7 +610,7 @@ def prepare_protein_list(s, pathdict, logging):
 
     if 'uniprot_KW' in df.columns:
         # apply ast.literal_eval to every item in df['uniprot_KW']
-        if isinstance(df['uniprot_KW'][0], str):
+        if isinstance(df['uniprot_KW'].iloc[0], str):
             df['uniprot_KW'] = df['uniprot_KW'].apply(lambda x: ast.literal_eval(x))
         for KW in KW_search_list:
             df[KW] = df['uniprot_KW'].apply(korbinian.cons_ratio.keywords.KW_list_contains_any_desired_KW, args=([KW],))

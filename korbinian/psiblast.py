@@ -10,7 +10,7 @@ import time
 # import debugging tools
 from korbinian.utils import pr, pc, pn, aaa
 
-def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_exec_str, db, timeout_h, retry_failed=False, retry_successful=False, retry_timeout=False):
+def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_exec_str, db, timeout_h, retry_failed=False, retry_successful=False, retry_timeout=False, n_threads=5):
     """Runs standalone PSIBLAST on every query fasta file in a folder.
 
     What you need:
@@ -98,7 +98,7 @@ def run_psiblast_on_fasta_queries_in_folder(query_dir, databases_dir, psiblast_e
     s["psiblast_exec_str"] = psiblast_exec_str
     s["evalue"] = "1e-5"
     s["inclusion_ethresh"] = "1e-5"
-    s["num_threads"] = 5
+    s["num_threads"] = n_threads
     # s["db"] = "metazoa90"
     s["num_descriptions"] = 3000
     s["num_alignments"] = 3000
