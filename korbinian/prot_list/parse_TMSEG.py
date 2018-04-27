@@ -12,6 +12,13 @@ from korbinian.utils import pr, pc, pn, aaa
 
 def parse_TMSEG_results(pathdict, s, logging):
     logging.info("~~~~~~~~~~~~                        starting parse_TMSEG_results                    ~~~~~~~~~~~~")
+    # create or open dataframe for protein list summary
+    if os.path.isfile(pathdict["prot_list_summary_csv"]):
+        df_PLS = pd.read_csv(pathdict["prot_list_summary_csv"], index_col=0)
+    else:
+        df_PLS = pd.DataFrame(columns=["v", "date"])
+    # get the timestamp for current time
+    t = time.ctime(time.time())
 
     list_number = s['list_number']
 
@@ -31,7 +38,6 @@ def parse_TMSEG_results(pathdict, s, logging):
     TMSEG_nonTM_outpath = pathdict['TMSEG_nonTM']
 
     df_parsed = pd.read_csv(pathdict["list_parsed_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
-    print(df_parsed.shape, "after loading")
 
     columns_to_keep = ['organism_domain', 'create_protein_list', 'uniprot_acc', 'uniprot_all_accessions', 'uniprot_entry_name', 'uniprot_features',
                        'uniprot_orgclass', 'uniprot_SiPe', 'singlepass', 'typeI', 'typeII', 'uniprot_KW', 'organism', 'prot_descr', 'membrane',
@@ -46,6 +52,7 @@ def parse_TMSEG_results(pathdict, s, logging):
     acc_list_orig = list(df_parsed.index)
 
     if os.path.isfile(TMSEG_fastalike_path):
+        df_PLS.loc["TMSEG_fastalike_path", :] = ("exists", t)
         sys.stdout.write("Extracting topology from TMSEG_fastalike file.")
         # DEPRECATED drop the full sequence, and get from TMSEG
         #df_parsed.drop('full_seq', axis=1, inplace=True)
@@ -87,6 +94,8 @@ def parse_TMSEG_results(pathdict, s, logging):
         TMSEG_avail_list = set(acc_list_TMSEG).intersection(set(acc_list_orig))
         TMSEG_unavail_list = list(set(acc_list_orig) - set(acc_list_TMSEG))
 
+        df_PLS.loc["n_prot_TMSEG_file"] = (len(acc_list_TMSEG), t)
+
         # create a boolean whether the TMSEG topology is available
         df_parsed.loc[TMSEG_avail_list,"TMSEG_avail"] = True
         df_parsed.loc[TMSEG_unavail_list, "TMSEG_avail"] = False
@@ -102,8 +111,9 @@ def parse_TMSEG_results(pathdict, s, logging):
             with open(out_fasta, "w") as f:
                 f.write(">{}\n{}".format(acc, seq))
 
-        n_prot_dropped_TMSEG = len(set(acc_list_TMSEG) - set(acc_list_orig))
-        logging.info("n_prot_dropped_TMSEG as not in listxx_parsed.csv = {} ({} remaining)".format(n_prot_dropped_TMSEG, len(TMSEG_avail_list)))
+        n_prot_TMSEG_file_not_in_list = len(set(acc_list_TMSEG) - set(acc_list_orig))
+        logging.info("n_prot_TMSEG_file_not_in_list as not in listxx_parsed.csv = {} ({} remaining)".format(n_prot_TMSEG_file_not_in_list, len(TMSEG_avail_list)))
+        df_PLS.loc["n_prot_TMSEG_file_not_in_list"] = (n_prot_TMSEG_file_not_in_list, t)
 
         if df_TMSEG.shape[0] == 0:
             return sys.stdout.write('no remaining proteins in list!')
@@ -191,8 +201,6 @@ def parse_TMSEG_results(pathdict, s, logging):
 
         sys.stdout.write('slicing TMD and nonTMD sequences:\n')
 
-        print(df_TMSEG.shape, "before iteration")
-
         for n, acc in enumerate(df_TMSEG.index):
             # get nested tuple of TMDs
             nested_tup_TMs = df_TMSEG.loc[acc, "TM_indices"]
@@ -243,21 +251,17 @@ def parse_TMSEG_results(pathdict, s, logging):
 
         # slice out the nonTM segments with a function
         # note that for some reason, this is very slow after merging the dataframes
-        print(df_TMSEG.shape, "before slice")
         df_TMSEG = slice_nonTMD_in_prot_list(df_TMSEG)
-
-        print(df_TMSEG.shape, "before")
-
 
         #df_TOP = pd.merge(df_parsed, df_TMSEG, how="left", left_on=True, suffixes=('_list_parsed', ""))# left_index=True, right_index=False,
         df_TOP = df_parsed.merge(df_TMSEG, how="left", suffixes=('_list_parsed', ""))  # left_index=True, right_index=False,
-        print(df_TOP.shape, "after")
 
         # actually, I'd prefer to keep these for troubleshooting purposes
         # cols_to_drop = ['M_indices', 'SiPe_indices', 'Membrane_Borders', 'TM_indices']
         # df_TMSEG.drop(cols_to_drop, axis=1, inplace=True)
 
     elif os.path.isfile(TMSEG_top_txtoutput_path):
+        df_PLS.loc["TMSEG_top_txtoutput_path", :] = ("exists", t)
         """ PARSE DATA WITH THE FOLLOWING FORMAT, proteins listed one after each other
 
         IMPORTANT : this format is sub-optimal, because the sequences come from uniprot, and the predictions from TMPRED
@@ -362,7 +366,6 @@ def parse_TMSEG_results(pathdict, s, logging):
     df_TOP["number_of_TMDs"] = df_TOP["list_of_TMDs"].dropna().apply(lambda x : len(x))
     df_TOP['parse_TMSEG'] = True
     df_TOP.to_csv(pathdict["list_parsed_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
-    print(df_TOP.shape)
     logging.info("\n~~~~~~~~~~~~                       parse_TMSEG_results is finished                  ~~~~~~~~~~~~")
 
 def slice_nonTMD_in_prot_list(df):

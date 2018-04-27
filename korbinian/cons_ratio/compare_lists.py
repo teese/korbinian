@@ -2145,7 +2145,6 @@ def compare_lists (s, df_lists_tab):
                     ind_for_list = ind + width * m
                     ax.bar(ind_for_list, df[list_description], width=width, color=df_lists_tab.loc[prot_list, 'color'], label=df_lists_tab.loc[prot_list, 'list_description'],
                            edgecolor=df_lists_tab.loc[prot_list, 'color_dark'])
-                    print(m, prot_list)
                 xtick_locations = ind + width# / 2  # - n/2*width
                 ax.set_xticks(xtick_locations)
                 label = [element.replace('_', '\n') for element in df.index]

@@ -31,8 +31,20 @@ def prepare_protein_list(s, pathdict, logging):
 
     """
     logging.info('~~~~~~~~~~~~                     starting prepare_protein_list                      ~~~~~~~~~~~~')
+
+
     df = pd.read_csv(pathdict["list_parsed_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0, low_memory=False)
     n_initial_prot = df.shape[0]
+
+    # create or open dataframe for protein list summary
+    if os.path.isfile(pathdict["prot_list_summary_csv"]):
+        df_PLS = pd.read_csv(pathdict["prot_list_summary_csv"], index_col=0)
+    else:
+        df_PLS = pd.DataFrame(columns=["v", "date"])
+    # get the timestamp for current time
+    t = time.ctime(time.time())
+
+    df_PLS.loc["list_number", :] = (s["list_number"], t)
 
     # drop proteins that are non-transmembrane according to SCAMPI
     # get accession numbers of transmembrane proteins from SCAMPI output list query.TM_list.txt
@@ -55,6 +67,7 @@ def prepare_protein_list(s, pathdict, logging):
     else:
         modification_date = None
 
+    df_PLS.loc["n_prot_AFTER_dropping_SCAMPI_nonTM_seqences",:] = (n_prot_AFTER_dropping_SCAMPI_nonTM_seqences, t)
 
     ########################################################################################
     #                                                                                      #
@@ -117,6 +130,8 @@ def prepare_protein_list(s, pathdict, logging):
         n_prot_AFTER_dropping_non_trusted_SiPe = 'SignalP output file not found!'
         TM01_potential_SiPe_acc_list = []
 
+    df_PLS.loc["n_prot_AFTER_dropping_non_trusted_SiPe",:] = (n_prot_AFTER_dropping_non_trusted_SiPe, t)
+
     # drop all TMSEG nonTM proteins
     drop_TMSEG_nonTM = False
     n_prot_AFTER_dropping_TMSEG_nonTM_proteins = 'TMSEG output file not found!'
@@ -132,10 +147,13 @@ def prepare_protein_list(s, pathdict, logging):
         for acc in df.index:
             if not acc in TMSEG_nonTM_list:
                 keep_after_TMSEG.append(acc)
+
         df = df.loc[keep_after_TMSEG, :]
         n_prot_AFTER_dropping_TMSEG_nonTM_proteins = df.shape[0]
     else:
         modification_date_TMSEG_nonTM = None
+
+    df_PLS.loc["n_prot_AFTER_dropping_TMSEG_nonTM_proteins",:] = (n_prot_AFTER_dropping_TMSEG_nonTM_proteins, t)
 
 
     # # load PrediSi file containing all proteins that have signal peptides
@@ -239,6 +257,7 @@ def prepare_protein_list(s, pathdict, logging):
     ########################################################################################
     df = df.loc[df['list_of_TMDs'].notnull()]
     n_prot_AFTER_dropping_without_list_TMDs = df.shape[0]
+    df_PLS.loc["n_prot_AFTER_dropping_without_list_TMDs", :] = (n_prot_AFTER_dropping_without_list_TMDs, t)
 
     ########################################################################################
     #                                                                                      #
@@ -368,11 +387,10 @@ def prepare_protein_list(s, pathdict, logging):
 
     min_TMDs = s["min_TMDs"]
     max_TMDs = s["max_TMDs"]
+
     # drop any proteins without a number of TMDs
-    df["number_of_TMDs"].isnull().index
-
-
     df.dropna(subset=["number_of_TMDs"], inplace=True)
+    df_PLS.loc["n_prot_AFTER_dropping_without_n_TMDs",:] = (df.shape[0], t)
 
     # create empty column to avoid problems inserting a list into a cell
     df["list_of_TMDs_excl_SP"] = ""
@@ -578,11 +596,13 @@ def prepare_protein_list(s, pathdict, logging):
 
     df = df.loc[df['X_in_seq'] != True]
     n_prot_AFTER_dropping_with_X_in_seq = df.shape[0]
+    df_PLS.loc["n_prot_AFTER_dropping_with_X_in_seq",:] = (n_prot_AFTER_dropping_with_X_in_seq, t)
 
     # the ones without TMD_seq are actually proteins where the indices were a string, for example
     # TM01_start was "?"
     df = df.loc[df['n_TMD_res'] >= 1]
     n_prot_AFTER_dropping_missing_TM_indices = df.shape[0]
+    df_PLS.loc["n_prot_AFTER_dropping_missing_TM_indices",:] = (n_prot_AFTER_dropping_missing_TM_indices, t)
 
     lipo_cutoff = s["max_lipo_list"]
 
@@ -600,6 +620,7 @@ def prepare_protein_list(s, pathdict, logging):
     # drop rows
     df = df.drop(acc_lipo_mean_above_cutoff_to_remove)
     n_prot_AFTER_lipo_cutoff = df.shape[0]
+    df_PLS.loc["n_prot_AFTER_lipo_cutoff",:] = (n_prot_AFTER_lipo_cutoff, t)
 
     ########################################################################################
     #                                                                                      #
@@ -696,6 +717,7 @@ def prepare_protein_list(s, pathdict, logging):
     #df.dropna(axis=1, inplace=True, how="all")
     # save to a csv
     df.to_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+    df_PLS.to_csv(pathdict["prot_list_summary_csv"])
     ########################################################################################
     #                                                                                      #
     #                      calculate random TM and nonTM identity                          #

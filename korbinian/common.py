@@ -213,6 +213,8 @@ def create_pathdict(base_filename_summaries, s):
     pathdict["list_csv"] = '%s.csv' % base_filename_summaries
     # define path for csv with conservation ratios(mean AAIMON) (output from the gather_AAIMONs function)
     pathdict["list_cr_summary_csv"] = '%s_cr_summary.csv' % base_filename_summaries
+    # path for csv summarising protein list formation, etc
+    pathdict["prot_list_summary_csv"] = '%s_prot_list_summary.csv' % base_filename_summaries
     # define path for csv with gap densities (from gather_gap_densities)
     pathdict["list_gap_summary_csv"] = '%s_gap_summary.csv' % base_filename_summaries
     # define path for pickle file with gap raw data
