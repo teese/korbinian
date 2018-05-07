@@ -186,6 +186,19 @@ def run_statements(s):
         korbinian.simap_parse.run_parse_simap_to_csv(pathdict, s, logging)
 
     ########################################################################################
+    #                                                                                      #
+    #                         run BLAST and parse results                                  #
+    #                                                                                      #
+    ########################################################################################
+    if s["blast_test1"]:
+        korbinian.blast.blastp.run_BLAST_online(pathdict, s, logging)
+
+    if s["blast_test2"]:
+        korbinian.blast.blast_parser.run(pathdict, s, logging)
+
+    #TODO change variable name etc & local/online blast search
+
+    ########################################################################################
     #                                                                                         #
     #            run_create_fasta, run_calculate_AAIMON_ratios                             #
     #                                                                                      #
