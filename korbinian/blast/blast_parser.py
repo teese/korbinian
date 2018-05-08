@@ -61,6 +61,8 @@ def run(pathdict, s, logging):
     for p in list_p:
         parse_blast_result(p)
 
+    logging.info("\n" + "~~~~~~~~~~~~                 finished parsing BLAST results                 ~~~~~~~~~~~~")
+
 def parse_blast_result(p):
     """ Parses the BLSAT XML file to csv for a single protein.
 
@@ -104,16 +106,19 @@ def parse_blast_result(p):
     protein_name = p['protein_name']
     blast_xml_path = os.path.join(s["data_dir"], "blast", protein_name[:2], protein_name + ".blast_result.xml")
 
-    #code from NCBI_parser of github...
+    #Read BLAST result xml file and parse required information into the match_details_dict Dictionary
+    #BLAST parser structure was copied from the THOIPApy software
+    #Github source: https://github.com/bojigu/thoipapy/blob/master/thoipapy/homologues/NCBI_parser.py
     BLAST_xml_file = blast_xml_path
-    BLAST_csv_file = os.path.join(s["data_dir"], "blast", protein_name[:2], protein_name + ".test.csv")
+    BLAST_csv_file = os.path.join(s["data_dir"], "blast", protein_name[:2], protein_name + ".blast_result.TMP.csv")
     match_details_dict = {}
     with open(BLAST_csv_file, 'w') as homo_out_csv_file_handle:
         with open(BLAST_xml_file) as xml_result_handle:
             xml_record = NCBIXML.read(xml_result_handle)
             hit_num = 0
-            n_hsps_excluded_due_to_e_value_cutoff = 0
+            #Iterate over each alignment in a blast result file
             for alignment in xml_record.alignments:
+                #Iterate over each high-scoring segment pair of an alignment
                 for hsp in alignment.hsps:
                     match_details_dict['hit_num'] = hit_num
                     #Description of protein
@@ -178,12 +183,12 @@ def parse_blast_result(p):
                     match_details_dict['FASTA_match_start'] = hsp.sbjct_start
                     match_details_dict['FASTA_match_end'] = hsp.sbjct_end
 
-                    # write the header to the header of the csv file
+                    #write the header to the header of the temporary csv file which is required for later processing
                     if hit_num == 0:
                         csv_header_for_ncbi_homologues_file = sorted(list(match_details_dict.keys()))
                         writer = csv.writer(homo_out_csv_file_handle, delimiter=',', quotechar='"', lineterminator='\n', quoting=csv.QUOTE_NONNUMERIC, doublequote=True)
                         writer.writerow(csv_header_for_ncbi_homologues_file)
-                    # save the math_details_dict into the csv file
+                    #save the math_details_dict into the csv file
                     writer = csv.DictWriter(homo_out_csv_file_handle, fieldnames=csv_header_for_ncbi_homologues_file, extrasaction='ignore', delimiter=',', quotechar='"', lineterminator='\n',
                                             quoting=csv.QUOTE_MINIMAL, doublequote=True)
                     writer.writerow(match_details_dict)
@@ -221,19 +226,14 @@ def parse_blast_result(p):
     with open(p['homol_df_orig_pickle'], "wb") as pick:
         pickle.dump(df_homol, pick, protocol=pickle.HIGHEST_PROTOCOL)
 
-    # either create new zip and add ("w"), or open existing zip and add "a"
+    #Create new zip and add the just created df_homol data.table pickle file
     with zipfile.ZipFile(p['homol_df_orig_zip'], mode="w", compression=zipfile.ZIP_DEFLATED) as zipout:
         zipout.write(p['homol_df_orig_pickle'], arcname=os.path.basename(p['homol_df_orig_pickle']))
-        zipout.write(p['homol_df_orig_pickle'], arcname=os.path.basename(p['simap_header_info_csv']))
 
-    # delete temporary uncompressed files
+    #Delete temporary uncompressed files
     os.remove(p['homol_df_orig_pickle'])
+    os.remove(BLAST_csv_file)
 
-    return acc, True, "0"
-
-    #output
-    #logging.info(p['homol_df_orig_zip'])
-
-    #output id
-    #sys.stdout.write("{}, ".format(acc))
-    #sys.stdout.flush()
+    #output current id
+    sys.stdout.write("{}, ".format(acc))
+    sys.stdout.flush()

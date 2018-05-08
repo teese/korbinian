@@ -190,13 +190,14 @@ def run_statements(s):
     #                         run BLAST and parse results                                  #
     #                                                                                      #
     ########################################################################################
-    if s["blast_test1"]:
-        korbinian.blast.blastp.run_BLAST_online(pathdict, s, logging)
+    if s["BLASTp_search"]:
+        if s["BLAST_modus"] == "online":
+            korbinian.blast.blastp.run_BLAST_online(pathdict, s, logging)
+        elif s["BLAST_modus"] == "local":
+            korbinian.blast.blastp.run_BLAST_local(pathdict, s, logging)
 
-    if s["blast_test2"]:
+    if s["BLAST_parser"]:
         korbinian.blast.blast_parser.run(pathdict, s, logging)
-
-    #TODO change variable name etc & local/online blast search
 
     ########################################################################################
     #                                                                                         #
