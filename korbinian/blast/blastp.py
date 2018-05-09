@@ -1,7 +1,7 @@
 """
 Author:         Dominik Müller
 Created:        May 7 00:06 2018
-Dependencies:   Python 3.x
+Dependencies:   Python >=3.3
                 pandas
                 Bio
                 BLAST+
@@ -205,7 +205,7 @@ def BLAST_local_submission(task):
     protein_name, query, output_file, evalue, hitsize, database = task
 
     #Run BLASTp search
-    logging.info("Run BLASTp online search for protein:" + "\t" + protein_name)
+    logging.info("Run BLASTp local search for protein:" + "\t" + protein_name)
     blastp_cline = NcbiblastpCommandline(db=database, evalue=evalue, max_target_seqs=hitsize, outfmt=5, out=output_file)
     out, err = blastp_cline(stdin=query)
 
