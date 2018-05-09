@@ -4,6 +4,7 @@ Created:        May 7 00:06 2018
 Dependencies:   Python 3.x
                 pandas
                 Bio
+                BLAST+
 Purpose:        Protein Data Science
                 Analysis of evolutionary sequences of transmembrane proteins
 Credits:        Mark Teese
@@ -19,6 +20,7 @@ import os
 import korbinian
 import pandas as pd
 import sys
+from multiprocessing import Pool
 from Bio.Blast import NCBIWWW
 from Bio.Blast.Applications import NcbiblastpCommandline
 # import debugging tools
@@ -55,7 +57,8 @@ def run_BLAST_online(pathdict, s, logging):
     evalue = s["blast_Evalue"];
     hitsize = s["blast_max_hits"]
 
-    #iterate over each protein
+    #preprocessing BLASTp execution by iterate over each protein
+    task_list = []
     for acc in df.index:
         #Variable initializations for current protein
         protein_name = df.loc[acc, 'protein_name']
@@ -68,16 +71,56 @@ def run_BLAST_online(pathdict, s, logging):
             os.makedirs(blast_proteinID_dir)
         output_file = os.path.join(s["data_dir"], "blast", protein_name[:2], protein_name + ".blast_result.xml")
 
-        #Run BLASTp search
-        logging.info("Run BLASTp online search for protein:" + "\t" + protein_name)
-        blast_result = NCBIWWW.qblast("blastp", "nr", query, expect=evalue,  hitlist_size=hitsize)
+        #Save query data into task_list
+        task_list.append([protein_name, query, output_file, evalue, hitsize])
 
-        #Write BLASTp result into file
-        with open(output_file, "w") as blast_result_writer:
-            blast_result_writer.write(blast_result.read())
-        blast_result_writer.close()
+    #Execute BLASTp online searches
+    if s["use_multiprocessing"]:
+        # number of processes is the number the settings, or the number of proteins, whichever is smallest
+        n_processes = s["multiprocessing_cores"] if s["multiprocessing_cores"] < len(task_list) else len(task_list)
+        #TODO adviseable to just use 8 threads or something due to calculation will be done online and client is just waiting
+        #TODO check NCBI BLAST API service how many tasks should be (are allowed to be) submitted in a second
+        #TODO side note: NCBI entrez has 5 per second without an account and 10 with an account for example
+
+        #Multithreaded execution
+        with Pool(processes=n_processes) as thread_controller:
+            thread_controller.map(BLAST_online_submission, task_list)
+    else:
+        #Sequential execution
+        for task in task_list:
+            BLAST_online_submission(task)
 
     logging.info("~~~~~~~~~~~~                 finished BLASTp search                 ~~~~~~~~~~~~")
+
+def BLAST_online_submission(task):
+    """Run a single BLASTp online search
+
+    Parameters
+    ----------
+    task : array
+        List/array which contains the query data and the parameters for the BLAST search
+
+    Saved Files and Figures
+    -----------------------
+    PROTEIN_NAME.blast_result.xml : xml file containing BLASTp hits
+        (e.g. A2A2V5.blast_result.xml)
+    """
+    #Obtain query and parameters
+    protein_name, query, output_file, evalue, hitsize = task
+
+    #Run BLASTp search
+    logging.info("Run BLASTp online search for protein:" + "\t" + protein_name)
+    blast_result = NCBIWWW.qblast("blastp", "nr", query, expect=evalue,  hitlist_size=hitsize)
+
+    #Write BLASTp result into file
+    with open(output_file, "w") as blast_result_writer:
+        blast_result_writer.write(blast_result.read())
+    blast_result_writer.close()
+
+
+
+
+
 
 
 
@@ -113,7 +156,8 @@ def run_BLAST_local(pathdict, s, logging):
     hitsize = s["blast_max_hits"]
     database = s["BLAST_local_DB"]
 
-    #iterate over each protein
+    #preprocessing BLASTp execution by iterate over each protein
+    task_list = []
     for acc in df.index:
         #Variable initializations for current protein
         protein_name = df.loc[acc, 'protein_name']
@@ -126,12 +170,46 @@ def run_BLAST_local(pathdict, s, logging):
             os.makedirs(blast_proteinID_dir)
         output_file = os.path.join(s["data_dir"], "blast", protein_name[:2], protein_name + ".blast_result.xml")
 
-        #Run BLASTp search and write results into the database/blast directory
-        logging.info("Run BLASTp local search for protein:" + "\t" + protein_name)
-        blastp_cline = NcbiblastpCommandline(db=database, evalue=0.001, outfmt=5, out=output_file)
-        out, err = blastp_cline(stdin=query)
+        #Save query data into task_list
+        task_list.append([protein_name, query, output_file, evalue, hitsize, database])
 
-        #DEBUGGING
-        logging.warning(out)
+    #Execute BLASTp local searches
+    if s["use_multiprocessing"]:
+        # number of processes is the number the settings, or the number of proteins, whichever is smallest
+        n_processes = s["multiprocessing_cores"] if s["multiprocessing_cores"] < len(task_list) else len(task_list)
+
+        #Multithreaded execution
+        with Pool(processes=n_processes) as thread_controller:
+            thread_controller.map(BLAST_local_submission, task_list)
+    else:
+        #Sequential execution
+        for task in task_list:
+            BLAST_local_submission(task)
 
     logging.info("~~~~~~~~~~~~                 finished BLASTp search                 ~~~~~~~~~~~~")
+
+def BLAST_local_submission(task):
+    """Run a single BLASTp local search
+
+    Parameters
+    ----------
+    task : array
+        List/array which contains the query data and the parameters for the BLAST search
+
+    Saved Files and Figures
+    -----------------------
+    PROTEIN_NAME.blast_result.xml : xml file containing BLASTp hits
+        (e.g. A2A2V5.blast_result.xml)
+    """
+    #Obtain query and parameters
+    protein_name, query, output_file, evalue, hitsize, database = task
+
+    #Run BLASTp search
+    logging.info("Run BLASTp online search for protein:" + "\t" + protein_name)
+    blastp_cline = NcbiblastpCommandline(db=database, evalue=evalue, max_target_seqs=hitsize, outfmt=5, out=output_file)
+    out, err = blastp_cline(stdin=query)
+
+    #Exception handling of BLAST execution
+    if out or err:
+        outlogging.warning(out)
+        outlogging.warning(err)

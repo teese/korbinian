@@ -23,6 +23,7 @@ import logging
 import re
 import os
 import sys
+from multiprocessing import Pool
 import korbinian
 import korbinian.utils as utils
 # import debugging tools
@@ -49,17 +50,24 @@ def run(pathdict, s, logging):
                 This can be large, as it contains the full query, markup and match sequences
     """
     #Initialize protein list
-        #TODO exclude all proteins without a blast result
     acc_not_in_homol_db = []
     p_dict_logging = logging if s["use_multiprocessing"] != True else utils.Log_Only_To_Console()
     list_p = korbinian.utils.convert_summary_csv_to_input_list(s, pathdict, p_dict_logging, list_excluded_acc=acc_not_in_homol_db)
 
     logging.info("~~~~~~~~~~~~                 starting parsing BLAST results                 ~~~~~~~~~~~~")
+
     #Multithreading
-        #TODO
+    if s["use_multiprocessing"]:
+        # number of processes is the number the settings, or the number of proteins, whichever is smallest
+        n_processes = s["multiprocessing_cores"] if s["multiprocessing_cores"] < len(list_p) else len(list_p)
+
+        #Scatter list_p to threads and start parallel execution
+        with Pool(processes=n_processes) as thread_controller:
+            thread_controller.map(parse_blast_result, list_p)
     #Sequential execution
-    for p in list_p:
-        parse_blast_result(p)
+    else:
+        for p in list_p:
+            parse_blast_result(p)
 
     logging.info("\n" + "~~~~~~~~~~~~                 finished parsing BLAST results                 ~~~~~~~~~~~~")
 
@@ -105,6 +113,11 @@ def parse_blast_result(p):
     acc = p["acc"]
     protein_name = p['protein_name']
     blast_xml_path = os.path.join(s["data_dir"], "blast", protein_name[:2], protein_name + ".blast_result.xml")
+
+    #if BLAST_xml file is empty or don't exist -> give warning and return
+    if  not (os.path.exists(blast_xml_path) and os.path.getsize(blast_xml_path) > 0):
+        logging.info("BLAST_parser:" + "\t" + protein_name + " BLAST results file don't exist or is empty")
+        return
 
     #Read BLAST result xml file and parse required information into the match_details_dict Dictionary
     #BLAST parser structure was copied from the THOIPApy software
@@ -194,6 +207,11 @@ def parse_blast_result(p):
                     writer.writerow(match_details_dict)
                     hit_num += 1
 
+    #if csv file is empty (no BLAST hits) -> delete temporary files, give warning and return
+    if os.stat(BLAST_csv_file).st_size == 0:
+        os.remove(BLAST_csv_file)
+        logging.info("BLAST_parser:" + "\t" + protein_name + " hadn't any BLAST hits")
+        return
 
     #save file into pickle format for the later korbinian pipeline usage
     df_homol = pd.read_csv(BLAST_csv_file, sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col="hit_num")
@@ -235,5 +253,4 @@ def parse_blast_result(p):
     os.remove(BLAST_csv_file)
 
     #output current id
-    sys.stdout.write("{}, ".format(acc))
-    sys.stdout.flush()
+    logging.info("BLAST_parser:" + "\t" + protein_name + " successfully parsed")
