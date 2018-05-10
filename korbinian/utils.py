@@ -3,6 +3,10 @@
 """
 Utilities file containing useful functions.
 """
+#Switch matplotlib library for possible commandline execution
+import matplotlib
+matplotlib.use('Agg')
+
 import ast
 import csv
 import ctypes
@@ -29,7 +33,6 @@ from time import strftime
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from inspect import currentframe, getframeinfo, stack
 import io
-
 
 def aaa(df_or_series):
     """ Function for use in debugging.
@@ -80,11 +83,11 @@ def create_df_with_mean_AAIMON_each_TM(df):
     nested_dict_mean_AAIMON_each_TM = {}
     #create list to use as the legend in the later figures
     full_list_TMDs = []
-    
+
     for i in range(1, max_num_TMDs.astype(np.int64) + 1):
         TM = 'TM%02d_AAIMON_mean' % i
         full_list_TMDs.append(TM)
-        #create new series with the data (each datapoint is the mean for all homologues, 
+        #create new series with the data (each datapoint is the mean for all homologues,
         #for a single protein)
         hist_data_AAIMON_each_TM = df['TM%02d_AAIMON_mean' % i].dropna()
         #add data to nested dict
@@ -100,7 +103,7 @@ def create_df_with_mean_AAIMON_each_TM(df):
         nested_dict_mean_AAIMON_each_TM[TM] = dict_mean_AAIMON_each_TM
     #convert nested dict to dataframe
     df_mean_AAIMON_each_TM = df.from_dict(nested_dict_hist_data_AAIMON_each_TM)
-    
+
     #create new column to hold the last TMD
     df['last_TM_AAIMON_mean'] = np.nan
     #obtain data from last TMD for all proteins
@@ -109,7 +112,7 @@ def create_df_with_mean_AAIMON_each_TM(df):
     AAIMON_last_TM = df['last_TM_AAIMON_mean'].dropna()
     #add the data for the last TMD to the dataframe
     df_mean_AAIMON_each_TM['last_TM_AAIMON_mean'] = AAIMON_last_TM
-    
+
     return df_mean_AAIMON_each_TM, max_num_TMDs, full_list_TMDs
 
 
@@ -162,19 +165,19 @@ def round_sig(x, sig=1):
     '''
     return round(x, sig-int(floor(log10(x)))-1)
 
- 
+
 def create_hist_from_df_col(df,title,axarr,row_nr,col_nr,settings,data_column,color,alpha,col_width_value,fontsize,xlabel,ylabel,legend):
-    #filter to remove sequences where no TMDs are found, 
+    #filter to remove sequences where no TMDs are found,
     df = df.loc[df['list_of_TMDs'].notnull()]
     #filter to remove sequences where no TMDs are found (if string)
     df = df.loc[df['list_of_TMDs'] != 'nan']
-    #iterate over the dataframe. Note that acc = uniprot accession here.    
+    #iterate over the dataframe. Note that acc = uniprot accession here.
     linspace_binlist = np.linspace(settings["hist_settings_mult_proteins"]["smallest_bin"],
                                    settings["hist_settings_mult_proteins"]["largest_bin"],
                                    settings["hist_settings_mult_proteins"]["number_of_bins"])
 
     #add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
-    binlist = np.append(linspace_binlist, settings["hist_settings_mult_proteins"]["final_highest_bin"])   
+    binlist = np.append(linspace_binlist, settings["hist_settings_mult_proteins"]["final_highest_bin"])
     #create numpy array of membranous over nonmembranous conservation ratios (identity)
     hist_data = np.array(df[data_column].dropna())
     #use numpy to create a histogram
@@ -210,22 +213,22 @@ def create_hist_from_df_col(df,title,axarr,row_nr,col_nr,settings,data_column,co
     #axarr[row_nr, col_nr].set_title(title,fontsize=fontsize)
     #add background grid
     #axarr[row_nr, col_nr].grid(True, color='0.75', alpha=0.5)
-        
+
 
 def create_line_hist_from_df_col(df,title,axarr,row_nr,col_nr,settings,data_column,color,alpha,col_width_value,fontsize,xlabel,ylabel,legend):
-    #filter to remove sequences where no TMDs are found, 
+    #filter to remove sequences where no TMDs are found,
     df = df.loc[df['list_of_TMDs'].notnull()]
     #filter to remove sequences where no TMDs are found (if string)
     df.loc[df['list_of_TMDs'] != 'nan']
     #filter to remove sequences where no TMDs are found (if string)
     df = df.loc[df['list_of_TMDs'] != 'nan']
-    #iterate over the dataframe. Note that acc = uniprot accession here.    
+    #iterate over the dataframe. Note that acc = uniprot accession here.
     linspace_binlist = np.linspace(settings["hist_settings_mult_proteins"]["smallest_bin"],
                                    settings["hist_settings_mult_proteins"]["largest_bin"],
                                    settings["hist_settings_mult_proteins"]["number_of_bins"])
 
     #add 30 as the last bin, to make sure 100% of the data is added to the histogram, including major outliers
-    binlist = np.append(linspace_binlist, settings["hist_settings_mult_proteins"]["final_highest_bin"])   
+    binlist = np.append(linspace_binlist, settings["hist_settings_mult_proteins"]["final_highest_bin"])
     #create numpy array of histogram data
     hist_data = np.array(df[data_column].dropna())
     #use numpy to create a histogram
@@ -234,11 +237,11 @@ def create_line_hist_from_df_col(df,title,axarr,row_nr,col_nr,settings,data_colu
     centre_of_bar_in_x_axis = (bin_array_S[:-2] + bin_array_S[1:-1]) / 2
     #add the final bin, which is physically located just after the last regular bin but represents all higher values
     bar_width = centre_of_bar_in_x_axis[3] - centre_of_bar_in_x_axis[2]
-    centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)        
+    centre_of_bar_in_x_axis = np.append(centre_of_bar_in_x_axis, centre_of_bar_in_x_axis[-1] + bar_width)
     #create a line graph rather than a bar graph for the AASMON (ident + similarity)
     linecontainer_AASMON_mean = axarr[row_nr, col_nr].plot(centre_of_bar_in_x_axis, freq_counts_S, color=color,
                                                            alpha=alpha)
-    #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A 
+    #other colours that are compatible with colourblind readers: #8A084B Dark red, #B45F04 deep orange, reddish purple #4B088A
     #http://html-color-codes.info/
     #label the x-axis for each plot, based on the TMD
     axarr[row_nr, col_nr].set_xlabel(xlabel, fontsize=fontsize)
@@ -309,19 +312,19 @@ def save_fig_with_subplots(fig, axarr, base_filename, fig_nr, fontsize):
     tightens using the subplots_adjust function, as an error often occurs with tighten_layout
     removes spines at top and right
     '''
-    for ax in axarr.flat:                 
+    for ax in axarr.flat:
         #change axis font size
         ax.tick_params(labelsize = fontsize)
         #hide spines
-        ax.spines["top"].set_visible(False)  
-        ax.spines["right"].set_visible(False) 
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
         ax.tick_params(
             axis='x',          # changes apply to the x-axis
             which='both',      # both major and minor ticks are affected
             bottom='off',      # ticks along the bottom edge are off
             right='off',
             top='off',         # ticks along the top edge are off
-            labelbottom='on') # labels along the bottom edge are off    
+            labelbottom='on') # labels along the bottom edge are off
     #automatically tighten the layout of plots in the figure
 #    fig.subplots_adjust(bottom = 0)
 #    fig.subplots_adjust(top = 1)
@@ -426,9 +429,9 @@ def get_start_and_end_of_TMD_in_query(x, regex_string):
         #if the tmd is not in the query, return False, NaN, NaN
         return (bool(m), np.nan, np.nan)
 
-        
+
 def find_disallowed_words(description, words_not_allowed_in_description):
-    '''Finds disallowed words in the description (Patent, Synthetic, etc). 
+    '''Finds disallowed words in the description (Patent, Synthetic, etc).
     Returns the disallowed words, or an empty list. The lists are converted to strings.
     settings must be in globals
     '''
@@ -443,7 +446,7 @@ def create_dict_organising_subplots(n_plots_per_fig,n_rows,n_cols):
     '''
     Function to help organise the creation of figures that contain multiple plots.
     For example, 15 histograms printed in figures with 8 histograms per figure/page.
-    Returns a dict that gives a tuple for each plot/graph. 
+    Returns a dict that gives a tuple for each plot/graph.
     newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr
     row_nr and col_nr are used to index pyplot subplots as follows
     fig, axarr = plt.subplots(2,2)
@@ -462,7 +465,7 @@ def create_dict_organising_subplots(n_plots_per_fig,n_rows,n_cols):
     savefig = False
     #whether a new figure needs to be created
     newfig = True
-    
+
     for plotnr in range(1, 500):
         #add current counters to dict
         dict_organising_subplots[plotnr] = (newfig, savefig, fig_nr, plot_nr_in_fig, row_nr, col_nr)
@@ -542,14 +545,14 @@ def check_SIMAP_tarfile(SIMAP_tar, ft_xml_path, homol_xml_path, acc, logging, de
 
 def score_pairwise(seq1, seq2, matrix, gap_open_penalty, gap_extension_penalty, prev_site_contained_gap = True):
     '''
-    Calculates a score between two aligned sequences, based on the gap penalties and matrix applied. 
+    Calculates a score between two aligned sequences, based on the gap penalties and matrix applied.
     The zip seems to be a fast method of comparing individual letters in two strings of the same length
     A, B are each paired amino acid in the pairwise alignment
     yield is a generator function that returns a result. See http://stackoverflow.com/questions/231767/the-python-yield-keyword-explained
-    yield should be faster than iterators, because the result does not need to be held in memory to access a second time, it woll only be read once     
+    yield should be faster than iterators, because the result does not need to be held in memory to access a second time, it woll only be read once
     '''
     for A,B in zip(seq1, seq2):
-        #ORIG SCRIPT: if either A or B is a gap, gap_exists = True. BUT this can't be used for self score ratio calculation! The presence of gaps in both the query and the subject shouldn't be penalised!        
+        #ORIG SCRIPT: if either A or B is a gap, gap_exists = True. BUT this can't be used for self score ratio calculation! The presence of gaps in both the query and the subject shouldn't be penalised!
         gap_exists = ('-'==A) or ('-'==B)
         #MT addition to script: determine if both sequences contain a gap at this position, and if they do, yield 0
         gap_in_both_query_and_match = True if ('-'==A) and ('-'==B) else False
@@ -559,7 +562,7 @@ def score_pairwise(seq1, seq2, matrix, gap_open_penalty, gap_extension_penalty, 
             #easiest if read backwards: return the matrix value for A to B, unless A or B is a gap: return the gap open penalty, unless the previous aa pair was also a gap, return the gap extension penalty
             try:
                 yield (gap_extension_penalty if prev_site_contained_gap else gap_open_penalty) if gap_exists else matrix[(A,B)]
-            #in some cases, B is used as Asp or Asn. These should be very rare. Sequences with X are already removed. 
+            #in some cases, B is used as Asp or Asn. These should be very rare. Sequences with X are already removed.
             except KeyError:
                 yield 0
                 logging.info('sequence pair contains non-IUPAC character: %s to %s' % (A,B))
@@ -601,18 +604,18 @@ def score_pairwise_gapless(seq1, seq2, matrix):
 #    for i in range(len(df_csv_file_with_uniprot_data)):
 #        organism_classification_string = (df_csv_file_with_uniprot_data.loc[i,'organism_classification'])
 #        organism_domain = convert_stringlist_to_list(organism_classification_string)[0]
-#        list_of_org_domains.append(organism_domain)        
-#        protein_name = '%s_%s' % (df_csv_file_with_uniprot_data.loc[i,'accession_uniprot'], df_csv_file_with_uniprot_data.loc[i,'record_entry_name_uniprot']) 
+#        list_of_org_domains.append(organism_domain)
+#        protein_name = '%s_%s' % (df_csv_file_with_uniprot_data.loc[i,'accession_uniprot'], df_csv_file_with_uniprot_data.loc[i,'record_entry_name_uniprot'])
 #        list_of_protein_names.append(protein_name)
 #        SIMAP_feature_table_XML_file = r"E:\Databases\simap\%s\%s_feature_table.xml" % (organism_domain, protein_name)
 #        list_of_files_with_feature_tables.append(SIMAP_feature_table_XML_file)
 #        SIMAP_homologues_XML_file = r"E:\Databases\simap\%s\%s_homologues.xml" % (organism_domain, protein_name)
-#        list_of_files_with_homologues.append(SIMAP_homologues_XML_file) 
+#        list_of_files_with_homologues.append(SIMAP_homologues_XML_file)
 #    return list_of_files_with_feature_tables, list_of_files_with_homologues, list_of_protein_names, list_of_org_domains
 
 class Command(object):
     '''
-    subprocess for running shell commands in win and linux 
+    subprocess for running shell commands in win and linux
     This will run commands from python as if it was a normal windows console or linux terminal.
     taken from http://stackoverflow.com/questions/17257694/running-jar-files-from-python)'
     '''
@@ -644,7 +647,7 @@ class Command(object):
         #logging.info(self.process.returncode)
 
 def run_command(command):
-    #this stopped working for some reason. Did I mess up a path variable?    
+    #this stopped working for some reason. Did I mess up a path variable?
     p = subprocess.Popen(command,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT)
@@ -690,7 +693,7 @@ def create_list_of_object_names_from_list_of_objects(input_list_of_objects):
     output_list = []
     for i in range(len(input_list_of_objects)):
         objectname = name_of_object_in_list_of_global_objects(input_list_of_objects[i])
-        output_list.append(objectname) 
+        output_list.append(objectname)
     return output_list
 
 def save_list_as_row_in_csv(input_list, output_csv, open_method):
@@ -723,12 +726,12 @@ def count_non_protein_characters(inputseq):
 def create_csv_header_fieldnames(input_dict):
     pass
     #creates a list that starts with the important fields, but also includes any new fields inserted into the dictionary
-#    list_of_important_fields = ['hit_number', 'TMD_seq_in_hsp_match', 'expectation', 'organism', 'description', 'database', 
-#    'ratio_percentage_identity_of_TMD_to_rest_of_hsp', 'md5', 'databaseId', 'percentage_identity_of_TMD', 
-#    'identity', 'is_TMD_in_hsp', 'match_TMD_added_to_FastA_alignment', 'non_protein_characters', 'number_of_gaps_in_match_TMD', 
-#    'number_of_gaps_in_query_TMD', 'percentage_identity_of_rest_of_alignment', 
+#    list_of_important_fields = ['hit_number', 'TMD_seq_in_hsp_match', 'expectation', 'organism', 'description', 'database',
+#    'ratio_percentage_identity_of_TMD_to_rest_of_hsp', 'md5', 'databaseId', 'percentage_identity_of_TMD',
+#    'identity', 'is_TMD_in_hsp', 'match_TMD_added_to_FastA_alignment', 'non_protein_characters', 'number_of_gaps_in_match_TMD',
+#    'number_of_gaps_in_query_TMD', 'percentage_identity_of_rest_of_alignment',
 #    'ratio_length_of_TMD_to_rest_of_hsp', 'ratio_length_of_query_TMD_to_rest_of_match_protein', 'taxonomy_node_id']
-    #the list of keys from the dictionary   
+    #the list of keys from the dictionary
 #    keylist00 = list(input_dict.keys())
 #    keylist = sorted(keylist00)
 #    #remove any keys that are already in the list above
@@ -737,8 +740,8 @@ def create_csv_header_fieldnames(input_dict):
 #            keylist.remove(field)
 ##    join dictionaries
 #    csv_header_fieldnames = list_of_important_fields + keylist
-##    logging.info('\n\n\n\n')    
-##    logging.info(csv_header_fieldnames)    
+##    logging.info('\n\n\n\n')
+##    logging.info(csv_header_fieldnames)
 #    return csv_header_fieldnames
 
 def save_dict_keys_as_header_in_csv(input_dict, header_fieldnames, output_csv, open_method):
@@ -760,47 +763,47 @@ def create_nested_dict_from_csv(csvfile, fieldlist):
     global selected_dict
     '''
     Choose a list of fields that you want to include in your final dictionary.
-    
+
     fieldlist='all'
-        with this option, all columns will be included in the final dict 
+        with this option, all columns will be included in the final dict
         don't use this option for large data files! Try Numpy and load data as an array.
-    
+
     For the nested dictionary, the row number is used as the key.
-    {1: {dictionary from all values in row 1}, 2: {dictionary from all values in row 2}, 
-    
+    {1: {dictionary from all values in row 1}, 2: {dictionary from all values in row 2},
+
     if this data contains for example a uniprot number, this can be accessed from the nested dictionary as follows:
         nested_dict_with_uniprot_seq = create_nested_dict_from_csv(csv_file_with_uniprot_data, list_of_keys_to_keep)
         uniprot_number_for_seq_in_row_1 = nested_dict_with_uniprot_seq[1]['accession_uniprot']
         sys.stdout.write(uniprot_number_for_seq_in_row_1)
-    '''   
+    '''
     global dict1, output_dict, reader
     #dict1 = {}
     output_dict = {}
     with open(csvfile, mode='r') as infile:
         reader = csv.reader(infile)
-        rownumber = 0    
+        rownumber = 0
         for row in reader:
             dict1 = {}
             # if the input doesn't have a header, simply use the column mumber as the dictionary key
             if fieldlist == 'all':
                 cellnumber = 0
                 for cell in row:
-                    dict1[cellnumber] = cell           
+                    dict1[cellnumber] = cell
                     cellnumber += 1
                 #for the nested dictionary, the row number is used as the key
                 output_dict[rownumber] = dict1
             else:
-                #create a dictionary from only the required fields                
-                if rownumber == 0:        
+                #create a dictionary from only the required fields
+                if rownumber == 0:
                     header = row
                 else:
                     cellnumber = 0
                     for cell in row:
-                        key = header[cellnumber]                        
-                        dict1[key] = cell           
+                        key = header[cellnumber]
+                        dict1[key] = cell
                         cellnumber += 1
-                    selected_dict = create_new_dict_with_only_selected_keys(dict1, fieldlist)           
-                    output_dict[rownumber] = selected_dict                     
+                    selected_dict = create_new_dict_with_only_selected_keys(dict1, fieldlist)
+                    output_dict[rownumber] = selected_dict
 
             rownumber += 1
     return output_dict
@@ -819,7 +822,7 @@ def create_new_dict_with_only_selected_keys(inputdict, keylist):
         output_dict3 = { key: inputdict[key] for key in keylist }
     return output_dict3
 #    for key in keylist:
-#        try:        
+#        try:
 #            output_dict = { key: inputdict[key] for key in keylist }
 #        except KeyError:
 #            pass
@@ -839,7 +842,7 @@ def save_structured_array_to_csv(array1, file1):
     #save the column names in the structured array as a header
     header = [x[0] for x in array1.dtype.descr]
     save_list_as_row_in_csv(header, file1, 'w')
-    
+
     #save the rest of the data in the csv file
     with open(file1, 'ab') as f:
         np.savetxt(f, array1, fmt='%s', delimiter=',', newline='\n', header='', footer='', comments='#')
@@ -848,13 +851,13 @@ def load_structured_array_from_csv(file2, dtype2):
     '''
     The data type(dtype) for each column can be is listed in this format:
     dtype_for_my_array = [('number', '<i4'), ('query_name', '<U30')]
-    Note that if the list of data types is shorter than the number of columns 
+    Note that if the list of data types is shorter than the number of columns
     in the csv, numpy will simply ignore the rest of the data. Note also that
-    the format needs to match the data closely, or you will have an empty array, 
+    the format needs to match the data closely, or you will have an empty array,
     or 'nan' values. In python 3.3, you should use U for the unicode format.
     '''
-    
-    loaded_array = np.genfromtxt(file2, delimiter=',', 
+
+    loaded_array = np.genfromtxt(file2, delimiter=',',
                                dtype=dtype2,
                                comments='#',
                                skiprows = 1)
@@ -870,8 +873,8 @@ class HardDriveSpaceException(Exception):
         return canonical_string_representation(self.parameter)
 
 def get_free_space(folder, format="MB"):
-    """ 
-        Return folder/drive free space 
+    """
+        Return folder/drive free space
     """
     fConstants = {"GB": 1073741824,
                   "MB": 1048576,

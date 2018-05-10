@@ -1,7 +1,7 @@
 """
 Author:         Dominik Müller
 Created:        May 7 14:28 2018
-Dependencies:   Python 3.x
+Dependencies:   Python >=3.3
                 pandas
                 Bio
 Purpose:        Protein Data Science

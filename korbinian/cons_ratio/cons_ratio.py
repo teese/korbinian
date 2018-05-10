@@ -1,3 +1,8 @@
+
+#Switch matplotlib library for possible commandline execution
+import matplotlib
+matplotlib.use('Agg')
+
 from multiprocessing import Pool
 from scipy.optimize import leastsq
 import ast

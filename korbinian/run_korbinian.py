@@ -26,18 +26,29 @@ import pandas as pd
 import sys
 from shutil import copyfile
 
+#Initialize a modified ArgumentParser from the argparse package
+class MyParser(argparse.ArgumentParser):
+    def error(self, message):
+        sys.stderr.write('error: %s\n' % message + "\n")
+        self.print_help()
+        sys.exit(2)
+
 # read the command line arguments
-parser = argparse.ArgumentParser()
+parser = MyParser()
 # add only a single argument, the path to the settings file.
 parser.add_argument("-s",  # "-settingsfile",
                     help=r'Full path to your excel settings file.'
-                         r'E.g. "C:\Path\to\your\settingsfile.xlsx"')
+                         r'E.g. "C:\Path\to\your\settingsfile.xlsx"', required=True)
 
 if __name__ == "__main__":
     sys.stdout.write('\nRun korbinian as follows:')
     sys.stdout.write(r'python "C:\Path\to\run_korbinian.py" -s "C:\Path\to\your\settingsfile.xlsx"')
     # get the command-line arguments
     args = parser.parse_args()
+    #check if the provided path lead to an existing file -> IF NOT = exit program
+    if not (os.path.exists(args.s) and os.path.isfile(args.s) and os.path.getsize(args.s) > 0):
+        sys.stderr.write("\n" + "Provided path to the settings file leads to a non existing or empty file" + "\n")
+        sys.exit(2)
     # args.s is the excel_settings_file input by the user
     # convert the excel settings file to a python dictionary, s
     s = korbinian.common.create_settingsdict(args.s)
