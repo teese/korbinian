@@ -217,7 +217,10 @@ def match_list_uniprot_acc_to_uniref_clusters(redundant_uniprot_acc_tab, uniref_
     # series 1
     nonred_from_reps = dfu["nonred"].dropna()
     # series 2
-    nonred_from_cluster_search = df_acc_to_cluster["nonred"].dropna()
+    if 'nonred' in df_acc_to_cluster.columns:
+        nonred_from_cluster_search = df_acc_to_cluster["nonred"].dropna()
+    else:
+        nonred_from_cluster_search = df_acc_to_cluster
     # join series
     complete_series_nonred_annotation = nonred_from_reps.append(nonred_from_cluster_search)
     # add to output file

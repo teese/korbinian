@@ -56,6 +56,7 @@ def run_BLAST_online(pathdict, s, logging):
     #Obtain blast settings from the settings file
     evalue = s["blast_Evalue"];
     hitsize = s["blast_max_hits"]
+    overwrite_results = s["blast_overwrite_existing_results"]
 
     #preprocessing BLASTp execution by iterate over each protein
     task_list = []
@@ -72,7 +73,7 @@ def run_BLAST_online(pathdict, s, logging):
         output_file = os.path.join(s["data_dir"], "blast", protein_name[:2], protein_name + ".blast_result.xml")
 
         #Save query data into task_list
-        task_list.append([protein_name, query, output_file, evalue, hitsize])
+        task_list.append([protein_name, query, output_file, evalue, hitsize, overwrite_results])
 
     #Execute BLASTp online searches
     if s["use_multiprocessing"]:
@@ -106,7 +107,14 @@ def BLAST_online_submission(task):
         (e.g. A2A2V5.blast_result.xml)
     """
     #Obtain query and parameters
-    protein_name, query, output_file, evalue, hitsize = task
+    protein_name, query, output_file, evalue, hitsize, overwrite_results = task
+
+    #IF overwrite existing results is FALSE
+    if not overwrite_results:
+        #check if file exist and is not empty: if yes return and don't execute BLASTp
+        if  os.path.exists(output_file) and os.path.getsize(output_file) > 0:
+            logging.info("Skipped BLASTp online search for protein:" + "\t" + protein_name)
+            return
 
     #Run BLASTp search
     logging.info("Run BLASTp online search for protein:" + "\t" + protein_name)
@@ -155,6 +163,7 @@ def run_BLAST_local(pathdict, s, logging):
     evalue = s["blast_Evalue"];
     hitsize = s["blast_max_hits"]
     database = s["BLAST_local_DB"]
+    overwrite_results = s["blast_overwrite_existing_results"]
 
     #preprocessing BLASTp execution by iterate over each protein
     task_list = []
@@ -171,7 +180,7 @@ def run_BLAST_local(pathdict, s, logging):
         output_file = os.path.join(s["data_dir"], "blast", protein_name[:2], protein_name + ".blast_result.xml")
 
         #Save query data into task_list
-        task_list.append([protein_name, query, output_file, evalue, hitsize, database])
+        task_list.append([protein_name, query, output_file, evalue, hitsize, database, overwrite_results])
 
     #Execute BLASTp local searches
     if s["use_multiprocessing"]:
@@ -202,7 +211,14 @@ def BLAST_local_submission(task):
         (e.g. A2A2V5.blast_result.xml)
     """
     #Obtain query and parameters
-    protein_name, query, output_file, evalue, hitsize, database = task
+    protein_name, query, output_file, evalue, hitsize, database, overwrite_results = task
+
+    #IF overwrite existing results is FALSE
+    if not overwrite_results:
+        #check if file exist and is not empty: if yes return and don't execute BLASTp
+        if  os.path.exists(output_file) and os.path.getsize(output_file) > 0:
+            logging.info("Skipped BLASTp local search for protein:" + "\t" + protein_name)
+            return
 
     #Run BLASTp search
     logging.info("Run BLASTp local search for protein:" + "\t" + protein_name)
