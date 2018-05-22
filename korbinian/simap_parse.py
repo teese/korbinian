@@ -100,6 +100,10 @@ def parse_SIMAP_to_csv(p):
     Designed for use in multiprocessing, where logging.info will only print to the console, and the logfile will
     contain the messages in the return statements, telling if that protein was successful.
 
+    Notes:
+     - sdict is the dictionary with all the simap header info. It's not actually used anywhere further in the pipeline at the moment.
+
+
     Parameters
     ----------
     p : dict
