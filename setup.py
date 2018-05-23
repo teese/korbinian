@@ -20,15 +20,23 @@ setup(name="korbinian",
 	author="Mark Teese",
 	author_email="mark.teese@checkmytumhomepage.de",
 	url="https://github.com/teese/korbinian",
-	download_url = 'https://github.com/teese/korbinian/archive/0.3.2.tar.gz',
+	download_url = 'https://github.com/teese/korbinian/archive/0.3.3.tar.gz',
 	description = "Bioinformatic sequence analysis of membrane proteins.",
 	long_description=long_description,
 	long_description_content_type='text/x-rst',
 	packages=find_packages(),
 	install_requires=['numpy','matplotlib','pandas', 'seaborn', 'scipy', 'biopython'],
     license='MIT',
-	project_urls={'Wiki': 'https://github.com/teese/korbinian/wiki', 'LangoschLab':'http://cbp.wzw.tum.de/index.php?id=9', "TU_Muenchen":"https://www.tum.de"},
+	project_urls=
+    {
+        'Wiki': 'https://github.com/teese/korbinian/wiki',
+        'LangoschLab':'http://cbp.wzw.tum.de/index.php?id=9',
+        "TU_Muenchen":"https://www.tum.de",
+        "Freising":"https://en.wikipedia.org/wiki/Freising",
+        "KorbinianSaint": "https://en.wikipedia.org/wiki/Corbinian",
+        "KorbinianBeer" : "https://www.weihenstephaner.de/unsere-biere/korbinian"
+    },
     include_package_data=True,
 	keywords="bioinformatics protein sequence membrane conservation evolution membranous soluble polypeptide BLAST SIMAP",
-	version="0.3.2"
+	version="0.3.3"
 	)
