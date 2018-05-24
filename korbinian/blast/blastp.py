@@ -127,11 +127,6 @@ def BLAST_online_submission(task):
 
 
 
-
-
-
-
-
 def run_BLAST_local(pathdict, s, logging):
     """From the list of proteins in csv format, begins local BLASTp searches for homologous proteins
 

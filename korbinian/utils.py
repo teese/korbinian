@@ -1883,3 +1883,65 @@ def file_is_old_and_will_be_removed(filepath, oldest_acceptable_file_date_str, l
     else:
         message = ""
     return message
+
+
+concat_file = r"D:\databases\predictions\topology_fasta_smaller.txt"
+predictions_dir = r"D:\databases\predictions"
+
+
+def gen_fasta_records(concat_file):
+    """Generator yields individual fasta records from file with concatenated records.
+
+    The "record" is a string that contains any lines until the next ">" symbol.
+
+    The first record will be an empty string.
+
+    Parameters
+    ----------
+    concat_file : str
+        Path to TMSEG file with concatenated predictions in fasta format
+
+    Returns
+    -------
+    record : str
+        Fasta string, e.g. ">P62258|1433E\nMDDREDLVYQAKLAEQAERYDEMVE"
+
+    Usage
+    -----
+    concat_file = r"D:\data\concatfasta.fas"
+    records = gen_fasta_records(concat_file)
+    # skip first
+    next(records)
+    for n, record in enumerate(records):
+        do_stuff_with_record(record)
+    """
+    with open(concat_file) as f:
+        record = ""
+        for line in f.readlines():
+            if line[0] == ">":
+                yield record
+                record = ""
+            record += line
+
+def split_TMSEG_fasta_into_separate_files(concat_file, predictions_dir):
+    """Splits concatenated TMSEG fasta-like predictions into separate files.
+
+    Saves is subdirectory A1, A2, Q0 etc based on first two letters of uniprot accession.
+
+    Parameters
+    ----------
+    concat_file : str
+        Path to file with concat TMSEG fasta records.
+    predictions_dir : str
+        Parent path in which files are saved
+    """
+    records = gen_fasta_records(concat_file)
+    next(records)
+    for n, record in enumerate(records):
+        acc = record[1:].split("|")[0]
+        outfile = os.path.join(predictions_dir, acc[0:2], "{}_TMSEG_fastastyle.txt".format(acc))
+        make_sure_path_exists(outfile, isfile=True)
+        with open(outfile, "w") as f:
+            f.write(record)
+        sys.stdout.write("."), sys.stdout.flush()
+    sys.stdout.write("\n{} records processed".format(n))

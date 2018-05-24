@@ -72,7 +72,7 @@ def run(pathdict, s, logging):
     logging.info("\n" + "~~~~~~~~~~~~                 finished parsing BLAST results                 ~~~~~~~~~~~~")
 
 def parse_blast_result(p):
-    """ Parses the BLSAT XML file to csv for a single protein.
+    """ Parses the BLAST XML file to csv for a single protein.
 
     Parameters
     ----------
@@ -103,7 +103,7 @@ def parse_blast_result(p):
     Returns
     -------
     In all cases, a tuple (str, bool, str) is returned.
-    if sucsessful:
+    if successful:
         return acc, True, "0"
     if not successful:
         return acc, False, "specific warning or reason why protein failed"
