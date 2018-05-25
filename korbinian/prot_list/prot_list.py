@@ -37,13 +37,12 @@ def get_topology_and_slice_TMDs(s, pathdict, logging):
     IMPORTANT: saves as ListXX.csv, which will be overwritten by prepare_protein_list
 
     """
-    logging.info('~~~~~~~~~~~~                     starting prepare_protein_list                      ~~~~~~~~~~~~')
-
+    logging.info('~~~~~~~~~~~~                 starting get_topology_and_slice_TMDs                   ~~~~~~~~~~~~')
 
     df = pd.read_csv(pathdict["list_parsed_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0, low_memory=False)
     n_initial_prot = df.shape[0]
     # convert to python tuple from stringlist
-    df.TM_indices = df.TM_indices.apply(lambda x : tuple(ast.literal_eval(x)))
+    df.TM_indices = df.TM_indices.dropna().apply(lambda x : tuple(ast.literal_eval(x)))
 
     predictions_dir = os.path.join(s["data_dir"], "predictions")
 
@@ -54,38 +53,65 @@ def get_topology_and_slice_TMDs(s, pathdict, logging):
     #                                                                                      #
     ########################################################################################
 
+
     if "TMSEG" in s['TM_def']:
+        list_acc_without_TMSEG = []
         for acc in df.index:
+            sys.stdout.write("."), sys.stdout.flush()
             TMSEG_file_is_good = True
             full_seq = df.at[acc, "full_seq"]
             TMSEG_fastastyle_file = os.path.join(predictions_dir, acc[0:2], "{}_TMSEG_fastastyle.txt".format(acc))
             TMSEG_file = os.path.join(predictions_dir, acc[0:2], "{}_TMSEG.txt".format(acc))
-            if os.path.isfile(TMSEG_file):
-                print("{} TMSEG full output available\n PARSER NOT YET DEVELOPED".format(acc))
-                df.at[acc, "TM_indices"] = ()
-            elif os.path.isfile(TMSEG_fastastyle_file):
-                with open(TMSEG_fastastyle_file) as f:
-                    split_record = f.read().strip().split("\n")
-                    seq = split_record[1]
-                    if full_seq != seq:
-                        logging.warning("{} seq from TMSEG_fastastyle.txt does not match original seq with this acc\nseq:{}\nfse:{}".format(acc, seq, full_seq))
-                        print(split_record)
-                        continue
-                    topo = split_record[2]
 
-                    # overwrite any uniprot TM indices
-                    TM_indices = korbinian.prot_list.parse_TMSEG.get_TM_indices_from_TMSEG_topo_str(topo)
-                    df.at[acc, "TM_indices"] = TM_indices
-                    df.at[acc, "topol_source"] = "TMSEG"
-                    number_of_TMDs = len(TM_indices)
-                    df.at[acc, "number_of_TMDs"] = number_of_TMDs
-                    df.at[acc, "list_of_TMDs"] = ["TM{:02d}".format(n) for n in range(1, number_of_TMDs + 1)]
+            if any([os.path.isfile(TMSEG_file), os.path.isfile(TMSEG_fastastyle_file)]):
+
+                if os.path.isfile(TMSEG_file):
+                    with open(TMSEG_file) as f:
+                        split_record = f.read().strip().split("\n")
+                        seq = split_record[-2]
+                        if full_seq != seq:
+                            logging.warning("{} seq from TMSEG_fastastyle.txt does not match original seq with this acc\nseq:{}\nfse:{}".format(acc, seq, full_seq))
+                            list_acc_without_TMSEG.append(acc)
+                            continue
+                        topo = split_record[-1]
+
+
+                elif os.path.isfile(TMSEG_fastastyle_file):
+                    with open(TMSEG_fastastyle_file) as f:
+                        split_record = f.read().strip().split("\n")
+                        seq = split_record[1]
+                        if full_seq != seq:
+                            logging.warning("{} seq from TMSEG_fastastyle.txt does not match original seq with this acc\nseq:{}\nfse:{}".format(acc, seq, full_seq))
+                            list_acc_without_TMSEG.append(acc)
+                            continue
+                        topo = split_record[2]
+
+                else:
+                    raise ValueError("how did we end up here? something must be wrong.")
+
+                # overwrite any uniprot TM indices
+                TM_indices = korbinian.prot_list.parse_TMSEG.get_TM_indices_from_TMSEG_topo_str(topo)
+                df.at[acc, "TM_indices"] = TM_indices
+                df.at[acc, "topol_source"] = "TMSEG"
+                number_of_TMDs = len(TM_indices)
+                df.at[acc, "number_of_TMDs"] = number_of_TMDs
+                df.at[acc, "list_of_TMDs"] = ["TM{:02d}".format(n) for n in range(1, number_of_TMDs + 1)]
             else:
+                list_acc_without_TMSEG.append(acc)
                 logging.warning("{} no TMSEG files found".format(acc))
                 df.at[acc, "TM_indices"] = ()
                 df.at[acc, "topol_source"] = "noTMSEG"
                 df.at[acc, "number_of_TMDs"] = np.nan
                 df.loc[acc, "list_of_TMDs"] = np.nan
+
+        TMSEG_missing_dir = os.path.join(s["data_dir"], "summaries", "{:02d}".format(s["list_number"]), "List{:02d}_predictions".format(s["list_number"]), "TMSEG", "missing")
+        if not os.path.isdir(TMSEG_missing_dir):
+            os.makedirs(TMSEG_missing_dir)
+        for acc in list_acc_without_TMSEG:
+            fasta_file = os.path.join(TMSEG_missing_dir, "{}.fasta".format(acc))
+            with open(fasta_file, "w") as f:
+                f.write(">{}\n{}\n".format(acc, df.at[acc, "full_seq"]))
+                sys.stdout.write("-")
 
     # accessions with topology info
     acc_with_topo = df.query("TM_indices != () & number_of_TMDs > 1").index.tolist()
@@ -130,6 +156,8 @@ def get_topology_and_slice_TMDs(s, pathdict, logging):
             df.at[acc, "nonTMD_seq"] = np.nan
     # save to a csv
     df.to_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+    sys.stdout.write("\n")
+    logging.info('~~~~~~~~~~~~                 finished get_topology_and_slice_TMDs                   ~~~~~~~~~~~~')
 
 def prepare_protein_list(s, pathdict, logging):
     """ Sets up the file locations in the DataFrame containing the list of proteins for analysis.
@@ -263,6 +291,9 @@ def prepare_protein_list(s, pathdict, logging):
 
     df = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
     n_initial_prot = df.shape[0]
+
+    # # convert to python tuple from stringlist
+    df.TM_indices = df.TM_indices.apply(lambda x : tuple(ast.literal_eval(x)))
 
     # create or open dataframe for protein list summary
     if os.path.isfile(pathdict["prot_list_summary_csv"]):

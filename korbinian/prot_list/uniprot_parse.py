@@ -356,7 +356,7 @@ def parse_flatfile_to_csv(selected_uniprot_records_flatfile, n_aa_before_tmd, n_
         utils.make_sure_path_exists(list_parsed_csv, isfile=True)
         # count records in dataframe
         count_of_uniprot_records_added_to_csv = dfu.shape[0]
-        aaa(dfu)
+
         dfu.to_csv(list_parsed_csv, sep=",", quoting=csv.QUOTE_NONNUMERIC)
 
     return '\n%i valid UniProt records parsed to csv (from %i initial)\n~~~~~~~~~~~~                 finished parse_flatfile_to_csv              ~~~~~~~~~~~~' % (count_of_uniprot_records_added_to_csv, count_of_initial_uniprot_records)
