@@ -153,22 +153,31 @@ def run_statements(s):
         korbinian.prot_list.uniprot_retrieve.retrieve_uniprot_data_for_acc_list_in_xlsx_file(excelfile_with_uniprot_accessions, input_uniprot_flatfile, selected_uniprot_records_flatfile, logging)
 
 
-    if s["create_protein_list"]:
-        if "TMSEG" in s['TM_def']:
-            if os.path.isfile(pathdict['TMSEG_fastalike']) or os.path.isfile(pathdict['TMSEG_top_txtoutput']):
-                korbinian.prot_list.parse_TMSEG.parse_TMSEG_results(pathdict, s, logging)
-            else:
-                logging.info("\WARNING : 'TM_def' for this list in the settings file suggests TMSEG should be used for TM definitions, but the TMSEG output is not found! "
-                             "TM definitions will default to UniProt.")
-        elif "UniProt" in s['TM_def'] or "SCAMPI" in s['TM_def']:
-            ''' ~~ DETERMINE START AND STOP INDICES FOR TMD PLUS SURROUNDING SEQ ~~ '''
-            n_aa_before_tmd = s["n_aa_before_tmd"]
-            n_aa_after_tmd = s["n_aa_after_tmd"]
-            list_parsed_csv = pathdict["list_parsed_csv"]
-            # whether to analyse signal peptides for this dataset
-            analyse_sp = True if "SiPe" in s["regions"] else False
-            output = korbinian.prot_list.uniprot_parse.create_protein_list(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_sp, logging, list_parsed_csv)
-            logging.info(output)
+    if s["parse_flatfile_to_csv"]:
+        n_aa_before_tmd = s["n_aa_before_tmd"]
+        n_aa_after_tmd = s["n_aa_after_tmd"]
+        list_parsed_csv = pathdict["list_parsed_csv"]
+        # whether to analyse signal peptides for this dataset
+        analyse_sp = True if "SiPe" in s["regions"] else False
+        output = korbinian.prot_list.uniprot_parse.parse_flatfile_to_csv(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_sp, logging, list_parsed_csv)
+        logging.info(output)
+
+        # DEPRECATED
+        # if "TMSEG" in s['TM_def']:
+        #     if os.path.isfile(pathdict['TMSEG_fastalike']) or os.path.isfile(pathdict['TMSEG_top_txtoutput']):
+        #         korbinian.prot_list.parse_TMSEG.parse_TMSEG_results(pathdict, s, logging)
+        #     else:
+        #         logging.info("\WARNING : 'TM_def' for this list in the settings file suggests TMSEG should be used for TM definitions, but the TMSEG output is not found! "
+        #                      "TM definitions will default to UniProt.")
+        # elif "UniProt" in s['TM_def'] or "SCAMPI" in s['TM_def']:
+        #     ''' ~~ DETERMINE START AND STOP INDICES FOR TMD PLUS SURROUNDING SEQ ~~ '''
+        #     n_aa_before_tmd = s["n_aa_before_tmd"]
+        #     n_aa_after_tmd = s["n_aa_after_tmd"]
+        #     list_parsed_csv = pathdict["list_parsed_csv"]
+        #     # whether to analyse signal peptides for this dataset
+        #     analyse_sp = True if "SiPe" in s["regions"] else False
+        #     output = korbinian.prot_list.uniprot_parse.parse_flatfile_to_csv(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_sp, logging, list_parsed_csv)
+        #     logging.info(output)
 
     ########################################################################################
     #                                                                                      #
@@ -177,6 +186,7 @@ def run_statements(s):
     ########################################################################################
 
     if s["prepare_protein_list"]:
+        korbinian.prot_list.prot_list.get_topology_and_slice_TMDs(s, pathdict, logging)
         korbinian.prot_list.prot_list.prepare_protein_list(s, pathdict, logging)
 
     if s['generate_scampi_input_files']:

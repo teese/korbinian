@@ -448,7 +448,7 @@ def check_for_border(m_index_list, m_borders):
     """
     # iterate through the m_index_list (e.g. [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33] for a singlepass protein)
     for n in range(0, len(m_index_list) - 1):
-        # if the two indeces next to each other are not consecutive numbers
+        # if the two indices next to each other are not consecutive numbers
         if m_index_list[n] + 1 != m_index_list[n + 1]:
             # add the first one to the list
             m_borders.append(m_index_list[n])

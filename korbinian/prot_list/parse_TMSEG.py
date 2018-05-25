@@ -30,7 +30,7 @@ def parse_TMSEG_results(pathdict, s, logging):
     list_parsed_csv = pathdict["list_parsed_csv"]
     # check if the lists tab says to analyse the signal peptides
     analyse_sp = True if "SiPe" in s["regions"] else False
-    output = korbinian.prot_list.uniprot_parse.create_protein_list(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_sp, logging, list_parsed_csv, slice=False)
+    output = korbinian.prot_list.uniprot_parse.parse_flatfile_to_csv(selected_uniprot_records_flatfile, n_aa_before_tmd, n_aa_after_tmd, analyse_sp, logging, list_parsed_csv, slice=False)
     logging.info(output)
 
     TMSEG_fastalike_path = pathdict['TMSEG_fastalike']
@@ -39,7 +39,7 @@ def parse_TMSEG_results(pathdict, s, logging):
 
     df_parsed = pd.read_csv(pathdict["list_parsed_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
 
-    columns_to_keep = ['organism_domain', 'create_protein_list', 'uniprot_acc', 'uniprot_all_accessions', 'uniprot_entry_name', 'uniprot_features',
+    columns_to_keep = ['organism_domain', 'uniprot_acc', 'uniprot_all_accessions', 'uniprot_entry_name', 'uniprot_features',
                        'uniprot_orgclass', 'uniprot_SiPe', 'singlepass', 'typeI', 'typeII', 'uniprot_KW', 'organism', 'prot_descr', 'membrane',
                        'multipass', 'gene_name', 'comments_subcellular_location_uniprot', 'uniprot_SiPe', 'full_seq']
 
@@ -143,53 +143,57 @@ def parse_TMSEG_results(pathdict, s, logging):
 
         # add seqlen and indices for all TMD and SiPe regions
         df_TMSEG["seqlen"] = df_TMSEG.full_seq.apply(lambda x: len(x))
-        df_TMSEG['M_indices'] = df_TMSEG.topo.apply(getting_membrane_indices_from_helix_symbol)
-        df_TMSEG['SiPe_indices'] = df_TMSEG.topo.apply(getting_SiPe_indices_from_symbol)
+        #df_TMSEG['M_indices'] = df_TMSEG.topo.apply(get_list_TM_residues_from_topo_string)
+        #df_TMSEG['SiPe_indices'] = df_TMSEG.topo.apply(get_list_TM_residues_from_topo_string, args=("S"))
 
-        # Creating new list (nested list)
-        nested_list_of_membrane_borders = []
+        df_TMSEG['TM_indices'] = df_TMSEG.topo.apply(get_TM_indices_from_TMSEG_topo_str)
+        df_TMSEG['SiPe_indices'] = df_TMSEG.topo.apply(get_TM_indices_from_TMSEG_topo_str, args=("S"))
 
-        ########################################################################################
-        #                                                                                      #
-        #              Extract the membrane indices in UniProt Indexing style                  #
-        #                                                                                      #
-        ########################################################################################
-        # Filling nest with lists of start and end-points
-        for m_index_list in df_TMSEG.M_indices:
-            m_borders = []
-            # add the first membrane index (e.g. 13)
-            m_borders.append(m_index_list[0])
-            m_borders = korbinian.prot_list.parse_OMPdb.check_for_border(m_index_list, m_borders)
-            # add the last membrane index (e.g. 33)
-            m_borders.append(m_index_list[-1])
-            nested_list_of_membrane_borders.append(m_borders)
-
-        # DEPRECATED
-        #FOR CONSISTENCY, LEAVE INDEXING STYLE AS UNIPROT
+        # # Creating new list (nested list)
+        # nested_list_of_membrane_borders = []
+        #
         # ########################################################################################
         # #                                                                                      #
-        # #            Convert to python indexing style (NECESSARY?? NOT COMPAT WITH UNIPROT!)   #
+        # #              Extract the membrane indices in UniProt Indexing style                  #
         # #                                                                                      #
         # ########################################################################################
-        # array_membrane_borders = np.array(nested_list_of_membrane_borders)
-        # nested_list_m_borders_python_indexstyle = []
-        # for subarray in array_membrane_borders:
-        #     # convert to array
-        #     subarray = np.array(subarray)
-        #     # add 1 to the second index number, to allow slicing
-        #     subarray[1::2] = subarray[1::2] + 1
-        #     # add to list with corrected values, python index style
-        #     nested_list_m_borders_python_indexstyle.append(list(subarray))
+        # # Filling nest with lists of start and end-points
+        # for m_index_list in df_TMSEG.M_indices:
+        #     m_borders = []
+        #     # add the first membrane index (e.g. 13)
+        #     m_borders.append(m_index_list[0])
+        #     m_borders = korbinian.prot_list.parse_OMPdb.check_for_border(m_index_list, m_borders)
+        #     # add the last membrane index (e.g. 33)
+        #     m_borders.append(m_index_list[-1])
+        #     nested_list_of_membrane_borders.append(m_borders)
+        #
+        # # DEPRECATED
+        # #FOR CONSISTENCY, LEAVE INDEXING STYLE AS UNIPROT
+        # # ########################################################################################
+        # # #                                                                                      #
+        # # #            Convert to python indexing style (NECESSARY?? NOT COMPAT WITH UNIPROT!)   #
+        # # #                                                                                      #
+        # # ########################################################################################
+        # # array_membrane_borders = np.array(nested_list_of_membrane_borders)
+        # # nested_list_m_borders_python_indexstyle = []
+        # # for subarray in array_membrane_borders:
+        # #     # convert to array
+        # #     subarray = np.array(subarray)
+        # #     # add 1 to the second index number, to allow slicing
+        # #     subarray[1::2] = subarray[1::2] + 1
+        # #     # add to list with corrected values, python index style
+        # #     nested_list_m_borders_python_indexstyle.append(list(subarray))
+        #
+        # # Creating new column, which contains start and end-points
+        # #df_TMSEG["Membrane_Borders"] = nested_list_m_borders_python_indexstyle
+        #
+        # df_TMSEG["Membrane_Borders"] = nested_list_of_membrane_borders
+        #
+        # # Creating new column, which contains the number of TMDS
+        # #df_TMSEG["number_of_TMDs"] = df_TMSEG.Membrane_Borders.apply(lambda x: len(x) / 2)
+        #
+        # df_TMSEG["TM_indices"] = df_TMSEG["Membrane_Borders"].apply(lambda x: tuple(zip(x[::2], x[1::2])))
 
-        # Creating new column, which contains start and end-points
-        #df_TMSEG["Membrane_Borders"] = nested_list_m_borders_python_indexstyle
-
-        df_TMSEG["Membrane_Borders"] = nested_list_of_membrane_borders
-
-        # Creating new column, which contains the number of TMDS
-        #df_TMSEG["number_of_TMDs"] = df_TMSEG.Membrane_Borders.apply(lambda x: len(x) / 2)
-
-        df_TMSEG["TM_indices"] = df_TMSEG["Membrane_Borders"].apply(lambda x: tuple(zip(x[::2], x[1::2])))
         # create a list of [TM01, TM02, TM03, etc.
         long_list_of_TMDs = []
         for i in range(1, 50):
@@ -226,7 +230,7 @@ def parse_TMSEG_results(pathdict, s, logging):
                 df_TMSEG.loc[acc, "%s_seqlen" % TMD] = len(df_TMSEG.loc[acc, "%s_seq" % TMD])
                 # dft.loc[acc, TMD + "_top"] = utils.slice_with_listlike(topo, tup)
 
-            #DEPRECATED, ONLY REINSTATE IF YOU REALLY WANT TMSEG TM DEFINITIONS TO STAY
+            #DEPRECATED, ONLY REINSTATE IF YOU REALLY WANT TMSEG SP DEFINITIONS TO STAY
             # # add signal peptides and their corresponding values to list_of_TMDs
             # if analyse_sp == True:
             #     if type(df_parsed.loc[acc, 'SP01_seq']) == str:
@@ -454,12 +458,63 @@ def slice_nonTMD_in_prot_list(df):
 
     return df
 
-def getting_membrane_indices_from_helix_symbol(Topo_data):
+def get_list_TM_residues_from_topo_string(Topo_data, TM_symbol):
     # get list of membrane indices
     # note that this is UNIPROT indexing, not python indexing
-    m_list = [i+1 for i, topo in enumerate(Topo_data) if topo == "H"]  # find(Topo_data)
+    m_list = [i+1 for i, topo in enumerate(Topo_data) if topo == TM_symbol]  # find(Topo_data)
     return m_list
 
-def getting_SiPe_indices_from_symbol(Topo_data):
-    m_list = [i for i, topo in enumerate(Topo_data) if topo == "S"]  # find(Topo_data)
-    return m_list
+# def get_signal_peptide_indices_from_TMSEG_topo(Topo_data):
+#     # as above for membrane regions
+#     sp_list = [i for i, topo in enumerate(Topo_data) if topo == "S"]  # find(Topo_data)
+#     return sp_list
+
+def convert_alternating_list_to_nested_tuples(x):
+    return tuple(zip(x[::2], x[1::2]))
+
+def get_TM_indices_from_TMSEG_topo_str(topo_str, TM_symbol="H"):
+    """Get TM indices from TMSEG topology string.
+
+    input = topologo
+    E.g.
+    Parameters
+    ----------
+    topo_str : str
+        Topology string output from TMSEG.
+        H = TM helix
+        Orientation is currently not extracted.
+        E.g. "11111111111111HHHHHHHHHHHHHHHHHHH222222222222222222222222222222222222222222222222222222222222222222222222HHHHHHHHHHHHHHHHHHHHHHHHH"
+        "111111111111111111111111HHHHHHHHHHHHHHHHHHHHH222222222222222HHHHHHHHHHHHHHHHHHHH111111111111111111111111111111111111HHHHHHHHHHHHHHHHHHHHHHH"
+        "22222222222222222222222222222222HHHHHHHHHHHHHHHHHHHHHH1111111111111111111111111HHHHHHHHHHHHHHHHHHHHHHH22222222222222222222222222222222222222"
+        "2222HHHHHHHHHHHHHHHHHHHHH11111111111111111111111111111111111111"
+
+    Returns
+    -------
+    TM_indices : tuple
+        Nested tuple with start and end of all TM helices in topology string.
+        UniProt indexing is used ("HHH111" is (1:3), not (0:3))
+        E.g.
+        ((15, 33),1
+         (106, 130),
+         (155, 175),
+         (191, 210),
+         (247, 269),
+         (302, 323),
+         (349, 371),
+         (414, 434))
+    """
+    if TM_symbol in topo_str:
+        # get indices (eg. [28, 29, 30, 31, 32, 33, 34, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 72, 73, 74, 75, 76])
+        M_indices = get_list_TM_residues_from_topo_string(topo_str, TM_symbol)
+        #SiPe_indices = get_signal_peptide_indices_from_TMSEG_topo(topo_str)
+        # get borders to TM regions(eg. [28, 34, 58, 68, 72, 76])
+        m_borders = []
+        m_borders.append(M_indices[0])
+        m_borders = korbinian.prot_list.parse_OMPdb.check_for_border(M_indices, m_borders)
+        # add the last membrane index (e.g. 33)
+        m_borders.append(M_indices[-1])
+        # convert to nested tuples
+        TM_indices = convert_alternating_list_to_nested_tuples(m_borders)
+        return TM_indices
+    else:
+        return ()

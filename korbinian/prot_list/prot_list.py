@@ -13,6 +13,124 @@ import unicodedata
 from korbinian.utils import pr, pc, pn, aaa
 
 
+def get_topology_and_slice_TMDs(s, pathdict, logging):
+    """ Gets membrane protein topology from alternative sources, and slices out TMD sequences from full sequence.
+
+    Parameters
+    ----------
+    s : dict
+        Dictionary of settings derived from settings excel file.
+        Columns "Parameter" and "Value" are converted to key/value in the dictionary, respectively.
+    pathdict : dict
+        Dictionary of the key paths and files associated with that List number.
+    logging : logging.Logger
+        Logger for printing to console and logfile.
+
+    DataFrames
+    ----------
+    df = from parsed_csv.
+        index = accessions
+        columns = full_seq, topo, seqlen, M_indices etc
+
+    Saved Files and Figures
+    -----------------------
+    IMPORTANT: saves as ListXX.csv, which will be overwritten by prepare_protein_list
+
+    """
+    logging.info('~~~~~~~~~~~~                     starting prepare_protein_list                      ~~~~~~~~~~~~')
+
+
+    df = pd.read_csv(pathdict["list_parsed_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0, low_memory=False)
+    n_initial_prot = df.shape[0]
+    # convert to python tuple from stringlist
+    df.TM_indices = df.TM_indices.apply(lambda x : tuple(ast.literal_eval(x)))
+
+    predictions_dir = os.path.join(s["data_dir"], "predictions")
+
+    ########################################################################################
+    #                                                                                      #
+    #                     get TM topology from TMSEG output files                          #
+    #  (only for cases where the TM_def in the lists tab of the settings file is "TMSEG"   #
+    #                                                                                      #
+    ########################################################################################
+
+    if "TMSEG" in s['TM_def']:
+        for acc in df.index:
+            TMSEG_file_is_good = True
+            full_seq = df.at[acc, "full_seq"]
+            TMSEG_fastastyle_file = os.path.join(predictions_dir, acc[0:2], "{}_TMSEG_fastastyle.txt".format(acc))
+            TMSEG_file = os.path.join(predictions_dir, acc[0:2], "{}_TMSEG.txt".format(acc))
+            if os.path.isfile(TMSEG_file):
+                print("{} TMSEG full output available\n PARSER NOT YET DEVELOPED".format(acc))
+                df.at[acc, "TM_indices"] = ()
+            elif os.path.isfile(TMSEG_fastastyle_file):
+                with open(TMSEG_fastastyle_file) as f:
+                    split_record = f.read().strip().split("\n")
+                    seq = split_record[1]
+                    if full_seq != seq:
+                        logging.warning("{} seq from TMSEG_fastastyle.txt does not match original seq with this acc\nseq:{}\nfse:{}".format(acc, seq, full_seq))
+                        print(split_record)
+                        continue
+                    topo = split_record[2]
+
+                    # overwrite any uniprot TM indices
+                    TM_indices = korbinian.prot_list.parse_TMSEG.get_TM_indices_from_TMSEG_topo_str(topo)
+                    df.at[acc, "TM_indices"] = TM_indices
+                    df.at[acc, "topol_source"] = "TMSEG"
+                    number_of_TMDs = len(TM_indices)
+                    df.at[acc, "number_of_TMDs"] = number_of_TMDs
+                    df.at[acc, "list_of_TMDs"] = ["TM{:02d}".format(n) for n in range(1, number_of_TMDs + 1)]
+            else:
+                logging.warning("{} no TMSEG files found".format(acc))
+                df.at[acc, "TM_indices"] = ()
+                df.at[acc, "topol_source"] = "noTMSEG"
+                df.at[acc, "number_of_TMDs"] = np.nan
+                df.loc[acc, "list_of_TMDs"] = np.nan
+
+    # accessions with topology info
+    acc_with_topo = df.query("TM_indices != () & number_of_TMDs > 1").index.tolist()
+
+    ########################################################################################
+    #                                                                                      #
+    #                          slicing of TMD and nonTMD regions                           #
+    #                                                                                      #
+    ########################################################################################
+    # create a list of [TM01, TM02, TM03, etc.
+    long_list_of_TMDs = []
+    for i in range(1, 50):
+        long_list_of_TMDs.append("TM{:02d}".format(i))
+
+    for n, acc in enumerate(acc_with_topo):
+        # get nested tuple of TMDs
+        nested_tup_TMs = df.loc[acc, "TM_indices"]
+        # slice long list of TMD names to get an appropriate list for that protein [TM01, TM02, TM03, etc.
+        len_nested_tup_TMs = len(nested_tup_TMs)
+        list_of_TMDs = long_list_of_TMDs[:len_nested_tup_TMs]
+        # add that list to the dataframe (could also be added as a stringlist, but that's irritating somehow)
+        # df.loc[acc, 'list_of_TMDs'] = list_of_TMDs
+        df.set_value(acc, "list_of_TMDs", list_of_TMDs)
+        # set seq for slicing
+        full_seq = df.loc[acc, "full_seq"]
+        # topo = dft.loc[acc, "Topology"]
+        # iterate through all the TMDs of that protein, slicing out the sequences
+        for i, TMD in enumerate(list_of_TMDs):
+            TMD = list_of_TMDs[i]
+            start, end = nested_tup_TMs[i]
+            # with UniProt indexing, need to slice with -1, not like python index style
+            df.loc[acc, "%s_start" % TMD] = start
+            df.loc[acc, "%s_end" % TMD] = end
+            # for python indexing of the TMD rather than uniprot, the start should be minus 1
+            python_indexing_tuple = (start - 1, end)
+            df.loc[acc, "%s_seq" % TMD] = utils.slice_with_listlike(full_seq, python_indexing_tuple)
+            df.loc[acc, "%s_seqlen" % TMD] = len(df.loc[acc, "%s_seq" % TMD])
+
+        if len(nested_tup_TMs) > 0:
+            df.at[acc, "nonTMD_seq"] = get_nonTM_seq_using_nested_TM_indices(full_seq, nested_tup_TMs)
+        else:
+            df.at[acc, "nonTMD_seq"] = np.nan
+    # save to a csv
+    df.to_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
+
 def prepare_protein_list(s, pathdict, logging):
     """ Sets up the file locations in the DataFrame containing the list of proteins for analysis.
 
@@ -24,6 +142,24 @@ def prepare_protein_list(s, pathdict, logging):
     pathdict : dict
         Dictionary of the key paths and files associated with that List number.
 
+    DataFrames
+    ----------
+    df = from parsed_csv.
+        index = accessions
+        columns = full_seq, topo, seqlen, M_indices etc
+
+    df_PLS = Protein List Summary, which summarises filtering steps
+                                                       v  date
+        list_number                                   37  2018
+        n_prot_AFTER_dropping_SCAMPI_nonTM_seqences  285  2018
+        n_prot_AFTER_dropping_non_trusted_SiPe       265  2018
+        n_prot_AFTER_dropping_TMSEG_nonTM_proteins   261  2018
+        n_prot_AFTER_dropping_without_list_TMDs      261  2018
+        n_prot_AFTER_dropping_without_n_TMDs         261  2018
+        n_prot_AFTER_dropping_with_X_in_seq          248  2018
+        n_prot_AFTER_dropping_missing_TM_indices     248  2018
+        n_prot_AFTER_lipo_cutoff                     248  2018
+
     Saved Files and Figures
     -----------------------
     pathdict["list_summary_csv"] : csv file
@@ -33,7 +169,99 @@ def prepare_protein_list(s, pathdict, logging):
     logging.info('~~~~~~~~~~~~                     starting prepare_protein_list                      ~~~~~~~~~~~~')
 
 
-    df = pd.read_csv(pathdict["list_parsed_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0, low_memory=False)
+    # SHIFTED TO SEPARATE FUNCTION get_topology_and_slice_TMDs
+
+    # df = pd.read_csv(pathdict["list_parsed_csv"], sep = ",", quoting = csv.QUOTE_NONNUMERIC, index_col = 0, low_memory=False)
+    # n_initial_prot = df.shape[0]
+    # # convert to python tuple from stringlist
+    # df.TM_indices = df.TM_indices.apply(lambda x : tuple(ast.literal_eval(x)))
+    #
+    # predictions_dir = os.path.join(s["data_dir"], "predictions")
+    #
+    # ########################################################################################
+    # #                                                                                      #
+    # #                     get TM topology from TMSEG output files                          #
+    # #  (only for cases where the TM_def in the lists tab of the settings file is "TMSEG"   #
+    # #                                                                                      #
+    # ########################################################################################
+    #
+    # if "TMSEG" in s['TM_def']:
+    #     for acc in df.index:
+    #         TMSEG_file_is_good = True
+    #         full_seq = df.at[acc, "full_seq"]
+    #         TMSEG_fastastyle_file = os.path.join(predictions_dir, acc[0:2], "{}_TMSEG_fastastyle.txt".format(acc))
+    #         TMSEG_file = os.path.join(predictions_dir, acc[0:2], "{}_TMSEG.txt".format(acc))
+    #         if os.path.isfile(TMSEG_file):
+    #             print("{} TMSEG full output available\n PARSER NOT YET DEVELOPED".format(acc))
+    #             df.at[acc, "TM_indices"] = ()
+    #         elif os.path.isfile(TMSEG_fastastyle_file):
+    #             with open(TMSEG_fastastyle_file) as f:
+    #                 split_record = f.read().strip().split("\n")
+    #                 seq = split_record[1]
+    #                 if full_seq != seq:
+    #                     logging.warning("{} seq from TMSEG_fastastyle.txt does not match original seq with this acc\nseq:{}\nfse:{}".format(acc, seq, full_seq))
+    #                     print(split_record)
+    #                     continue
+    #                 topo = split_record[2]
+    #
+    #                 # overwrite any uniprot TM indices
+    #                 TM_indices = korbinian.prot_list.parse_TMSEG.get_TM_indices_from_TMSEG_topo_str(topo)
+    #                 df.at[acc, "TM_indices"] = TM_indices
+    #                 df.at[acc, "topol_source"] = "TMSEG"
+    #                 number_of_TMDs = len(TM_indices)
+    #                 df.at[acc, "number_of_TMDs"] = number_of_TMDs
+    #                 df.at[acc, "list_of_TMDs"] = ["TM{:02d}".format(n) for n in range(1, number_of_TMDs + 1)]
+    #         else:
+    #             logging.warning("{} no TMSEG files found".format(acc))
+    #             df.at[acc, "TM_indices"] = ()
+    #             df.at[acc, "topol_source"] = "noTMSEG"
+    #             df.at[acc, "number_of_TMDs"] = np.nan
+    #             df.loc[acc, "list_of_TMDs"] = np.nan
+    #
+    # # accessions with topology info
+    # acc_with_topo = df.query("TM_indices != () & number_of_TMDs > 1").index.tolist()
+    #
+    # ########################################################################################
+    # #                                                                                      #
+    # #                          slicing of TMD and nonTMD regions                           #
+    # #                                                                                      #
+    # ########################################################################################
+    # # create a list of [TM01, TM02, TM03, etc.
+    # long_list_of_TMDs = []
+    # for i in range(1, 50):
+    #     long_list_of_TMDs.append("TM{:02d}".format(i))
+    #
+    # for n, acc in enumerate(acc_with_topo):
+    #     # get nested tuple of TMDs
+    #     nested_tup_TMs = df.loc[acc, "TM_indices"]
+    #     # slice long list of TMD names to get an appropriate list for that protein [TM01, TM02, TM03, etc.
+    #     len_nested_tup_TMs = len(nested_tup_TMs)
+    #     list_of_TMDs = long_list_of_TMDs[:len_nested_tup_TMs]
+    #     # add that list to the dataframe (could also be added as a stringlist, but that's irritating somehow)
+    #     # df.loc[acc, 'list_of_TMDs'] = list_of_TMDs
+    #     df.set_value(acc, "list_of_TMDs", list_of_TMDs)
+    #     # set seq for slicing
+    #     full_seq = df.loc[acc, "full_seq"]
+    #     # topo = dft.loc[acc, "Topology"]
+    #     # iterate through all the TMDs of that protein, slicing out the sequences
+    #     for i, TMD in enumerate(list_of_TMDs):
+    #         TMD = list_of_TMDs[i]
+    #         start, end = nested_tup_TMs[i]
+    #         # with UniProt indexing, need to slice with -1, not like python index style
+    #         df.loc[acc, "%s_start" % TMD] = start
+    #         df.loc[acc, "%s_end" % TMD] = end
+    #         # for python indexing of the TMD rather than uniprot, the start should be minus 1
+    #         python_indexing_tuple = (start - 1, end)
+    #         df.loc[acc, "%s_seq" % TMD] = utils.slice_with_listlike(full_seq, python_indexing_tuple)
+    #         df.loc[acc, "%s_seqlen" % TMD] = len(df.loc[acc, "%s_seq" % TMD])
+    #
+    #     if len(nested_tup_TMs) > 0:
+    #         df.at[acc, "nonTMD_seq"] = get_nonTM_seq_using_nested_TM_indices(full_seq, nested_tup_TMs)
+    #     else:
+    #         df.at[acc, "nonTMD_seq"] = np.nan
+
+
+    df = pd.read_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC, index_col=0, low_memory=False)
     n_initial_prot = df.shape[0]
 
     # create or open dataframe for protein list summary
@@ -98,13 +326,19 @@ def prepare_protein_list(s, pathdict, logging):
                 df.loc[acc, 'SignalP_SiPe'] = False
         # drop all proteins where Uniprot did not get signal peptide
         TM01_potential_SiPe_acc_list = []
-        for acc in df.index:
+
+        # repeat filter
+        acc_with_topo = df.query("TM_indices != () & number_of_TMDs > 1").index.tolist()
+
+        for acc in acc_with_topo:
+            TM01_start = df.at[acc, "TM_indices"][0][0]
             # if UniProt DOESN'T think there is a signal peptide, but SignalP does
             # there is a chance that the "TM01" is really a signal peptide
             if df.loc[acc, 'uniprot_SiPe'] == False and df.loc[acc, 'SignalP_SiPe'] == True:
                 # but it's only a danger if the TM01 is in the first 40 residues
-                if df.loc[acc, 'TM01_start'] < 15:
+                if TM01_start < 15:
                     TM01_potential_SiPe_acc_list.append(acc)
+
         df = df.drop(TM01_potential_SiPe_acc_list, axis=0)
         n_prot_AFTER_dropping_non_trusted_SiPe = df.shape[0]
 
@@ -189,7 +423,8 @@ def prepare_protein_list(s, pathdict, logging):
         df['protein_name'] = df.index
 
     # convert the list_of_TMDs to a python object, if it is a string
-    if not s['TM_def'] == "SCAMPI":
+    if not s['TM_def'] == "SCAMPI" and not isinstance(df['list_of_TMDs'].iat[0], list):
+        print(type(df['list_of_TMDs'].iat[0]))
         df['list_of_TMDs'] = df['list_of_TMDs'].dropna().apply(lambda x : ast.literal_eval(x))
 
     if s["add_user_subseqs"] == True:
@@ -718,6 +953,7 @@ def prepare_protein_list(s, pathdict, logging):
     # save to a csv
     df.to_csv(pathdict["list_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
     df_PLS.to_csv(pathdict["prot_list_summary_csv"])
+
     ########################################################################################
     #                                                                                      #
     #                      calculate random TM and nonTM identity                          #
@@ -896,3 +1132,48 @@ def calc_random_aa_ident_multiprocessing(d):
     aa_prop_csv_out, rand_ident_TM_csv, seq_len, number_seq, ident, multiprocessing_mode = d
     random_aa_identity, output_ser = korbinian.MSA_normalisation.calc_random_aa_ident_via_randomisation(aa_prop_csv_out, rand_ident_TM_csv, seq_len=seq_len, number_seq=number_seq, ident=0.0, multiprocessing_mode=multiprocessing_mode)
     return random_aa_identity, output_ser
+
+
+def get_nonTM_seq_using_nested_TM_indices(s, t):
+    """Get the nonTM (EM) region of protein sequence based on nested tuple of TM indices.
+
+    Parameters
+    ----------
+    s : str
+        Full sequence to be sliced
+        e.g. 'MKLLRRAWRRRAALGLGTLALCGAALLYLARCAAEPGDPRAMSGRSPPPPAPARAAAFLAVLVA'
+    t : tuple
+        Nested tuple of TM regions
+        e.g. ((11, 30),)
+        IMPORTANT: Indexing is using UniProt style (1:3), not python style (0:3)
+
+    Returns
+    -------
+    nonTMD_seq : str
+        Non-TMD sequence (all residues surrounding TMD)
+    """
+    TM01_start = t[0][0]
+    last_TMD_end = t[-1][1]
+    nonTMD_first = s[0: int(TM01_start) - 1]
+    nonTMD_seq = nonTMD_first
+    # only for multipass proteins, generate sequences between TMDs
+    if len(t) > 1:
+        for TM_Nr in range(len(t) - 1):
+            # the TMD is the equivalent item in the list
+            TMD = "TM{:02d}".format(TM_Nr + 1)
+            # the next TMD, which contains the end index, is the next item in the list
+            next_TMD = "TM{:02d}".format(TM_Nr + 2)
+
+            TM_start = t[TM_Nr][0]
+            TM_end = t[TM_Nr][1]
+            next_TM_start = t[TM_Nr + 1][0]
+            next_TM_end = t[TM_Nr + 1][1]
+
+            between_TM_and_TMplus1 = s[TM_end: next_TM_start - 1]
+
+            nonTMD_seq += between_TM_and_TMplus1
+
+    # sequence from last TMD to C-term.
+    nonTMD_last = s[last_TMD_end:]
+    nonTMD_seq += nonTMD_last
+    return nonTMD_seq
