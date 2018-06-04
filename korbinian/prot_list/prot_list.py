@@ -102,7 +102,7 @@ def get_topology_and_slice_TMDs(s, pathdict, logging):
                 df.at[acc, "TM_indices"] = ()
                 df.at[acc, "topol_source"] = "noTMSEG"
                 df.at[acc, "number_of_TMDs"] = np.nan
-                df.loc[acc, "list_of_TMDs"] = np.nan
+                df.at[acc, "list_of_TMDs"] = np.nan
 
         TMSEG_missing_dir = os.path.join(s["data_dir"], "summaries", "{:02d}".format(s["list_number"]), "List{:02d}_predictions".format(s["list_number"]), "TMSEG", "missing")
         if not os.path.isdir(TMSEG_missing_dir):
@@ -142,6 +142,7 @@ def get_topology_and_slice_TMDs(s, pathdict, logging):
         for i, TMD in enumerate(list_of_TMDs):
             TMD = list_of_TMDs[i]
             start, end = nested_tup_TMs[i]
+            print(start, end, nested_tup_TMs)
             # with UniProt indexing, need to slice with -1, not like python index style
             df.loc[acc, "%s_start" % TMD] = start
             df.loc[acc, "%s_end" % TMD] = end
@@ -293,7 +294,7 @@ def prepare_protein_list(s, pathdict, logging):
     n_initial_prot = df.shape[0]
 
     # # convert to python tuple from stringlist
-    df.TM_indices = df.TM_indices.apply(lambda x : tuple(ast.literal_eval(x)))
+    df.TM_indices = df.TM_indices.dropna().apply(lambda x : tuple(ast.literal_eval(x)))
 
     # create or open dataframe for protein list summary
     if os.path.isfile(pathdict["prot_list_summary_csv"]):
@@ -396,6 +397,8 @@ def prepare_protein_list(s, pathdict, logging):
         TM01_potential_SiPe_acc_list = []
 
     df_PLS.loc["n_prot_AFTER_dropping_non_trusted_SiPe",:] = (n_prot_AFTER_dropping_non_trusted_SiPe, t)
+
+
 
     # drop all TMSEG nonTM proteins
     drop_TMSEG_nonTM = False
@@ -698,6 +701,9 @@ def prepare_protein_list(s, pathdict, logging):
         # get the indices for TMD plus surrounding sequence
         df = korbinian.prot_list.prot_list.get_indices_TMD_plus_surr_for_summary_file(df, TMD, n_aa_before_tmd, n_aa_after_tmd)
         # slice out the TMD_seq_plus_surr for each TMD
+        print(df[df['%s_start' % TMD].notnull()].shape)
+        aaa(df)
+
         df['%s_seq_plus_surr' % TMD] = df[df['%s_start' % TMD].notnull()].apply(utils.slice_uniprot_TMD_plus_surr_seq, args=(TMD,), axis=1)
 
     ########################################################################################

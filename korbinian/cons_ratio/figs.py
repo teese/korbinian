@@ -1751,12 +1751,17 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 plt.savefig(os.path.join(base_filepath, "pdf", Fig_name + ".pdf"))
 
 
+    # dictionary showing where the bitopic data is stored (e.g. list02 (human polytopic) matches list01 (human bitopic)
+    bitopic_list_dict = {"02" : "01", "12" : "01", "31" : "30", "48" : "47"}
+
+
     if s["Fig21_linechart_lipo_f_c_l_vs_number_of_TMDs"]:
         Fig_Nr = 21
         title = 'linechart_lipo_f_c_l_vs_number_of_TMDs'
         Fig_name = 'List{:02d}_Fig21a_linechart_lipo_f_c_l_vs_number_of_TMDs'.format(list_number)
 
-        min_n_prot = 15
+        # minimum number of proteins in bin based on number of TMDs
+        min_n_prot = 8
 
         if max_num_TMDs >= 2:
 
@@ -1769,6 +1774,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 min_n_TMDs = 1
                 max_num_TMDs_fig21 = int(max_num_TMDs)
 
+            """DEPRECATED: ORIGINAL LISTS NOW GENERALLY EXCLUDE GPCRs.
             # exclude GPCRs from multipass datasets
             # NOTE: source of data is the original list csv,
             # including proteins with insufficient homologues for conservation analyses
@@ -1776,29 +1782,51 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 df_filt = df_list.loc[df_list.GPCR == False]
             else:
                 df_filt = df
+            """
 
-            # for list 2, add the singlepass data to the analysis for this plot
-            if list_number == 2:
-                list1_csv = pathdict["list_csv"].replace("02", "01")
-                list1_cr_csv = pathdict["list_cr_summary_csv"].replace("02", "01")
-                df_list1 = pd.read_csv(list1_csv, index_col=0)
-                df_cr1 = pd.read_csv(list1_cr_csv, index_col=0)
-                df_list1_merged = pd.merge(df_list1, df_cr1, left_index=True, right_index=True, suffixes=('_dfc', ''))
-                df_list1_merged = df_list1_merged.loc[df_list1_merged['AAIMON_n_homol'] >= min_n_homol]
-                df_filt = pd.merge(df_filt, df_list1_merged, how="outer")
-                logging.info("{} proteins added from List01 for Figure 21, linechart_lipo_f_c_l_vs_number_of_TMDs".format(df_list1_merged.shape[0]))
+            list_number_str = "{:02d}".format(list_number)
+            if list_number_str in bitopic_list_dict:
+                bitopic_list_number_str = bitopic_list_dict[list_number_str]
+                df_filt = add_bitopic_proteins_to_df_from_another_list(df, list_number_str, bitopic_list_number_str, min_n_homol, pathdict, logging)
+            else:
+                df_filt = df
 
-            # for list 31, add the singlepass data to the analysis for this plot
-            if list_number == 31:
-                list30_csv = pathdict["list_csv"].replace("31", "30")
-                list30_cr_csv = pathdict["list_cr_summary_csv"].replace("31", "30")
-                df_list30 = pd.read_csv(list30_csv, index_col=0)
-                df_cr30 = pd.read_csv(list30_cr_csv, index_col=0)
-                df_list30_merged = pd.merge(df_list30, df_cr30, left_index=True, right_index=True, suffixes=('_dfc', ''))
-                df_list30_merged = df_list30_merged.loc[df_list30_merged['AAIMON_n_homol'] >= min_n_homol]
-                #df_filt = pd.concat([df, df_list30_merged])
-                df_filt = pd.merge(df_filt, df_list30_merged, how="outer")
-                logging.info("{} proteins added from List01 for Figure 21, linechart_lipo_f_c_l_vs_number_of_TMDs".format(df_list30_merged.shape[0]))
+            # DEPRECATED, use add_bitopic_proteins_to_df_from_another_list function instead
+            # # for list 2, add the singlepass data to the analysis for this plot
+            # if list_number in [2, 12]:
+            #     list1_csv = pathdict["list_csv"].replace("{:02d}".format(list_number), "01")
+            #     list1_cr_csv = pathdict["list_cr_summary_csv"].replace("02", "01")
+            #     df_list1 = pd.read_csv(list1_csv, index_col=0)
+            #     df_cr1 = pd.read_csv(list1_cr_csv, index_col=0)
+            #     df_list1_merged = pd.merge(df_list1, df_cr1, left_index=True, right_index=True, suffixes=('_dfc', ''))
+            #     df_list1_merged = df_list1_merged.loc[df_list1_merged['AAIMON_n_homol'] >= min_n_homol]
+            #     df_filt = pd.merge(df, df_list1_merged, how="outer")
+            #     logging.info("{} proteins added from List01 for Figure 21, linechart_lipo_f_c_l_vs_number_of_TMDs".format(df_list1_merged.shape[0]))
+            #
+            # # for list 31, add the singlepass data to the analysis for this plot
+            # if list_number == 31:
+            #     list30_csv = pathdict["list_csv"].replace("31", "30")
+            #     list30_cr_csv = pathdict["list_cr_summary_csv"].replace("31", "30")
+            #     df_list30 = pd.read_csv(list30_csv, index_col=0)
+            #     df_cr30 = pd.read_csv(list30_cr_csv, index_col=0)
+            #     df_list30_merged = pd.merge(df_list30, df_cr30, left_index=True, right_index=True, suffixes=('_dfc', ''))
+            #     df_list30_merged = df_list30_merged.loc[df_list30_merged['AAIMON_n_homol'] >= min_n_homol]
+            #     #df_filt = pd.concat([df, df_list30_merged])
+            #     df_filt = pd.merge(df, df_list30_merged, how="outer")
+            #     logging.info("{} proteins added from List01 for Figure 21, linechart_lipo_f_c_l_vs_number_of_TMDs".format(df_list30_merged.shape[0]))
+            #
+            # # for list 31, add the singlepass data to the analysis for this plot
+            # if list_number == 31:
+            #     list30_csv = pathdict["list_csv"].replace("31", "30")
+            #     list30_cr_csv = pathdict["list_cr_summary_csv"].replace("31", "30")
+            #     df_list30 = pd.read_csv(list30_csv, index_col=0)
+            #     df_cr30 = pd.read_csv(list30_cr_csv, index_col=0)
+            #     df_list30_merged = pd.merge(df_list30, df_cr30, left_index=True, right_index=True, suffixes=('_dfc', ''))
+            #     df_list30_merged = df_list30_merged.loc[df_list30_merged['AAIMON_n_homol'] >= min_n_homol]
+            #     #df_filt = pd.concat([df, df_list30_merged])
+            #     df_filt = pd.merge(df, df_list30_merged, how="outer")
+            #     logging.info("{} proteins added from List01 for Figure 21, linechart_lipo_f_c_l_vs_number_of_TMDs".format(df_list30_merged.shape[0]))
+
 
             sys.stdout.write("\ncode gives RuntimeWarning\n")
             # NOTE: this code gives a RuntimeWarning: Degrees of freedom <= 0 for slice
@@ -1879,26 +1907,42 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                 Fig_name = 'List{:02d}_Fig21b_linechart_AAIMON_slope_f_c_l_vs_number_of_TMDs'.format(list_number)
                 fig, ax = plt.subplots()
 
-                # exclude GPCRs from multipass datasets
-                # NOTE: source of data is the merged cr_summary and list csv, filtered by sufficient homologues
-                if "GPCR" in df.columns:
-                    df_filt = df.loc[df.GPCR == False]
+                list_number_str = "{:02d}".format(list_number)
+                if list_number_str in bitopic_list_dict:
+                    bitopic_list_number_str = bitopic_list_dict[list_number_str]
+                    df_filt = add_bitopic_proteins_to_df_from_another_list(df, list_number_str, bitopic_list_number_str, min_n_homol, pathdict, logging)
                 else:
                     df_filt = df
+                # 1
+                # # exclude GPCRs from multipass datasets
+                # # NOTE: source of data is the merged cr_summary and list csv, filtered by sufficient homologues
+                # if "GPCR" in df.columns:
+                #     df_filt = df.loc[df.GPCR == False]
+                # else:
+                #     df_filt = df
+                #
+                # # HUMAN MULTIPASS: for list 2 or 12 , add the singlepass data to the analysis for this plot
+                # if list_number in [2, 12]:
+                #     # limit columns to avoid errors from python lists during merging
+                #     df_list1_merged = df_list1_merged.loc[:, ["number_of_TMDs", "TM01_AAIMON_slope", "AAIMON_slope_central_TMDs", "AAIMON_slope_last_TMD"]]
+                #     df_list1_merged_shape = df_list1_merged.shape
+                #     df_filt = pd.merge(df_filt, df_list1_merged, how="outer")
+                #     #logging.info("{} proteins added from List01 for Figure 21, linechart_lipo_f_c_l_vs_number_of_TMDs".format(df_list1_merged.shape[0]))
+                #
+                # # CRYSTAL STRUCTURES: for list 31, add singlepass data from list 30
+                # if list_number == 31:
+                #     # limit columns to avoid errors from python lists during merging
+                #     df_list30_merged = df_list30_merged.loc[:, ["number_of_TMDs", "TM01_AAIMON_slope", "AAIMON_slope_central_TMDs", "AAIMON_slope_last_TMD"]]
+                #     df_list30_merged_shape = df_list30_merged.shape
+                #     df_filt = pd.merge(df_filt, df_list30_merged, how="outer")
+                #
+                # # YEAST: for list 48, add singlepass data from list 47
+                # if list_number == 48:
+                #     # limit columns to avoid errors from python lists during merging
+                #     df_list30_merged = df_list47_merged.loc[:, ["number_of_TMDs", "TM01_AAIMON_slope", "AAIMON_slope_central_TMDs", "AAIMON_slope_last_TMD"]]
+                #     df_list30_merged_shape = df_list30_merged.shape
+                #     df_filt = pd.merge(df_filt, df_list30_merged, how="outer")
 
-                # for list 2, add the singlepass data to the analysis for this plot
-                if list_number == 2:
-                    # limit columns to avoid errors from python lists during merging
-                    df_list1_merged = df_list1_merged.loc[:, ["number_of_TMDs", "TM01_AAIMON_slope", "AAIMON_slope_central_TMDs", "AAIMON_slope_last_TMD"]]
-                    df_list1_merged_shape = df_list1_merged.shape
-                    df_filt = pd.merge(df_filt, df_list1_merged, how="outer")
-                    #logging.info("{} proteins added from List01 for Figure 21, linechart_lipo_f_c_l_vs_number_of_TMDs".format(df_list1_merged.shape[0]))
-
-                if list_number == 31:
-                    # limit columns to avoid errors from python lists during merging
-                    df_list30_merged = df_list30_merged.loc[:, ["number_of_TMDs", "TM01_AAIMON_slope", "AAIMON_slope_central_TMDs", "AAIMON_slope_last_TMD"]]
-                    df_list30_merged_shape = df_list30_merged.shape
-                    df_filt = pd.merge(df_filt, df_list30_merged, how="outer")
 
                 dfn = pd.DataFrame()
                 for i in range(min_n_TMDs, max_num_TMDs_fig21):
@@ -1956,15 +2000,17 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
                     ax.set_xlim(dfn.index.min() - 1, dfn.index.max() + 1 + 1)
 
                     # add annotations
-                    ax.annotate(s="TM less\nconserved", xy=(-0.15, 0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
-                    ax.annotate(s="TM more\nconserved", xy=(-0.15, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+                    ax.annotate(s="TM less\nconserved", xy=(-0.1, 0.1), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
+                    ax.annotate(s="TM more\nconserved", xy=(-0.1, 0.9), fontsize=fontsize, xytext=None, xycoords='axes fraction', rotation=90)
 
                     ax.legend(frameon=True, loc="upper left")
 
                     #fig.tight_layout()
                     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
 
-    if s["Fig22_multipass_linechart_f_c_l_cons_lipo_protein_subgroups"] and list_number == 2:
+
+    # plot only for human multipass?
+    if s["Fig22_multipass_linechart_f_c_l_cons_lipo_protein_subgroups"] and list_number in [2, 12]:
         if 'uniprot_KW' in df.columns and "uniprot_KW_for_analysis" in df.columns:
 
             # select only those proteins with at least 3 TMDs, to give first, central and last TM conservation
@@ -2198,3 +2244,46 @@ def Fig03_Density_lipo_vs_TM_conservation(list_number, df, letter, suffix, col_l
     plt.tight_layout()
 
     utils.save_figure(fig, Fig_name, base_filepath, save_png, save_pdf, dpi)
+
+
+def add_bitopic_proteins_to_df_from_another_list(df, list_number_str, bitopic_list_number_str, min_n_homol, pathdict, logging):
+    """Add bitopic proteins to the dataframe from another list.
+
+    For the creation of graphs that go from 1 to many TMDs.
+
+    Graph of both bitopic and polytopic proteins is saved under the "polytopic" list of proteins in the summaries folder.
+
+    Previously filtered out GPCRs, but now this is usually handled by altering the protein list.
+
+    Parameters
+    ----------
+    list_number_str : str
+        Protein list number, e.g. "01"
+    bitopic_list_number_str : str
+        Protein list containing the bitopic data. (e.g. "01" which contains bitopics to be added to list02)
+    min_n_homol : int
+        Minimum number of homologues
+    pathdict : dict
+        Dictionary with filepaths
+    logging : logging.Logger
+        Logger for printing to console and logfile.
+
+    Returns
+    -------
+    df_filt : pd.DataFrame
+        Dataframe of both bitopic and polytopic proteins.
+    """
+    bitopic_list_csv = pathdict["list_csv"].replace(list_number_str, bitopic_list_number_str)
+    bitopic_cr_csv = pathdict["list_cr_summary_csv"].replace(list_number_str, bitopic_list_number_str)
+    df_bitopic = pd.read_csv(bitopic_list_csv, index_col=0)
+    df_bitopic_cr = pd.read_csv(bitopic_cr_csv, index_col=0)
+    df_bitopic_merged = pd.merge(df_bitopic, df_bitopic_cr, left_index=True, right_index=True, suffixes=('_dfc', ''))
+    # limit columns to avoid errors from python lists during merging
+    df_bitopic_merged = df_bitopic_merged.loc[:, ["number_of_TMDs", "TM01_AAIMON_slope", "AAIMON_slope_central_TMDs", "AAIMON_slope_last_TMD",
+                                                  "TM01_lipo", "lipo_mean_central_TMDs", "lipo_last_TMD", 'AAIMON_n_homol']]
+    df_bitopic_merged = df_bitopic_merged.loc[df_bitopic_merged['AAIMON_n_homol'] >= min_n_homol]
+
+    df_filt = pd.merge(df, df_bitopic_merged, how="outer")
+    logging.info("{} proteins added from List{} for Figure 21, linechart_lipo_f_c_l_vs_number_of_TMDs".format(df_bitopic_merged.shape[0], bitopic_list_number_str))
+    return df_filt
+
