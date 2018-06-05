@@ -282,27 +282,3 @@ def retrieve_simap_homologues(input_sequence, output_file, max_hits, java_exec_s
     command.run(timeout=timeout)
     if not os.path.exists(output_file):
         logging.info('********************SIMAP download failed for : %s***************' % output_file)
-
-#def retrieve_simap_from_multiple_fasta(input_file):
-#    records = SeqIO.parse_uniprot(input_file, "fasta")
-#    global list_of_files_with_feature_tables, list_of_files_with_homologues
-#    list_of_files_with_feature_tables = []
-#    list_of_files_with_homologues = []
-#    recordcounter = 0
-#    for record in records:
-#        name = record.name.replace('|', '_')[:30]
-#        accession = 'Acc'
-#        label = '%s_%s' % (accession, name)
-#        SIMAP_feature_table_XML_file = r"E:\\Stephis\\Projects\\Programming\\Python\\files\\learning\\simap\\%s_simap_feature_table.xml" % label
-#        list_of_files_with_feature_tables.append(SIMAP_feature_table_XML_file)
-#        SIMAP_homologues_XML_file = r"E:\\Stephis\\Projects\\Programming\\Python\\files\\learning\\simap\\%s_simap_homologues.xml" % label
-#        list_of_files_with_homologues.append(SIMAP_homologues_XML_file)
-#        retrieve_simap_feature_table(input_sequence=record.seq, output_file=SIMAP_feature_table_XML_file)
-#        retrieve_simap_homologues(input_sequence=record.seq, output_file=SIMAP_homologues_XML_file, database='', max_hits='10', taxid='7227', extra_search_string='')
-#        recordcounter += 1
-#    logging.info('Download complete, %s SIMAP records saved.' % recordcounter)
-#input_seqs_mult_fasta = r'E:\Stephis\Projects\Programming\Python\files\learning\simap\multiple_protein_seqs_in_fasta_format.txt'
-#retrieve_simap_from_multiple_fasta(input_seqs_mult_fasta)
-#throwaway functions, currently kept in main
-#slice_TMD_seq = lambda x: x['full_seq'][int(x['%s_start'%TMD_name]-1):int(x['%s_end'%TMD_name])]
-#slice_TMD_plus_surrounding_seq = lambda x: x['full_seq'][int(x['%s_start_plus_surr'%TMD_name]-1):int(x['%s_end_plus_surr'%TMD_name])]

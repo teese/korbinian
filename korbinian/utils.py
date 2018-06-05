@@ -433,7 +433,6 @@ def get_start_and_end_of_TMD_in_query(x, regex_string):
 def find_disallowed_words(description, words_not_allowed_in_description):
     '''Finds disallowed words in the description (Patent, Synthetic, etc).
     Returns the disallowed words, or an empty list. The lists are converted to strings.
-    settings must be in globals
     '''
     #words_not_allowed_in_description = settings["simap_match_filters"]["words_not_allowed_in_description"]
     list_of_list_disallowed_words_in_descr = []
@@ -760,7 +759,6 @@ def save_dict_values_as_row_in_csv(input_dict, header_fieldnames, output_csv, op
         writer.writerow(input_dict)
 
 def create_nested_dict_from_csv(csvfile, fieldlist):
-    global selected_dict
     '''
     Choose a list of fields that you want to include in your final dictionary.
 
@@ -776,7 +774,6 @@ def create_nested_dict_from_csv(csvfile, fieldlist):
         uniprot_number_for_seq_in_row_1 = nested_dict_with_uniprot_seq[1]['accession_uniprot']
         sys.stdout.write(uniprot_number_for_seq_in_row_1)
     '''
-    global dict1, output_dict, reader
     #dict1 = {}
     output_dict = {}
     with open(csvfile, mode='r') as infile:
@@ -817,7 +814,6 @@ def convert_stringlist_to_list(input_string):
     return list1
 
 def create_new_dict_with_only_selected_keys(inputdict, keylist):
-    global output_dict3
     for key in keylist:
         output_dict3 = { key: inputdict[key] for key in keylist }
     return output_dict3

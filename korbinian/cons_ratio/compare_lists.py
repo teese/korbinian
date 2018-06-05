@@ -2313,11 +2313,7 @@ def compare_lists (s, df_lists_tab):
         for n in protein_lists:
             dft = df_dict[n]
             # multiply by a value?
-            try:
-                data = dft[col] * mult
-            except:
-                print(n)
-                data = dft[col] * mult
+            data = dft[col] * mult
             nested_data.append(data.tolist())
         plt.close("all")
         fig, ax = plt.subplots(figsize=(5, 5))

@@ -10,8 +10,155 @@ import time
 # import debugging tools
 from korbinian.utils import pr, pc, pn, aaa
 
-def parse_TMSEG_results(pathdict, s, logging):
-    logging.info("~~~~~~~~~~~~                        starting parse_TMSEG_results                    ~~~~~~~~~~~~")
+def get_TM_indices_from_TMSEG_topo_str(topo_str, TM_symbol="H"):
+    """Get TM indices from TMSEG topology string.
+
+    Code is not very elegant in comparison to a regex approach, but works fine.
+
+    Parameters
+    ----------
+    topo_str : str
+        Topology string output from TMSEG.
+        H = TM helix
+        Note that TM orientation (N-cyto or N-out) is currently not extracted.
+        E.g. "11111111111111HHHHHHHHHHHHHHHHHHH222222222222222222222222222222222222222222222222222222222222222222222222HHHHHHHHHHHHHHHHHHHHHHHHH"
+        "111111111111111111111111HHHHHHHHHHHHHHHHHHHHH222222222222222HHHHHHHHHHHHHHHHHHHH111111111111111111111111111111111111HHHHHHHHHHHHHHHHHHHHHHH"
+        "22222222222222222222222222222222HHHHHHHHHHHHHHHHHHHHHH1111111111111111111111111HHHHHHHHHHHHHHHHHHHHHHH22222222222222222222222222222222222222"
+        "2222HHHHHHHHHHHHHHHHHHHHH11111111111111111111111111111111111111"
+
+    Returns
+    -------
+    TM_indices : tuple
+        Nested tuple with start and end of all TM helices in topology string.
+        UniProt indexing is used ("HHH111" is (1:3), not (0:3))
+        E.g.
+        ((15, 33),1
+         (106, 130),
+         (155, 175),
+         (191, 210),
+         (247, 269),
+         (302, 323),
+         (349, 371),
+         (414, 434))
+    """
+    if TM_symbol in topo_str:
+        # get indices (eg. [28, 29, 30, 31, 32, 33, 34, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 72, 73, 74, 75, 76])
+        M_indices = get_list_TM_residues_from_topo_string(topo_str, TM_symbol)
+        #SiPe_indices = get_signal_peptide_indices_from_TMSEG_topo(topo_str)
+        # get borders to TM regions(eg. [28, 34, 58, 68, 72, 76])
+        m_borders = []
+        m_borders.append(M_indices[0])
+        m_borders = korbinian.prot_list.parse_OMPdb.check_for_border(M_indices, m_borders)
+        # add the last membrane index (e.g. 33)
+        m_borders.append(M_indices[-1])
+        # convert to nested tuples
+        TM_indices = convert_alternating_list_to_nested_tuples(m_borders)
+        return TM_indices
+    else:
+        return ()
+
+def slice_nonTMD_in_prot_list(df):
+    """Using existing indices and sequence, slices out all the TMD sequences.
+
+    Originally from TMSEG fasta parse code.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+
+    Returns
+    -------
+    df : pd.Dataframe
+        returns the same dataframe, with added sliced sequences
+    """
+    # glance at the watch
+    start = time.clock()
+
+    # set to be an empty string, which avoids the error related to inserting a python list into a cell
+    # "ValueError: Must have equal len keys and value when setting with an iterable"
+    df['list_of_TMDs_excl_SP'] = ""
+
+    for n, acc in enumerate(df.index):
+        ''' ~~   SLICE nonTMD sequence  ~~ '''
+        # list of TMDs excluding signal peptides
+        list_of_TMDs_excl_SP = df.loc[acc, 'list_of_TMDs']
+        # set value to avoid errors adding a list to a cell
+        df.set_value(acc, 'list_of_TMDs_excl_SP', list_of_TMDs_excl_SP)
+
+        seqstart = 0
+        # if any protein in list conatains a SP
+        if 'SP01_end' in df.columns:
+            # if THIS PARTICULAR PROTEIN contains a signal peptide sequence
+            if isinstance(df.loc[acc, 'SP01_seq'], str):
+                # change sequence start for nonTM to the end of the signal peptide
+                seqstart = int(df.loc[acc, 'SP01_end'])
+                # add the SP01 to the list of TMDs
+                df.set_value(acc, 'list_of_TMDs', ["SP01"] + list_of_TMDs_excl_SP)
+
+        # sequence from N-term. to first TMD
+        TM01_start = int(df.loc[acc, 'TM01_start'])
+
+        # NOTE THAT THIS USED TO BE nonTMD_first = df.loc[acc, 'full_seq'][0: TM01_start -1], but indexing missed the last nonTM residue.
+        nonTMD_first = df.loc[acc, 'full_seq'][seqstart: TM01_start - 1]
+        # start the sequence with the first segment
+        sequence_list = [nonTMD_first]
+        # only for multipass proteins, generate sequences between TMDs
+        if len(list_of_TMDs_excl_SP) == 0:
+            # no TMDs are annotated, skip to next protein
+            continue
+        # for multipass proteins
+        elif len(list_of_TMDs_excl_SP) > 1:
+            for TM_Nr in range(len(list_of_TMDs_excl_SP) - 1):
+                # the TMD is the equivalent item in the list
+                TMD = list_of_TMDs_excl_SP[TM_Nr]
+                # the next TMD, which contains the end index, is the next item in the list
+                next_TMD = list_of_TMDs_excl_SP[TM_Nr + 1]
+                # define start of next TMD
+                start_next = int(df.loc[acc, '%s_start' % next_TMD])
+                # end of current TMD
+                end_current = int(df.loc[acc, '%s_end' % TMD])
+                # middle sequence between TMDs
+                # note the "start_next - 1", used to convert uniprot indices to python indices
+                between_TM_and_TMplus1 = df.loc[acc, 'full_seq'][end_current: start_next - 1]
+                sequence_list.append(between_TM_and_TMplus1)
+        last_TMD = list_of_TMDs_excl_SP[-1]
+        # sequence from last TMD to C-term.
+        lastTM_end = int(df.loc[acc, '%s_end' % last_TMD])
+        seqlen = int(df.loc[acc, 'seqlen'])
+        nonTMD_last = df.loc[acc, 'full_seq'][lastTM_end:seqlen]
+        sequence_list.append(nonTMD_last)
+        # join all the sequences together
+        sequence = "".join(sequence_list)
+        df.loc[acc, 'nonTMD_seq'] = sequence
+        df.loc[acc, 'len_nonTMD'] = len(sequence)
+
+        if n % 50 == 0 and n != 0:
+            sys.stdout.write(".")
+            sys.stdout.flush()
+            if n % 500 == 0:
+                sys.stdout.write("\n")
+                sys.stdout.flush()
+    # glance at the watch again. Ruminate on time passed
+    sys.stdout.write("\ntime taken to slice nonTMD sequences : {:0.03f} s".format(time.clock() - start))
+
+    return df
+
+def get_list_TM_residues_from_topo_string(Topo_data, TM_symbol):
+    # get list of membrane indices
+    # note that this is UNIPROT indexing, not python indexing
+    m_list = [i+1 for i, topo in enumerate(Topo_data) if topo == TM_symbol]  # find(Topo_data)
+    return m_list
+
+def convert_alternating_list_to_nested_tuples(x):
+    return tuple(zip(x[::2], x[1::2]))
+
+def parse_TMSEG_results_DEPRECATED(pathdict, s, logging):
+    """DEPRECATED METHOD BASED ON LARGE FILE OF ALL TMSEG RESULTS
+
+    USE METHODS BASED ON INDIVIDUAL TMSEG DATAFILES INSTEAD.
+
+    """
+    logging.info("~~~~~~~~~~~~                        starting parse_TMSEG_results_DEPRECATED                    ~~~~~~~~~~~~")
     # create or open dataframe for protein list summary
     if os.path.isfile(pathdict["prot_list_summary_csv"]):
         df_PLS = pd.read_csv(pathdict["prot_list_summary_csv"], index_col=0)
@@ -370,151 +517,9 @@ def parse_TMSEG_results(pathdict, s, logging):
     df_TOP["number_of_TMDs"] = df_TOP["list_of_TMDs"].dropna().apply(lambda x : len(x))
     df_TOP['parse_TMSEG'] = True
     df_TOP.to_csv(pathdict["list_parsed_csv"], sep=",", quoting=csv.QUOTE_NONNUMERIC)
-    logging.info("\n~~~~~~~~~~~~                       parse_TMSEG_results is finished                  ~~~~~~~~~~~~")
-
-def slice_nonTMD_in_prot_list(df):
-    """Using existing indices and sequence, slices out all the TMD sequences.
-
-    Originally from TMSEG fasta parse code.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-
-    Returns
-    -------
-    df : pd.Dataframe
-        returns the same dataframe, with added sliced sequences
-    """
-    # glance at the watch
-    start = time.clock()
-
-    # set to be an empty string, which avoids the error related to inserting a python list into a cell
-    # "ValueError: Must have equal len keys and value when setting with an iterable"
-    df['list_of_TMDs_excl_SP'] = ""
-
-    for n, acc in enumerate(df.index):
-        ''' ~~   SLICE nonTMD sequence  ~~ '''
-        # list of TMDs excluding signal peptides
-        list_of_TMDs_excl_SP = df.loc[acc, 'list_of_TMDs']
-        # set value to avoid errors adding a list to a cell
-        df.set_value(acc, 'list_of_TMDs_excl_SP', list_of_TMDs_excl_SP)
-
-        seqstart = 0
-        # if any protein in list conatains a SP
-        if 'SP01_end' in df.columns:
-            # if THIS PARTICULAR PROTEIN contains a signal peptide sequence
-            if isinstance(df.loc[acc, 'SP01_seq'], str):
-                # change sequence start for nonTM to the end of the signal peptide
-                seqstart = int(df.loc[acc, 'SP01_end'])
-                # add the SP01 to the list of TMDs
-                df.set_value(acc, 'list_of_TMDs', ["SP01"] + list_of_TMDs_excl_SP)
-
-        # sequence from N-term. to first TMD
-        TM01_start = int(df.loc[acc, 'TM01_start'])
-
-        # NOTE THAT THIS USED TO BE nonTMD_first = df.loc[acc, 'full_seq'][0: TM01_start -1], but indexing missed the last nonTM residue.
-        nonTMD_first = df.loc[acc, 'full_seq'][seqstart: TM01_start - 1]
-        # start the sequence with the first segment
-        sequence_list = [nonTMD_first]
-        # only for multipass proteins, generate sequences between TMDs
-        if len(list_of_TMDs_excl_SP) == 0:
-            # no TMDs are annotated, skip to next protein
-            continue
-        # for multipass proteins
-        elif len(list_of_TMDs_excl_SP) > 1:
-            for TM_Nr in range(len(list_of_TMDs_excl_SP) - 1):
-                # the TMD is the equivalent item in the list
-                TMD = list_of_TMDs_excl_SP[TM_Nr]
-                # the next TMD, which contains the end index, is the next item in the list
-                next_TMD = list_of_TMDs_excl_SP[TM_Nr + 1]
-                # define start of next TMD
-                start_next = int(df.loc[acc, '%s_start' % next_TMD])
-                # end of current TMD
-                end_current = int(df.loc[acc, '%s_end' % TMD])
-                # middle sequence between TMDs
-                # note the "start_next - 1", used to convert uniprot indices to python indices
-                between_TM_and_TMplus1 = df.loc[acc, 'full_seq'][end_current: start_next - 1]
-                sequence_list.append(between_TM_and_TMplus1)
-        last_TMD = list_of_TMDs_excl_SP[-1]
-        # sequence from last TMD to C-term.
-        lastTM_end = int(df.loc[acc, '%s_end' % last_TMD])
-        seqlen = int(df.loc[acc, 'seqlen'])
-        nonTMD_last = df.loc[acc, 'full_seq'][lastTM_end:seqlen]
-        sequence_list.append(nonTMD_last)
-        # join all the sequences together
-        sequence = "".join(sequence_list)
-        df.loc[acc, 'nonTMD_seq'] = sequence
-        df.loc[acc, 'len_nonTMD'] = len(sequence)
-
-        if n % 50 == 0 and n != 0:
-            sys.stdout.write(".")
-            sys.stdout.flush()
-            if n % 500 == 0:
-                sys.stdout.write("\n")
-                sys.stdout.flush()
-    # glance at the watch again. Ruminate on time passed
-    sys.stdout.write("\ntime taken to slice nonTMD sequences : {:0.03f} s".format(time.clock() - start))
-
-    return df
-
-def get_list_TM_residues_from_topo_string(Topo_data, TM_symbol):
-    # get list of membrane indices
-    # note that this is UNIPROT indexing, not python indexing
-    m_list = [i+1 for i, topo in enumerate(Topo_data) if topo == TM_symbol]  # find(Topo_data)
-    return m_list
+    logging.info("\n~~~~~~~~~~~~                       parse_TMSEG_results_DEPRECATED is finished                  ~~~~~~~~~~~~")
 
 # def get_signal_peptide_indices_from_TMSEG_topo(Topo_data):
 #     # as above for membrane regions
 #     sp_list = [i for i, topo in enumerate(Topo_data) if topo == "S"]  # find(Topo_data)
 #     return sp_list
-
-def convert_alternating_list_to_nested_tuples(x):
-    return tuple(zip(x[::2], x[1::2]))
-
-def get_TM_indices_from_TMSEG_topo_str(topo_str, TM_symbol="H"):
-    """Get TM indices from TMSEG topology string.
-
-    input = topologo
-    E.g.
-    Parameters
-    ----------
-    topo_str : str
-        Topology string output from TMSEG.
-        H = TM helix
-        Orientation is currently not extracted.
-        E.g. "11111111111111HHHHHHHHHHHHHHHHHHH222222222222222222222222222222222222222222222222222222222222222222222222HHHHHHHHHHHHHHHHHHHHHHHHH"
-        "111111111111111111111111HHHHHHHHHHHHHHHHHHHHH222222222222222HHHHHHHHHHHHHHHHHHHH111111111111111111111111111111111111HHHHHHHHHHHHHHHHHHHHHHH"
-        "22222222222222222222222222222222HHHHHHHHHHHHHHHHHHHHHH1111111111111111111111111HHHHHHHHHHHHHHHHHHHHHHH22222222222222222222222222222222222222"
-        "2222HHHHHHHHHHHHHHHHHHHHH11111111111111111111111111111111111111"
-
-    Returns
-    -------
-    TM_indices : tuple
-        Nested tuple with start and end of all TM helices in topology string.
-        UniProt indexing is used ("HHH111" is (1:3), not (0:3))
-        E.g.
-        ((15, 33),1
-         (106, 130),
-         (155, 175),
-         (191, 210),
-         (247, 269),
-         (302, 323),
-         (349, 371),
-         (414, 434))
-    """
-    if TM_symbol in topo_str:
-        # get indices (eg. [28, 29, 30, 31, 32, 33, 34, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 72, 73, 74, 75, 76])
-        M_indices = get_list_TM_residues_from_topo_string(topo_str, TM_symbol)
-        #SiPe_indices = get_signal_peptide_indices_from_TMSEG_topo(topo_str)
-        # get borders to TM regions(eg. [28, 34, 58, 68, 72, 76])
-        m_borders = []
-        m_borders.append(M_indices[0])
-        m_borders = korbinian.prot_list.parse_OMPdb.check_for_border(M_indices, m_borders)
-        # add the last membrane index (e.g. 33)
-        m_borders.append(M_indices[-1])
-        # convert to nested tuples
-        TM_indices = convert_alternating_list_to_nested_tuples(m_borders)
-        return TM_indices
-    else:
-        return ()
