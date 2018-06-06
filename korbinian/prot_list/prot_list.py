@@ -1205,3 +1205,4 @@ def you_want_to_see_some_deprecated_stuff():
     #     df.at[acc, "number_of_TMDs_excl_SP"] = len(list_of_TMDs)
     #     # also create a list of TMDs excluding the signal peptide (may already exist, depending on source of proteins)
     #     df.set_value(acc, "list_of_TMDs_excl_SP", list_of_TMDs)
+    #
