@@ -181,7 +181,19 @@ def run_statements(s):
 
     ########################################################################################
     #                                                                                      #
-    #                            prepare_protein_list                               #
+    #                             Membrane protein filtering                               #
+    #                                                                                      #
+    ########################################################################################
+
+    if s["TM_filtering_SCAMPI"]:
+        korbinian.filtering.scampi.run_filtering(pathdict, s, logging)
+
+    if s["TM_filtering_SignalP"]:
+        korbinian.filtering.signalP.run_filtering(pathdict, s, logging)
+
+    ########################################################################################
+    #                                                                                      #
+    #                            prepare_protein_list                                      #
     #                                                                                      #
     ########################################################################################
 

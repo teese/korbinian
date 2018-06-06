@@ -8,6 +8,7 @@ import korbinian.prot_list
 import korbinian.simap_download
 import korbinian.simap_parse
 import korbinian.blast
+import korbinian.filtering
 import korbinian.utils
 import korbinian.run_korbinian
 import korbinian.MSA_normalisation
