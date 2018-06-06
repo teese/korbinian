@@ -73,8 +73,8 @@
 
 
 
-    uniprot_dir_sel : str
-        Path to uniprot/selected folder.
+    uniprot_dir : str
+        Path to databases/uniprot folder.
     list_number : int
         List number (e.g. 8), determining the input and output files.
     selected_uniprot_records_flatfile : str

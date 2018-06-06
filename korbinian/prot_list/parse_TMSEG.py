@@ -170,8 +170,8 @@ def parse_TMSEG_results_DEPRECATED(pathdict, s, logging):
     list_number = s['list_number']
 
     # define the uniprot directory with selected records
-    uniprot_dir_sel = os.path.join(s["data_dir"], 'uniprot', 'selected')
-    selected_uniprot_records_flatfile = os.path.join(uniprot_dir_sel, 'List%02d_selected_uniprot_records_flatfile.txt' % list_number)
+    uniprot_dir = os.path.join(s["data_dir"], 'uniprot')
+    selected_uniprot_records_flatfile = os.path.join(uniprot_dir, 'selected', 'List%02d_selected_uniprot_records_flatfile.txt' % list_number)
     n_aa_before_tmd = s["n_aa_before_tmd"]
     n_aa_after_tmd = s["n_aa_after_tmd"]
     list_parsed_csv = pathdict["list_parsed_csv"]

@@ -140,21 +140,20 @@ def run_statements(s):
     ########################################################################################
 
     # define the uniprot directory with selected records
-    uniprot_dir_sel = os.path.join(s["data_dir"], 'uniprot', 'selected')
-    selected_uniprot_records_flatfile = os.path.join(uniprot_dir_sel, 'List%02d_selected_uniprot_records_flatfile.txt' % list_number)
-    excelfile_with_uniprot_accessions = os.path.join(base_filename_summaries, '.xlsx')
-
-    if s["create_nonred_uniprot_flatfile_via_uniref"] == True:
-        korbinian.prot_list.uniprot_nonredundant.create_nonred_uniprot_flatfile_via_uniref(s, uniprot_dir_sel, selected_uniprot_records_flatfile, logging)
+    uniprot_dir = os.path.join(s["data_dir"], 'uniprot')
+    selected_uniprot_records_flatfile = os.path.join(uniprot_dir, 'selected', 'List%02d_selected_uniprot_records_flatfile.txt' % list_number)
 
     if s["parse_large_flatfile_with_list_uniprot_accessions"]:
         input_accession_list_path = os.path.join(s["data_dir"], "uniprot", "selected", "List{:02d}_uniprot_accessions.txt".format(list_number))
-        korbinian.prot_list.uniprot_retrieve.parse_large_flatfile_with_list_uniprot_accessions(s, input_accession_list_path, uniprot_dir_sel, logging, selected_uniprot_records_flatfile)
+        korbinian.prot_list.uniprot_retrieve.parse_large_flatfile_with_list_uniprot_accessions(s, input_accession_list_path, uniprot_dir, logging, selected_uniprot_records_flatfile)
 
     if s["retrieve_uniprot_data_for_acc_list_in_xlsx_file"]:
-        input_uniprot_flatfile = "needs to be defined if you use this function!"
+        input_uniprot_flatfile = "function not implemented!"
+        excelfile_with_uniprot_accessions = os.path.join(base_filename_summaries, '.xlsx')
         korbinian.prot_list.uniprot_retrieve.retrieve_uniprot_data_for_acc_list_in_xlsx_file(excelfile_with_uniprot_accessions, input_uniprot_flatfile, selected_uniprot_records_flatfile, logging)
 
+    if s["create_nonred_uniprot_flatfile_via_uniref"] == True:
+        korbinian.prot_list.uniprot_nonredundant.create_nonred_uniprot_flatfile_via_uniref(s, uniprot_dir, selected_uniprot_records_flatfile, logging)
 
     if s["parse_flatfile_to_csv"]:
         n_aa_before_tmd = s["n_aa_before_tmd"]

@@ -248,8 +248,6 @@ def prepare_protein_list(s, pathdict, logging):
     n_aa_before_tmd = s["n_aa_before_tmd"]
     n_aa_after_tmd = s["n_aa_after_tmd"]
 
-    logging.info('getting TM indices:')
-
     # calculate TM plus surr for ALL sequences, overwriting if necessary, in case this is changed later
     # currently the loop is run for each TMD, based on the sequence with the most TMDs
     for i in range(1, int(max_num_TMDs) + 1):
@@ -284,8 +282,6 @@ def prepare_protein_list(s, pathdict, logging):
     #      Calculate lipophilicity for all TMDs in list               #
     #                                                                                      #
     ########################################################################################
-    logging.info('calculating lipophilicity:')
-
     for TMD_Nr in range(1, max_num_TMDs + 1):
         TMD = "TM{:02d}".format(TMD_Nr)
         # calculate TMD length
@@ -311,10 +307,10 @@ def prepare_protein_list(s, pathdict, logging):
 
     # add a column that holds all joined TMD sequences
     for n, acc in enumerate(df.index):
-        if n % 20 == 0 and n != 0:
-            sys.stdout.write('.'), sys.stdout.flush()
-            if n % 600 == 0:
-                sys.stdout.write('\n'), sys.stdout.flush()
+        #if n % 20 == 0 and n != 0:
+        #    sys.stdout.write('.'), sys.stdout.flush()
+        #    if n % 600 == 0:
+        #        sys.stdout.write('\n'), sys.stdout.flush()
 
         list_of_TMDs = df.at[acc, 'list_of_TMDs']
         list_of_TMDs_excl_SP = df.at[acc, "list_of_TMDs_excl_SP"]
@@ -338,7 +334,7 @@ def prepare_protein_list(s, pathdict, logging):
             lipo_cols_excl_TM01 = ["{}_lipo".format(TMD) for TMD in list_of_TMDs_excl_SP_excl_TM01]
             lipo_sel_ser_excl_TM01 = df.loc[acc,lipo_cols_excl_TM01]
             df.at[acc, 'lipo_mean_excl_TM01'] = lipo_sel_ser_excl_TM01.mean()
-    sys.stdout.write("\n")
+    #sys.stdout.write("\n")
 
     # drop any proteins with X in sequence
     df['X_in_seq'] = df["full_seq"].str.contains("X")

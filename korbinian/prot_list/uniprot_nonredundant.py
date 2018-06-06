@@ -5,7 +5,7 @@ from Bio import SeqIO
 # import debugging tools
 from korbinian.utils import pr, pc, pn, aaa
 
-def create_nonred_uniprot_flatfile_via_uniref(s, uniprot_dir_sel, selected_uniprot_records_flatfile, logging):
+def create_nonred_uniprot_flatfile_via_uniref(s, uniprot_dir, selected_uniprot_records_flatfile, logging):
     """ Creates a non-redundant UniProt flatfile from redundant redundant UniProt tab files, redundant flatfiles and UniRef cluster tab file.
 
     The final output is the selected list of flatfiles, in the uniprot/selected folder (E.g. List08_selected_uniprot_records_flatfile.txt)
@@ -14,8 +14,8 @@ def create_nonred_uniprot_flatfile_via_uniref(s, uniprot_dir_sel, selected_unipr
     ----------
     s : dict
         Settings dictionary extracted from excel settings file.
-    uniprot_dir_sel : str
-        Path to uniprot/selected folder.
+    uniprot_dir : str
+        Path to databases/uniprot folder.
     list_number : int
         List number (e.g. 8), determining the input and output files.
     selected_uniprot_records_flatfile : str
@@ -33,15 +33,18 @@ def create_nonred_uniprot_flatfile_via_uniref(s, uniprot_dir_sel, selected_unipr
     # load uniref cutoff used (typically 50, for UniRef50)
     uniref_cutoff = s["uniref_cluster_cutoff"]
     # define path to csv file containing the list of redundant uniprot accessions, e.g. List08_redundant_list_uniprot_acc.tab
-    redundant_uniprot_acc_tab = os.path.join(uniprot_dir_sel, "List%02d_redundant_list_uniprot_acc.tab" % s["list_number"])
+    redundant_uniprot_acc_tab = os.path.join(uniprot_dir, "List%02d_redundant_list_uniprot_acc.tab" % s["list_number"])
     # define path to uniprot flatfile containing the redundant protein records, e.g. List08_redundant_uniprot_flatfile.txt
-    redundant_uniprot_flatfile = os.path.join(uniprot_dir_sel, "List%02d_redundant_uniprot_flatfile.txt" % s["list_number"])
+    redundant_uniprot_flatfile = os.path.join(uniprot_dir, "List%02d_redundant_uniprot_flatfile.txt" % s["list_number"])
     # define path to the csv file containing the relevant uniref clusters applicable to this list of proteins, e.g. List08_UniRef50_clusters.tab
-    uniref_clusters_tab = os.path.join(uniprot_dir_sel, "List%02d_UniRef%02d_clusters.tab" % (s["list_number"], uniref_cutoff))
+    uniref_clusters_tab = os.path.join(uniprot_dir, "List%02d_UniRef%02d_clusters.tab" % (s["list_number"], uniref_cutoff))
     # output uniprot list with redundancy determined
-    nonred_uniprot_acc_csv = os.path.join(uniprot_dir_sel, "List%02d_nonred_list_uniprot_acc.csv" % s["list_number"])
+    nonred_uniprot_acc_csv = os.path.join(uniprot_dir, "List%02d_nonred_list_uniprot_acc.csv" % s["list_number"])
 
-    korbinian.prot_list.uniprot_nonredundant.match_list_uniprot_acc_to_uniref_clusters(redundant_uniprot_acc_tab, uniref_clusters_tab, nonred_uniprot_acc_csv, uniref_cutoff, logging)
+    result = korbinian.prot_list.uniprot_nonredundant.match_list_uniprot_acc_to_uniref_clusters(redundant_uniprot_acc_tab, uniref_clusters_tab, nonred_uniprot_acc_csv, uniref_cutoff, logging)
+    if result is None:
+        logging.warning('~~~~~~~~~~~~create_nonred_uniprot_flatfile_via_uniref NOT DONE~~~~~~~~~~~~')
+        return None
     # reopen output file
     dfu = pd.read_csv(nonred_uniprot_acc_csv, index_col=0)
     # create a list of uniprot accessions that are nonredundant
@@ -49,6 +52,7 @@ def create_nonred_uniprot_flatfile_via_uniref(s, uniprot_dir_sel, selected_unipr
     # create a uniprot flatfile containing only the desired nonredundant accessions
     korbinian.prot_list.uniprot_nonredundant.retrieve_selected_uniprot_records_from_flatfile(list_nonred_acc, redundant_uniprot_flatfile, selected_uniprot_records_flatfile, logging)
     logging.info('~~~~~~~~~~~~create_nonred_uniprot_flatfile_via_uniref is finished~~~~~~~~~~~~')
+    return True
 
 def match_list_uniprot_acc_to_uniref_clusters(redundant_uniprot_acc_tab, uniref_clusters_tab, nonred_uniprot_acc_csv, uniref_cutoff, logging):
     """ Assigns UniRef clusters to each acc in a list of UniProt accessions.
@@ -83,6 +87,10 @@ def match_list_uniprot_acc_to_uniref_clusters(redundant_uniprot_acc_tab, uniref_
         index = UniProt accession
         columns = Protein names	Gene names	Organism	Length	nonred	cluster_ID
     """
+    if not os.path.isfile(uniref_clusters_tab):
+        logging.warning("REDUNDANCY REDUCTION NOT POSSIBLE, no uniref clusters found ({})".format(uniref_clusters_tab))
+        return None
+
     # create a new dataframe with the uniref csv file, containing the accessions of the reference sequences
     dfr = pd.read_table(uniref_clusters_tab)
     # to simplify, keep only the columns with the uniprot accessions
@@ -108,6 +116,7 @@ def match_list_uniprot_acc_to_uniref_clusters(redundant_uniprot_acc_tab, uniref_
     dfu = pd.read_table(redundant_uniprot_acc_tab)
     # set the uniprot acc as the index
     dfu = dfu.set_index('Entry', drop=False)
+    n_initial_records = dfu.shape[0]
 
     ##################################################################################################################
     #                                                                                                                #
@@ -125,6 +134,7 @@ def match_list_uniprot_acc_to_uniref_clusters(redundant_uniprot_acc_tab, uniref_
     dfu.loc[cluster_reps_acc_set, "cluster_ID"] = dfu.loc[cluster_reps_acc_set,:].Entry.apply(lambda x : "UniRef{}_{}".format(uniref_cutoff, x))
     # collect a set of the cluster IDs corresponding to the representatives in the list
     reps_cluster_ID_set = set(dfu.loc[cluster_reps_acc_set, "cluster_ID"])
+    n_prot_that_are_ref_seqs = len(reps_cluster_ID_set)
 
     ##################################################################################################################
     #                                                                                                                #
@@ -137,7 +147,10 @@ def match_list_uniprot_acc_to_uniref_clusters(redundant_uniprot_acc_tab, uniref_
     # to a cluster, where the representative protein was in the original list. These will be labelled "not found".
     unassigned = set(dfr.index) - reps_cluster_ID_set
     dfr_unassigned = dfr.loc[unassigned, :].copy()
-    logging.info("For {} / {} UniRef clusters, the reference sequence was a protein in the original non-redundant list".format(len(reps_cluster_ID_set),dfr.shape[0]))
+    n_clusters = dfr.shape[0]
+    logging.info("Number of initial redundant proteins : {}\n"
+                 "Number of uniref clusters : {}\n"
+                 "Number of proteins that were ref seqs for a cluster : {}".format(n_initial_records, n_clusters, n_prot_that_are_ref_seqs))
 
     ##################################################################################################################
     #                                                                                                                #
@@ -243,17 +256,17 @@ def match_list_uniprot_acc_to_uniref_clusters(redundant_uniprot_acc_tab, uniref_
     # log the number of redundant an nonredundant accessions
     nonred_value_counts = dfu['nonred'].value_counts()
     number_nonredundant_records = nonred_value_counts[True]
-    number_total_records = dfu.shape[0]
-    number_redundant_records = number_total_records - number_nonredundant_records
+    #number_total_records = dfu.shape[0]
+    number_redundant_records = n_initial_records - number_nonredundant_records
     if "not_found" in dfu["cluster_ID"].tolist():
         number_acc_not_found_in_UniRef = dfu["cluster_ID"].value_counts()["not_found"]
-        logging.info("{} acc not found in UniRef lists\n{}".format(number_acc_not_found_in_UniRef,list(dfu["cluster_ID"].isnull().index)))
+        acc_not_found_list = list(dfu["cluster_ID"].isnull().index)
+        logging.info("{} acc not found in UniRef clusters\n{}".format(number_acc_not_found_in_UniRef, acc_not_found_list))
 
-    logging.info('number_total_records = {0}, number_redundant_records removed = {1}, '
-                 'final number_nonredundant_records = {2}'.format(number_total_records,
-                                                                  number_redundant_records,
-                                                                  number_nonredundant_records))
+    logging.info('final number of non-redundant records : {}\n({} redundant removed)'.format(number_nonredundant_records, number_redundant_records))
+
     logging.info("~~~~~~~~~~~~match_list_uniprot_acc_to_uniref_clusters is finished~~~~~~~~~~~~")
+    return True
 
 def retrieve_selected_uniprot_records_from_flatfile(input_accession_list, large_input_uniprot_flatfile, output_flatfile, logging):
     '''Function to select records from a large uniprot flatfile, and save them as a smaller flatfile of selected records.
@@ -290,7 +303,7 @@ def retrieve_selected_uniprot_records_from_flatfile(input_accession_list, large_
             if n % 50 == 0:
                 if n!= 0:
                     logging.info('%i records retrieved from large flatfile' % n)
-    logging.info('%i-%i records retrieved from large flatfile' % (n + 1, len(list_acc_not_in_flatfile)))
+    logging.info('{} records retrieved from large flatfile ({} not found)'.format(n + 1, len(list_acc_not_in_flatfile)))
     if len(list_acc_not_in_flatfile) > 0:
-        logging.info("SwissProt records not found in %s:\n%s." % (large_input_uniprot_flatfile, list_acc_not_in_flatfile))
+        logging.info("SwissProt records not found in {}:\n{}.".format(large_input_uniprot_flatfile, list_acc_not_in_flatfile))
     logging.info("~~~~~~~~~~~~retrieve_selected_uniprot_records_from_flatfile is finished~~~~~~~~~~~~")

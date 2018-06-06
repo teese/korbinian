@@ -1752,7 +1752,7 @@ def save_figures_describing_proteins_in_list(pathdict, s, logging):
 
 
     # dictionary showing where the bitopic data is stored (e.g. list02 (human polytopic) matches list01 (human bitopic)
-    bitopic_list_dict = {"02" : "01", "12" : "01", "31" : "30", "48" : "47"}
+    bitopic_list_dict = {"02":"01", "08":"07", "12":"01", "31":"30", "48":"47"}
 
 
     if s["Fig21_linechart_lipo_f_c_l_vs_number_of_TMDs"]:
