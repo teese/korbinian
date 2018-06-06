@@ -2387,7 +2387,7 @@ def compare_lists (s, df_lists_tab):
     if Fig_Nr in list_figs_to_run:
         Fig_name = 'Fig24_boxplot_AAIMON_slope'
         #df, protein_lists, col, ylabel, df_dict, list_descriptions,
-        fig, ax = create_boxplot("AAIMON_slope_all_TM_res", r'm$_{\rm TM/EM} *10^{\rm -3}$', df_dict, protein_lists, list_descriptions, mult=1000, add_xlabel=False)
+        fig, ax = create_boxplot("AAIMON_slope_all_TM_res", r'm$_{\rm TM/EM} *10^{\rm -3}$', df_dict, protein_lists, list_descriptions, mult=1000, add_xlabel=True)
         #fig.savefig("AAIMON_slope_all_TM_res.png")
         #fig.savefig("AAIMON_slope_all_TM_res.pdf")
 
