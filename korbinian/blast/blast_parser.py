@@ -19,6 +19,7 @@ import ast
 import pickle
 import zipfile
 import csv
+import gzip
 import logging
 import re
 import os
@@ -72,7 +73,7 @@ def run(pathdict, s, logging):
     logging.info("\n" + "~~~~~~~~~~~~                 finished parsing BLAST results                 ~~~~~~~~~~~~")
 
 def parse_blast_result(p):
-    """ Parses the BLAST XML file to csv for a single protein.
+    """ Parses the BLSAT XML file to csv for a single protein.
 
     Parameters
     ----------
@@ -103,7 +104,7 @@ def parse_blast_result(p):
     Returns
     -------
     In all cases, a tuple (str, bool, str) is returned.
-    if successful:
+    if sucsessful:
         return acc, True, "0"
     if not successful:
         return acc, False, "specific warning or reason why protein failed"
@@ -115,9 +116,24 @@ def parse_blast_result(p):
     blast_xml_path = os.path.join(s["data_dir"], "blast", protein_name[:2], protein_name + ".blast_result.xml")
 
     #if BLAST_xml file is empty or don't exist -> give warning and return
-    if  not (os.path.exists(blast_xml_path) and os.path.getsize(blast_xml_path) > 0):
+    if  not (os.path.exists(blast_xml_path) and os.path.getsize(blast_xml_path) > 0) \
+        and not (os.path.exists(blast_xml_path + ".gz") and os.path.getsize(blast_xml_path + ".gz") > 0):
         logging.info("BLAST_parser:" + "\t" + protein_name + " BLAST results file don't exist or is empty")
         return
+
+    #Identify compression state of blast xml results file
+    blast_xml_compressed = False
+    if os.path.exists(blast_xml_path + ".gz"):
+        blast_xml_compressed = True
+
+    #Initialize BLAST xml result reader
+    #IF compressed -> open gzip reader
+    if blast_xml_compressed:
+        openBLAST = gzip.open
+        blast_xml_path = blast_xml_path + ".gz"
+    #ELSE -> open normal reader
+    else:
+        openBLAST = open
 
     #Read BLAST result xml file and parse required information into the match_details_dict Dictionary
     #BLAST parser structure was copied from the THOIPApy software
@@ -126,7 +142,7 @@ def parse_blast_result(p):
     BLAST_csv_file = os.path.join(s["data_dir"], "blast", protein_name[:2], protein_name + ".blast_result.TMP.csv")
     match_details_dict = {}
     with open(BLAST_csv_file, 'w') as homo_out_csv_file_handle:
-        with open(BLAST_xml_file) as xml_result_handle:
+        with openBLAST(BLAST_xml_file) as xml_result_handle:
             xml_record = NCBIXML.read(xml_result_handle)
             hit_num = 0
             #Iterate over each alignment in a blast result file

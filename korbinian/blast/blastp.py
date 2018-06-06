@@ -17,6 +17,7 @@ License         Released under the permissive MIT license.
 import csv
 import logging
 import os
+import gzip
 import korbinian
 import pandas as pd
 import sys
@@ -57,6 +58,7 @@ def run_BLAST_online(pathdict, s, logging):
     evalue = s["blast_Evalue"];
     hitsize = s["blast_max_hits"]
     overwrite_results = s["blast_overwrite_existing_results"]
+    compress_results = s["blast_compress_results"]
 
     #preprocessing BLASTp execution by iterate over each protein
     task_list = []
@@ -73,7 +75,7 @@ def run_BLAST_online(pathdict, s, logging):
         output_file = os.path.join(s["data_dir"], "blast", protein_name[:2], protein_name + ".blast_result.xml")
 
         #Save query data into task_list
-        task_list.append([protein_name, query, output_file, evalue, hitsize, overwrite_results])
+        task_list.append([protein_name, query, output_file, evalue, hitsize, overwrite_results, compress_results])
 
     #Execute BLASTp online searches
     if s["use_multiprocessing"]:
@@ -107,23 +109,64 @@ def BLAST_online_submission(task):
         (e.g. A2A2V5.blast_result.xml)
     """
     #Obtain query and parameters
-    protein_name, query, output_file, evalue, hitsize, overwrite_results = task
+    protein_name, query, output_file, evalue, hitsize, overwrite_results, compress_results = task
 
     #IF overwrite existing results is FALSE
     if not overwrite_results:
-        #check if file exist and is not empty: if yes return and don't execute BLASTp
+        #check if compressed file exist and is not empty: IF yes return and don't execute BLASTp
+        if  os.path.exists(output_file + ".gz") and os.path.getsize(output_file + ".gz") > 0:
+            #IF compress results is TURE -> return and don't execute BLASTp
+            if compress_results:
+                logging.info("Skipped BLASTp online search for protein:" + "\t" + protein_name)
+                return
+            #ELSE decompress file, return and don't execute BLASTp
+            else:
+                with gzip.open(output_file + ".gz", 'rb') as blast_result_in, open(output_file, 'wb') as blast_result_out:
+                    blast_result_out.write(blast_result_in.read())
+                os.remove(output_file + ".gz")
+                logging.info("Skipped BLASTp online search for protein:" + "\t" + protein_name)
+                return
+        #check if non compressed file exist and is not empty:
         if  os.path.exists(output_file) and os.path.getsize(output_file) > 0:
-            logging.info("Skipped BLASTp online search for protein:" + "\t" + protein_name)
-            return
+            #IF compress results is TURE -> compress the existing result file, return and don't execute BLASTp
+            if compress_results:
+                with open(output_file, "rb") as blast_result_in, gzip.open(output_file + ".gz", 'wb') as blast_result_out:
+                    blast_result_out.writelines(blast_result_in)
+                os.remove(output_file)
+                logging.info("Skipped BLASTp online search for protein:" + "\t" + protein_name)
+                return
+            #ELSE: return and don't execute BLASTp
+            else:
+                logging.info("Skipped BLASTp online search for protein:" + "\t" + protein_name)
+                return
+    #ELSE remove existing results
+    else:
+        #remove raw results
+        if os.path.exists(output_file):
+            os.remove(output_file)
+        #remove compressed results
+        if os.path.exists(output_file + ".gz"):
+            os.remove(output_file + ".gz")
+
 
     #Run BLASTp search
     logging.info("Run BLASTp online search for protein:" + "\t" + protein_name)
     blast_result = NCBIWWW.qblast("blastp", "nr", query, expect=evalue,  hitlist_size=hitsize)
 
-    #Write BLASTp result into file
-    with open(output_file, "w") as blast_result_writer:
-        blast_result_writer.write(blast_result.read())
-    blast_result_writer.close()
+    #Output results
+    #Write BLASTp result with a gzip compression into file
+    if compress_results:
+        with gzip.open(output_file + ".gz", 'wb') as blast_result_writer:
+            blast_result_writer.write(blast_result.read().encode('utf-8'))
+    #Write BLASTp result directly into file
+    else:
+        with open(output_file, "w") as blast_result_writer:
+            blast_result_writer.write(blast_result.read())
+
+
+
+
+
 
 
 
@@ -159,6 +202,7 @@ def run_BLAST_local(pathdict, s, logging):
     hitsize = s["blast_max_hits"]
     database = s["BLAST_local_DB"]
     overwrite_results = s["blast_overwrite_existing_results"]
+    compress_results = s["blast_compress_results"]
 
     #preprocessing BLASTp execution by iterate over each protein
     task_list = []
@@ -175,7 +219,7 @@ def run_BLAST_local(pathdict, s, logging):
         output_file = os.path.join(s["data_dir"], "blast", protein_name[:2], protein_name + ".blast_result.xml")
 
         #Save query data into task_list
-        task_list.append([protein_name, query, output_file, evalue, hitsize, database, overwrite_results])
+        task_list.append([protein_name, query, output_file, evalue, hitsize, database, overwrite_results, compress_results])
 
     #Execute BLASTp local searches
     if s["use_multiprocessing"]:
@@ -206,14 +250,44 @@ def BLAST_local_submission(task):
         (e.g. A2A2V5.blast_result.xml)
     """
     #Obtain query and parameters
-    protein_name, query, output_file, evalue, hitsize, database, overwrite_results = task
+    protein_name, query, output_file, evalue, hitsize, database, overwrite_results, compress_results = task
 
     #IF overwrite existing results is FALSE
     if not overwrite_results:
-        #check if file exist and is not empty: if yes return and don't execute BLASTp
+        #check if compressed file exist and is not empty: IF yes return and don't execute BLASTp
+        if  os.path.exists(output_file + ".gz") and os.path.getsize(output_file + ".gz") > 0:
+            #IF compress results is TURE -> return and don't execute BLASTp
+            if compress_results:
+                logging.info("Skipped BLASTp local search for protein:" + "\t" + protein_name)
+                return
+            #ELSE decompress file, return and don't execute BLASTp
+            else:
+                with gzip.open(output_file + ".gz", 'rb') as blast_result_in, open(output_file, 'wb') as blast_result_out:
+                    blast_result_out.write(blast_result_in.read())
+                os.remove(output_file + ".gz")
+                logging.info("Skipped BLASTp local search for protein:" + "\t" + protein_name)
+                return
+        #check if non compressed file exist and is not empty:
         if  os.path.exists(output_file) and os.path.getsize(output_file) > 0:
-            logging.info("Skipped BLASTp local search for protein:" + "\t" + protein_name)
-            return
+            #IF compress results is TURE -> compress the existing result file, return and don't execute BLASTp
+            if compress_results:
+                with open(output_file, "rb") as blast_result_in, gzip.open(output_file + ".gz", 'wb') as blast_result_out:
+                    blast_result_out.writelines(blast_result_in)
+                os.remove(output_file)
+                logging.info("Skipped BLASTp local search for protein:" + "\t" + protein_name)
+                return
+            #ELSE: return and don't execute BLASTp
+            else:
+                logging.info("Skipped BLASTp local search for protein:" + "\t" + protein_name)
+                return
+    #ELSE remove existing results
+    else:
+        #remove raw results
+        if os.path.exists(output_file):
+            os.remove(output_file)
+        #remove compressed results
+        if os.path.exists(output_file + ".gz"):
+            os.remove(output_file + ".gz")
 
     #Run BLASTp search
     logging.info("Run BLASTp local search for protein:" + "\t" + protein_name)
@@ -224,3 +298,9 @@ def BLAST_local_submission(task):
     if out or err:
         outlogging.warning(out)
         outlogging.warning(err)
+
+    #IF compress results is TURE -> compress the blast xml result file
+    if compress_results:
+        with open(output_file, "rb") as blast_result_in, gzip.open(output_file + ".gz", 'wb') as blast_result_out:
+            blast_result_out.writelines(blast_result_in)
+        os.remove(output_file)
