@@ -235,9 +235,10 @@ def BLAST_submission(task):
 
     #TODO: Add -out parameter for the hits and out_ascii_pssm for the pssm file
     #TODO: Both compressed if required
-    blastp_cline = NcbipsiblastCommandline(db=database, evalue=evalue, max_target_seqs=hitsize, outfmt=5,
-                                            out=output_hit_file, out_ascii_pssm=output_pssm_file, remote=remote_tag)
-    out, err = blastp_cline(stdin=query)
+    psiblast_cline = NcbipsiblastCommandline('psiblast', db=database, evalue=evalue, max_target_seqs=hitsize, outfmt=5,
+                                            out=output_hit_file, out_ascii_pssm=output_pssm_file, remote=remote_tag,
+                                            inclusion_ethresh=evalue, num_iterations=3, use_sw_tback=True, seg="no")
+    out, err = psiblast_cline(stdin=query)
 
     #Exception handling of BLAST execution
     if out or err:
@@ -250,8 +251,8 @@ def BLAST_submission(task):
         if os.path.exists(output_hit_file):
             with open(output_hit_file, "rb") as blast_result_in, gzip.open(output_hit_file + ".gz", 'wb') as blast_result_out:
                 blast_result_out.writelines(blast_result_in)
-            os.remove(output_hit_file)
+            #os.remove(output_hit_file)
         if os.path.exists(output_pssm_file):
             with open(output_pssm_file, "rb") as blast_result_in, gzip.open(output_pssm_file + ".gz", 'wb') as blast_result_out:
                 blast_result_out.writelines(blast_result_in)
-            os.remove(output_pssm_file)
+            #os.remove(output_pssm_file)
