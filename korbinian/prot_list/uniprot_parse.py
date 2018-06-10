@@ -290,7 +290,8 @@ def parse_flatfile_to_csv(selected_uniprot_records_flatfile, n_aa_before_tmd, n_
         dfu['uniprot_KW'] = dfu['uniprot_KW'].astype(str)
         dfu['uniprot_features'] = dfu['uniprot_features'].astype(str)
         dfu['list_of_TMDs'] = dfu['list_of_TMDs'].astype(str)
-        dfu['topol_source'] = "uniprot"
+        dfu['topol_source'] = "UniProt"         #Hotfix: "UniProt" instead of "uniprot" or
+                                                #else all proteins will be filtered out later
 
         # save to a csv
         utils.make_sure_path_exists(list_parsed_csv, isfile=True)

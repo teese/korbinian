@@ -44,6 +44,43 @@ def run_filtering(pathdict, s, logging):
     #execute SCAMPI2
     out = subprocess.call([s["SCAMPI_local"], path_fasta, pathdict["SCAMPI_top"]])
 
+    #read & parse SCAMPI results and create query.nonTM_list.txt and query.TM_list.txt summary result files
+    with open(pathdict["SCAMPI_top"], 'r') as scampi_result:
+        #initialize lists
+        noTM_list = []
+        TM_list = []
+        protein_id = None
+        prediction = None
+        #Iterate over each line in the SCAMPI results file
+        for line in scampi_result:
+            #Remove new line character
+            if "\n" in line:
+                line = line.rstrip("\n")
+            #IF line is a entry header -> save protein ID
+            if line.startswith(">"):
+                protein_id = line[1:]
+            #ELSE line is a prediction
+            else:
+                prediction = line
+                #IF the prediction result contains a "M" for membrane prediction
+                #-> add it to the TM_list
+                if 'M' in prediction:
+                    TM_list.append(protein_id)
+                #ELSE -> add it to the nonTM_list
+                else:
+                    noTM_list.append(protein_id)
+
+    #output noTM_list
+    noTM_list_path = pathdict["SCAMPI_nonTM"]
+    with open(noTM_list_path, 'w') as SCAMPI_noTM_list:
+        for item in noTM_list:
+            SCAMPI_noTM_list.write(item + "\n")
+    #output TM_list
+    TM_list_path = os.path.join(pathdict["SCAMPI_dir"], "query.TM_list.txt")
+    with open(TM_list_path, 'w') as SCAMPI_TM_list:
+        for item in TM_list:
+            SCAMPI_TM_list.write(item + "\n")
+
     logging.info("~~~~~~~~~~~~                 finished filtering: SCAMPI2                 ~~~~~~~~~~~~")
 
 

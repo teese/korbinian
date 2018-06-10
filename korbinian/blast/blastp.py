@@ -296,8 +296,8 @@ def BLAST_local_submission(task):
 
     #Exception handling of BLAST execution
     if out or err:
-        outlogging.warning(out)
-        outlogging.warning(err)
+        logging.warning(out)
+        logging.warning(err)
 
     #IF compress results is TURE -> compress the blast xml result file
     if compress_results:

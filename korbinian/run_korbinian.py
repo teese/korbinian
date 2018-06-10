@@ -176,6 +176,13 @@ def run_statements(s):
     if s["TM_filtering_SignalP"]:
         korbinian.filtering.signalP.run_filtering(pathdict, s, logging)
 
+    if s["TM_filtering_TMSEQ_PSI-BLAST_createDatabase"]:
+        korbinian.blast.psiblast.create_BLAST_database(pathdict, s, logging)
+    if s["TM_filtering_TMSEQ_PSI-BLAST"]:
+        korbinian.blast.psiblast.run_BLAST(pathdict, s, logging)
+    #if s["TM_filtering_TMSEQ"]:
+    #    korbinian.filtering.tmseq.run_filtering(pathdict, s, logging)
+
     ########################################################################################
     #                                                                                      #
     #                            prepare_protein_list                                      #

@@ -33,6 +33,8 @@ from time import strftime
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from inspect import currentframe, getframeinfo, stack
 import io
+import urllib.request
+from tqdm import tqdm
 
 def aaa(df_or_series):
     """ Function for use in debugging.
@@ -1941,3 +1943,55 @@ def split_TMSEG_fasta_into_separate_files(concat_file, predictions_dir):
             f.write(record)
         sys.stdout.write("."), sys.stdout.flush()
     sys.stdout.write("\n{} records processed".format(n))
+
+def downloaderInterface(url, outputPath, logging):
+    """Downloads a file from the web (url) and saves it in the provided outputPath.
+
+    Parameters
+    ----------
+    url : string
+        String containing a valid url to a file which should be downloaded.
+    outputPath : string
+        String containing a valid path where the downloaded file should be saved.
+    logging : boolean
+        Logging variable (boolean) decides if a progressbar should be printed to console or not.
+
+    Saved Files and Figures
+    -----------------------
+    Downloaded file saved at the provided output path
+    """
+    # response = requests.get(url, stream=True)
+    # total_size = int(response.headers.get('content-length', 0));
+    # block_size = 1024
+    # with open(outputPath, 'wb') as f:
+    #     if logging:
+    #         for data in tqdm(response.iter_content(block_size), unit='KB',\
+    #                     unit_scale=True, total=math.ceil(total_size//block_size)):
+    #             f.write(data)
+    #     else:
+    #         for data in response.iter_content(block_size):
+    #             f.write(data)
+
+    #code obtained from "https://pypi.org/project/tqdm/"
+    class TqdmUpTo(tqdm):
+        """Provides `update_to(n)` which uses `tqdm.update(delta_n)`."""
+        def update_to(self, b=1, bsize=1, tsize=None):
+            """
+            b  : int, optional
+                Number of blocks transferred so far [default: 1].
+            bsize  : int, optional
+                Size of each block (in tqdm units) [default: 1].
+            tsize  : int, optional
+                Total size (in tqdm units). If [default: None] remains unchanged.
+            """
+            if tsize is not None:
+                self.total = tsize
+            self.update(b * bsize - self.n)  # will also set self.n = b * bsize
+
+    if logging:
+        with TqdmUpTo(unit='B', unit_scale=True, miniters=1,
+                      desc=url.split('/')[-1]) as t:  # all optional kwargs
+            urllib.request.urlretrieve(url, filename=outputPath,
+                               reporthook=t.update_to, data=None)
+    else:
+        urllib.request.urlretrieve(url, filename=outputPath)

@@ -25,7 +25,7 @@ setup(name="korbinian",
 	long_description=long_description,
 	long_description_content_type='text/x-rst',
 	packages=find_packages(),
-	install_requires=['numpy','matplotlib','pandas', 'seaborn', 'scipy', 'biopython'],
+	install_requires=['numpy','matplotlib','pandas', 'seaborn', 'scipy', 'biopython', 'tqdm'],
     license='MIT',
 	project_urls=
     {
