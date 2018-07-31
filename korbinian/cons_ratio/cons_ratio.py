@@ -1,7 +1,9 @@
 
 #Switch matplotlib library for possible commandline execution
 import matplotlib
-matplotlib.use('Agg')
+
+# commented out as it causes errors in dependencies.
+#matplotlib.use('Agg')
 
 from multiprocessing import Pool
 from scipy.optimize import leastsq

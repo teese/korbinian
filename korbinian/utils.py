@@ -5,7 +5,9 @@ Utilities file containing useful functions.
 """
 #Switch matplotlib library for possible commandline execution
 import matplotlib
-matplotlib.use('Agg')
+
+# commented out as it causes errors in dependencies.
+#matplotlib.use('Agg')
 
 import ast
 import csv

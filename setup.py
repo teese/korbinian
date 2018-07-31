@@ -20,7 +20,7 @@ setup(name="korbinian",
 	author="Mark Teese",
 	author_email="mark.teese@checkmytumhomepage.de",
 	url="https://github.com/teese/korbinian",
-	download_url = 'https://github.com/teese/korbinian/archive/0.3.3.tar.gz',
+	download_url = 'https://github.com/teese/korbinian/archive/0.3.4.tar.gz',
 	description = "Bioinformatic sequence analysis of membrane proteins.",
 	long_description=long_description,
 	long_description_content_type='text/x-rst',
@@ -38,5 +38,5 @@ setup(name="korbinian",
     },
     include_package_data=True,
 	keywords="bioinformatics protein sequence membrane conservation evolution membranous soluble polypeptide BLAST SIMAP",
-	version="0.3.3"
+	version="0.3.4"
 	)
