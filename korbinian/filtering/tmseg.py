@@ -53,7 +53,7 @@ def run_filtering(pathdict, s, logging):
 
     #execute tmseg
     logging.info("TMSEG filtering: Run TMSEG")
-    out = subprocess.check_output(["java", "-jar", s["TMSEG_local"], "-i", tmseg_fasta_dir, "-p", tmseg_pssm_dir,
+    out = subprocess.check_output([s["java_exec_str"], "-jar", s["TMSEG_local"], "-i", tmseg_fasta_dir, "-p", tmseg_pssm_dir,
                                     "-o", tmseg_out_dir, "-m"])
 
     #gather predictions out of the tmseg results directory
