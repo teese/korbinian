@@ -445,6 +445,11 @@ def get_topology_for_prot_list(s, pathdict, logging):
     #                                                                                      #
     ########################################################################################
     if "TMSEG" in s['TM_def']:
+        #check if tmseg_output.tar.gz exist
+        if os.path.exists(os.path.join(pathdict['TMSEG_dir'], "output.tar.gz")):
+            #extract tmseg results
+            korbinian.filtering.tmseg.extract_results(pathdict['TMSEG_dir'])
+
         list_acc_without_TMSEG = []
         for acc in df.index:
             sys.stdout.write("."), sys.stdout.flush()
@@ -452,8 +457,9 @@ def get_topology_for_prot_list(s, pathdict, logging):
             full_seq = df.at[acc, "full_seq"]
             TMSEG_fastastyle_file = os.path.join(predictions_dir, acc[0:2], "{}_TMSEG_fastastyle.txt".format(acc))
             TMSEG_file = os.path.join(predictions_dir, acc[0:2], "{}_TMSEG.txt".format(acc))
+            TMSEG_domi_file = os.path.join(pathdict['TMSEG_dir'], "output", "{}.tmseg".format(acc))
 
-            if any([os.path.isfile(TMSEG_file), os.path.isfile(TMSEG_fastastyle_file)]):
+            if any([os.path.isfile(TMSEG_file), os.path.isfile(TMSEG_fastastyle_file), os.path.isfile(TMSEG_domi_file)]):
                 if os.path.isfile(TMSEG_file):
                     with open(TMSEG_file) as f:
                         split_record = f.read().strip().split("\n")
@@ -474,6 +480,16 @@ def get_topology_for_prot_list(s, pathdict, logging):
                             list_acc_without_TMSEG.append(acc)
                             continue
                         topo = split_record[2]
+
+                elif os.path.isfile(TMSEG_domi_file):
+                    with open(TMSEG_domi_file) as f:
+                        split_record = f.read().strip().split("\n")
+                        seq = split_record[-2]
+                        if full_seq != seq:
+                            logging.warning("\n{} seq from TMSEG_fastastyle.txt does not match original seq with this acc\nseq:{}\nfse:{}".format(acc, seq, full_seq))
+                            list_acc_without_TMSEG.append(acc)
+                            continue
+                        topo = split_record[-1]
 
                 else:
                     raise ValueError("how did we end up here? something must be wrong.")
@@ -496,6 +512,11 @@ def get_topology_for_prot_list(s, pathdict, logging):
                 df.at[acc, "number_of_TMDs"] = np.nan
                 df.at[acc, "list_of_TMDs"] = np.nan
         sys.stdout.write("\n")
+
+        #check if tmseg output.tar.gz was extracted
+        if os.path.exists(os.path.join(pathdict['TMSEG_dir'], "output")):
+            #compress tmseg results again for storage reasons
+            korbinian.filtering.tmseg.compress_results(pathdict['TMSEG_dir'])
 
         TMSEG_missing_dir = os.path.join(s["data_dir"], "summaries", "{:02d}".format(s["list_number"]), "List{:02d}_predictions".format(s["list_number"]), "TMSEG", "missing")
         if not os.path.isdir(TMSEG_missing_dir):

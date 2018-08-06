@@ -81,6 +81,14 @@ def run_filtering(pathdict, s, logging):
         for item in TM_list:
             SCAMPI_TM_list.write(item + "\n")
 
+    #output summary file
+    with open(os.path.join(pathdict["SCAMPI_dir"], "SCAMPI.results.tsv"), 'w') as SCAMPI_summary:
+        SCAMPI_summary.write("#id" + "\t" + "prediction" + "\n")
+        for protein_id in noTM_list:
+            SCAMPI_summary.write(protein_id + "\t" + "noTM" + "\n")
+        for protein_id in TM_list:
+            SCAMPI_summary.write(protein_id + "\t" + "TM" + "\n")
+
     logging.info("~~~~~~~~~~~~                 finished filtering: SCAMPI2                 ~~~~~~~~~~~~")
 
 

@@ -39,7 +39,7 @@ def run_filtering(pathdict, s, logging):
     logging : logging.Logger
         Logger for printing to console and logfile.
     """
-    logging.info("~~~~~~~~~~~~                 starting running filtering: tmseg                 ~~~~~~~~~~~~")
+    logging.info("~~~~~~~~~~~~                 starting running filtering: TMSEG                 ~~~~~~~~~~~~")
 
     #create tmseg output directory and create temporary FASTA & PSSM directories
     logging.info("TMSEG filtering: Preprocessing")
@@ -69,7 +69,7 @@ def run_filtering(pathdict, s, logging):
         tar.add(tmseg_out_dir, arcname=os.path.basename(tmseg_out_dir))
     shutil.rmtree(tmseg_out_dir)
 
-    logging.info("~~~~~~~~~~~~                 finished filtering: tmseg                 ~~~~~~~~~~~~")
+    logging.info("~~~~~~~~~~~~                 finished filtering: TMSEG                 ~~~~~~~~~~~~")
 
 
 #create the fasta directory for TMSEG (for each protein a fasta file)
@@ -146,7 +146,7 @@ def collect_predictions(pathdict, tmseg_out_dir):
     for result_file in result_file_list:
         #obtain protein accession ID
         protein_id = result_file.split(".")[0]
-        #define path to result file
+        #define path to the result file
         rf = os.path.join(tmseg_out_dir, result_file)
         #Read TMSEG result file
         with open(rf, 'r') as rf_reader:
@@ -185,13 +185,26 @@ def collect_predictions(pathdict, tmseg_out_dir):
         #save output of collected results
         output_list.append(acc + "\t" + prediction + "\n")
     #initialize a writer to output the collected results
-    out_collected_results = os.path.join(pathdict["TMSEG_dir"], "tmseg.results.tsv")
+    out_collected_results = os.path.join(pathdict["TMSEG_dir"], "TMSEG.results.tsv")
     with open(out_collected_results, 'w') as ocr_writer:
         #output header
         ocr_writer.write("#Proteins as TM predicted (TM):" + "\t\t\t" + str(pred_counter[0]) + "\n")
         ocr_writer.write("#Proteins as non TM predicted (noTM):" + "\t\t" + str(pred_counter[1]) + "\n")
         ocr_writer.write("#Proteins with no prediction at all (-):" + "\t" + str(pred_counter[2]) + "\n")
-        ocr_writer.write("#id" + "\t" + "prediction" + "\n")
+        ocr_writer.write("id" + "\t" + "prediction" + "\n")
         #output all collected results
         for result in output_list:
             ocr_writer.write(result)
+
+#extract tmseg_output.tar.gz for processing
+def extract_results(tmseg_dir):
+    tmseg_out = os.path.join(tmseg_dir, "output.tar.gz")
+    with tarfile.open(tmseg_out, "r:gz") as tar:
+        tar.extractall(tmseg_dir)
+
+#compress tmseg_output for storage
+def compress_results(tmseg_dir):
+    tmseg_out_dir = os.path.join(tmseg_dir, "output")
+    with tarfile.open(tmseg_out_dir + ".tar.gz", "w:gz") as tar:
+        tar.add(tmseg_out_dir, arcname=os.path.basename(tmseg_out_dir))
+    shutil.rmtree(tmseg_out_dir)
