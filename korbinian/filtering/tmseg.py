@@ -200,7 +200,26 @@ def collect_predictions(pathdict, tmseg_out_dir):
 def extract_results(tmseg_dir):
     tmseg_out = os.path.join(tmseg_dir, "output.tar.gz")
     with tarfile.open(tmseg_out, "r:gz") as tar:
-        tar.extractall(tmseg_dir)
+        def is_within_directory(directory, target):
+            
+            abs_directory = os.path.abspath(directory)
+            abs_target = os.path.abspath(target)
+        
+            prefix = os.path.commonprefix([abs_directory, abs_target])
+            
+            return prefix == abs_directory
+        
+        def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+        
+            for member in tar.getmembers():
+                member_path = os.path.join(path, member.name)
+                if not is_within_directory(path, member_path):
+                    raise Exception("Attempted Path Traversal in Tar File")
+        
+            tar.extractall(path, members, numeric_owner=numeric_owner) 
+            
+        
+        safe_extract(tar, tmseg_dir)
 
 #compress tmseg_output for storage
 def compress_results(tmseg_dir):
